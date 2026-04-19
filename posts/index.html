@@ -1,0 +1,83 @@
+---
+layout: default
+title: "Posts"
+description: "All writing, most recent first."
+---
+
+<section class="wrap">
+  <div class="page-head">
+    <div class="kicker">Archive</div>
+    <h1>All posts</h1>
+    <p class="blurb">Everything, most recent first. {{ site.posts | size }} {% if site.posts.size == 1 %}entry{% else %}entries{% endif %} so far.</p>
+  </div>
+
+  <div class="search-box">
+    <input type="search" id="post-search" placeholder="Search posts by title, topic, or keyword…" autocomplete="off" aria-label="Search posts">
+  </div>
+
+  <ul class="posts-list" id="posts-list">
+    {% for post in site.posts %}
+      <li class="post-row"
+          data-title="{{ post.title | downcase | escape }}"
+          data-excerpt="{{ post.excerpt | strip_html | downcase | escape }}"
+          data-category="{{ post.category | downcase | escape }}">
+        <div class="date">{{ post.date | date: "%b %-d, %Y" }}</div>
+        <div>
+          <div class="title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></div>
+          {% if post.excerpt %}<div class="excerpt">{{ post.excerpt | strip_html | truncate: 180 }}</div>{% endif %}
+        </div>
+        {% if post.category %}
+          {% assign cat_slug = post.category | slugify %}
+          {% for c in site.categories_list %}
+            {% if c.slug == cat_slug %}
+              <span class="cat-tag">{{ c.name }}</span>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <p class="search-empty" id="search-empty">No posts match that search.</p>
+</section>
+
+<script>
+(function() {
+  var input = document.getElementById('post-search');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#posts-list .post-row'));
+  var empty = document.getElementById('search-empty');
+  if (!input || !rows.length) return;
+
+  function filter() {
+    var q = input.value.trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function(row) {
+      if (!q) {
+        row.classList.remove('hidden');
+        visible++;
+        return;
+      }
+      var hay = (row.dataset.title || '') + ' ' +
+                (row.dataset.excerpt || '') + ' ' +
+                (row.dataset.category || '');
+      if (hay.indexOf(q) !== -1) {
+        row.classList.remove('hidden');
+        visible++;
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+    empty.classList.toggle('show', visible === 0);
+  }
+
+  input.addEventListener('input', filter);
+
+  // Focus on "/" keypress for power users
+  document.addEventListener('keydown', function(e) {
+    if (e.key === '/' && document.activeElement !== input) {
+      e.preventDefault();
+      input.focus();
+    }
+  });
+})();
+</script>
