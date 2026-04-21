@@ -1,7 +1,7 @@
 ---
 title: "Foundations: MDPs, Value Functions, and the Bellman Equations"
 subtitle: "The discrete-time stochastic state-space model you already know, with a different name and a sign flip."
-date: 2026-04-21 09:00:00 -0400
+date: 2026-04-20 11:00:00 -0400
 category: "Reinforcement Learning"
 slug: rl-foundations-mdps-value-functions-bellman
 excerpt: "Every RL algorithm starts from the same place: write down the MDP. This post covers the formalism a control engineer actually needs — state, action, reward, the discount factor, the value functions, and the Bellman recursion that runs everything from Q-learning to PPO."
