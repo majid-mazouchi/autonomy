@@ -18,7 +18,7 @@ Seven posts. This one — the hub — lays out the map: the three architectural 
 
 The six deep-dive posts below cover each topic with the math, the intuition, and an interactive demo where one makes sense. Each one can be read independently but they form a coherent arc.
 
-1. **Foundations — MDPs, value functions, and the Bellman equations.** *Coming soon.* The formalism and what it really means. The Markov assumption, reward shaping, discount factors, and why writing down the MDP correctly is 80% of the work.
+1. [**Foundations — MDPs, value functions, and the Bellman equations.**]({{ '/posts/rl-foundations-mdps-value-functions-bellman/' | relative_url }}) The formalism and what it really means. The Markov assumption, reward shaping, discount factors, and why writing down the MDP correctly is 80% of the work.
 2. **Temporal difference learning, SARSA, and Q-learning.** *Coming soon.* Bootstrapping, the TD error, on-policy vs off-policy — and why Q-learning is the algorithm that gave rise to everything modern.
 3. **Policy gradients and actor-critic.** *Coming soon.* REINFORCE → advantage estimation → TRPO → PPO. Where the variance comes from and what GAE does about it.
 4. **Exploration and modern deep RL — SAC, PPO, TD3, DDPG.** *Coming soon.* The four algorithms that dominate continuous control, what each one actually does, and when each one is the right call.
