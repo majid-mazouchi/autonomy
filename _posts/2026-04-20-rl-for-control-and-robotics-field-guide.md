@@ -19,10 +19,10 @@ Seven posts. This one — the hub — lays out the map: the three architectural 
 The six deep-dive posts below cover each topic with the math, the intuition, and an interactive demo where one makes sense. Each one can be read independently but they form a coherent arc.
 
 1. [**Foundations — MDPs, value functions, and the Bellman equations.**]({{ '/posts/rl-foundations-mdps-value-functions-bellman/' | relative_url }}) The formalism and what it really means. The Markov assumption, reward shaping, discount factors, and why writing down the MDP correctly is 80% of the work.
-2. **Temporal difference learning, SARSA, and Q-learning.** *Coming soon.* Bootstrapping, the TD error, on-policy vs off-policy — and why Q-learning is the algorithm that gave rise to everything modern.
-3. **Policy gradients and actor-critic.** *Coming soon.* REINFORCE → advantage estimation → TRPO → PPO. Where the variance comes from and what GAE does about it.
-4. **Exploration and modern deep RL — SAC, PPO, TD3, DDPG.** *Coming soon.* The four algorithms that dominate continuous control, what each one actually does, and when each one is the right call.
-5. **Model-based RL and MPC hybrids.** *Coming soon.* Where RL meets your existing MPC infrastructure. Learned dynamics, uncertainty-aware planning, and the hybrid architectures that work on real hardware.
+2. [**Temporal difference learning, SARSA, and Q-learning.**]({{ '/posts/rl-td-sarsa-q-learning/' | relative_url }}) Bootstrapping, the TD error, on-policy vs off-policy — and why Q-learning is the algorithm that gave rise to everything modern.
+3. [**Policy gradients and actor-critic.**]({{ '/posts/rl-policy-gradients-actor-critic/' | relative_url }}) REINFORCE → advantage estimation → TRPO → PPO. Where the variance comes from and what GAE does about it.
+4. [**Exploration and modern deep RL — SAC, PPO, TD3, DDPG.**]({{ '/posts/rl-exploration-sac-ppo-td3-ddpg/' | relative_url }}) The four algorithms that dominate continuous control, what each one actually does, and when each one is the right call.
+5. [**Model-based RL and MPC hybrids.**]({{ '/posts/rl-model-based-mpc-hybrids/' | relative_url }}) Where RL meets your existing MPC infrastructure. Learned dynamics, uncertainty-aware planning, and the hybrid architectures that work on real hardware.
 6. **Robotics in practice — sim-to-real, offline RL, and safe RL.** *Coming soon.* The parts no one teaches in school: domain randomization, offline policy learning, safety filters, and the difference between a policy that works in simulation and one that deploys.
 
 The rest of this post is self-contained and delivers real value on its own — even if you never click any of the links above, you'll leave with a working taxonomy and concrete algorithmic recommendations.
