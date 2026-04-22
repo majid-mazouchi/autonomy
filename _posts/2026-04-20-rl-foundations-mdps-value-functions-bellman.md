@@ -10,7 +10,52 @@ reading_time: 15
 
 This is the second post in my [field guide to reinforcement learning for control and robotics]({{ '/posts/rl-for-control-and-robotics-field-guide/' | relative_url }}). The hub post laid out the map — the taxonomy, a five-question algorithm selector, the rules of thumb. This one starts filling in the detail. We begin where every RL algorithm begins: writing down the Markov Decision Process.
 
+## What RL actually is, in one paragraph
+
+Reinforcement learning is the study of how to make good decisions in environments where the *consequences* of those decisions unfold over time and the *best* decisions have to be learned from experience rather than derived from a known model. An agent observes its environment, picks an action, receives a reward and a new observation, and uses that signal to gradually improve its decision-making. That's the whole object. Everything in this field — Q-learning, PPO, SAC, model-based RL — is some strategy for doing that improvement well.
+
 Every RL problem is an MDP. If you come from control, you already know this object — you just called it a discrete-time stochastic state-space model with a cost functional. The machinery is nearly identical. The differences are small but matter: RL maximizes where control minimizes, the dynamics are unknown rather than given, and the solution comes out as a *policy* rather than a closed-form control law. Once you see those three translations, the rest of the field falls into place.
+
+## The agent-environment loop
+
+Every RL algorithm, no matter how sophisticated, is built on one cycle that repeats forever: the agent observes, acts, and learns. The widget below shows that cycle live. Hit **play** to watch the loop run; each tick, the agent picks an action based on its current observation, the environment transitions to a new state, and a reward is emitted back. Slow it down with the speed slider to see what's happening at each step.
+
+<div class="rl-widget rl-loop">
+
+  <div class="rl-w-head">
+    <div class="rl-w-title">Interactive — the agent-environment loop</div>
+    <div class="rl-w-tag">How RL works</div>
+  </div>
+
+  <div class="rl-w-body">
+    <canvas id="loopCanvas" class="rl-w-canvas" height="320"></canvas>
+
+    <div class="rl-w-actions">
+      <button type="button" class="rl-btn primary" id="loopPlay">▶ Play</button>
+      <button type="button" class="rl-btn" id="loopStep">Step</button>
+      <button type="button" class="rl-btn ghost" id="loopReset">Reset</button>
+    </div>
+
+    <div class="rl-w-ctrls" style="margin-top:14px;">
+      <div class="rl-w-ctrl">
+        <label>Speed <span class="val" id="loopSpeedVal">1.0×</span></label>
+        <input type="range" id="loopSpeed" min="1" max="30" step="1" value="10">
+      </div>
+      <div class="rl-w-ctrl">
+        <label>Step count <span class="val" id="loopSteps">0</span></label>
+      </div>
+      <div class="rl-w-ctrl">
+        <label>Cumulative reward <span class="val" id="loopReturn">0.00</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="rl-w-foot">
+    The agent (left) sees an observation, picks an action, and sends it to the environment (right). The environment updates its state and returns a new observation plus a reward. Every RL algorithm is a different way to choose actions that make the cumulative reward grow.
+  </div>
+</div>
+
+With the loop in mind, the formal object is what you'd expect.
 
 ## The MDP, formally
 
@@ -97,9 +142,9 @@ The defining property of value functions: the value at a state equals the immedi
 
 $$Q^\pi(s,a) = \mathbb{E}_{s' \sim P}\!\left[ r + \gamma\, \mathbb{E}_{a' \sim \pi}[Q^\pi(s', a')] \right]$$
 
-And for the optimal $Q^*$, the **Bellman optimality equation**:
+And for the optimal $Q^\star$, the **Bellman optimality equation**:
 
-$$Q^*(s,a) = \mathbb{E}_{s' \sim P}\!\left[ r + \gamma\, \max_{a'} Q^*(s', a') \right]$$
+$$Q^\star(s,a) = \mathbb{E}_{s' \sim P}\!\left[ r + \gamma\, \max_{a'} Q^\star(s', a') \right]$$
 
 That `max` is the *only* difference between evaluating a fixed policy and finding the best one. It's also the reason Q-learning works at all — and the reason it struggles with continuous actions, where you can't enumerate the `max` without some approximation.
 
@@ -661,5 +706,341 @@ You now have the vocabulary and the central recursion. The next post unpacks *ho
 
   resetQ();
   setTimeout(resizeGrid, 60);
+})();
+
+/* ====================================================================
+   Widget 3 — The agent-environment loop
+   A didactic animation: boxes for agent/environment with arrows showing
+   observation → action → reward flow. Plays as a continuous cycle.
+   ==================================================================== */
+(function() {
+  var cv = document.getElementById('loopCanvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var widget = cv.closest('.rl-widget');
+
+  function cvar(name, fallback) {
+    var v = getComputedStyle(widget).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  // Cycle phases — what's highlighted at each moment in the loop:
+  // 0 = agent thinking, 1 = action flowing to env, 2 = env transitioning,
+  // 3 = reward + obs flowing back to agent
+  var phase = 0;
+  var phaseProgress = 0;  // 0 -> 1 within current phase
+  var playing = false;
+  var stepCount = 0;
+  var cumReward = 0;
+  var lastReward = 0;
+  var lastAction = '—';
+  var envState = 0;  // just a visual indicator — a number that drifts
+  var raf = null;
+  var lastFrameTime = null;
+
+  // Synthetic "agent + environment" for the visualization
+  var actionLabels = ['right', 'up', 'left', 'down'];
+
+  function doOneStep() {
+    // Pick a "smart-ish" action that tends to push state toward 5
+    // (so cumulative reward drifts up and the demo feels purposeful).
+    var targetAction;
+    if (envState < 4) targetAction = 1; // up
+    else if (envState > 6) targetAction = 3; // down
+    else targetAction = Math.floor(Math.random() * 4);
+
+    // Add a little stochasticity so it isn't perfectly greedy
+    if (Math.random() < 0.15) targetAction = Math.floor(Math.random() * 4);
+
+    lastAction = actionLabels[targetAction];
+
+    // Environment transition
+    if (targetAction === 1) envState += 0.6 + Math.random() * 0.3;
+    else if (targetAction === 3) envState -= 0.6 + Math.random() * 0.3;
+    else envState += (Math.random() - 0.5) * 0.3;
+    envState = Math.max(0, Math.min(10, envState));
+
+    // Reward: higher when near 5 (the sweet spot)
+    lastReward = 1 - Math.abs(envState - 5) / 5;
+    lastReward = +lastReward.toFixed(2);
+    cumReward += lastReward;
+    stepCount++;
+
+    document.getElementById('loopSteps').textContent = stepCount;
+    document.getElementById('loopReturn').textContent = cumReward.toFixed(2);
+  }
+
+  function resetLoop() {
+    phase = 0;
+    phaseProgress = 0;
+    stepCount = 0;
+    cumReward = 0;
+    lastReward = 0;
+    lastAction = '—';
+    envState = 5;
+    document.getElementById('loopSteps').textContent = '0';
+    document.getElementById('loopReturn').textContent = '0.00';
+    draw();
+  }
+
+  function togglePlay() {
+    playing = !playing;
+    var btn = document.getElementById('loopPlay');
+    btn.textContent = playing ? '❚❚ Pause' : '▶ Play';
+    if (playing) {
+      lastFrameTime = null;
+      raf = requestAnimationFrame(tick);
+    } else if (raf) {
+      cancelAnimationFrame(raf);
+    }
+  }
+
+  function tick(now) {
+    if (!playing) return;
+    if (lastFrameTime === null) lastFrameTime = now;
+    var dt = (now - lastFrameTime) / 1000;
+    lastFrameTime = now;
+
+    var speed = parseInt(document.getElementById('loopSpeed').value) / 10;
+    phaseProgress += dt * speed;
+
+    while (phaseProgress >= 1) {
+      phaseProgress -= 1;
+      phase = (phase + 1) % 4;
+      if (phase === 0) {
+        // Completed a full cycle — execute one actual environment step
+        doOneStep();
+      }
+    }
+
+    draw();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function stepOnce() {
+    // Single step: run the full cycle once synchronously for the action,
+    // then animate through phases.
+    if (playing) togglePlay();
+    doOneStep();
+    phase = 0;
+    phaseProgress = 0;
+    draw();
+  }
+
+  function resize() {
+    var rect = cv.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = rect.width * dpr;
+    cv.height = 320 * dpr;
+    cv.style.height = '320px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, active, progress) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = active ? 2.5 : 1.25;
+    ctx.globalAlpha = active ? 1 : 0.35;
+
+    // Dashed line, with a moving pulse if active
+    ctx.setLineDash(active ? [] : [4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowhead
+    var ang = Math.atan2(y2 - y1, x2 - x1);
+    var ahLen = 9;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ahLen * Math.cos(ang - Math.PI / 6), y2 - ahLen * Math.sin(ang - Math.PI / 6));
+    ctx.lineTo(x2 - ahLen * Math.cos(ang + Math.PI / 6), y2 - ahLen * Math.sin(ang + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+
+    // Pulse dot traveling along the active arrow
+    if (active) {
+      var dotX = x1 + (x2 - x1) * progress;
+      var dotY = y1 + (y2 - y1) * progress;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.fill();
+      // halo
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 10, 0, 2 * Math.PI);
+      ctx.globalAlpha = 0.2;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    var rect = cv.getBoundingClientRect();
+    var W = rect.width, H = 320;
+
+    var paper = cvar('--paper', '#f4efe6');
+    var paper2 = cvar('--paper-2', '#ebe3d4');
+    var rule = cvar('--rule', '#c8bfae');
+    var ink = cvar('--ink', '#1a1814');
+    var inkSoft = cvar('--ink-soft', '#4a4640');
+    var inkMute = cvar('--ink-mute', '#8a8277');
+    var accent = cvar('--accent', '#b94a1b');
+
+    ctx.fillStyle = paper;
+    ctx.fillRect(0, 0, W, H);
+
+    // Layout: Agent box on left, Environment box on right
+    var boxW = Math.min(170, (W - 80) / 2 - 30);
+    var boxH = 120;
+    var agentX = 40;
+    var envX = W - 40 - boxW;
+    var boxY = (H - boxH) / 2 - 10;
+
+    var isAgentActive = (phase === 0);
+    var isEnvActive = (phase === 2);
+
+    // Agent box
+    ctx.fillStyle = isAgentActive ? accent : paper2;
+    roundRect(agentX, boxY, boxW, boxH, 6);
+    ctx.fill();
+    ctx.strokeStyle = isAgentActive ? accent : rule;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = isAgentActive ? paper : ink;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '500 15px "Fraunces", Georgia, serif';
+    ctx.fillText('Agent', agentX + boxW / 2, boxY + 32);
+
+    ctx.font = '11px "DM Mono", ui-monospace, monospace';
+    ctx.fillStyle = isAgentActive ? paper : inkMute;
+    ctx.fillText('π(a | s)', agentX + boxW / 2, boxY + 54);
+
+    ctx.font = '10px "DM Mono", ui-monospace, monospace';
+    ctx.fillStyle = isAgentActive ? paper : inkSoft;
+    ctx.fillText('last action:', agentX + boxW / 2, boxY + 82);
+    ctx.font = '500 12px "DM Mono", ui-monospace, monospace';
+    ctx.fillText(lastAction, agentX + boxW / 2, boxY + 98);
+
+    // Environment box
+    ctx.fillStyle = isEnvActive ? accent : paper2;
+    roundRect(envX, boxY, boxW, boxH, 6);
+    ctx.fill();
+    ctx.strokeStyle = isEnvActive ? accent : rule;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = isEnvActive ? paper : ink;
+    ctx.font = '500 15px "Fraunces", Georgia, serif';
+    ctx.fillText('Environment', envX + boxW / 2, boxY + 32);
+
+    ctx.font = '11px "DM Mono", ui-monospace, monospace';
+    ctx.fillStyle = isEnvActive ? paper : inkMute;
+    ctx.fillText("P(s' | s, a)", envX + boxW / 2, boxY + 54);
+
+    // Visual state indicator: a horizontal bar showing envState in [0,10]
+    var barY = boxY + 78;
+    var barX = envX + 22;
+    var barW2 = boxW - 44;
+    ctx.fillStyle = isEnvActive ? 'rgba(255,255,255,0.3)' : rule;
+    ctx.fillRect(barX, barY, barW2, 6);
+    var markerX = barX + barW2 * (envState / 10);
+    ctx.fillStyle = isEnvActive ? paper : accent;
+    ctx.beginPath();
+    ctx.arc(markerX, barY + 3, 5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.font = '10px "DM Mono", ui-monospace, monospace';
+    ctx.fillStyle = isEnvActive ? paper : inkMute;
+    ctx.fillText('state = ' + envState.toFixed(2), envX + boxW / 2, boxY + 100);
+
+    // Arrows
+    var arrowY1 = boxY + 30;  // top arrow (action going right)
+    var arrowY2 = boxY + boxH - 30;  // bottom arrow (obs + reward coming back)
+
+    // Top arrow: action flowing from Agent to Environment (phase 1)
+    var topActive = (phase === 1);
+    drawArrow(
+      agentX + boxW + 8, arrowY1,
+      envX - 8, arrowY1,
+      accent, topActive, phaseProgress
+    );
+
+    // Top arrow labels
+    ctx.fillStyle = topActive ? accent : inkMute;
+    ctx.font = '500 10px "DM Mono", ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    var midX = (agentX + boxW + envX) / 2;
+    ctx.fillText('action  aₜ', midX, arrowY1 - 6);
+
+    // Bottom arrow: observation + reward flowing back (phase 3)
+    var botActive = (phase === 3);
+    drawArrow(
+      envX - 8, arrowY2,
+      agentX + boxW + 8, arrowY2,
+      accent, botActive, phaseProgress
+    );
+
+    ctx.fillStyle = botActive ? accent : inkMute;
+    ctx.font = '500 10px "DM Mono", ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('observation  sₜ₊₁,   reward  rₜ₊₁', midX, arrowY2 + 8);
+
+    // Reward readout as a small colored chip under the bottom arrow
+    if (stepCount > 0) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = '10px "DM Mono", ui-monospace, monospace';
+      ctx.fillStyle = inkMute;
+      ctx.fillText('last r = ' + lastReward.toFixed(2), midX, arrowY2 + 24);
+    }
+
+    // Phase label at the bottom
+    var phaseLabels = [
+      '1. Agent selects action based on current observation',
+      '2. Action sent to environment',
+      '3. Environment transitions to new state',
+      '4. New observation and reward returned to agent'
+    ];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = 'italic 11px "Newsreader", Georgia, serif';
+    ctx.fillStyle = inkSoft;
+    ctx.fillText(phaseLabels[phase], W / 2, H - 12);
+  }
+
+  document.getElementById('loopPlay').addEventListener('click', togglePlay);
+  document.getElementById('loopStep').addEventListener('click', stepOnce);
+  document.getElementById('loopReset').addEventListener('click', resetLoop);
+  document.getElementById('loopSpeed').addEventListener('input', function(e) {
+    document.getElementById('loopSpeedVal').textContent = (parseInt(e.target.value) / 10).toFixed(1) + '×';
+  });
+
+  window.addEventListener('resize', resize);
+  resetLoop();
+  setTimeout(resize, 50);
 })();
 </script>

@@ -46,7 +46,7 @@ Swap the next-action value for the *maximum* over next actions and you get Q-lea
 
 $$ Q(S_t, A_t) \;\leftarrow\; Q(S_t, A_t) + \alpha\bigl[\, R_{t+1} + \gamma\, \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t) \,\bigr] $$
 
-The update target refers to the **greedy** policy, even though the data came from $\varepsilon$-greedy. That's the essence of off-policy learning: the behavior policy generating the data can differ from the target policy being evaluated. Q-learning converges to $Q^*$ regardless of how exploratory the behavior policy is — as long as it eventually visits every state-action pair.
+The update target refers to the **greedy** policy, even though the data came from $\varepsilon$-greedy. That's the essence of off-policy learning: the behavior policy generating the data can differ from the target policy being evaluated. Q-learning converges to $Q^\star$ regardless of how exploratory the behavior policy is — as long as it eventually visits every state-action pair.
 
 > **The one-character difference.** SARSA uses $Q(S', A')$. Q-learning uses $\max_{a'} Q(S', a')$. That's it. From a code perspective, the diff is one line. From a behavior perspective, it's the difference between learning a policy that respects your exploration and learning the fearless optimum.
 
