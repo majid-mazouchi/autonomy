@@ -28,12 +28,12 @@ Every chapter has a diagram you can read in about twenty seconds and prose that 
 
 ## Read it
 
-<p style="margin: 28px 0;">
+<div style="margin: 28px 0; text-align: center;">
   <a href="{{ '/assets/posts/twenty-two-ideas.html' | relative_url }}"
-     style="display: inline-block; padding: 14px 24px; background: var(--accent); color: var(--paper); font-family: var(--f-ui); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; border-radius: 2px; font-weight: 500;">
+     style="display: inline-block; padding: 14px 28px; background: var(--accent); color: var(--paper); font-family: var(--f-ui); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; border-radius: 2px; font-weight: 500;">
     Open the primer →
   </a>
-</p>
+</div>
 
 The visual primer lives at its own URL with its own visual identity — a darker paper, a different typographic voice, a full set of custom diagrams. It's intentionally designed as a standalone artifact, so this post is mostly a pointer. Hit the button above and enjoy.
 
