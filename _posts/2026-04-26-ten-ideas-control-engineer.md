@@ -12,8 +12,6 @@ I keep re-watching Brian Douglas's *Control Systems in Practice* MATLAB Tech Tal
 
 This monograph is that place. Ten chapters. Each pairs a chapter of plain-language explanation with a live interactive figure, then links out to its source screencast in a companion section at the end.
 
-> **A note on how this was made.** I directed Claude to write each chapter from my outline of the ideas I wanted illustrated, then reviewed and edited for accuracy. The selection of topics, the pedagogical structure, and the decision to ship it are mine; the drafting was Claude's.
-
 ## What it covers
 
 **Chapters 1–2 — The bridge to reality.** Feedforward control (when feedback alone isn't fast enough) and why time delay turns easy control problems into difficult ones.

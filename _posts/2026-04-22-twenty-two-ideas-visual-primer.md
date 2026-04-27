@@ -4,13 +4,11 @@ subtitle: "A visual primer on the concepts every engineer working with language 
 date: 2026-04-22 12:00:00 -0400
 category: "Machine Learning"
 slug: twenty-two-ideas-visual-primer
-excerpt: "A 22-chapter field guide to modern AI systems — tokenization, attention, LLMs, prompting techniques, RAG, agent frameworks, MCP, and the engineering considerations around them. Drafted with Claude to my outline, then edited and shipped."
+excerpt: "A 22-chapter field guide to modern AI systems — tokenization, attention, LLMs, prompting techniques, RAG, agent frameworks, MCP, and the engineering considerations around them."
 reading_time: 3
 ---
 
 Every few months, a new wave of acronyms lands in the AI ecosystem — MoE, RAG, ReAct, ToT, MCP — and every engineer I talk to is quietly maintaining a mental glossary trying to keep up. This post is my attempt to put mine on paper.
-
-> **A note on how this was made.** I directed Claude to produce this primer from an outline of the 22 concepts I wanted engineers to understand, then reviewed and edited the result. The selection of topics, the structure, the pedagogical arc, and the decision to ship it are mine; the drafting was Claude's.
 
 ## What it covers
 
