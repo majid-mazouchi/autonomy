@@ -1,0 +1,3410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Field Guide to Path Planning · Interactive Monograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   DESIGN TOKENS, scientific monograph, warm paper aesthetic
+   ========================================================= */
+:root{
+  --paper:        #f3ede0;       /* warm cream */
+  --paper-deep:   #ebe3d2;       /* slightly darker paper */
+  --paper-edge:   #dccfb0;       /* edge / rule lines */
+  --ink:          #1a1a24;       /* deep ink */
+  --ink-soft:     #3a3a48;       /* secondary ink */
+  --ink-mute:     #6b6458;       /* muted sepia */
+  --rule:         #b9ae90;       /* rule line */
+  --accent-red:   #b1202a;       /* vermilion, goals, warnings */
+  --accent-blue:  #134a6b;       /* prussian, paths, cold */
+  --accent-amber: #c77b1e;       /* ochre, obstacles, heat */
+  --accent-green: #2f6a3a;       /* moss, success, admissible */
+  --accent-plum:  #5a2f5f;       /* aubergine, tertiary */
+  --grid-line:    #d9cfb6;
+
+  --ff-display: "Fraunces", "EB Garamond", Georgia, serif;
+  --ff-body:    "EB Garamond", Georgia, serif;
+  --ff-mono:    "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --radius: 2px;
+  --shadow-soft: 0 1px 0 rgba(26,26,36,.06), 0 10px 30px -18px rgba(26,26,36,.25);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(193,39,45,0.04), transparent 60%),
+    radial-gradient(ellipse at 80% 40%, rgba(19,74,107,0.05), transparent 55%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--ff-body);
+  font-size: 19px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x:hidden;
+}
+
+/* subtle paper grain */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(rgba(90,70,40,.05) 1px, transparent 1px),
+    radial-gradient(rgba(90,70,40,.035) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+  pointer-events:none;
+  mix-blend-mode:multiply;
+  z-index:0;
+  opacity:.55;
+}
+
+main, header, footer, section{position:relative; z-index:1;}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+h1,h2,h3,h4{
+  font-family: var(--ff-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0;
+}
+h1{ font-size: clamp(2.4rem, 5.4vw, 4.8rem); font-weight:300; font-style:italic; }
+h2{ font-size: clamp(1.9rem, 3.6vw, 2.9rem); font-weight:500; }
+h3{ font-size: 1.35rem; font-weight:600; letter-spacing: 0.01em; }
+h4{ font-size: 1.05rem; font-weight:600; text-transform: uppercase; letter-spacing:.12em; font-family: var(--ff-mono);}
+
+p{ margin: 0 0 1em 0; }
+em{ font-style: italic; color: var(--ink); }
+strong{ font-weight:600; }
+
+.small-caps{
+  font-variant-caps: all-small-caps;
+  letter-spacing: .08em;
+  font-weight:500;
+}
+
+code, .mono{ font-family: var(--ff-mono); font-size: .88em; }
+code{ background: var(--paper-deep); padding: .08em .35em; border-radius: 2px; border:1px solid var(--paper-edge);}
+
+a{ color: var(--accent-blue); text-decoration: none; border-bottom: 1px solid rgba(19,74,107,.35);}
+a:hover{ border-bottom-color: var(--accent-blue);}
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+.container{
+  max-width: 1180px;
+  padding: 0 clamp(1.2rem, 3vw, 3rem);
+  margin: 0 auto;
+}
+.wide{
+  max-width: 1320px;
+}
+
+/* =========================================================
+   MASTHEAD
+   ========================================================= */
+.masthead{
+  padding: 3.2rem 0 2rem 0;
+  border-bottom: 1px solid var(--rule);
+  position:relative;
+}
+.masthead .back-to-blog {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: .72rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin-bottom: 1.6rem;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.masthead .back-to-blog:hover {
+  border-bottom-color: var(--accent-red);
+}
+.masthead .eyebrow{
+  font-family: var(--ff-mono);
+  font-size: .72rem;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom:.9rem;
+  margin-bottom: 2.6rem;
+}
+.masthead .eyebrow span:nth-child(2){ color: var(--accent-red); letter-spacing:.18em;}
+
+.title-block{
+  display:grid;
+  grid-template-columns: 1.2fr .9fr;
+  gap: 2.8rem;
+  align-items:end;
+  padding: 1.2rem 0 2.4rem 0;
+}
+@media (max-width: 820px){
+  .title-block{ grid-template-columns:1fr; gap:1.6rem; }
+}
+.title-block .lede{
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  padding-left: 1.4rem;
+  border-left: 2px solid var(--accent-red);
+  font-style: italic;
+}
+.byline{
+  margin-top: 1.3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  display: inline-flex;
+  gap: .7rem;
+  align-items: center;
+}
+.byline strong{
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.byline .sep{
+  color: var(--accent-red);
+  font-size: 1rem;
+}
+.drop-cap::first-letter{
+  font-family: var(--ff-display);
+  font-weight: 400;
+  float: left;
+  font-size: 4.2em;
+  line-height: .88;
+  padding: .08em .12em 0 0;
+  color: var(--accent-red);
+  font-style: normal;
+}
+
+.folio{
+  display:flex; gap:2.2rem;
+  font-family: var(--ff-mono); font-size:.72rem;
+  letter-spacing:.14em; text-transform:uppercase;
+  color: var(--ink-mute);
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+.folio .dot{ width:6px; height:6px; background: var(--accent-red); display:inline-block; margin-right:.5rem; transform: translateY(-1px); border-radius:50%;}
+
+/* =========================================================
+   SECTIONS
+   ========================================================= */
+section.chapter{
+  padding: 4rem 0 2.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.chapter-head{
+  display:grid;
+  grid-template-columns: 90px 1fr;
+  gap: 1.6rem;
+  align-items:baseline;
+  margin-bottom: 2.4rem;
+}
+.chapter-num{
+  font-family: var(--ff-mono);
+  font-size: .75rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+  border-top: 2px solid var(--accent-red);
+  padding-top: .5rem;
+}
+.chapter-title h2{
+  margin-bottom:.3rem;
+}
+.chapter-title .subtitle{
+  font-family: var(--ff-body);
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: 1.05rem;
+}
+
+.two-col{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.4rem;
+}
+@media (max-width: 900px){ .two-col{ grid-template-columns:1fr; } }
+
+.callout{
+  background: var(--paper-deep);
+  border-left: 3px solid var(--accent-amber);
+  padding: 1rem 1.2rem;
+  margin: 1.4rem 0;
+  font-size: .98rem;
+  line-height: 1.55;
+}
+.callout h4{
+  color: var(--accent-amber);
+  margin-bottom: .4rem;
+  font-size: .78rem;
+}
+.callout.note{ border-color: var(--accent-blue);}
+.callout.note h4{ color: var(--accent-blue);}
+.callout.warn{ border-color: var(--accent-red);}
+.callout.warn h4{ color: var(--accent-red);}
+.callout.good{ border-color: var(--accent-green);}
+.callout.good h4{ color: var(--accent-green);}
+
+/* =========================================================
+   INTERACTIVE DEMO PANEL
+   ========================================================= */
+.demo{
+  background: #fbf8f0;
+  border: 1px solid var(--paper-edge);
+  box-shadow: var(--shadow-soft);
+  padding: 1.2rem;
+  margin: 2rem 0;
+  position:relative;
+}
+.demo::before{
+  content:"FIG.";
+  position:absolute;
+  top: -10px; left: 1rem;
+  background: var(--paper);
+  font-family: var(--ff-mono); font-size:.7rem;
+  letter-spacing:.22em;
+  color: var(--ink-mute);
+  padding: 0 .5rem;
+}
+.demo-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom: .8rem;
+  flex-wrap:wrap;
+  gap:.6rem;
+}
+.demo-title{
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  font-weight:500;
+}
+.demo-num{
+  font-family: var(--ff-mono);
+  font-size:.7rem;
+  letter-spacing:.2em;
+  color: var(--accent-red);
+  text-transform:uppercase;
+}
+.demo canvas{
+  width:100%;
+  display:block;
+  background: #fffcf4;
+  border: 1px solid var(--paper-edge);
+  cursor: crosshair;
+  touch-action: none;
+}
+/* explicit heights per demo (canvas element's height attribute only controls backing
+   store; width:100% + intrinsic aspect ratio would stretch the element vertically
+   otherwise) */
+#cv-grid{    height:400px; }
+#cv-pf{      height:360px; }
+#cv-prm{     height:360px; }
+#cv-rrt{     height:400px; }
+#cv-dwa{     height:420px; }
+#cv-quintic{ height:360px; }
+#cv-frenet{  height:360px; }
+@media (max-width: 600px){
+  #cv-grid,#cv-rrt,#cv-dwa{ height:340px; }
+  #cv-pf,#cv-prm,#cv-quintic,#cv-frenet{ height:280px; }
+}
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap: .5rem .8rem;
+  align-items:center;
+  margin-top: .9rem;
+  padding-top:.9rem;
+  border-top: 1px dashed var(--paper-edge);
+  font-family: var(--ff-mono);
+  font-size: .78rem;
+}
+.controls button, .controls select{
+  font-family: var(--ff-mono);
+  font-size: .75rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: .45rem .85rem;
+  cursor:pointer;
+  transition: all .15s ease;
+  border-radius: 0;
+}
+.controls button:hover{ background: var(--ink); color: var(--paper);}
+.controls button.primary{ background: var(--accent-red); color:#fff8ea; border-color: var(--accent-red);}
+.controls button.primary:hover{ background: var(--ink); border-color: var(--ink);}
+.controls button.ghost{ border-style: dashed;}
+.controls button:disabled{ opacity:.4; cursor:not-allowed;}
+.controls label{ display:inline-flex; align-items:center; gap:.4rem; color: var(--ink-soft);}
+.controls input[type=range]{ accent-color: var(--accent-red); width:110px;}
+.controls .badge{
+  padding: .18rem .5rem;
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  color: var(--ink-soft);
+  font-size:.72rem;
+}
+.legend{
+  display:flex; flex-wrap:wrap; gap: .8rem 1.2rem;
+  font-family: var(--ff-mono);
+  font-size:.72rem;
+  color: var(--ink-soft);
+  padding-top:.7rem;
+  margin-top:.4rem;
+}
+.legend .sw{
+  width:12px; height:12px; display:inline-block;
+  margin-right: .35rem; vertical-align:-2px;
+  border: 1px solid rgba(0,0,0,.15);
+}
+.demo-caption{
+  font-family: var(--ff-body);
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: .92rem;
+  margin-top: .8rem;
+  padding-top: .7rem;
+  border-top: 1px solid var(--paper-edge);
+  line-height: 1.5;
+}
+.demo-caption b{ font-style:normal; color: var(--ink); font-weight:600;}
+
+/* =========================================================
+   TAXONOMY TREE
+   ========================================================= */
+.taxonomy{
+  background: #fbf8f0;
+  border: 1px solid var(--paper-edge);
+  padding: 2rem;
+  margin: 1.5rem 0;
+  box-shadow: var(--shadow-soft);
+}
+.taxonomy h3{ text-align:center; margin-bottom:.3rem;}
+.taxonomy .subtitle{
+  text-align:center;
+  font-style:italic;
+  color:var(--ink-mute);
+  font-size:.95rem;
+  margin-bottom:1.6rem;
+}
+.tax-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+@media (max-width: 820px){ .tax-grid{ grid-template-columns:1fr; } }
+.tax-card{
+  border: 1px solid var(--paper-edge);
+  background: var(--paper);
+  padding: 1rem 1.1rem;
+  position:relative;
+}
+.tax-card h4{
+  font-size: .75rem;
+  color: var(--accent-red);
+  margin-bottom: .6rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--paper-edge);
+}
+.tax-card ul{
+  list-style:none; padding:0; margin:0;
+  font-family: var(--ff-body);
+  font-size: .95rem;
+}
+.tax-card ul li{
+  padding: .18rem 0;
+  padding-left: .9rem;
+  position:relative;
+  color: var(--ink-soft);
+}
+.tax-card ul li::before{
+  content:"·";
+  position:absolute; left:.2rem; top:-.1em;
+  color: var(--accent-red);
+  font-weight:700; font-size:1.2em;
+}
+.tax-card ul li.sub{ padding-left:1.8rem; font-size:.88rem; color: var(--ink-mute);}
+.tax-card ul li.sub::before{ content:"›"; left:.9rem; font-size:.8em; color: var(--rule);}
+
+/* =========================================================
+   COMPARISON TABLE
+   ========================================================= */
+.compare-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .92rem;
+  background: #fbf8f0;
+  border: 1px solid var(--ink);
+  margin: 1.5rem 0;
+}
+.compare-table th,
+.compare-table td{
+  padding: .7rem .9rem;
+  text-align:left;
+  border-bottom: 1px solid var(--paper-edge);
+  vertical-align:top;
+}
+.compare-table th{
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: .72rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-weight:500;
+}
+.compare-table tr:nth-child(even) td{ background: rgba(235,227,210,.4);}
+.compare-table td .mono{ font-size:.82rem; color: var(--ink-soft);}
+.compare-table td strong{ color: var(--accent-blue);}
+
+/* =========================================================
+   MARGIN NOTES
+   ========================================================= */
+.with-margin{
+  display:grid;
+  grid-template-columns: 1fr 220px;
+  gap: 2rem;
+}
+@media (max-width: 1000px){
+  .with-margin{ grid-template-columns:1fr; }
+  .margin-note{ border-left: 2px solid var(--accent-amber) !important; padding-left:1rem;}
+}
+.margin-note{
+  font-family: var(--ff-body);
+  font-style: italic;
+  font-size: .88rem;
+  color: var(--ink-mute);
+  line-height:1.5;
+  border-top: 1px solid var(--rule);
+  padding-top: .7rem;
+  position:relative;
+}
+.margin-note::before{
+  content: attr(data-marker);
+  font-family: var(--ff-mono);
+  font-style: normal;
+  font-size: .65rem;
+  letter-spacing: .2em;
+  color: var(--accent-red);
+  display:block;
+  margin-bottom:.3rem;
+  text-transform:uppercase;
+}
+
+/* =========================================================
+   USE-CASE CARDS
+   ========================================================= */
+.usecase-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.4rem 0;
+}
+.uc{
+  background: #fbf8f0;
+  border: 1px solid var(--paper-edge);
+  padding: 1.1rem;
+  border-top: 3px solid var(--accent-blue);
+}
+.uc h4{
+  color: var(--accent-blue);
+  font-size:.75rem;
+  margin-bottom:.5rem;
+}
+.uc p{ font-size:.95rem; line-height:1.5; margin:0; color: var(--ink-soft);}
+
+/* =========================================================
+   REFERENCES
+   ========================================================= */
+.refs{
+  font-size: .92rem;
+  padding-left: 1.4rem;
+  list-style:none;
+  counter-reset: refcount;
+  margin:0;
+}
+.refs li{
+  counter-increment: refcount;
+  padding: .5rem 0;
+  border-bottom: 1px dashed var(--paper-edge);
+  position:relative;
+  padding-left: 2.3rem;
+  color: var(--ink-soft);
+}
+.refs li::before{
+  content: "[" counter(refcount) "]";
+  position:absolute; left:0; top:.5rem;
+  font-family: var(--ff-mono);
+  font-size:.8rem;
+  color: var(--accent-red);
+}
+.refs li cite{
+  font-style:italic;
+  color: var(--ink);
+}
+
+/* =========================================================
+   NAV (sticky chapters)
+   ========================================================= */
+.sticky-nav{
+  position: sticky;
+  top: 0;
+  background: rgba(243,237,224,.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--rule);
+  z-index: 50;
+  font-family: var(--ff-mono);
+  font-size: .72rem;
+  letter-spacing: .14em;
+}
+.sticky-nav .inner{
+  display:flex; align-items:center; gap:1.4rem;
+  padding: .7rem 0;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.sticky-nav a{
+  color: var(--ink-mute);
+  border-bottom: none;
+  text-transform: uppercase;
+  transition: color .15s;
+  flex-shrink:0;
+}
+.sticky-nav a:hover{ color: var(--accent-red); border-bottom:none;}
+.sticky-nav .brand{
+  color: var(--ink);
+  font-weight:600;
+  padding-right: 1rem;
+  border-right: 1px solid var(--rule);
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+footer{
+  padding: 3rem 0 4rem 0;
+  border-top: 2px solid var(--ink);
+  margin-top: 3rem;
+  font-family: var(--ff-mono);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:1rem;
+}
+footer .ornament{
+  text-align:center;
+  letter-spacing:.8em;
+  color: var(--accent-red);
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* =========================================================
+   MISC
+   ========================================================= */
+.figure-row{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+  margin: 1.4rem 0;
+}
+.mini-fig{
+  background: #fbf8f0;
+  border: 1px solid var(--paper-edge);
+  padding: 1rem;
+}
+.mini-fig svg{ width:100%; height:auto; display:block;}
+.mini-fig .cap{
+  font-family: var(--ff-body);
+  font-style:italic;
+  font-size:.86rem;
+  color: var(--ink-mute);
+  margin-top: .6rem;
+  line-height: 1.4;
+  border-top: 1px solid var(--paper-edge);
+  padding-top: .5rem;
+}
+.mini-fig .lab{
+  font-family: var(--ff-mono);
+  font-size:.7rem;
+  letter-spacing:.2em;
+  color: var(--accent-red);
+  text-transform:uppercase;
+  margin-bottom:.4rem;
+}
+
+.formula{
+  text-align:center;
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  padding: 1rem 0;
+  color: var(--ink);
+}
+.formula small{
+  display:block;
+  font-family: var(--ff-mono);
+  font-size:.7rem;
+  color: var(--ink-mute);
+  margin-top:.4rem;
+  font-style:normal;
+  letter-spacing:.1em;
+}
+.ornament-rule{
+  text-align:center;
+  color: var(--rule);
+  margin: 2rem 0;
+  letter-spacing:1em;
+  font-size:.8rem;
+}
+
+/* hide scrollbar on nav */
+.sticky-nav .inner::-webkit-scrollbar{ height:0; display:none;}
+</style>
+</head>
+<body>
+
+<!-- ========== STICKY NAVIGATION ========== -->
+<div class="sticky-nav">
+  <div class="container inner">
+    <span class="brand">Path Planning</span>
+    <a href="#intro">I. Intro</a>
+    <a href="#taxonomy">II. Taxonomy</a>
+    <a href="#grid">III. Grid Search</a>
+    <a href="#potential">IV. Potential Field</a>
+    <a href="#sampling">V. Sampling</a>
+    <a href="#dwa">VI. Dynamic Window</a>
+    <a href="#curves">VII. Curves & Trajectories</a>
+    <a href="#frenet">VIII. Frenet Frame</a>
+    <a href="#compare">IX. Comparison</a>
+    <a href="#refs">Refs</a>
+  </div>
+</div>
+
+<!-- ========== MASTHEAD ========== -->
+<header class="masthead">
+  <div class="container">
+    <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+    <div class="eyebrow">
+      <span>Vol. I · No. 01 · An Interactive Monograph</span>
+      <span>○ ○ ○</span>
+      <span>Robotics &amp; Autonomy</span>
+    </div>
+
+    <div class="title-block">
+      <div>
+        <div style="font-family:var(--ff-mono); font-size:.75rem; letter-spacing:.3em; color:var(--accent-red); text-transform:uppercase; margin-bottom:1rem;">A Field Guide to</div>
+        <h1>Path Planning</h1>
+        <div style="font-family:var(--ff-display); font-size:1.4rem; font-style:italic; color:var(--ink-mute); margin-top:.6rem;">from grids &amp; graphs to sampling, curves, and optimal trajectories</div>
+        <div class="byline">
+          <span>By <strong>Majid Mazouchi</strong></span>
+        </div>
+      </div>
+      <div class="lede">
+        How does a robot, a car, or a vacuum cleaner decide where to go, and which <em>way</em> to get there? This is the problem of <strong>path planning</strong>. We will explore the principal families of algorithms, with interactive figures you can touch, drag, and watch in motion.
+      </div>
+    </div>
+
+    <div class="folio">
+      <span><span class="dot"></span>Figures &amp; simulations · interactive</span>
+      <span>Runs entirely in your browser</span>
+      <span>No dependencies</span>
+    </div>
+  </div>
+</header>
+
+<!-- ========== INTRODUCTION ========== -->
+<section class="chapter" id="intro">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. I</div>
+      <div class="chapter-title">
+        <h2>What is a Path?</h2>
+        <div class="subtitle">and why finding one is harder than it looks</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p class="drop-cap">Imagine a small robot standing in the corner of a room. It wants to reach a charging dock at the opposite corner. Between them lies a jumble of chairs, table legs, a sleeping cat, and a rug it must not slide onto. The robot needs to choose a sequence of motions (a <em>path</em>) that is <strong>safe</strong>, <strong>feasible</strong>, and (ideally) <strong>short</strong>.</p>
+
+        <p>Formally, <span class="small-caps">path planning</span> asks: given a map of the world, a starting configuration <code>q<sub>start</sub></code>, and a goal <code>q<sub>goal</sub></code>, find a continuous sequence of configurations connecting them that avoids obstacles and respects the vehicle's motion constraints.</p>
+
+        <p>That word (<em>configuration</em>) is the first subtlety. For a point robot, configuration is just <code>(x, y)</code>. For a car, it is <code>(x, y, θ)</code> because orientation matters: a car cannot slide sideways. For a robot arm, it is the vector of every joint angle. The space of all configurations is called the <strong>configuration space</strong> (or <code>C-space</code>), and the planning problem really lives in there, not in the physical room.</p>
+      </div>
+      <div>
+        <div class="mini-fig">
+          <div class="lab">Figure 1.1 · The Problem</div>
+          <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="dots" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+                <circle cx="1.5" cy="1.5" r="0.8" fill="#b9ae90"/>
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="400" height="260" fill="url(#dots)"/>
+            <rect x="0" y="0" width="400" height="260" fill="none" stroke="#1a1a24" stroke-width="1"/>
+
+            <!-- obstacles -->
+            <rect x="120" y="60" width="55" height="85" fill="#c77b1e" opacity="0.75" stroke="#1a1a24" stroke-width="1"/>
+            <polygon points="220,170 290,160 280,220 210,215" fill="#c77b1e" opacity="0.75" stroke="#1a1a24" stroke-width="1"/>
+            <circle cx="70" cy="195" r="20" fill="#c77b1e" opacity="0.75" stroke="#1a1a24" stroke-width="1"/>
+
+            <!-- start -->
+            <circle cx="30" cy="35" r="7" fill="#2f6a3a" stroke="#1a1a24" stroke-width="1.5"/>
+            <text x="42" y="40" font-family="JetBrains Mono" font-size="11" fill="#1a1a24">start</text>
+
+            <!-- goal -->
+            <polygon points="365,228 355,218 375,218" fill="#b1202a" stroke="#1a1a24" stroke-width="1.5"/>
+            <circle cx="365" cy="232" r="6" fill="none" stroke="#b1202a" stroke-width="1.5"/>
+            <text x="320" y="250" font-family="JetBrains Mono" font-size="11" fill="#1a1a24">goal</text>
+
+            <!-- path -->
+            <path d="M 30 35 Q 60 30 95 50 Q 110 90 100 140 Q 150 165 200 155 Q 270 135 320 180 Q 355 210 365 232" fill="none" stroke="#b1202a" stroke-width="2" stroke-dasharray="4 3"/>
+          </svg>
+          <div class="cap">A short, collision-free path threads through a messy world. Planners differ in <em>how</em> they find such a path.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout note">
+      <h4>Three Questions Every Planner Answers</h4>
+      <strong>1. Is there a path at all?</strong> (completeness) &nbsp;·&nbsp; <strong>2. How good is the path we found?</strong> (optimality) &nbsp;·&nbsp; <strong>3. How fast can we find it?</strong> (complexity). Every algorithm makes a different trade among these three.
+    </div>
+
+    <p>A recurring distinction: <strong>global</strong> planners look at the whole map and produce a complete path; <strong>local</strong> planners react to what is immediately around the robot. A practical autonomous system almost always uses <em>both</em>: a global planner chooses the overall route, a local planner adapts it in real time as the world changes or new obstacles appear.</p>
+  </div>
+</section>
+
+<!-- ========== TAXONOMY ========== -->
+<section class="chapter" id="taxonomy">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. II</div>
+      <div class="chapter-title">
+        <h2>A Family Tree of Planners</h2>
+        <div class="subtitle">how the main approaches relate to one another</div>
+      </div>
+    </div>
+
+    <p>The algorithms we study fall naturally into three great families, distinguished by <em>how they represent the free space</em>. Everything that follows in this guide is a variation on one of these ideas.</p>
+
+    <div class="taxonomy">
+      <h3>The Three Families</h3>
+      <div class="subtitle">with the methods from our reading list, organized by approach</div>
+
+      <div class="tax-grid">
+        <div class="tax-card">
+          <h4>① Graph / Grid Search</h4>
+          <p style="font-size:.9rem; color:var(--ink-mute); margin-bottom:.6rem;"><em>Discretize the world into cells or a graph, then search.</em></p>
+          <ul>
+            <li>Dijkstra</li>
+            <li>A<sup>⋆</sup> (A-star)</li>
+            <li>D<sup>⋆</sup> &amp; D<sup>⋆</sup> Lite</li>
+            <li>Potential Field method</li>
+            <li>Grid-based coverage</li>
+            <li>Particle Swarm Optimization</li>
+          </ul>
+          <p style="font-size:.82rem; color:var(--ink-mute); margin-top:.8rem; font-style:italic;">Best for: structured, known, bounded environments.</p>
+        </div>
+
+        <div class="tax-card">
+          <h4>② Sampling-Based</h4>
+          <p style="font-size:.9rem; color:var(--ink-mute); margin-bottom:.6rem;"><em>Sprinkle random samples through configuration space &amp; connect them.</em></p>
+          <ul>
+            <li>Probabilistic Roadmap (PRM)</li>
+            <li>Rapidly-Exploring Random Trees (RRT)</li>
+            <li class="sub">RRT<sup>⋆</sup> (asymptotically optimal)</li>
+            <li class="sub">RRT<sup>⋆</sup> + Reeds–Shepp</li>
+            <li class="sub">LQR-RRT<sup>⋆</sup></li>
+            <li>State-lattice planning</li>
+            <li class="sub">biased polar sampling</li>
+            <li class="sub">lane sampling</li>
+          </ul>
+          <p style="font-size:.82rem; color:var(--ink-mute); margin-top:.8rem; font-style:italic;">Best for: high-dimensional, complex spaces (manipulators, cars).</p>
+        </div>
+
+        <div class="tax-card">
+          <h4>③ Curves, Controls &amp; Trajectories</h4>
+          <p style="font-size:.9rem; color:var(--ink-mute); margin-bottom:.6rem;"><em>Compute smooth curves or time-parametrized trajectories directly.</em></p>
+          <ul>
+            <li>Dynamic Window Approach (DWA)</li>
+            <li>Quintic polynomial trajectories</li>
+            <li>Reeds–Shepp paths</li>
+            <li>LQR-based path planning</li>
+            <li>Optimal trajectories in a Frenet frame</li>
+          </ul>
+          <p style="font-size:.82rem; color:var(--ink-mute); margin-top:.8rem; font-style:italic;">Best for: producing <em>executable</em> motions respecting dynamics.</p>
+        </div>
+      </div>
+    </div>
+
+    <p>These families are not rivals; they are layers. A self-driving car, for instance, may use a graph search over a road network for routing (family ①), sample trajectories in a <em>Frenet</em> frame along that route (family ③), then use a reactive local planner like DWA to avoid a dog that just ran into the street (family ③ again, but local). Let us meet each family in turn.</p>
+  </div>
+</section>
+
+<!-- ========== CHAPTER III: GRID SEARCH ========== -->
+<section class="chapter" id="grid">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. III</div>
+      <div class="chapter-title">
+        <h2>Grids, Graphs &amp; the Shortest Path</h2>
+        <div class="subtitle">Dijkstra, A<sup>⋆</sup>, and the art of directed search</div>
+      </div>
+    </div>
+
+    <div class="with-margin">
+      <div>
+        <p>Slice the world into a grid of square cells. Mark each cell as <em>free</em> or <em>blocked</em>. Now the robot lives on a graph: each free cell is a node, neighbors are connected by edges. Suddenly, path planning becomes a problem from a textbook: the <strong>shortest path</strong> in a graph. This is the oldest and still most widely used approach.</p>
+
+        <h3 style="margin-top:1.4rem;">Dijkstra (1959): the patient explorer</h3>
+        <p>Dijkstra's algorithm expands outward from the start like a wavefront, always choosing next the unvisited cell with the <em>smallest cumulative cost</em>. It is guaranteed to find the shortest path and is beautifully simple. Its weakness is that it is <em>uninformed</em>: it will happily expand cells in the wrong direction because it does not know where the goal is.</p>
+
+        <h3 style="margin-top:1.4rem;">A<sup>⋆</sup> (1968): the clever cousin</h3>
+        <p>A<sup>⋆</sup> adds a single trick: a <strong>heuristic</strong> <code>h(n)</code> estimating the remaining distance from cell <code>n</code> to the goal. Instead of expanding by accumulated cost <code>g(n)</code> alone, it expands by <code>f(n) = g(n) + h(n)</code>. When the heuristic is <em>admissible</em> (never overestimates the true remaining cost), A<sup>⋆</sup> still finds the optimal path, but typically explores dramatically fewer cells.</p>
+
+        <div class="formula">
+          <span style="color:var(--accent-red);">f(n)</span> = <span style="color:var(--accent-blue);">g(n)</span> + <span style="color:var(--accent-green);">h(n)</span>
+          <small>TOTAL ESTIMATED COST &nbsp;=&nbsp; COST SO FAR &nbsp;+&nbsp; ESTIMATED COST-TO-GO</small>
+        </div>
+
+        <p>Setting <code>h(n)=0</code> recovers Dijkstra exactly. Setting <code>h(n)=</code>Euclidean distance gives classic A<sup>⋆</sup> on a grid. Setting <code>h(n)=</code> something that over-estimates breaks the optimality guarantee but often speeds things up further.</p>
+      </div>
+      <aside class="margin-note" data-marker="NOTE §3.1">
+        The heuristic is how you inject <em>knowledge</em> into the search. For a grid where the robot can move in 8 directions, the ideal heuristic is the octile distance, not plain Euclidean. Matching the heuristic to the motion model keeps it admissible and as tight as possible.
+      </aside>
+    </div>
+
+    <!-- INTERACTIVE DEMO 1: Dijkstra vs A* -->
+    <div class="demo" id="demo-grid">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 3.1 · Interactive</span>
+          <div class="demo-title">Dijkstra vs. A<sup>⋆</sup>, race across a grid</div>
+        </div>
+      </div>
+      <canvas id="cv-grid" height="400"></canvas>
+      <div class="controls">
+        <button id="grid-play" class="primary">▶ Play</button>
+        <button id="grid-step">Step</button>
+        <button id="grid-reset" class="ghost">Reset</button>
+        <label>Algorithm:
+          <select id="grid-algo">
+            <option value="astar">A⋆ (with heuristic)</option>
+            <option value="dijkstra">Dijkstra (no heuristic)</option>
+          </select>
+        </label>
+        <label>Speed: <input type="range" id="grid-speed" min="1" max="30" value="12"></label>
+        <label>Mode:
+          <select id="grid-mode">
+            <option value="wall">Paint walls</option>
+            <option value="start">Move start</option>
+            <option value="goal">Move goal</option>
+            <option value="erase">Erase</option>
+          </select>
+        </label>
+        <span class="badge" id="grid-stats">cells expanded: 0</span>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>start</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal</span>
+        <span><span class="sw" style="background:#1a1a24"></span>wall</span>
+        <span><span class="sw" style="background:#e8c9a8"></span>open / frontier</span>
+        <span><span class="sw" style="background:#134a6b; opacity:.35"></span>expanded (closed)</span>
+        <span><span class="sw" style="background:#c77b1e"></span>path</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Click and drag on the grid to paint walls. Switch <em>Mode</em> to relocate the start or goal. Toggle between A<sup>⋆</sup> and Dijkstra and hit <em>Play</em>, watch how A<sup>⋆</sup> drives almost directly toward the goal, while Dijkstra fans out symmetrically in every direction. <b>Cells expanded</b> is the best single-number measure of an algorithm's efficiency on this problem.
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="callout good">
+        <h4>Use cases</h4>
+        Routing on road networks (Google Maps, OSRM) · warehouse robots on a fixed floorplan · video-game NPCs · graph search on known, quasi-static maps. A<sup>⋆</sup> is the default first choice when your world fits on a grid.
+      </div>
+      <div class="callout warn">
+        <h4>Practical notes</h4>
+        Memory grows as <em>O</em>(<code>N</code>) in the number of cells, a 1 cm resolution map of a house is fine; a 1 cm map of a city is not. For long horizons, use <em>hierarchical A<sup>⋆</sup></em> or <em>JPS</em> (Jump Point Search). Always inflate obstacles by the robot's radius before searching, or the path will clip corners.
+      </div>
+    </div>
+
+    <h3 style="margin-top:2.2rem;">When the map changes: D<sup>⋆</sup> and D<sup>⋆</sup> Lite</h3>
+    <p>Classic A<sup>⋆</sup> assumes the map is fixed. But real robots constantly discover new obstacles as they drive. Replanning from scratch with A<sup>⋆</sup> every time a new obstacle appears is wasteful, most of the map did not change. The <strong>D<sup>⋆</sup></strong> family of algorithms (Stentz, 1994; Koenig &amp; Likhachev, 2002) solves this by doing <em>incremental</em> search: they re-use as much of the previous search tree as possible and only recompute the parts affected by the change.</p>
+
+    <div class="figure-row">
+      <div class="mini-fig">
+        <div class="lab">Figure 3.2 · incremental replanning</div>
+        <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- grid -->
+          <g stroke="#d9cfb6" stroke-width=".5">
+            <path d="M 20 20 H 380 M 20 60 H 380 M 20 100 H 380 M 20 140 H 380 M 20 180 H 380"/>
+            <path d="M 20 20 V 180 M 60 20 V 180 M 100 20 V 180 M 140 20 V 180 M 180 20 V 180 M 220 20 V 180 M 260 20 V 180 M 300 20 V 180 M 340 20 V 180 M 380 20 V 180"/>
+          </g>
+          <!-- original path -->
+          <path d="M 40 40 L 40 80 L 80 80 L 80 120 L 120 120 L 160 120 L 200 120 L 240 120 L 280 120 L 320 120 L 360 120 L 360 160" fill="none" stroke="#134a6b" stroke-width="3" opacity=".4" stroke-dasharray="5 3"/>
+          <!-- new obstacle -->
+          <rect x="200" y="100" width="40" height="40" fill="#1a1a24"/>
+          <text x="183" y="96" font-family="JetBrains Mono" font-size="9" fill="#b1202a">new wall!</text>
+          <!-- replanned path -->
+          <path d="M 40 40 L 40 80 L 80 80 L 80 120 L 120 120 L 160 120 L 160 160 L 240 160 L 280 160 L 320 160 L 360 160" fill="none" stroke="#b1202a" stroke-width="3"/>
+          <!-- start/goal -->
+          <circle cx="40" cy="40" r="6" fill="#2f6a3a"/>
+          <polygon points="360,165 352,155 368,155" fill="#b1202a"/>
+          <!-- reused area -->
+          <rect x="20" y="20" width="140" height="160" fill="#2f6a3a" opacity=".08"/>
+          <text x="35" y="35" font-family="JetBrains Mono" font-size="8" fill="#2f6a3a">search tree reused</text>
+        </svg>
+        <div class="cap"><b>D<sup>⋆</sup> Lite</b> keeps the part of the search that is still valid (left, green) and repairs only the affected region when a new obstacle appears.</div>
+      </div>
+      <div class="mini-fig">
+        <div class="lab">Figure 3.3 · why it matters</div>
+        <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="40" width="360" height="30" fill="#ebe3d2" stroke="#1a1a24"/>
+          <rect x="20" y="40" width="340" height="30" fill="#b1202a"/>
+          <text x="25" y="33" font-family="JetBrains Mono" font-size="10" fill="#1a1a24">A⋆ replanning from scratch</text>
+          <text x="370" y="59" font-family="JetBrains Mono" font-size="10" fill="#fff" text-anchor="end">∼100% of search cost</text>
+
+          <rect x="20" y="110" width="360" height="30" fill="#ebe3d2" stroke="#1a1a24"/>
+          <rect x="20" y="110" width="60" height="30" fill="#2f6a3a"/>
+          <text x="25" y="103" font-family="JetBrains Mono" font-size="10" fill="#1a1a24">D⋆ Lite incremental</text>
+          <text x="88" y="129" font-family="JetBrains Mono" font-size="10" fill="#1a1a24">∼10–20%</text>
+
+          <text x="200" y="180" font-family="EB Garamond" font-style="italic" font-size="11" fill="#6b6458" text-anchor="middle">Typical replan cost when a small obstacle appears on the planned path.</text>
+        </svg>
+        <div class="cap">On a field robot that replans several times per second, D<sup>⋆</sup> Lite can be the difference between real-time and not.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h4>A practical rule of thumb</h4>
+      Use A<sup>⋆</sup> when the map is static. Use D<sup>⋆</sup> Lite when the map changes as you drive (outdoor robots, unknown environments). The ROS <code>global_planner</code> package, the classic NASA Mars rover autonomy stack, and most modern ground robots use variants of D<sup>⋆</sup> Lite for this reason.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER IV: POTENTIAL FIELD ========== -->
+<section class="chapter" id="potential">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. IV</div>
+      <div class="chapter-title">
+        <h2>The Potential Field Method</h2>
+        <div class="subtitle">physics as a planner, attractive goals and repulsive obstacles</div>
+      </div>
+    </div>
+
+    <p>Suppose we replace algorithmic search with <em>physics</em>. Imagine the goal as a valley that pulls the robot toward itself, and every obstacle as a hill that pushes it away. The robot simply rolls downhill, following the gradient of the total <strong>potential</strong>. This idea, introduced by Oussama Khatib in 1986, is called the <span class="small-caps">artificial potential field</span> method.</p>
+
+    <div class="formula">
+      U(q) = U<sub>att</sub>(q) + U<sub>rep</sub>(q) &nbsp;&nbsp;→&nbsp;&nbsp; F(q) = −∇U(q)
+      <small>TOTAL POTENTIAL = ATTRACTION TO GOAL + REPULSION FROM OBSTACLES &nbsp;·&nbsp; FORCE = NEGATIVE GRADIENT</small>
+    </div>
+
+    <p>The attractive term is typically a quadratic well centered on the goal. The repulsive term is zero beyond some influence radius and grows rapidly as the robot nears an obstacle. At any position, the robot computes the local gradient and takes a small step against it. There is <em>no search</em>: the computation per step is essentially constant, which is why this method is attractive for real-time reactive control.</p>
+
+    <!-- INTERACTIVE DEMO: Potential Field -->
+    <div class="demo" id="demo-pf">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 4.1 · Interactive</span>
+          <div class="demo-title">A robot rolling down a potential landscape</div>
+        </div>
+      </div>
+      <canvas id="cv-pf" height="360"></canvas>
+      <div class="controls">
+        <button id="pf-play" class="primary">▶ Launch robot</button>
+        <button id="pf-reset" class="ghost">Reset</button>
+        <label>Show: 
+          <select id="pf-show">
+            <option value="field">vector field</option>
+            <option value="heat">potential heatmap</option>
+            <option value="none">nothing (just path)</option>
+          </select>
+        </label>
+        <label>Repulsion strength: <input type="range" id="pf-krep" min="20" max="400" value="180"></label>
+        <label>Influence radius: <input type="range" id="pf-rad" min="50" max="160" value="100"></label>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>robot</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal (attractor)</span>
+        <span><span class="sw" style="background:#c77b1e"></span>obstacles (repellers)</span>
+        <span><span class="sw" style="background:#134a6b"></span>trajectory</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag the <em>green robot</em>, the <em>red goal</em>, or the <em>orange obstacles</em> anywhere. Change the visualization to see the force field (arrows) or the potential landscape (dark = low energy = attractive). Then press <em>Launch</em>, the robot follows the gradient. <b>Try to trap the robot</b> in a U-shape of obstacles. You will discover the method's famous weakness: <em>local minima</em>.
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="callout good">
+        <h4>Why engineers still love it</h4>
+        <strong>Constant-time per step.</strong> Trivially parallelizable. Produces beautifully smooth motion. Naturally combines many constraints (goals, obstacles, lane centers) as a sum. Still the backbone of many industrial robot controllers and of swarm behaviors.
+      </div>
+      <div class="callout warn">
+        <h4>The local-minimum problem</h4>
+        In concave obstacle arrangements, repulsive and attractive forces can <em>cancel</em> at a point that is not the goal. The robot freezes. Cures include: random jitter to escape, combining with a grid search at a coarser scale, or using <em>harmonic</em> potentials (Laplace equation) which mathematically cannot have local minimaat the cost of solving a PDE.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER IV-bis: Coverage & PSO ========== -->
+<section class="chapter" id="coverage">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">§ III · supp.</div>
+      <div class="chapter-title">
+        <h2>Two Grid-Based Cousins</h2>
+        <div class="subtitle">coverage planning &amp; particle-swarm optimization</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3>Grid-based coverage planning</h3>
+        <p>What if the goal is not to <em>reach</em> a point, but to <em>visit every cell</em>? Lawn mowers, robot vacuums, pool cleaners, and minesweeping drones all need <strong>coverage paths</strong>, a path that sweeps the entire free space. The simplest approach is boustrophedon (ox-plow) decomposition: divide free space into rectangular strips and trace a back-and-forth pattern through each. More sophisticated methods use spanning trees over the grid or solve the Chinese-Postman problem on the adjacency graph.</p>
+
+        <div class="mini-fig" style="margin-top:.8rem;">
+          <div class="lab">Figure 4.2 · boustrophedon coverage</div>
+          <svg viewBox="0 0 400 210" xmlns="http://www.w3.org/2000/svg">
+            <rect x="15" y="15" width="370" height="180" fill="none" stroke="#1a1a24" stroke-width="1"/>
+            <!-- central obstacle -->
+            <rect x="158" y="80" width="94" height="54" fill="#c77b1e" opacity=".75" stroke="#1a1a24" stroke-width="1"/>
+            <!-- single continuous sweep: above full-width, right-of-obstacle, below full-width, left-of-obstacle -->
+            <path d="
+              M 27 29
+              L 373 29
+              L 373 51
+              L 27 51
+              L 27 73
+              L 373 73
+              L 373 95
+              L 257 95
+              L 257 117
+              L 373 117
+              L 373 141
+              L 373 163
+              L 27 163
+              L 27 141
+              L 152 141
+              L 152 117
+              L 27 117
+              L 27 95
+              L 152 95
+            " fill="none" stroke="#134a6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- start -->
+            <circle cx="27" cy="29" r="5.5" fill="#2f6a3a" stroke="#1a1a24" stroke-width="1"/>
+            <!-- end marker (last point of path) -->
+            <polygon points="152,90 145,98 159,98" fill="#b1202a" stroke="#1a1a24" stroke-width="1"/>
+          </svg>
+          <div class="cap">A back-and-forth sweep around an obstacle. Used by iRobot, Roomba, and most commercial floor-cleaning robots.</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Particle Swarm Optimization (PSO)</h3>
+        <p>PSO is not specifically a path planner, it is a general <em>optimization</em> metaheuristic, but one that is often used to search for good paths. Inspired by bird flocking, it maintains a population of candidate solutions ("particles") that move through a search space, attracted toward both their own best-known position and the swarm's best-known position.</p>
+        <p>For path planning, each particle represents a candidate path (a sequence of waypoints). The "fitness" combines path length, smoothness, and clearance from obstacles. The swarm collectively descends toward low-cost paths. PSO is stochastic, handles non-convex cost landscapes gracefully, and parallelizes well, but provides <em>no</em> optimality guarantees and tuning its hyperparameters is more art than science.</p>
+
+        <div class="callout">
+          <h4>When to reach for PSO</h4>
+          When your cost function is messy (non-smooth, non-convex, includes many soft constraints like "stay near the lane center" + "minimize jerk" + "respect a speed profile"), classical planners struggle. PSO, and its cousin, the <em>genetic algorithm</em>, is a pragmatic choice when you need <em>a</em> good path and analytic structure is missing.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER V: SAMPLING-BASED PLANNING ========== -->
+<section class="chapter" id="sampling">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. V</div>
+      <div class="chapter-title">
+        <h2>Sampling-Based Planning</h2>
+        <div class="subtitle">PRM, RRT, RRT<sup>⋆</sup>, when the world is too big for a grid</div>
+      </div>
+    </div>
+
+    <div class="with-margin">
+      <div>
+        <p>A grid over a 2D room has a few thousand cells. A grid over the 7-dimensional configuration space of a robotic arm would have trillions. This is the <strong>curse of dimensionality</strong>, and it is why grid search breaks down for manipulators, humanoids, and cars with orientation. In 1995, Lydia Kavraki introduced the <span class="small-caps">Probabilistic Roadmap</span> (PRM), and in 1998 Steven LaValle introduced <span class="small-caps">Rapidly-Exploring Random Trees</span> (RRT). These methods sidestep the dimensionality problem by <em>sampling</em> configurations randomly, checking only those for collision, and connecting them into a graph.</p>
+
+        <p>The magic of sampling-based planners is that they are <em>probabilistically complete</em>: if a path exists, the probability of finding one approaches 1 as the number of samples grows. They trade exactness for tractability, and the trade is almost always worth it.</p>
+      </div>
+      <aside class="margin-note" data-marker="KEY IDEA">
+        Grid methods discretize the <em>space</em>. Sampling methods discretize nothing, they trust random chance to pick good configurations. Counter-intuitively, this works better in high dimensions.
+      </aside>
+    </div>
+
+    <h3>Probabilistic Roadmap (PRM)</h3>
+    <p>PRM is a <em>multi-query</em> planner: you build a reusable map once, then query it with many different start/goal pairs. The construction is two phases:</p>
+    <ol style="padding-left: 1.4rem; line-height:1.8;">
+      <li><strong>Sampling phase.</strong> Sample <code>N</code> random configurations. Discard any that lie in obstacles. What remains are nodes of a graph.</li>
+      <li><strong>Connection phase.</strong> For each node, attempt to connect it (with a straight-line "local planner") to its <code>k</code> nearest neighbors. If the straight line is collision-free, add the edge.</li>
+    </ol>
+    <p>To answer a query, connect the start and goal to the roadmap, then run A<sup>⋆</sup> on the graph. Because the roadmap is reused, the per-query cost is small, ideal for environments where many paths must be planned in the same world (e.g. warehouse robotics, robot-arm pick-and-place).</p>
+
+    <!-- INTERACTIVE: PRM -->
+    <div class="demo" id="demo-prm">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 5.1 · Interactive</span>
+          <div class="demo-title">Building a probabilistic roadmap</div>
+        </div>
+      </div>
+      <canvas id="cv-prm" height="360"></canvas>
+      <div class="controls">
+        <button id="prm-sample" class="primary">① Sample</button>
+        <button id="prm-connect">② Connect</button>
+        <button id="prm-query">③ Find path</button>
+        <button id="prm-reset" class="ghost">Reset</button>
+        <label>Samples: <input type="range" id="prm-n" min="30" max="300" value="120"></label>
+        <label>Connect radius: <input type="range" id="prm-r" min="40" max="150" value="80"></label>
+        <span class="badge" id="prm-stats">0 nodes · 0 edges</span>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>start</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal</span>
+        <span><span class="sw" style="background:#1a1a24"></span>obstacles</span>
+        <span><span class="sw" style="background:#134a6b"></span>roadmap</span>
+        <span><span class="sw" style="background:#c77b1e"></span>shortest path</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag the start (green) or goal (red). Click <em>Sample</em> repeatedly to lay down random collision-free nodes. <em>Connect</em> stitches nearby nodes together. <em>Find path</em> runs A<sup>⋆</sup> on the roadmap. Notice how the <b>same roadmap answers any start-goal query</b> in milliseconds: that is the point of PRM.
+      </div>
+    </div>
+
+    <h3 style="margin-top:2rem;">Rapidly-Exploring Random Trees (RRT)</h3>
+    <div class="with-margin">
+      <div>
+        <p>RRT answers a <em>single</em> query. Starting from the start configuration, it grows a tree by repeatedly (1) sampling a random point <code>q<sub>rand</sub></code>, (2) finding the nearest tree node <code>q<sub>near</sub></code>, and (3) extending from <code>q<sub>near</sub></code> toward <code>q<sub>rand</sub></code> by a small step, provided the step is collision-free. The beauty of this simple rule is that the tree preferentially explores <em>unexplored regions</em>: hence "rapidly-exploring."</p>
+        <p>RRT is almost embarrassingly well-suited to <em>kinodynamic</em> planning (where the robot has velocity/curvature constraints): instead of a straight line, the "extend" step can use any control input that respects the dynamics. This is why RRT is the workhorse of autonomous driving research, drone planning, and humanoid motion.</p>
+      </div>
+      <aside class="margin-note" data-marker="HISTORY">
+        LaValle's original 1998 paper quietly became one of the most-cited works in robotics. The idea is astonishingly simple, sample, connect to nearest, extend, yet it unlocked planning in spaces no one had been able to plan in.
+      </aside>
+    </div>
+
+    <h3 style="margin-top:1.5rem;">RRT<sup>⋆</sup>: the optimal sibling</h3>
+    <p>Vanilla RRT finds <em>a</em> path, but rarely the shortest one. RRT<sup>⋆</sup> (Karaman &amp; Frazzoli, 2011) adds a <strong>rewiring</strong> step: whenever a new node is added, the algorithm checks whether existing nearby nodes would have shorter paths if they were re-parented through the new node. This local improvement, done thousands of times, yields a tree that converges to the globally optimal path as samples grow. RRT<sup>⋆</sup> is <em>asymptotically optimal</em>.</p>
+
+    <!-- INTERACTIVE: RRT / RRT* -->
+    <div class="demo" id="demo-rrt">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 5.2 · Interactive</span>
+          <div class="demo-title">A tree grows rapidly toward the unknown</div>
+        </div>
+      </div>
+      <canvas id="cv-rrt" height="400"></canvas>
+      <div class="controls">
+        <button id="rrt-play" class="primary">▶ Grow</button>
+        <button id="rrt-step">+ 1 step</button>
+        <button id="rrt-reset" class="ghost">Reset</button>
+        <label>Algorithm:
+          <select id="rrt-algo">
+            <option value="star">RRT⋆ (with rewiring)</option>
+            <option value="basic">RRT (basic)</option>
+          </select>
+        </label>
+        <label>Step size: <input type="range" id="rrt-step-size" min="10" max="40" value="20"></label>
+        <label>Goal bias: <input type="range" id="rrt-bias" min="0" max="30" value="10"></label>
+        <span class="badge" id="rrt-stats">0 nodes · no path</span>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>start</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal region</span>
+        <span><span class="sw" style="background:#1a1a24"></span>obstacles</span>
+        <span><span class="sw" style="background:#134a6b; opacity:.5"></span>tree edges</span>
+        <span><span class="sw" style="background:#c77b1e"></span>best path to goal</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag start, goal, or obstacles. Press <em>Grow</em> to animate. Toggle <em>RRT<sup>⋆</sup></em> on and off, on the same scene, RRT<sup>⋆</sup> will slowly <em>straighten</em> its solution path over time (it is asymptotically optimal), while plain RRT commits to the first path it finds. <em>Goal bias</em> is the probability, per iteration, that we sample the goal directly instead of a random point, a small bias accelerates convergence dramatically.
+      </div>
+    </div>
+
+    <h3 style="margin-top:2rem;">Variants for the real world</h3>
+    <div class="two-col">
+      <div>
+        <p><strong>RRT<sup>⋆</sup> with Reeds–Shepp paths.</strong> The straight-line "extend" step of vanilla RRT<sup>⋆</sup> is illegal for a car, a car cannot turn on the spot. Replace the straight-line local planner with a <em>Reeds–Shepp</em> curve (the shortest path for a car that can go forward <em>or</em> backward with bounded turning radius) and the tree grows only executable motions. This is how most parking-lot planners work.</p>
+
+        <p><strong>LQR-RRT<sup>⋆</sup>.</strong> For systems with complicated dynamics (drones, self-balancing robots, spacecraft), even Reeds–Shepp is not enough. LQR-RRT<sup>⋆</sup> linearizes the system around each tree node and computes an <em>LQR</em> controller as the local planner. The "distance" between nodes becomes the LQR cost-to-go, which respects the actual dynamics. Result: a tree where every edge is an executable closed-loop trajectory.</p>
+      </div>
+      <div>
+        <p><strong>State lattices.</strong> Instead of sampling continuously, a <em>state lattice</em> pre-computes a small library of dynamically-feasible motion primitives (e.g. for a car: "go straight 5 m", "swerve 30° left and continue 5 m", ...). Plan by choosing a sequence of primitives. The lattice turns continuous motion planning back into graph search (so you can run A<sup>⋆</sup> on it) while respecting dynamics.</p>
+
+        <p><strong>Biased polar sampling &amp; lane sampling.</strong> Pure uniform sampling is wasteful in structured environments. On a road, we know the vehicle should stay near the lane center: sample <em>laterally offset</em> candidate trajectories (<em>lane sampling</em>) or, in polar coordinates from the current pose (<em>biased polar sampling</em>), with a distribution tilted toward the expected direction of travel. Both are staples of the DARPA Urban Challenge vehicles and their descendants.</p>
+      </div>
+    </div>
+
+    <div class="callout note">
+      <h4>Why sampling wins in high dimensions</h4>
+      Consider a 7-DOF arm. A coarse grid with 10 cells per axis has 10<sup>7</sup> = 10 million cells, most of which are useless, inside walls or bodies. 1 000 well-chosen random samples capture the connectivity of the free space almost as well. Sampling-based planners exploit the fact that the <em>essential topology</em> of a space is usually lower-dimensional than the space itself.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER VI: DWA ========== -->
+<section class="chapter" id="dwa">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. VI</div>
+      <div class="chapter-title">
+        <h2>The Dynamic Window Approach</h2>
+        <div class="subtitle">planning in <em>velocity</em> space instead of position</div>
+      </div>
+    </div>
+
+    <p>All the methods so far plan a path as a sequence of <em>positions</em>. The Dynamic Window Approach (Fox, Burgard &amp; Thrun, 1997) turns the problem on its head: plan a sequence of <em>velocities</em> instead. At each control cycle (typically 10–20 Hz), DWA asks a remarkably concrete question:</p>
+
+    <div class="formula">
+      Which pair <span style="color:var(--accent-red)">(v, ω)</span> of linear and angular velocity should I command for the next tick?
+      <small>THE DYNAMIC WINDOW IS THE SET OF (v, ω) PAIRS PHYSICALLY ACHIEVABLE IN ONE TICK</small>
+    </div>
+
+    <p>The dynamic window is the subset of velocity space the robot can actually reach in one control cycle, constrained by its current velocity and acceleration limits. DWA discretizes this window into a grid, simulates a short-horizon trajectory for each candidate (v, ω), rejects any that would collide, and scores the survivors by a weighted combination of:</p>
+
+    <ul style="padding-left:1.4rem; line-height:1.8;">
+      <li><strong>Heading</strong>, how much the trajectory points toward the goal,</li>
+      <li><strong>Clearance</strong>, distance to the nearest obstacle along the simulated arc,</li>
+      <li><strong>Velocity</strong>, prefer faster motions (don't crawl).</li>
+    </ul>
+
+    <p>The highest-scoring pair is commanded, and the whole procedure repeats next tick. This makes DWA a <em>local reactive</em> planner (myopic by design), but extremely fast and naturally respectful of the robot's actual dynamics. It pairs beautifully with a global planner that provides waypoints for the heading term.</p>
+
+    <!-- INTERACTIVE: DWA -->
+    <div class="demo" id="demo-dwa">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 6.1 · Interactive</span>
+          <div class="demo-title">Arcs through velocity space, DWA in action</div>
+        </div>
+      </div>
+      <canvas id="cv-dwa" height="420"></canvas>
+      <div class="controls">
+        <button id="dwa-play" class="primary">▶ Drive</button>
+        <button id="dwa-reset" class="ghost">Reset</button>
+        <label><input type="checkbox" id="dwa-showarcs" checked> show candidate arcs</label>
+        <label><input type="checkbox" id="dwa-showscore" checked> color by score</label>
+        <label>Speed weight: <input type="range" id="dwa-wvel" min="0" max="100" value="30"></label>
+        <label>Clearance weight: <input type="range" id="dwa-wclear" min="0" max="100" value="40"></label>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>robot</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal</span>
+        <span><span class="sw" style="background:#1a1a24"></span>obstacles</span>
+        <span><span class="sw" style="background:#134a6b"></span>chosen arc</span>
+        <span><span class="sw" style="background:#c77b1e"></span>trail</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag the goal or the obstacles. The robot samples a fan of candidate arcs (each representing one (v, ω) pair it could command), scores them, and drives the best one for a tick before re-planning. <b>Increase the clearance weight</b> to see the robot become cautious; <b>increase the speed weight</b> and it cuts corners. Block its path with obstacles and watch it weave around.
+      </div>
+    </div>
+
+    <div class="callout good">
+      <h4>Use cases</h4>
+      DWA is the default local planner in ROS Navigation stacks for differential-drive robots (TurtleBot, Fetch, PR2, many AGVs). It is especially well-matched to robots with significant inertia, carts, mobile manipulators, where curvature and acceleration limits truly matter.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER VII: CURVES & TRAJECTORIES ========== -->
+<section class="chapter" id="curves">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. VII</div>
+      <div class="chapter-title">
+        <h2>Smooth Curves &amp; Executable Trajectories</h2>
+        <div class="subtitle">quintic polynomials, Reeds–Shepp paths &amp; LQR</div>
+      </div>
+    </div>
+
+    <p>The paths produced by A<sup>⋆</sup> on a grid are jagged, sequences of 45° segments. A real vehicle cannot execute them without slamming on the brakes at each corner. Between the planner's output and the actuators, there is almost always a <em>smoothing</em> or <em>trajectory generation</em> stage that turns the geometric path into a <strong>time-parametrized trajectory</strong> respecting velocity, acceleration, and jerk limits.</p>
+
+    <h3>Quintic polynomials: the smooth connector</h3>
+    <p>To connect two states smoothly, we need continuity of <em>position</em>, <em>velocity</em>, and <em>acceleration</em> at both endpoints, six constraints total. A fifth-degree polynomial has exactly six coefficients, so it is the lowest-order polynomial that can satisfy all these boundary conditions. One per axis gives a smooth 2D (or 3D) trajectory:</p>
+
+    <div class="formula" style="font-size:1.05rem;">
+      x(t) = a<sub>5</sub>t<sup>5</sup> + a<sub>4</sub>t<sup>4</sup> + a<sub>3</sub>t<sup>3</sup> + a<sub>2</sub>t<sup>2</sup> + a<sub>1</sub>t + a<sub>0</sub>
+      <small>A QUINTIC (5<sup>th</sup>-DEGREE) POLYNOMIAL, SIX COEFFICIENTS FIT SIX BOUNDARY CONDITIONS</small>
+    </div>
+
+    <!-- INTERACTIVE: Quintic polynomial -->
+    <div class="demo" id="demo-quintic">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 7.1 · Interactive</span>
+          <div class="demo-title">A quintic polynomial connecting two states</div>
+        </div>
+      </div>
+      <canvas id="cv-quintic" height="360"></canvas>
+      <div class="controls">
+        <button id="quintic-play" class="primary">▶ Animate</button>
+        <button id="quintic-reset" class="ghost">Reset</button>
+        <label>Duration T: <input type="range" id="quintic-T" min="2" max="10" value="5" step="0.5"></label>
+        <label><input type="checkbox" id="quintic-show-vel" checked> show velocity arrows</label>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>start state</span>
+        <span><span class="sw" style="background:#b1202a"></span>goal state</span>
+        <span><span class="sw" style="background:#134a6b"></span>quintic trajectory</span>
+        <span><span class="sw" style="background:#c77b1e"></span>velocity vectors (draggable)</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag the green/red position dots to set start and end positions. Drag the orange <em>tip arrows</em> to change the entry and exit velocities (direction &amp; magnitude). The quintic automatically recomputes. Notice how the curve always leaves and arrives tangent to the velocity arrows, and is <em>C<sup>2</sup>-continuous</em>, no discontinuities in position, velocity, or acceleration.
+      </div>
+    </div>
+
+    <div class="with-margin">
+      <div>
+        <h3 style="margin-top:1.5rem;">Reeds–Shepp paths: the shortest route for a car</h3>
+        <p>A car with minimum turning radius <code>R</code> cannot move sideways. What is the shortest path between two arbitrary poses (position + heading) under this constraint? Dubins (1957) solved it for forward-only motion: the answer is always a concatenation of straight segments and arcs of radius <code>R</code>, with exactly <strong>six possible patterns</strong> (LSL, RSR, LSR, RSL, LRL, RLR).</p>
+        <p>Reeds and Shepp (1990) extended this to allow <em>reverse</em> motion, which is essential for parking. They showed there are exactly <strong>48 word patterns</strong> (later reduced to 46). Given any two poses, you enumerate all 46, pick the shortest feasible one, and you have an optimal path.</p>
+      </div>
+      <aside class="margin-note" data-marker="TRIVIA">
+        Dubins' 1957 paper was a pure mathematics result, he was not thinking about cars at all. It found an application 30 years later when autonomous driving needed exactly this theorem.
+      </aside>
+    </div>
+
+    <div class="figure-row">
+      <div class="mini-fig">
+        <div class="lab">Fig. 7.2 · Dubins path</div>
+        <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+          <!-- start pose -->
+          <g transform="translate(30, 110)">
+            <circle r="4" fill="#2f6a3a"/>
+            <line x1="0" y1="0" x2="20" y2="-8" stroke="#2f6a3a" stroke-width="1.5" marker-end="url(#arrg)"/>
+          </g>
+          <!-- goal pose -->
+          <g transform="translate(210, 40)">
+            <circle r="4" fill="#b1202a"/>
+            <line x1="0" y1="0" x2="20" y2="0" stroke="#b1202a" stroke-width="1.5" marker-end="url(#arrr)"/>
+          </g>
+          <defs>
+            <marker id="arrg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6a3a"/>
+            </marker>
+            <marker id="arrr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#b1202a"/>
+            </marker>
+          </defs>
+          <!-- L-S-L -->
+          <path d="M 35 107 A 25 25 0 0 0 76 82 L 160 64 A 25 25 0 0 0 203 43" fill="none" stroke="#134a6b" stroke-width="2"/>
+          <text x="120" y="140" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b6458">L – S – L (Dubins, forward only)</text>
+        </svg>
+        <div class="cap">Forward only. Turn left, drive straight, turn left again.</div>
+      </div>
+      <div class="mini-fig">
+        <div class="lab">Fig. 7.3 · Reeds–Shepp path</div>
+        <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(50, 80)">
+            <circle r="4" fill="#2f6a3a"/>
+            <line x1="0" y1="0" x2="20" y2="0" stroke="#2f6a3a" stroke-width="1.5" marker-end="url(#arrg2)"/>
+          </g>
+          <g transform="translate(180, 80)">
+            <circle r="4" fill="#b1202a"/>
+            <line x1="0" y1="0" x2="-20" y2="0" stroke="#b1202a" stroke-width="1.5" marker-end="url(#arrr2)"/>
+          </g>
+          <defs>
+            <marker id="arrg2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6a3a"/>
+            </marker>
+            <marker id="arrr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#b1202a"/>
+            </marker>
+          </defs>
+          <!-- forward arc, then reverse arc -->
+          <path d="M 55 80 A 25 25 0 0 1 90 45" fill="none" stroke="#134a6b" stroke-width="2"/>
+          <path d="M 90 45 A 25 25 0 0 0 125 80" fill="none" stroke="#c77b1e" stroke-width="2" stroke-dasharray="4 3"/>
+          <path d="M 125 80 A 25 25 0 0 1 160 45" fill="none" stroke="#134a6b" stroke-width="2"/>
+          <path d="M 160 45 A 25 25 0 0 0 175 80" fill="none" stroke="#c77b1e" stroke-width="2" stroke-dasharray="4 3"/>
+          <text x="120" y="135" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b6458">L – R<sub>back</sub> – L – R<sub>back</sub> (3-point turn)</text>
+        </svg>
+        <div class="cap">Reeds–Shepp allows reversals (dashed). The classic parallel-parking wiggle is exactly such a path.</div>
+      </div>
+      <div class="mini-fig">
+        <div class="lab">Fig. 7.4 · state lattice</div>
+        <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(30, 75)">
+            <circle r="4" fill="#2f6a3a"/>
+          </g>
+          <!-- primitives fanning out -->
+          <path d="M 30 75 Q 120 20 210 30" fill="none" stroke="#134a6b" stroke-width="1.5" opacity=".8"/>
+          <path d="M 30 75 Q 120 45 210 55" fill="none" stroke="#134a6b" stroke-width="1.5" opacity=".8"/>
+          <path d="M 30 75 L 210 75" fill="none" stroke="#134a6b" stroke-width="1.5" opacity=".8"/>
+          <path d="M 30 75 Q 120 105 210 95" fill="none" stroke="#134a6b" stroke-width="1.5" opacity=".8"/>
+          <path d="M 30 75 Q 120 130 210 120" fill="none" stroke="#134a6b" stroke-width="1.5" opacity=".8"/>
+          <!-- end nodes -->
+          <circle cx="210" cy="30" r="3" fill="#1a1a24"/>
+          <circle cx="210" cy="55" r="3" fill="#1a1a24"/>
+          <circle cx="210" cy="75" r="3" fill="#1a1a24"/>
+          <circle cx="210" cy="95" r="3" fill="#1a1a24"/>
+          <circle cx="210" cy="120" r="3" fill="#1a1a24"/>
+          <text x="120" y="140" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b6458">five feasible motion primitives</text>
+        </svg>
+        <div class="cap">A <b>state lattice</b> pre-computes a library of feasible motions. Chaining them gives kinodynamic paths via plain graph search.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:2rem;">LQR-based planning</h3>
+    <div class="two-col">
+      <div>
+        <p>The Linear-Quadratic Regulator is the optimal controller for a <em>linear</em> dynamical system with <em>quadratic</em> cost. Given dynamics <code>ẋ = Ax + Bu</code> and cost <code>∫(x<sup>T</sup>Qx + u<sup>T</sup>Ru)dt</code>, the optimal control law is the famous linear feedback <code>u = −Kx</code>, where <code>K</code> is the solution of an algebraic Riccati equation.</p>
+
+        <p>For path planning, LQR provides a natural <em>distance metric</em>: the cost-to-go <code>x<sup>T</sup>Px</code> (where <code>P</code> is the Riccati solution) tells us how costly it is, in control effort, to drive the system from any state to a reference state. Coupling this with RRT<sup>⋆</sup> (yielding LQR-RRT<sup>⋆</sup>) gives a planner whose notion of "near" is based on actual dynamics, not Euclidean geometry, essential for systems where the two diverge wildly (e.g. a flying drone cannot easily get "straight down" quickly).</p>
+      </div>
+      <div>
+        <div class="callout note">
+          <h4>The three roles of LQR in planning</h4>
+          <strong>① As a local controller</strong> that tracks a precomputed trajectory. &nbsp; <strong>② As a distance metric</strong> for sampling-based planners (LQR-RRT<sup>⋆</sup>). &nbsp; <strong>③ As a trajectory generator</strong>, solving a finite-horizon LQR problem produces an optimal trajectory for reaching the goal directly.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER VIII: FRENET ========== -->
+<section class="chapter" id="frenet">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. VIII</div>
+      <div class="chapter-title">
+        <h2>Optimal Trajectories in a Frenet Frame</h2>
+        <div class="subtitle">why self-driving cars plan in curved coordinates</div>
+      </div>
+    </div>
+
+    <p>A car on a road is not really free to go anywhere. It should stay near the lane center, respect a target speed, and overtake only when safe. Reasoning about these rules in raw <code>(x, y)</code> coordinates is awkward, a tight curve on a road means an acceptable path in <code>(x, y)</code> looks nothing like the lane. The solution, introduced to autonomous driving by Werling et al. (2010), is to plan in a <strong>Frenet frame</strong> attached to the road itself.</p>
+
+    <p>Along the road's center-line, we define two coordinates:</p>
+    <div class="formula" style="font-size:1.1rem;">
+      <span style="color:var(--accent-blue);">s</span> = distance along the lane &nbsp;&nbsp;&nbsp; <span style="color:var(--accent-red);">d</span> = perpendicular offset from the center-line
+      <small>THE <em>FRENET</em> (or <em>station-lateral</em>) COORDINATES. THE ROAD IS "STRAIGHTENED OUT".</small>
+    </div>
+
+    <p>In this frame, a trajectory becomes two independent 1D problems: a longitudinal one <code>s(t)</code> governing speed, and a lateral one <code>d(s)</code> governing lane offset. We generate many candidate trajectories by sampling end-states <em>(final offset, final speed, final time)</em> and joining them with quintic polynomials. Each candidate is evaluated by a cost that penalises deviation from the lane center, harsh jerk, speed error, and proximity to other vehicles. The cheapest collision-free candidate wins, and it is re-planned a few times per second as the scene evolves.</p>
+
+    <!-- INTERACTIVE: Frenet -->
+    <div class="demo" id="demo-frenet">
+      <div class="demo-head">
+        <div>
+          <span class="demo-num">Fig. 8.1 · Interactive</span>
+          <div class="demo-title">Frenet sampling along a curved road</div>
+        </div>
+      </div>
+      <canvas id="cv-frenet" height="360"></canvas>
+      <div class="controls">
+        <button id="fr-play" class="primary">▶ Drive</button>
+        <button id="fr-reset" class="ghost">Reset</button>
+        <label>Target speed: <input type="range" id="fr-speed" min="10" max="80" value="40"></label>
+        <label>Lateral samples: <input type="range" id="fr-lat" min="3" max="11" value="7" step="2"></label>
+        <label><input type="checkbox" id="fr-showcand" checked> show candidates</label>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2f6a3a"></span>ego car</span>
+        <span><span class="sw" style="background:#b1202a"></span>other vehicle</span>
+        <span><span class="sw" style="background:#134a6b"></span>chosen trajectory</span>
+        <span><span class="sw" style="background:#c77b1e; opacity:.35"></span>rejected candidates</span>
+      </div>
+      <div class="demo-caption">
+        <b>Try it.</b> Drag the obstacle vehicle (red) anywhere on the road. The ego car (green) samples a fan of lateral candidates in Frenet space at each tick, rejects those that collide, and drives the cheapest remaining one. This is <em>exactly</em> the structure of most modern highway self-driving stacks, Apollo, Autoware, and many production systems build on the Werling / Kammel formulation.
+      </div>
+    </div>
+
+    <div class="callout good">
+      <h4>Why Frenet is so successful on roads</h4>
+      The Frenet decomposition matches the <em>natural</em> structure of driving: speed (longitudinal) and lane choice (lateral) are the two decisions a driver actually makes. Cost shaping becomes straightforward, you can literally write "stay within ±0.2 m of center, maintain 13 m/s" as a penalty, and the optimizer does the right thing.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER IX: COMPARISON ========== -->
+<section class="chapter" id="compare">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Ch. IX</div>
+      <div class="chapter-title">
+        <h2>Comparison &amp; Practical Selection</h2>
+        <div class="subtitle">a working engineer's decision table</div>
+      </div>
+    </div>
+
+    <p>No single planner dominates. The right choice depends on the structure of your problem: dimensionality, static vs. dynamic, known vs. unknown, and what you mean by "optimal." The table below is a condensed decision aid.</p>
+
+    <div style="overflow-x:auto;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Family</th>
+          <th>Complete?</th>
+          <th>Optimal?</th>
+          <th>Dynamics?</th>
+          <th>Typical domain</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Dijkstra</strong></td>
+          <td>Grid search</td>
+          <td>✓ on discretized grid</td>
+          <td>✓ shortest in graph</td>
+          <td>ignored</td>
+          <td>road-network routing</td>
+        </tr>
+        <tr>
+          <td><strong>A<sup>⋆</sup></strong></td>
+          <td>Grid search</td>
+          <td>✓</td>
+          <td>✓ if heuristic admissible</td>
+          <td>ignored</td>
+          <td>games, indoor robots, GPS nav</td>
+        </tr>
+        <tr>
+          <td><strong>D<sup>⋆</sup> Lite</strong></td>
+          <td>Grid search (incremental)</td>
+          <td>✓</td>
+          <td>✓</td>
+          <td>ignored</td>
+          <td>field robots in unknown terrain</td>
+        </tr>
+        <tr>
+          <td><strong>Potential Field</strong></td>
+          <td>Reactive / local</td>
+          <td>✗ (local minima)</td>
+          <td>✗</td>
+          <td>partial (smooth)</td>
+          <td>real-time reactive control, swarms</td>
+        </tr>
+        <tr>
+          <td><strong>Coverage (boustrophedon)</strong></td>
+          <td>Grid decomposition</td>
+          <td>✓ covers free space</td>
+          <td>✓ under length metric</td>
+          <td>ignored</td>
+          <td>floor cleaning, mowing, surveying</td>
+        </tr>
+        <tr>
+          <td><strong>PSO</strong></td>
+          <td>Stochastic optimization</td>
+          <td>✗ (no guarantee)</td>
+          <td>✗ (heuristic)</td>
+          <td>can include</td>
+          <td>messy cost landscapes</td>
+        </tr>
+        <tr>
+          <td><strong>PRM</strong></td>
+          <td>Sampling (multi-query)</td>
+          <td>probabilistic</td>
+          <td>probabilistic (PRM<sup>⋆</sup>)</td>
+          <td>extension needed</td>
+          <td>robot arms, static worlds w/ many queries</td>
+        </tr>
+        <tr>
+          <td><strong>RRT</strong></td>
+          <td>Sampling (single-query)</td>
+          <td>probabilistic</td>
+          <td>✗</td>
+          <td>✓ (kinodynamic variants)</td>
+          <td>manipulators, first-solution problems</td>
+        </tr>
+        <tr>
+          <td><strong>RRT<sup>⋆</sup></strong></td>
+          <td>Sampling (single-query)</td>
+          <td>probabilistic</td>
+          <td>asymptotically optimal</td>
+          <td>✓ with correct local planner</td>
+          <td>when any-time improvement matters</td>
+        </tr>
+        <tr>
+          <td><strong>RRT<sup>⋆</sup> + Reeds–Shepp</strong></td>
+          <td>Sampling + curves</td>
+          <td>probabilistic</td>
+          <td>asymptotically optimal</td>
+          <td>✓ car kinematics</td>
+          <td>parking, low-speed driving</td>
+        </tr>
+        <tr>
+          <td><strong>LQR-RRT<sup>⋆</sup></strong></td>
+          <td>Sampling + control</td>
+          <td>probabilistic</td>
+          <td>asymptotically optimal</td>
+          <td>✓ arbitrary linearizable dynamics</td>
+          <td>drones, spacecraft, balancing robots</td>
+        </tr>
+        <tr>
+          <td><strong>State Lattice</strong></td>
+          <td>Discretized trajectories</td>
+          <td>resolution-complete</td>
+          <td>✓ on lattice</td>
+          <td>✓ by construction</td>
+          <td>on-road driving at medium speed</td>
+        </tr>
+        <tr>
+          <td><strong>DWA</strong></td>
+          <td>Reactive / local</td>
+          <td>✗ (local)</td>
+          <td>local-optimal only</td>
+          <td>✓</td>
+          <td>indoor diff-drive, mobile bases</td>
+        </tr>
+        <tr>
+          <td><strong>Quintic polynomial</strong></td>
+          <td>Trajectory gen.</td>
+          <td>, </td>
+          <td>smooth by design</td>
+          <td>✓ up to jerk</td>
+          <td>connecting waypoints, smoothing</td>
+        </tr>
+        <tr>
+          <td><strong>Reeds–Shepp</strong></td>
+          <td>Closed-form curves</td>
+          <td>✓ analytical</td>
+          <td>✓ shortest for car</td>
+          <td>✓ car kinematics</td>
+          <td>parking, short-range driving</td>
+        </tr>
+        <tr>
+          <td><strong>LQR planning</strong></td>
+          <td>Optimal control</td>
+          <td>✓ (locally)</td>
+          <td>✓ quadratic cost</td>
+          <td>✓ linearized</td>
+          <td>trajectory smoothing, reference tracking</td>
+        </tr>
+        <tr>
+          <td><strong>Frenet trajectory opt.</strong></td>
+          <td>Sampling on curves</td>
+          <td>✓ within lane structure</td>
+          <td>within sampling set</td>
+          <td>✓ dynamics-aware</td>
+          <td>highway &amp; urban driving</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3 style="margin-top:2rem;">Where to use which, practical scenarios</h3>
+    <div class="usecase-grid">
+      <div class="uc"><h4>① Self-driving on a highway</h4><p><strong>Frenet + quintic</strong> for trajectory, a <strong>behavior layer</strong> picking lane-change decisions, <strong>A<sup>⋆</sup></strong> or lane graphs for global routing. The Frenet formulation matches road structure perfectly.</p></div>
+      <div class="uc"><h4>② Parking a car</h4><p><strong>Hybrid A<sup>⋆</sup></strong> on a grid enriched with car orientation, using <strong>Reeds–Shepp</strong> as the heuristic and final connector. Shipped by almost every OEM.</p></div>
+      <div class="uc"><h4>③ Warehouse floor robot</h4><p><strong>A<sup>⋆</sup></strong> for global route on a known map, <strong>DWA</strong> or TEB for local avoidance of humans &amp; pallets. The ROS nav stack default.</p></div>
+      <div class="uc"><h4>④ Mars rover</h4><p><strong>D<sup>⋆</sup> Lite</strong> for efficient replanning as new terrain is discovered. Pioneered on NASA's Mars Exploration Rovers and refined for Curiosity &amp; Perseverance.</p></div>
+      <div class="uc"><h4>⑤ Robotic arm pick-and-place</h4><p><strong>PRM</strong> or <strong>RRT-Connect</strong> in the arm's joint space. High dimensionality rules out grids; sampling dominates.</p></div>
+      <div class="uc"><h4>⑥ Drone racing / aggressive flight</h4><p><strong>LQR-RRT<sup>⋆</sup></strong> or trajectory optimization (e.g. minimum-snap polynomials) for dynamic feasibility; MPC to track.</p></div>
+      <div class="uc"><h4>⑦ Robot vacuum</h4><p><strong>Boustrophedon coverage</strong> with online re-decomposition as the map is explored. Add a local reactive controller for pet avoidance.</p></div>
+      <div class="uc"><h4>⑧ Video-game AI</h4><p><strong>A<sup>⋆</sup></strong> on a navigation mesh (nav-mesh). Hierarchical A<sup>⋆</sup> for open-world maps. String-pulling for smooth post-processing.</p></div>
+    </div>
+
+    <div class="ornament-rule">· · · · ·</div>
+
+    <div class="callout note">
+      <h4>The one piece of advice that matters most</h4>
+      <strong>Layer.</strong> Real systems rarely use one planner. A global planner for strategy, a local planner for reaction, a trajectory generator for smoothness, and a controller to execute. Each layer should be the simplest tool that handles its sub-problem. When a single monolithic planner feels inadequate, the answer is usually not a fancier planner: it is to <em>split the problem</em>.
+    </div>
+  </div>
+</section>
+
+<!-- ========== REFERENCES ========== -->
+<section class="chapter" id="refs">
+  <div class="container">
+    <div class="chapter-head">
+      <div class="chapter-num">Refs.</div>
+      <div class="chapter-title">
+        <h2>References &amp; Further Reading</h2>
+        <div class="subtitle">the foundational papers and classic textbooks</div>
+      </div>
+    </div>
+
+    <ol class="refs">
+      <li>Dijkstra, E. W. (1959). <cite>A note on two problems in connexion with graphs.</cite> Numerische Mathematik, 1(1):269–271. <em>the original shortest-path algorithm.</em></li>
+      <li>Hart, P. E., Nilsson, N. J., Raphael, B. (1968). <cite>A formal basis for the heuristic determination of minimum cost paths.</cite> IEEE Trans. on Systems Science and Cybernetics. <em>A<sup>⋆</sup>.</em></li>
+      <li>Stentz, A. (1994). <cite>Optimal and efficient path planning for partially-known environments.</cite> Proc. ICRA. <em>D<sup>⋆</sup>.</em></li>
+      <li>Koenig, S., Likhachev, M. (2002). <cite>D<sup>⋆</sup> Lite.</cite> Proc. AAAI. <em>the incremental replanner used on Mars rovers.</em></li>
+      <li>Khatib, O. (1986). <cite>Real-time obstacle avoidance for manipulators and mobile robots.</cite> Int. J. Robotics Research, 5(1):90–98. <em>potential fields.</em></li>
+      <li>Kavraki, L. E., Švestka, P., Latombe, J.-C., Overmars, M. H. (1996). <cite>Probabilistic roadmaps for path planning in high-dimensional configuration spaces.</cite> IEEE Trans. on Robotics &amp; Automation. <em>PRM.</em></li>
+      <li>LaValle, S. M. (1998). <cite>Rapidly-exploring random trees: A new tool for path planning.</cite> TR 98-11, Computer Science, Iowa State University. <em>RRT.</em></li>
+      <li>Karaman, S., Frazzoli, E. (2011). <cite>Sampling-based algorithms for optimal motion planning.</cite> Int. J. Robotics Research, 30(7):846–894. <em>RRT<sup>⋆</sup> and PRM<sup>⋆</sup>, with asymptotic optimality.</em></li>
+      <li>Perez, A., Platt, R., Konidaris, G., Kaelbling, L., Lozano-Perez, T. (2012). <cite>LQR-RRT<sup>⋆</sup>: Optimal sampling-based motion planning with automatically derived extension heuristics.</cite> Proc. ICRA.</li>
+      <li>Fox, D., Burgard, W., Thrun, S. (1997). <cite>The dynamic window approach to collision avoidance.</cite> IEEE Robotics &amp; Automation Magazine, 4(1):23–33.</li>
+      <li>Dubins, L. E. (1957). <cite>On curves of minimal length with a constraint on average curvature and with prescribed initial and terminal positions and tangents.</cite> American J. of Mathematics, 79(3):497–516.</li>
+      <li>Reeds, J., Shepp, L. (1990). <cite>Optimal paths for a car that goes both forwards and backwards.</cite> Pacific J. of Mathematics, 145(2):367–393.</li>
+      <li>Werling, M., Ziegler, J., Kammel, S., Thrun, S. (2010). <cite>Optimal trajectory generation for dynamic street scenarios in a Frenét frame.</cite> Proc. ICRA.</li>
+      <li>Pivtoraiko, M., Knepper, R. A., Kelly, A. (2009). <cite>Differentially constrained mobile robot motion planning in state lattices.</cite> J. of Field Robotics, 26(3):308–333.</li>
+      <li>Kennedy, J., Eberhart, R. (1995). <cite>Particle swarm optimization.</cite> Proc. ICNN.</li>
+      <li>LaValle, S. M. (2006). <cite>Planning Algorithms.</cite> Cambridge University Press. <em>the canonical textbook; free online.</em></li>
+      <li>Choset, H. et al. (2005). <cite>Principles of Robot Motion: Theory, Algorithms, and Implementations.</cite> MIT Press. <em>covers coverage planning and much else.</em></li>
+      <li>AtsushiSakai et al. <cite>PythonRobotics.</cite> github.com/AtsushiSakai/PythonRobotics. <em>clean reference implementations of essentially every algorithm in this monograph; the family-tree image in our introduction is derived from this library's documentation.</em></li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="ornament">❦ &nbsp; ❦ &nbsp; ❦</div>
+  </div>
+  <div class="container">
+    <span>An Interactive Monograph · Path Planning</span>
+    <span>End of Volume I</span>
+  </div>
+</footer>
+
+<script>
+/* =====================================================================
+   ==                 INTERACTIVE DEMOS, vanilla JS                 ==
+   ===================================================================== */
+
+// ---------- shared palette ----------
+const C = {
+  paper:  '#fffcf4',
+  ink:    '#1a1a24',
+  red:    '#b1202a',
+  blue:   '#134a6b',
+  amber:  '#c77b1e',
+  green:  '#2f6a3a',
+  rule:   '#b9ae90',
+  grid:   '#d9cfb6',
+  paperD: '#ebe3d2'
+};
+
+function setCanvasSize(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  cv.width  = Math.round(rect.width  * dpr);
+  cv.height = Math.round(rect.height * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w: rect.width, h: rect.height, ctx};
+}
+
+function drawGridBackground(ctx,w,h,spacing=20){
+  ctx.save();
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 0.5;
+  for(let x=0;x<=w;x+=spacing){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for(let y=0;y<=h;y+=spacing){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* =====================================================================
+   DEMO 1, DIJKSTRA vs A* on a grid
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-grid');
+  if(!cv) return;
+  const COLS = 40, ROWS = 22;
+  let cellW, cellH;
+  let grid = [];       // 0 free, 1 wall
+  let start = {x:3, y:11}, goal = {x:36, y:11};
+  let openSet = [], closedSet = new Set(), cameFrom = {}, gScore = {};
+  let path = [];
+  let running = false;
+  let timer = null;
+  let expanded = 0;
+
+  function idx(x,y){ return x+','+y; }
+
+  function initGrid(){
+    grid = [];
+    for(let y=0;y<ROWS;y++){
+      grid.push(new Array(COLS).fill(0));
+    }
+    // some starter obstacles
+    for(let y=4;y<16;y++) grid[y][14] = 1;
+    for(let y=8;y<20;y++) grid[y][24] = 1;
+    for(let x=5;x<12;x++) grid[18][x] = 1;
+    openSet=[]; closedSet = new Set(); cameFrom={}; gScore={}; path=[]; expanded=0;
+  }
+
+  function hFun(x,y){
+    const dx = Math.abs(x-goal.x), dy = Math.abs(y-goal.y);
+    // octile
+    return (dx+dy) + (Math.SQRT2-2)*Math.min(dx,dy);
+  }
+
+  function resetSearch(){
+    openSet = [];
+    closedSet = new Set();
+    cameFrom = {};
+    gScore = {};
+    path = [];
+    expanded = 0;
+    const sKey = idx(start.x,start.y);
+    gScore[sKey] = 0;
+    openSet.push({x:start.x,y:start.y,g:0,f:hFun(start.x,start.y)});
+  }
+
+  function neighbors(x,y){
+    const res=[];
+    for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+      if(dx===0 && dy===0) continue;
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=COLS||ny>=ROWS) continue;
+      if(grid[ny][nx]===1) continue;
+      // don't allow corner-cutting
+      if(dx!==0 && dy!==0){
+        if(grid[y][nx]===1 && grid[ny][x]===1) continue;
+      }
+      const cost = (dx!==0 && dy!==0) ? Math.SQRT2 : 1;
+      res.push({x:nx,y:ny,cost});
+    }
+    return res;
+  }
+
+  function stepSearch(){
+    if(openSet.length===0) return false;
+    // min f
+    let bestI=0;
+    for(let i=1;i<openSet.length;i++){
+      if(openSet[i].f < openSet[bestI].f) bestI=i;
+    }
+    const cur = openSet.splice(bestI,1)[0];
+    const k = idx(cur.x,cur.y);
+    if(closedSet.has(k)) return true;
+    closedSet.add(k);
+    expanded++;
+    if(cur.x===goal.x && cur.y===goal.y){
+      // reconstruct
+      let p={x:cur.x,y:cur.y};
+      path=[p];
+      while(cameFrom[idx(p.x,p.y)]){
+        p = cameFrom[idx(p.x,p.y)];
+        path.push(p);
+      }
+      path.reverse();
+      openSet = [];
+      return false;
+    }
+    const algo = document.getElementById('grid-algo').value;
+    for(const n of neighbors(cur.x,cur.y)){
+      const nk = idx(n.x,n.y);
+      if(closedSet.has(nk)) continue;
+      const tentG = cur.g + n.cost;
+      if(gScore[nk] === undefined || tentG < gScore[nk]){
+        gScore[nk] = tentG;
+        cameFrom[nk] = {x:cur.x, y:cur.y};
+        const h = (algo === 'astar') ? hFun(n.x,n.y) : 0;
+        openSet.push({x:n.x, y:n.y, g:tentG, f:tentG+h});
+      }
+    }
+    return true;
+  }
+
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    cellW = w / COLS;
+    cellH = h / ROWS;
+    ctx.fillStyle = C.paper;
+    ctx.fillRect(0,0,w,h);
+    // closed
+    ctx.fillStyle = 'rgba(19,74,107,0.28)';
+    closedSet.forEach(k=>{
+      const [x,y] = k.split(',').map(Number);
+      ctx.fillRect(x*cellW, y*cellH, cellW, cellH);
+    });
+    // open (frontier)
+    ctx.fillStyle = 'rgba(232,201,168,0.9)';
+    for(const n of openSet){
+      ctx.fillRect(n.x*cellW, n.y*cellH, cellW, cellH);
+    }
+    // walls
+    ctx.fillStyle = C.ink;
+    for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+      if(grid[y][x]===1) ctx.fillRect(x*cellW,y*cellH,cellW,cellH);
+    }
+    // path
+    if(path.length){
+      ctx.strokeStyle = C.amber;
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for(let i=0;i<path.length;i++){
+        const px = (path[i].x+0.5)*cellW, py = (path[i].y+0.5)*cellH;
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    // grid lines
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 0.5;
+    for(let x=0;x<=COLS;x++){ ctx.beginPath(); ctx.moveTo(x*cellW,0); ctx.lineTo(x*cellW,h); ctx.stroke(); }
+    for(let y=0;y<=ROWS;y++){ ctx.beginPath(); ctx.moveTo(0,y*cellH); ctx.lineTo(w,y*cellH); ctx.stroke(); }
+    // start/goal
+    ctx.fillStyle = C.green;
+    ctx.beginPath(); ctx.arc((start.x+0.5)*cellW,(start.y+0.5)*cellH,Math.min(cellW,cellH)*0.35,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = C.red;
+    ctx.beginPath(); ctx.arc((goal.x+0.5)*cellW,(goal.y+0.5)*cellH,Math.min(cellW,cellH)*0.35,0,Math.PI*2); ctx.fill();
+
+    document.getElementById('grid-stats').textContent =
+      `cells expanded: ${expanded} · open: ${openSet.length} · path: ${path.length || ', '}`;
+  }
+
+  function tick(){
+    if(!running) return;
+    const speed = +document.getElementById('grid-speed').value;
+    for(let i=0;i<speed;i++){
+      const more = stepSearch();
+      if(!more){ running=false; break; }
+    }
+    draw();
+    if(running) timer = requestAnimationFrame(tick);
+  }
+
+  // mouse handling
+  let dragging = null;
+  function getCell(e){
+    const rect = cv.getBoundingClientRect();
+    const px = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const py = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    return {x: Math.max(0,Math.min(COLS-1,Math.floor(px/cellW))), y: Math.max(0,Math.min(ROWS-1,Math.floor(py/cellH)))};
+  }
+  function apply(c){
+    const mode = document.getElementById('grid-mode').value;
+    if(mode==='wall'){ grid[c.y][c.x] = 1; }
+    else if(mode==='erase'){ grid[c.y][c.x] = 0; }
+    else if(mode==='start'){ start = {x:c.x,y:c.y}; grid[c.y][c.x]=0; }
+    else if(mode==='goal'){ goal = {x:c.x,y:c.y}; grid[c.y][c.x]=0; }
+    resetSearch();
+    draw();
+  }
+  cv.addEventListener('mousedown', e=>{ dragging=true; apply(getCell(e)); });
+  cv.addEventListener('mousemove', e=>{ if(dragging) apply(getCell(e)); });
+  window.addEventListener('mouseup', ()=>{ dragging=false; });
+  cv.addEventListener('touchstart', e=>{ dragging=true; apply(getCell(e)); e.preventDefault(); },{passive:false});
+  cv.addEventListener('touchmove', e=>{ if(dragging) apply(getCell(e)); e.preventDefault(); },{passive:false});
+  cv.addEventListener('touchend', ()=>{ dragging=false; });
+
+  document.getElementById('grid-play').onclick = ()=>{
+    if(!running){
+      if(openSet.length===0 && path.length===0) resetSearch();
+      running = true;
+      tick();
+    } else {
+      running = false;
+    }
+  };
+  document.getElementById('grid-step').onclick = ()=>{
+    running = false;
+    if(openSet.length===0 && path.length===0) resetSearch();
+    stepSearch();
+    draw();
+  };
+  document.getElementById('grid-reset').onclick = ()=>{
+    running = false;
+    resetSearch();
+    draw();
+  };
+  document.getElementById('grid-algo').onchange = ()=>{
+    running = false;
+    resetSearch();
+    draw();
+  };
+
+  initGrid();
+  resetSearch();
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 2, POTENTIAL FIELD
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-pf');
+  if(!cv) return;
+  let robot = {x:60, y:180};
+  let goal  = {x:640, y:180};
+  let obs = [
+    {x:280, y:130, r:32},
+    {x:380, y:220, r:34},
+    {x:480, y:130, r:28}
+  ];
+  let trail = [];
+  let running = false, timer=null;
+  const katt = 0.9;          // attractive gain (per-pixel, scaled)
+  const F_ATT_MAX = 1.6;     // cap: conic field when far from goal
+  const DT = 0.5;            // integration step
+
+  function forces(p){
+    // attractive: conic (constant magnitude) far, linear near
+    const dxg = goal.x - p.x, dyg = goal.y - p.y;
+    const dg = Math.hypot(dxg, dyg) + 1e-6;
+    const magAtt = Math.min(katt * dg * 0.04, F_ATT_MAX);
+    let fx = magAtt * dxg / dg;
+    let fy = magAtt * dyg / dg;
+    // repulsive
+    const krep = +document.getElementById('pf-krep').value;
+    const rad  = +document.getElementById('pf-rad').value;
+    for(const o of obs){
+      const dx = p.x - o.x, dy = p.y - o.y;
+      const dist = Math.hypot(dx, dy) + 1e-6;
+      const d = dist - o.r;
+      if(d < rad && d > 1){
+        // standard PF repulsion gradient, scaled to match attractive magnitudes
+        const mag = krep * (1/d - 1/rad) / (d*d) * 4.0;
+        fx += mag * dx / dist;
+        fy += mag * dy / dist;
+      } else if (d <= 1){
+        // inside obstacle: hard push outward
+        fx += (dx / dist) * 15;
+        fy += (dy / dist) * 15;
+      }
+    }
+    return {fx,fy};
+  }
+
+  function potentialAt(p){
+    const dg = Math.hypot(p.x-goal.x, p.y-goal.y);
+    // conic/quadratic blended
+    let U = (dg < F_ATT_MAX/(katt*0.04))
+      ? 0.5 * katt * 0.04 * dg * dg
+      : F_ATT_MAX * dg;
+    const krep = +document.getElementById('pf-krep').value;
+    const rad = +document.getElementById('pf-rad').value;
+    for(const o of obs){
+      const dx = p.x - o.x, dy = p.y - o.y;
+      const d = Math.hypot(dx,dy) - o.r;
+      if(d < rad && d > 0.5){
+        U += 0.5 * krep * Math.pow(1/d - 1/rad, 2) * 4.0;
+      } else if(d <= 0.5){
+        U += 1e5;
+      }
+    }
+    return U;
+  }
+
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper;
+    ctx.fillRect(0,0,w,h);
+
+    const show = document.getElementById('pf-show').value;
+
+    // heatmap
+    if(show === 'heat'){
+      const cell = 8;
+      // pre-sample to normalize
+      let vmin=Infinity, vmax=-Infinity;
+      const grid=[];
+      for(let y=0;y<h;y+=cell){
+        const row=[];
+        for(let x=0;x<w;x+=cell){
+          let v = Math.log(1 + potentialAt({x,y}));
+          row.push(v);
+          if(v<vmin) vmin=v;
+          if(v<1e6 && v>vmax) vmax=v;
+        }
+        grid.push(row);
+      }
+      for(let j=0;j<grid.length;j++){
+        for(let i=0;i<grid[j].length;i++){
+          let t = (grid[j][i] - vmin) / (vmax - vmin + 1e-6);
+          t = Math.max(0, Math.min(1, t));
+          // cream -> deep red
+          const r = Math.round(255 - t*(255-177));
+          const g = Math.round(245 - t*(245-32));
+          const b = Math.round(220 - t*(220-42));
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fillRect(i*cell, j*cell, cell+1, cell+1);
+        }
+      }
+    } else if(show === 'field'){
+      drawGridBackground(ctx,w,h,24);
+      // vector field
+      ctx.strokeStyle = 'rgba(19,74,107,0.55)';
+      ctx.lineWidth = 1;
+      const step = 30;
+      for(let x=step/2; x<w; x+=step){
+        for(let y=step/2; y<h; y+=step){
+          const f = forces({x,y});
+          let m = Math.hypot(f.fx,f.fy);
+          if(m<1e-6) continue;
+          const s = Math.min(13, 4 + Math.log(1+m*3));
+          const nx = f.fx/m, ny = f.fy/m;
+          ctx.beginPath();
+          ctx.moveTo(x,y);
+          ctx.lineTo(x + nx*s, y + ny*s);
+          ctx.stroke();
+          // arrowhead
+          const ah = 3;
+          ctx.beginPath();
+          ctx.moveTo(x+nx*s, y+ny*s);
+          ctx.lineTo(x+nx*s - ah*(nx+ny*0.6), y+ny*s - ah*(ny-nx*0.6));
+          ctx.lineTo(x+nx*s - ah*(nx-ny*0.6), y+ny*s - ah*(ny+nx*0.6));
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(19,74,107,0.5)';
+          ctx.fill();
+        }
+      }
+    } else {
+      drawGridBackground(ctx,w,h,24);
+    }
+
+    // obstacles
+    for(const o of obs){
+      ctx.fillStyle = C.amber;
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    // trail
+    if(trail.length>1){
+      ctx.strokeStyle = C.blue;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for(let i=0;i<trail.length;i++){
+        if(i===0) ctx.moveTo(trail[i].x, trail[i].y);
+        else ctx.lineTo(trail[i].x, trail[i].y);
+      }
+      ctx.stroke();
+    }
+    // goal
+    ctx.fillStyle = C.red;
+    ctx.beginPath(); ctx.arc(goal.x, goal.y, 10, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(goal.x, goal.y, 3, 0, Math.PI*2); ctx.fill();
+    // robot
+    ctx.fillStyle = C.green;
+    ctx.beginPath(); ctx.arc(robot.x, robot.y, 8, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.stroke();
+  }
+
+  function tick(){
+    if(!running) return;
+    for(let i=0;i<3;i++){
+      const f = forces(robot);
+      robot.x += f.fx * DT;
+      robot.y += f.fy * DT;
+      // clamp
+      robot.x = Math.max(5, Math.min(cv.getBoundingClientRect().width-5, robot.x));
+      robot.y = Math.max(5, Math.min(cv.getBoundingClientRect().height-5, robot.y));
+      trail.push({x:robot.x, y:robot.y});
+      if(trail.length > 1500) trail.shift();
+      if(Math.hypot(robot.x-goal.x, robot.y-goal.y) < 8){
+        running = false;
+        document.getElementById('pf-play').textContent = '▶ Launch robot';
+        break;
+      }
+    }
+    draw();
+    if(running) timer = requestAnimationFrame(tick);
+  }
+
+  // dragging
+  let drag = null;
+  function getPos(e){
+    const r = cv.getBoundingClientRect();
+    return {x: (e.clientX||e.touches[0].clientX)-r.left, y: (e.clientY||e.touches[0].clientY)-r.top};
+  }
+  function pick(p){
+    if(Math.hypot(p.x-robot.x,p.y-robot.y)<14) return {t:'r'};
+    if(Math.hypot(p.x-goal.x,p.y-goal.y)<14) return {t:'g'};
+    for(let i=0;i<obs.length;i++){
+      if(Math.hypot(p.x-obs[i].x,p.y-obs[i].y)<obs[i].r+4) return {t:'o', i};
+    }
+    return null;
+  }
+  cv.addEventListener('mousedown', e=>{ drag = pick(getPos(e)); });
+  cv.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const p = getPos(e);
+    if(drag.t==='r'){ robot = p; trail=[]; }
+    else if(drag.t==='g'){ goal = p; }
+    else if(drag.t==='o'){ obs[drag.i].x = p.x; obs[drag.i].y = p.y; }
+    draw();
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{ drag = pick(getPos(e)); },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(!drag) return;
+    const p = getPos(e);
+    if(drag.t==='r'){ robot = p; trail=[]; }
+    else if(drag.t==='g'){ goal = p; }
+    else if(drag.t==='o'){ obs[drag.i].x = p.x; obs[drag.i].y = p.y; }
+    draw();
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('pf-play').onclick = ()=>{
+    running = !running;
+    document.getElementById('pf-play').textContent = running ? '⏸ Running' : '▶ Launch robot';
+    if(running){ trail=[{...robot}]; tick(); }
+  };
+  document.getElementById('pf-reset').onclick = ()=>{
+    running=false;
+    document.getElementById('pf-play').textContent='▶ Launch robot';
+    robot={x:60,y:180};
+    trail=[];
+    draw();
+  };
+  document.getElementById('pf-show').onchange = draw;
+  document.getElementById('pf-krep').oninput = draw;
+  document.getElementById('pf-rad').oninput = draw;
+
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 3, PRM (Probabilistic Roadmap)
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-prm');
+  if(!cv) return;
+  let start = {x: 60,  y: 200};
+  let goal  = {x: 680, y: 200};
+  let obstacles = [
+    {x:180, y:80,  w:40, h:160},
+    {x:330, y:160, w:120, h:40},
+    {x:520, y:60,  w:40, h:140},
+    {x:420, y:240, w:90, h:40}
+  ];
+  let nodes = [];
+  let edges = [];
+  let path = [];
+
+  function inObstacle(p){
+    for(const o of obstacles){
+      if(p.x>=o.x && p.x<=o.x+o.w && p.y>=o.y && p.y<=o.y+o.h) return true;
+    }
+    return false;
+  }
+  function segFree(a,b,steps=20){
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const p = {x: a.x+(b.x-a.x)*t, y: a.y+(b.y-a.y)*t};
+      if(inObstacle(p)) return false;
+    }
+    return true;
+  }
+  function sample(){
+    const N = +document.getElementById('prm-n').value;
+    const bb = cv.getBoundingClientRect();
+    const target = Math.min(N, nodes.length + 40);
+    let tries = 0;
+    while(nodes.length < target && tries < 2000){
+      tries++;
+      const p = {x: 20 + Math.random()*(bb.width-40), y: 20 + Math.random()*(bb.height-40)};
+      if(!inObstacle(p)) nodes.push({...p, neighbors:[]});
+    }
+    edges = []; path = [];
+    draw(); updateStats();
+  }
+  function connect(){
+    const R = +document.getElementById('prm-r').value;
+    edges = [];
+    const all = [...nodes.map(n=>({x:n.x,y:n.y,neighbors:[]})),
+                 {x:start.x,y:start.y,neighbors:[]},
+                 {x:goal.x, y:goal.y, neighbors:[]}];
+    for(let i=0;i<all.length;i++){
+      for(let j=i+1;j<all.length;j++){
+        const d = Math.hypot(all[i].x-all[j].x, all[i].y-all[j].y);
+        if(d < R && segFree(all[i], all[j])){
+          all[i].neighbors.push(j);
+          all[j].neighbors.push(i);
+          edges.push([all[i], all[j]]);
+        }
+      }
+    }
+    window.__prmAll = all;
+    path = [];
+    draw(); updateStats();
+  }
+  function query(){
+    if(!window.__prmAll) connect();
+    const all = window.__prmAll;
+    if(!all || all.length===0) return;
+    const s = all.length-2, g = all.length-1;
+    const dist = new Array(all.length).fill(Infinity);
+    const prev = new Array(all.length).fill(-1);
+    const done = new Array(all.length).fill(false);
+    dist[s] = 0;
+    for(let it=0; it<all.length; it++){
+      let u = -1, bd = Infinity;
+      for(let i=0;i<all.length;i++) if(!done[i] && dist[i]<bd){ bd=dist[i]; u=i; }
+      if(u<0) break;
+      done[u] = true;
+      if(u===g) break;
+      for(const v of all[u].neighbors){
+        const d = dist[u] + Math.hypot(all[u].x-all[v].x, all[u].y-all[v].y);
+        if(d < dist[v]){ dist[v] = d; prev[v] = u; }
+      }
+    }
+    path = [];
+    if(dist[g] < Infinity){
+      let cur = g;
+      while(cur !== -1){ path.unshift(all[cur]); cur = prev[cur]; }
+    }
+    draw(); updateStats();
+  }
+  function updateStats(){
+    document.getElementById('prm-stats').textContent =
+      `${nodes.length} nodes · ${edges.length} edges · ${path.length ? 'path: '+path.length+' hops' : 'no path'}`;
+  }
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    drawGridBackground(ctx,w,h,30);
+    for(const o of obstacles){ ctx.fillStyle = C.ink; ctx.fillRect(o.x,o.y,o.w,o.h); }
+    ctx.strokeStyle = 'rgba(19,74,107,0.35)';
+    ctx.lineWidth = 1;
+    for(const [a,b] of edges){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    ctx.fillStyle = C.blue;
+    for(const n of nodes){ ctx.beginPath(); ctx.arc(n.x,n.y,2.5,0,Math.PI*2); ctx.fill(); }
+    if(path.length>1){
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 3.5; ctx.lineJoin='round';
+      ctx.beginPath();
+      for(let i=0;i<path.length;i++){
+        if(i===0) ctx.moveTo(path[i].x,path[i].y); else ctx.lineTo(path[i].x,path[i].y);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(start.x,start.y,10,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(goal.x,goal.y,10,0,Math.PI*2); ctx.fill();
+    ctx.stroke();
+  }
+
+  let drag=null;
+  function getPos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX||e.touches[0].clientX)-r.left, y:(e.clientY||e.touches[0].clientY)-r.top};
+  }
+  cv.addEventListener('mousedown', e=>{
+    const p=getPos(e);
+    if(Math.hypot(p.x-start.x,p.y-start.y)<14) drag='s';
+    else if(Math.hypot(p.x-goal.x,p.y-goal.y)<14) drag='g';
+  });
+  cv.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='s' && !inObstacle(p)) start=p;
+    else if(drag==='g' && !inObstacle(p)) goal=p;
+    path=[]; draw();
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{
+    const p=getPos(e);
+    if(Math.hypot(p.x-start.x,p.y-start.y)<16) drag='s';
+    else if(Math.hypot(p.x-goal.x,p.y-goal.y)<16) drag='g';
+  },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='s' && !inObstacle(p)) start=p;
+    else if(drag==='g' && !inObstacle(p)) goal=p;
+    path=[]; draw(); e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('prm-sample').onclick = sample;
+  document.getElementById('prm-connect').onclick = connect;
+  document.getElementById('prm-query').onclick = query;
+  document.getElementById('prm-reset').onclick = ()=>{
+    nodes=[]; edges=[]; path=[]; window.__prmAll=null;
+    draw(); updateStats();
+  };
+
+  draw(); updateStats();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 4, RRT / RRT*
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-rrt');
+  if(!cv) return;
+  let start = {x: 60, y: 60};
+  let goal  = {x: 680, y: 340};
+  const goalR = 22;
+  let obstacles = [
+    {x:200, y:100, w:60, h:200},
+    {x:370, y:0,   w:50, h:180},
+    {x:370, y:240, w:50, h:180},
+    {x:520, y:100, w:60, h:200}
+  ];
+  let tree = [];
+  let bestGoalIdx = -1;
+  let running = false;
+
+  function inObstacle(p){
+    for(const o of obstacles){
+      if(p.x>=o.x && p.x<=o.x+o.w && p.y>=o.y && p.y<=o.y+o.h) return true;
+    }
+    return false;
+  }
+  function segFree(a,b,steps=12){
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const p = {x: a.x+(b.x-a.x)*t, y: a.y+(b.y-a.y)*t};
+      if(inObstacle(p)) return false;
+    }
+    return true;
+  }
+  function reset(){
+    tree = [{x:start.x,y:start.y,parent:-1,cost:0}];
+    bestGoalIdx = -1;
+    draw(); updateStats();
+  }
+  function extend(){
+    const stepSz = +document.getElementById('rrt-step-size').value;
+    const bias = (+document.getElementById('rrt-bias').value) / 100;
+    const algo = document.getElementById('rrt-algo').value;
+    const bb = cv.getBoundingClientRect();
+    const rand = (Math.random() < bias)
+      ? {x:goal.x, y:goal.y}
+      : {x: Math.random()*bb.width, y: Math.random()*bb.height};
+    let bestI=0, bestD=Infinity;
+    for(let i=0;i<tree.length;i++){
+      const d = Math.hypot(tree[i].x-rand.x, tree[i].y-rand.y);
+      if(d<bestD){ bestD=d; bestI=i; }
+    }
+    const near = tree[bestI];
+    const d = Math.hypot(rand.x-near.x, rand.y-near.y);
+    if(d<0.1) return;
+    const nx = near.x + (rand.x-near.x)*stepSz/d;
+    const ny = near.y + (rand.y-near.y)*stepSz/d;
+    const newP = {x:nx, y:ny};
+    if(inObstacle(newP)) return;
+    if(!segFree(near, newP)) return;
+    let parent = bestI;
+    let parentCost = near.cost + Math.hypot(nx-near.x, ny-near.y);
+    const R = stepSz * 2.4;
+    if(algo === 'star'){
+      for(let i=0;i<tree.length;i++){
+        const t = tree[i];
+        const dd = Math.hypot(t.x-nx, t.y-ny);
+        if(dd<=R && segFree(t, newP)){
+          const cc = t.cost + dd;
+          if(cc < parentCost){ parent = i; parentCost = cc; }
+        }
+      }
+    }
+    tree.push({x:nx, y:ny, parent, cost: parentCost});
+    const newIdx = tree.length-1;
+    if(algo === 'star'){
+      for(let i=0;i<tree.length-1;i++){
+        const t = tree[i];
+        const dd = Math.hypot(t.x-nx, t.y-ny);
+        if(dd<=R && segFree(newP, t)){
+          const cc = parentCost + dd;
+          if(cc < t.cost){ t.parent = newIdx; t.cost = cc; }
+        }
+      }
+    }
+    if(Math.hypot(nx-goal.x, ny-goal.y) < goalR){
+      if(bestGoalIdx<0 || tree[newIdx].cost < tree[bestGoalIdx].cost){
+        bestGoalIdx = newIdx;
+      }
+    }
+  }
+  function loop(){
+    if(!running) return;
+    for(let i=0;i<4;i++) extend();
+    draw(); updateStats();
+    if(tree.length < 2500) requestAnimationFrame(loop);
+    else { running = false; document.getElementById('rrt-play').textContent='▶ Grow'; }
+  }
+  function updateStats(){
+    const bestCost = bestGoalIdx>=0 ? tree[bestGoalIdx].cost.toFixed(1) : ', ';
+    document.getElementById('rrt-stats').textContent =
+      `${tree.length} nodes · best path cost: ${bestCost}`;
+  }
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    drawGridBackground(ctx,w,h,30);
+    ctx.fillStyle = C.ink;
+    for(const o of obstacles) ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.fillStyle = 'rgba(177,32,42,0.15)';
+    ctx.beginPath(); ctx.arc(goal.x, goal.y, goalR, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.red; ctx.lineWidth = 1; ctx.setLineDash([4,3]); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(19,74,107,0.45)'; ctx.lineWidth = 1;
+    for(const n of tree){
+      if(n.parent<0) continue;
+      const p = tree[n.parent];
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(n.x,n.y); ctx.stroke();
+    }
+    if(bestGoalIdx>=0){
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 3.5; ctx.lineJoin='round';
+      ctx.beginPath();
+      let idx = bestGoalIdx;
+      ctx.moveTo(tree[idx].x, tree[idx].y);
+      while(tree[idx].parent >= 0){ idx = tree[idx].parent; ctx.lineTo(tree[idx].x, tree[idx].y); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(start.x, start.y, 9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(goal.x, goal.y, 5, 0, Math.PI*2); ctx.fill();
+  }
+
+  let drag=null, dragOff={x:0,y:0};
+  function getPos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX||e.touches[0].clientX)-r.left, y:(e.clientY||e.touches[0].clientY)-r.top};
+  }
+  function pick(p){
+    if(Math.hypot(p.x-start.x,p.y-start.y)<14) return 's';
+    if(Math.hypot(p.x-goal.x,p.y-goal.y)<14) return 'g';
+    for(let i=0;i<obstacles.length;i++){
+      const o=obstacles[i];
+      if(p.x>=o.x-5 && p.x<=o.x+o.w+5 && p.y>=o.y-5 && p.y<=o.y+o.h+5) return 'o'+i;
+    }
+    return null;
+  }
+  cv.addEventListener('mousedown', e=>{
+    const p=getPos(e);
+    drag = pick(p);
+    if(drag && drag.startsWith('o')){
+      const i=+drag.slice(1);
+      dragOff = {x:p.x-obstacles[i].x, y:p.y-obstacles[i].y};
+    }
+  });
+  cv.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='s'){ if(!inObstacle(p)){ start=p; reset(); } }
+    else if(drag==='g'){ if(!inObstacle(p)){ goal=p; reset(); } }
+    else if(drag.startsWith('o')){
+      const i=+drag.slice(1);
+      obstacles[i].x = p.x - dragOff.x;
+      obstacles[i].y = p.y - dragOff.y;
+      reset();
+    }
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{
+    const p=getPos(e); drag=pick(p);
+    if(drag && drag.startsWith('o')){
+      const i=+drag.slice(1);
+      dragOff={x:p.x-obstacles[i].x, y:p.y-obstacles[i].y};
+    }
+  },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='s'){ if(!inObstacle(p)){ start=p; reset(); } }
+    else if(drag==='g'){ if(!inObstacle(p)){ goal=p; reset(); } }
+    else if(drag.startsWith('o')){
+      const i=+drag.slice(1);
+      obstacles[i].x = p.x - dragOff.x;
+      obstacles[i].y = p.y - dragOff.y;
+      reset();
+    }
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('rrt-play').onclick = ()=>{
+    running = !running;
+    document.getElementById('rrt-play').textContent = running ? '⏸ Growing' : '▶ Grow';
+    if(running) loop();
+  };
+  document.getElementById('rrt-step').onclick = ()=>{
+    for(let i=0;i<10;i++) extend();
+    draw(); updateStats();
+  };
+  document.getElementById('rrt-reset').onclick = ()=>{
+    running = false;
+    document.getElementById('rrt-play').textContent = '▶ Grow';
+    reset();
+  };
+  document.getElementById('rrt-algo').onchange = reset;
+
+  reset();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 5, DYNAMIC WINDOW APPROACH
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-dwa');
+  if(!cv) return;
+  let robot = {x:60, y:210, theta:0, v:0, w:0};
+  let goal = {x:680, y:210};
+  let obstacles = [
+    {x:280, y:100, r:34},
+    {x:380, y:280, r:40},
+    {x:500, y:160, r:30}
+  ];
+  let trail = [];
+  let chosen = null;
+  let cands = [];
+  let running = false;
+
+  const V_MAX = 95;
+  const W_MAX = 2.4;
+  const A_V = 200;
+  const A_W = 5.5;
+  const DT = 0.12;
+  const HORIZON = 0.9;
+  const ROBOT_R = 10;
+
+  function normalize(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
+
+  function simulate(v, w){
+    const steps = Math.ceil(HORIZON/DT);
+    let x = robot.x, y = robot.y, th = robot.theta;
+    const traj = [{x,y}];
+    let minClear = 1e9;
+    const bb = cv.getBoundingClientRect();
+    for(let i=0;i<steps;i++){
+      x += v*Math.cos(th)*DT;
+      y += v*Math.sin(th)*DT;
+      th += w*DT;
+      traj.push({x,y});
+      for(const o of obstacles){
+        const d = Math.hypot(x-o.x, y-o.y) - o.r - ROBOT_R;
+        if(d < minClear) minClear = d;
+        if(d < 0) return {traj, collision:true, minClear};
+      }
+      if(x<0||x>bb.width||y<0||y>bb.height) return {traj, collision:true, minClear};
+    }
+    return {traj, collision:false, minClear, endX:x, endY:y, endTh:th};
+  }
+
+  function plan(){
+    const wv = (+document.getElementById('dwa-wvel').value)/100;
+    const wc = (+document.getElementById('dwa-wclear').value)/100;
+    const wh = 1.0;
+    const vMin = Math.max(0, robot.v - A_V*DT);
+    const vMax = Math.min(V_MAX, robot.v + A_V*DT);
+    const wMin = Math.max(-W_MAX, robot.w - A_W*DT);
+    const wMax = Math.min(W_MAX, robot.w + A_W*DT);
+    const VN = 7, WN = 11;
+    let best = null, bestScore = -Infinity;
+    const all = [];
+    for(let i=0;i<VN;i++){
+      const v = vMin + (vMax-vMin)*i/Math.max(1,VN-1);
+      for(let j=0;j<WN;j++){
+        const w = wMin + (wMax-wMin)*j/Math.max(1,WN-1);
+        const sim = simulate(v,w);
+        if(sim.collision){ all.push({v,w,sim,score:-1,skip:true}); continue; }
+        const dx = goal.x - sim.endX, dy = goal.y - sim.endY;
+        const angToGoal = Math.atan2(dy,dx);
+        const diff = Math.abs(normalize(angToGoal - sim.endTh));
+        const headingScore = (Math.PI - diff) / Math.PI;
+        const clearScore = Math.max(0, Math.min(1, sim.minClear / 80));
+        const velScore = v / V_MAX;
+        const score = wh*headingScore + wc*clearScore + wv*velScore;
+        all.push({v,w,sim,score});
+        if(score > bestScore){ bestScore = score; best = {v,w,sim,score}; }
+      }
+    }
+    return {best, all};
+  }
+
+  function tick(){
+    if(!running) return;
+    const {best, all} = plan();
+    cands = all;
+    if(best){
+      robot.v = best.v;
+      robot.w = best.w;
+      robot.x += robot.v * Math.cos(robot.theta) * DT;
+      robot.y += robot.v * Math.sin(robot.theta) * DT;
+      robot.theta += robot.w * DT;
+      trail.push({x:robot.x, y:robot.y});
+      if(trail.length > 800) trail.shift();
+      chosen = best.sim.traj;
+      if(Math.hypot(robot.x-goal.x, robot.y-goal.y) < 18){
+        running = false;
+        document.getElementById('dwa-play').textContent = '▶ Drive';
+      }
+    } else {
+      running = false;
+      document.getElementById('dwa-play').textContent = '▶ Drive';
+    }
+    draw();
+    if(running) requestAnimationFrame(tick);
+  }
+
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    drawGridBackground(ctx,w,h,30);
+    for(const o of obstacles){
+      ctx.fillStyle = C.ink;
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill();
+    }
+    if(document.getElementById('dwa-showarcs').checked && cands.length){
+      const colorScore = document.getElementById('dwa-showscore').checked;
+      for(const c of cands){
+        if(c.skip){
+          ctx.strokeStyle = 'rgba(177,32,42,0.18)';
+        } else if(colorScore){
+          const t = Math.max(0, Math.min(1, c.score));
+          const r = Math.round(47 + t*(199-47));
+          const g = Math.round(106 + t*(123-106));
+          const b = Math.round(58 + t*(30-58));
+          ctx.strokeStyle = `rgba(${r},${g},${b},${0.25 + t*0.4})`;
+        } else {
+          ctx.strokeStyle = 'rgba(19,74,107,0.3)';
+        }
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for(let i=0;i<c.sim.traj.length;i++){
+          const p = c.sim.traj[i];
+          if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+        ctx.stroke();
+      }
+    }
+    if(chosen){
+      ctx.strokeStyle = C.blue; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for(let i=0;i<chosen.length;i++){
+        const p = chosen[i];
+        if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+      }
+      ctx.stroke();
+    }
+    if(trail.length>1){
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for(let i=0;i<trail.length;i++){
+        if(i===0) ctx.moveTo(trail[i].x, trail[i].y);
+        else ctx.lineTo(trail[i].x, trail[i].y);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = C.red;
+    ctx.beginPath(); ctx.arc(goal.x, goal.y, 10, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.stroke();
+    ctx.save();
+    ctx.translate(robot.x, robot.y); ctx.rotate(robot.theta);
+    ctx.fillStyle = C.green;
+    ctx.beginPath();
+    ctx.moveTo(14,0); ctx.lineTo(-10,-9); ctx.lineTo(-6,0); ctx.lineTo(-10,9); ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+  }
+
+  let drag=null;
+  function getPos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX||e.touches[0].clientX)-r.left, y:(e.clientY||e.touches[0].clientY)-r.top};
+  }
+  function pick(p){
+    if(Math.hypot(p.x-goal.x,p.y-goal.y)<15) return 'g';
+    for(let i=0;i<obstacles.length;i++){
+      if(Math.hypot(p.x-obstacles[i].x,p.y-obstacles[i].y)<obstacles[i].r+5) return 'o'+i;
+    }
+    return null;
+  }
+  cv.addEventListener('mousedown', e=>{ drag = pick(getPos(e)); });
+  cv.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='g') goal=p;
+    else if(drag.startsWith('o')){ const i=+drag.slice(1); obstacles[i].x=p.x; obstacles[i].y=p.y; }
+    draw();
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{ drag=pick(getPos(e)); },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='g') goal=p;
+    else if(drag.startsWith('o')){ const i=+drag.slice(1); obstacles[i].x=p.x; obstacles[i].y=p.y; }
+    draw();
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('dwa-play').onclick = ()=>{
+    running = !running;
+    document.getElementById('dwa-play').textContent = running ? '⏸ Driving' : '▶ Drive';
+    if(running) tick();
+  };
+  document.getElementById('dwa-reset').onclick = ()=>{
+    running = false;
+    document.getElementById('dwa-play').textContent='▶ Drive';
+    robot={x:60,y:210,theta:0,v:0,w:0};
+    trail=[]; chosen=null; cands=[];
+    draw();
+  };
+  document.getElementById('dwa-showarcs').onchange = draw;
+  document.getElementById('dwa-showscore').onchange = draw;
+
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 6, QUINTIC POLYNOMIAL
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-quintic');
+  if(!cv) return;
+  let start = {x:80, y:280, vx:60, vy:-60};
+  let goal  = {x:640, y:100, vx:60, vy:0};
+  let tAnim = 0;
+  let running = false;
+
+  function solve3(M, B){
+    const A = M.map((r,i)=>[...r, B[i]]);
+    for(let k=0;k<3;k++){
+      let piv=k;
+      for(let i=k+1;i<3;i++) if(Math.abs(A[i][k])>Math.abs(A[piv][k])) piv=i;
+      [A[k],A[piv]]=[A[piv],A[k]];
+      for(let i=k+1;i<3;i++){
+        const f = A[i][k]/A[k][k];
+        for(let j=k;j<4;j++) A[i][j] -= f*A[k][j];
+      }
+    }
+    const x=[0,0,0];
+    for(let i=2;i>=0;i--){
+      let s = A[i][3];
+      for(let j=i+1;j<3;j++) s -= A[i][j]*x[j];
+      x[i] = s / A[i][i];
+    }
+    return x;
+  }
+
+  function quinticCoeffs(x0,v0,a0,x1,v1,a1,T){
+    const c0 = x0, c1 = v0, c2 = a0/2;
+    const T2=T*T, T3=T2*T, T4=T3*T, T5=T4*T;
+    const b1 = x1 - c0 - c1*T - c2*T2;
+    const b2 = v1 - c1 - 2*c2*T;
+    const b3 = a1 - 2*c2;
+    const M = [
+      [T3, T4, T5],
+      [3*T2, 4*T3, 5*T4],
+      [6*T, 12*T2, 20*T3]
+    ];
+    const c = solve3(M, [b1,b2,b3]);
+    return [c0, c1, c2, c[0], c[1], c[2]];
+  }
+  function evalPoly(c,t){ let r=0; for(let i=5;i>=0;i--) r = r*t + c[i]; return r; }
+
+  function compute(){
+    const T = +document.getElementById('quintic-T').value;
+    const cx = quinticCoeffs(start.x, start.vx, 0, goal.x, goal.vx, 0, T);
+    const cy = quinticCoeffs(start.y, start.vy, 0, goal.y, goal.vy, 0, T);
+    const pts = [];
+    for(let i=0;i<=80;i++){
+      const t = T*i/80;
+      pts.push({x: evalPoly(cx,t), y: evalPoly(cy,t)});
+    }
+    return {pts, T, cx, cy};
+  }
+
+  function drawArrow(ctx, p, vx, vy, color){
+    const tipX = p.x + vx, tipY = p.y + vy;
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(tipX,tipY); ctx.stroke();
+    const ang = Math.atan2(vy, vx);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - 9*Math.cos(ang-0.5), tipY - 9*Math.sin(ang-0.5));
+    ctx.lineTo(tipX - 9*Math.cos(ang+0.5), tipY - 9*Math.sin(ang+0.5));
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C.amber;
+    ctx.beginPath(); ctx.arc(tipX, tipY, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    drawGridBackground(ctx,w,h,30);
+    const {pts, T, cx, cy} = compute();
+    ctx.strokeStyle = C.blue; ctx.lineWidth = 3;
+    ctx.beginPath();
+    for(let i=0;i<pts.length;i++){
+      if(i===0) ctx.moveTo(pts[i].x, pts[i].y); else ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+    if(document.getElementById('quintic-show-vel').checked){
+      drawArrow(ctx, start, start.vx, start.vy, C.amber);
+      drawArrow(ctx, goal, goal.vx, goal.vy, C.amber);
+    }
+    ctx.fillStyle = C.green;
+    ctx.beginPath(); ctx.arc(start.x, start.y, 9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle = C.red;
+    ctx.beginPath(); ctx.arc(goal.x, goal.y, 9, 0, Math.PI*2); ctx.fill();
+    ctx.stroke();
+    if(tAnim > 0){
+      const t = Math.min(T, tAnim);
+      const px = evalPoly(cx, t);
+      const py = evalPoly(cy, t);
+      ctx.fillStyle = C.ink;
+      ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  function loop(){
+    if(!running) return;
+    const T = +document.getElementById('quintic-T').value;
+    tAnim += T/140;
+    if(tAnim > T + 0.3){ tAnim = 0; }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  let drag=null;
+  function getPos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX||e.touches[0].clientX)-r.left, y:(e.clientY||e.touches[0].clientY)-r.top};
+  }
+  function pick(p){
+    const sTip = {x:start.x+start.vx, y:start.y+start.vy};
+    const gTip = {x:goal.x+goal.vx, y:goal.y+goal.vy};
+    if(Math.hypot(p.x-sTip.x,p.y-sTip.y)<11) return 'sv';
+    if(Math.hypot(p.x-gTip.x,p.y-gTip.y)<11) return 'gv';
+    if(Math.hypot(p.x-start.x,p.y-start.y)<12) return 'sp';
+    if(Math.hypot(p.x-goal.x,p.y-goal.y)<12) return 'gp';
+    return null;
+  }
+  cv.addEventListener('mousedown', e=>{ drag=pick(getPos(e)); });
+  cv.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='sp'){ start.x=p.x; start.y=p.y; }
+    else if(drag==='gp'){ goal.x=p.x; goal.y=p.y; }
+    else if(drag==='sv'){ start.vx=p.x-start.x; start.vy=p.y-start.y; }
+    else if(drag==='gv'){ goal.vx=p.x-goal.x; goal.vy=p.y-goal.y; }
+    draw();
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{ drag=pick(getPos(e)); },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(!drag) return;
+    const p=getPos(e);
+    if(drag==='sp'){ start.x=p.x; start.y=p.y; }
+    else if(drag==='gp'){ goal.x=p.x; goal.y=p.y; }
+    else if(drag==='sv'){ start.vx=p.x-start.x; start.vy=p.y-start.y; }
+    else if(drag==='gv'){ goal.vx=p.x-goal.x; goal.vy=p.y-goal.y; }
+    draw();
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('quintic-play').onclick = ()=>{
+    running = !running;
+    document.getElementById('quintic-play').textContent = running ? '⏸ Animating' : '▶ Animate';
+    if(running) loop();
+  };
+  document.getElementById('quintic-reset').onclick = ()=>{
+    running = false;
+    document.getElementById('quintic-play').textContent='▶ Animate';
+    start = {x:80, y:280, vx:60, vy:-60};
+    goal  = {x:640, y:100, vx:60, vy:0};
+    tAnim = 0;
+    draw();
+  };
+  document.getElementById('quintic-T').oninput = draw;
+  document.getElementById('quintic-show-vel').onchange = draw;
+
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* =====================================================================
+   DEMO 7, FRENET FRAME
+   ===================================================================== */
+(function(){
+  const cv = document.getElementById('cv-frenet');
+  if(!cv) return;
+
+  // Reference line: a sinusoidal road. Parametrize by s along length.
+  let roadPoints = [];  // {x,y,s,theta}
+  let totalS = 0;
+  function buildRoad(){
+    roadPoints = [];
+    totalS = 0;
+    const bb = cv.getBoundingClientRect();
+    const W = bb.width, H = bb.height;
+    let prev = null;
+    for(let i=0;i<=400;i++){
+      const u = i/400;
+      const x = 40 + u*(W-80);
+      const y = H/2 + Math.sin(u*4.2)*70 + Math.sin(u*9)*18;
+      let theta = 0;
+      if(i>0){
+        theta = Math.atan2(y - roadPoints[i-1].y, x - roadPoints[i-1].x);
+        totalS += Math.hypot(x - roadPoints[i-1].x, y - roadPoints[i-1].y);
+      }
+      roadPoints.push({x, y, s: totalS, theta});
+    }
+    // fix up thetas at endpoints
+    for(let i=0;i<roadPoints.length;i++){
+      if(i === 0) roadPoints[i].theta = roadPoints[1].theta;
+    }
+  }
+  function sampleRoad(s){
+    if(s <= 0) return {...roadPoints[0]};
+    if(s >= totalS) return {...roadPoints[roadPoints.length-1]};
+    // binary search
+    let lo=0, hi=roadPoints.length-1;
+    while(lo < hi-1){
+      const m = (lo+hi)>>1;
+      if(roadPoints[m].s <= s) lo=m; else hi=m;
+    }
+    const a = roadPoints[lo], b = roadPoints[hi];
+    const t = (s - a.s) / (b.s - a.s + 1e-9);
+    return {
+      x: a.x + (b.x-a.x)*t,
+      y: a.y + (b.y-a.y)*t,
+      s: s,
+      theta: a.theta + (b.theta-a.theta)*t
+    };
+  }
+  // nearest s to a cartesian point (for placing the other vehicle)
+  function nearestS(px, py){
+    let bestI=0, bestD=Infinity;
+    for(let i=0;i<roadPoints.length;i+=3){
+      const d = (roadPoints[i].x-px)**2 + (roadPoints[i].y-py)**2;
+      if(d<bestD){ bestD=d; bestI=i; }
+    }
+    return roadPoints[bestI].s;
+  }
+
+  // ego state: s, d, speed along s
+  let ego = {s: 60, d: 0, vs: 40, vd: 0};
+  let other = {s: 420, d: 10};
+  let running = false;
+  let chosenTraj = null;
+  let candidates = [];
+  let trail = [];
+
+  function solve3(M, B){
+    const A = M.map((r,i)=>[...r, B[i]]);
+    for(let k=0;k<3;k++){
+      let piv=k;
+      for(let i=k+1;i<3;i++) if(Math.abs(A[i][k])>Math.abs(A[piv][k])) piv=i;
+      [A[k],A[piv]]=[A[piv],A[k]];
+      for(let i=k+1;i<3;i++){
+        const f = A[i][k]/A[k][k];
+        for(let j=k;j<4;j++) A[i][j] -= f*A[k][j];
+      }
+    }
+    const x=[0,0,0];
+    for(let i=2;i>=0;i--){
+      let s = A[i][3];
+      for(let j=i+1;j<3;j++) s -= A[i][j]*x[j];
+      x[i] = s / A[i][i];
+    }
+    return x;
+  }
+  function quinticCoeffs(x0,v0,a0,x1,v1,a1,T){
+    const c0 = x0, c1 = v0, c2 = a0/2;
+    const T2=T*T, T3=T2*T, T4=T3*T, T5=T4*T;
+    const b1 = x1 - c0 - c1*T - c2*T2;
+    const b2 = v1 - c1 - 2*c2*T;
+    const b3 = a1 - 2*c2;
+    const M = [[T3,T4,T5],[3*T2,4*T3,5*T4],[6*T,12*T2,20*T3]];
+    const c = solve3(M, [b1,b2,b3]);
+    return [c0, c1, c2, c[0], c[1], c[2]];
+  }
+  function evalPoly(c,t){ let r=0; for(let i=5;i>=0;i--) r = r*t + c[i]; return r; }
+
+  // convert frenet (s, d) to Cartesian using road normal
+  function frenetToXY(s, d){
+    const r = sampleRoad(s);
+    const nx = -Math.sin(r.theta);
+    const ny =  Math.cos(r.theta);
+    return {x: r.x + nx*d, y: r.y + ny*d};
+  }
+
+  function planFrenet(){
+    const targetSpeed = +document.getElementById('fr-speed').value;
+    const numLat = +document.getElementById('fr-lat').value;
+    const T = 2.2;
+    // longitudinal: want to reach target speed
+    const s_coef = quinticCoeffs(ego.s, ego.vs, 0, ego.s + targetSpeed*T, targetSpeed, 0, T);
+    // lateral candidates
+    const latOffsets = [];
+    const half = Math.floor(numLat/2);
+    for(let i=-half;i<=half;i++){ latOffsets.push(i * (40/half)); }
+    const trajs = [];
+    const otherXY = frenetToXY(other.s, other.d);
+    const otherS = other.s;
+    for(const dfinal of latOffsets){
+      const d_coef = quinticCoeffs(ego.d, ego.vd, 0, dfinal, 0, 0, T);
+      const pts = [];
+      let minDist = Infinity;
+      let collision = false;
+      for(let i=0;i<=30;i++){
+        const t = T*i/30;
+        const s_ = evalPoly(s_coef, t);
+        const d_ = evalPoly(d_coef, t);
+        const xy = frenetToXY(s_, d_);
+        pts.push(xy);
+        // moving obstacle ahead? keep static for simplicity
+        const dd = Math.hypot(xy.x - otherXY.x, xy.y - otherXY.y);
+        if(dd < minDist) minDist = dd;
+        if(dd < 22){ collision = true; }
+      }
+      // cost: prefer center (d≈0), prefer high clearance
+      const costLat = Math.abs(dfinal) * 0.5;
+      const costClear = minDist > 40 ? 0 : (40 - minDist) * 0.8;
+      const cost = costLat + costClear + (collision ? 9999 : 0);
+      trajs.push({pts, dfinal, cost, collision, minDist, s_coef, d_coef, T});
+    }
+    // pick cheapest
+    trajs.sort((a,b)=>a.cost-b.cost);
+    return {trajs, best: trajs[0]};
+  }
+
+  function tick(){
+    if(!running) return;
+    const {best, trajs} = planFrenet();
+    candidates = trajs;
+    chosenTraj = best;
+    if(best && !best.collision){
+      // advance ego along the chosen trajectory a small time step
+      const T = best.T;
+      const advance = Math.min(0.12, T);
+      ego.s = evalPoly(best.s_coef, advance);
+      ego.d = evalPoly(best.d_coef, advance);
+      // approximate derivatives at that point
+      const h = 0.03;
+      ego.vs = (evalPoly(best.s_coef, advance+h) - evalPoly(best.s_coef, advance-h)) / (2*h);
+      ego.vd = (evalPoly(best.d_coef, advance+h) - evalPoly(best.d_coef, advance-h)) / (2*h);
+      const xy = frenetToXY(ego.s, ego.d);
+      trail.push(xy);
+      if(trail.length > 500) trail.shift();
+      if(ego.s > totalS - 40){
+        running = false;
+        document.getElementById('fr-play').textContent = '▶ Drive';
+      }
+    }
+    draw();
+    if(running) requestAnimationFrame(tick);
+  }
+
+  function draw(){
+    const {w,h,ctx} = setCanvasSize(cv);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    drawGridBackground(ctx,w,h,30);
+    // road shoulders
+    ctx.strokeStyle = 'rgba(26,26,36,0.12)'; ctx.lineWidth = 38;
+    ctx.beginPath();
+    for(let i=0;i<roadPoints.length;i++){
+      if(i===0) ctx.moveTo(roadPoints[i].x, roadPoints[i].y);
+      else ctx.lineTo(roadPoints[i].x, roadPoints[i].y);
+    }
+    ctx.stroke();
+    // road center line (dashed)
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.3; ctx.setLineDash([8,6]);
+    ctx.beginPath();
+    for(let i=0;i<roadPoints.length;i++){
+      if(i===0) ctx.moveTo(roadPoints[i].x, roadPoints[i].y);
+      else ctx.lineTo(roadPoints[i].x, roadPoints[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // lane edges
+    ctx.strokeStyle = 'rgba(26,26,36,0.55)'; ctx.lineWidth = 1;
+    for(const sign of [-1,1]){
+      ctx.beginPath();
+      for(let i=0;i<roadPoints.length;i++){
+        const nx = -Math.sin(roadPoints[i].theta);
+        const ny =  Math.cos(roadPoints[i].theta);
+        const x = roadPoints[i].x + nx*19*sign;
+        const y = roadPoints[i].y + ny*19*sign;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    // candidate trajectories
+    if(document.getElementById('fr-showcand').checked && candidates.length){
+      for(const c of candidates){
+        if(c === chosenTraj) continue;
+        ctx.strokeStyle = c.collision ? 'rgba(177,32,42,0.25)' : 'rgba(199,123,30,0.35)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for(let i=0;i<c.pts.length;i++){
+          if(i===0) ctx.moveTo(c.pts[i].x, c.pts[i].y); else ctx.lineTo(c.pts[i].x, c.pts[i].y);
+        }
+        ctx.stroke();
+      }
+    }
+    // chosen trajectory
+    if(chosenTraj && !chosenTraj.collision){
+      ctx.strokeStyle = C.blue; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for(let i=0;i<chosenTraj.pts.length;i++){
+        if(i===0) ctx.moveTo(chosenTraj.pts[i].x, chosenTraj.pts[i].y);
+        else ctx.lineTo(chosenTraj.pts[i].x, chosenTraj.pts[i].y);
+      }
+      ctx.stroke();
+    }
+    // trail
+    if(trail.length>1){
+      ctx.strokeStyle = 'rgba(47,106,58,0.7)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for(let i=0;i<trail.length;i++){
+        if(i===0) ctx.moveTo(trail[i].x, trail[i].y);
+        else ctx.lineTo(trail[i].x, trail[i].y);
+      }
+      ctx.stroke();
+    }
+    // other car
+    const oXY = frenetToXY(other.s, other.d);
+    const oRef = sampleRoad(other.s);
+    ctx.save();
+    ctx.translate(oXY.x, oXY.y); ctx.rotate(oRef.theta);
+    ctx.fillStyle = C.red;
+    ctx.fillRect(-12,-8,24,16);
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.strokeRect(-12,-8,24,16);
+    ctx.restore();
+    // ego car
+    const eXY = frenetToXY(ego.s, ego.d);
+    const eRef = sampleRoad(ego.s);
+    ctx.save();
+    ctx.translate(eXY.x, eXY.y); ctx.rotate(eRef.theta);
+    ctx.fillStyle = C.green;
+    ctx.fillRect(-12,-8,24,16);
+    ctx.strokeStyle = C.ink; ctx.lineWidth=1.5; ctx.strokeRect(-12,-8,24,16);
+    ctx.fillStyle = C.ink;
+    ctx.fillRect(6,-6,4,12);
+    ctx.restore();
+  }
+
+  // drag the other vehicle
+  let drag=null;
+  function getPos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX||e.touches[0].clientX)-r.left, y:(e.clientY||e.touches[0].clientY)-r.top};
+  }
+  cv.addEventListener('mousedown', e=>{
+    const p=getPos(e);
+    const oXY = frenetToXY(other.s, other.d);
+    if(Math.hypot(p.x-oXY.x, p.y-oXY.y) < 18) drag = 'o';
+  });
+  cv.addEventListener('mousemove', e=>{
+    if(drag !== 'o') return;
+    const p = getPos(e);
+    const s = nearestS(p.x, p.y);
+    const ref = sampleRoad(s);
+    // project p onto road normal
+    const dx = p.x - ref.x, dy = p.y - ref.y;
+    const nx = -Math.sin(ref.theta), ny = Math.cos(ref.theta);
+    let d = dx*nx + dy*ny;
+    d = Math.max(-18, Math.min(18, d));
+    other = {s, d};
+    if(!running){
+      const plan = planFrenet();
+      candidates = plan.trajs; chosenTraj = plan.best;
+    }
+    draw();
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; });
+  cv.addEventListener('touchstart', e=>{
+    const p=getPos(e);
+    const oXY = frenetToXY(other.s, other.d);
+    if(Math.hypot(p.x-oXY.x, p.y-oXY.y) < 22) drag = 'o';
+  },{passive:true});
+  cv.addEventListener('touchmove', e=>{
+    if(drag !== 'o') return;
+    const p = getPos(e);
+    const s = nearestS(p.x, p.y);
+    const ref = sampleRoad(s);
+    const dx = p.x - ref.x, dy = p.y - ref.y;
+    const nx = -Math.sin(ref.theta), ny = Math.cos(ref.theta);
+    let d = dx*nx + dy*ny;
+    d = Math.max(-18, Math.min(18, d));
+    other = {s, d};
+    if(!running){
+      const plan = planFrenet();
+      candidates = plan.trajs; chosenTraj = plan.best;
+    }
+    draw();
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend', ()=>{ drag=null; });
+
+  document.getElementById('fr-play').onclick = ()=>{
+    running = !running;
+    document.getElementById('fr-play').textContent = running ? '⏸ Driving' : '▶ Drive';
+    if(running) tick();
+  };
+  document.getElementById('fr-reset').onclick = ()=>{
+    running = false;
+    document.getElementById('fr-play').textContent = '▶ Drive';
+    ego = {s:60, d:0, vs:40, vd:0};
+    trail = [];
+    chosenTraj = null; candidates = [];
+    buildRoad();
+    const plan = planFrenet();
+    candidates = plan.trajs; chosenTraj = plan.best;
+    draw();
+  };
+  document.getElementById('fr-speed').oninput = ()=>{
+    if(!running){
+      const plan = planFrenet();
+      candidates = plan.trajs; chosenTraj = plan.best;
+    }
+    draw();
+  };
+  document.getElementById('fr-lat').oninput = ()=>{
+    if(!running){
+      const plan = planFrenet();
+      candidates = plan.trajs; chosenTraj = plan.best;
+    }
+    draw();
+  };
+  document.getElementById('fr-showcand').onchange = draw;
+
+  // init
+  function init(){
+    buildRoad();
+    const plan = planFrenet();
+    candidates = plan.trajs; chosenTraj = plan.best;
+    draw();
+  }
+  init();
+  window.addEventListener('resize', ()=>{ buildRoad(); draw(); });
+})();
+</script>
+
+</body>
+</html>
