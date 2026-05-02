@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Field Guide to Regression — Methods, Data, and Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f4efe6;
+  --paper-dim: #ebe5d8;
+  --paper-sub: #e0d9c8;
+  --ink: #1a1a2e;
+  --ink-soft: #3a3a52;
+  --ink-mute: #6a6a7e;
+  --ink-faint: #9a9aaa;
+  --accent: #c2410c;
+  --accent-soft: #e8a079;
+  --accent-bg: #fbe8dc;
+  --teal: #0f766e;
+  --teal-soft: #5eaaa1;
+  --teal-bg: #dcece9;
+  --positive: #15803d;
+  --warn: #b45309;
+  --danger: #b91c1c;
+  --rule: rgba(26, 26, 46, 0.12);
+  --rule-strong: rgba(26, 26, 46, 0.3);
+  --code-bg: #1a1a2e;
+  --code-text: #f4efe6;
+  --display: "Fraunces", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "JetBrains Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--body);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse 800px 400px at 10% 0%, rgba(194, 65, 12, 0.06), transparent),
+    radial-gradient(ellipse 600px 300px at 90% 100%, rgba(15, 118, 110, 0.05), transparent);
+  background-attachment: fixed;
+}
+
+/* Paper noise */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.18 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==================== TYPOGRAPHY ==================== */
+.display {
+  font-family: var(--display);
+  font-weight: 400;
+  font-variation-settings: "opsz" 144, "SOFT" 50;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+.mono { font-family: var(--mono); }
+
+h1 { font-family: var(--display); font-variation-settings: "opsz" 144; font-weight: 350; letter-spacing: -0.025em; line-height: 0.95; }
+h2 { font-family: var(--display); font-variation-settings: "opsz" 48; font-weight: 400; letter-spacing: -0.02em; line-height: 1.05; }
+h3 { font-family: var(--display); font-variation-settings: "opsz" 24; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; }
+h4 { font-family: var(--body); font-weight: 600; letter-spacing: 0.01em; }
+
+/* ==================== LAYOUT ==================== */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+.wrap-narrow { max-width: 880px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+/* ==================== HEADER / NAV ==================== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(12px) saturate(120%);
+  background: rgba(244, 239, 230, 0.85);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.85rem 0;
+}
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+.back-to-blog {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  margin-right: 1.4rem;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--accent);
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+.brand-dot {
+  width: 10px; height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.topnav {
+  display: flex;
+  gap: 1.8rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.topnav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.2s;
+  position: relative;
+}
+.topnav a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0; height: 1.5px;
+  background: var(--accent);
+  transition: width 0.25s;
+}
+.topnav a:hover { color: var(--accent); }
+.topnav a:hover::after { width: 100%; }
+.topnav .num {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  margin-right: 0.3rem;
+}
+@media (max-width: 900px) { .topnav { display: none; } }
+
+/* ==================== HERO ==================== */
+.hero {
+  padding: 6rem 0 4rem;
+  position: relative;
+}
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+  margin-bottom: 2rem;
+}
+.hero-meta .divider {
+  width: 40px; height: 1px;
+  background: var(--rule-strong);
+}
+.hero h1 {
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  margin-bottom: 2rem;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent);
+  font-variation-settings: "opsz" 144, "SOFT" 100;
+}
+.hero-sub {
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 300;
+  font-variation-settings: "opsz" 20;
+  color: var(--ink-soft);
+  max-width: 680px;
+  line-height: 1.45;
+  margin-bottom: 3rem;
+}
+.hero-byline {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: -1.5rem 0 3rem;
+}
+.hero-byline strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+.hero-stat .num {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+.hero-stat .label {
+  font-size: 0.8rem;
+  color: var(--ink-mute);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 700px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* ==================== SECTIONS ==================== */
+section {
+  padding: 5rem 0;
+  position: relative;
+}
+section + section {
+  border-top: 1px solid var(--rule);
+}
+.sec-header {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 2.5rem;
+  align-items: baseline;
+  margin-bottom: 3rem;
+}
+.sec-num {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  padding-top: 0.9rem;
+  border-top: 2px solid var(--accent);
+}
+.sec-title h2 {
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+}
+.sec-lede {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 20;
+  font-weight: 300;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 720px;
+  margin-top: 1.2rem;
+}
+@media (max-width: 700px) {
+  .sec-header { grid-template-columns: 1fr; gap: 1rem; }
+}
+
+/* ==================== CALLOUT ==================== */
+.callout {
+  background: var(--paper-dim);
+  border-left: 3px solid var(--accent);
+  padding: 1.5rem 1.8rem;
+  margin: 1.5rem 0;
+  position: relative;
+}
+.callout.warn { border-left-color: var(--warn); background: #f9f0dc; }
+.callout.danger { border-left-color: var(--danger); background: #fae5e3; }
+.callout.teal { border-left-color: var(--teal); background: var(--teal-bg); }
+.callout-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+.callout.warn .callout-label { color: var(--warn); }
+.callout.danger .callout-label { color: var(--danger); }
+.callout.teal .callout-label { color: var(--teal); }
+.callout p { margin-bottom: 0.6rem; }
+.callout p:last-child { margin-bottom: 0; }
+.callout strong { font-weight: 600; color: var(--ink); }
+
+/* ==================== CONTENT PROSE ==================== */
+.prose { max-width: 780px; }
+.prose p, .prose ul, .prose ol {
+  margin-bottom: 1.2rem;
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+}
+.prose p { line-height: 1.72; }
+.prose strong { color: var(--ink); font-weight: 600; }
+.prose em { font-style: italic; color: var(--ink); }
+.prose a { color: var(--accent); }
+.prose ul, .prose ol { padding-left: 1.4rem; }
+.prose li { margin-bottom: 0.4rem; line-height: 1.65; }
+.prose h3 { font-size: 1.6rem; margin: 2.5rem 0 1rem; }
+.prose h4 { font-size: 1.05rem; margin: 1.8rem 0 0.6rem; color: var(--ink); }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--paper-sub);
+  padding: 0.12em 0.42em;
+  border-radius: 3px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 1.3rem 1.5rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 1.5rem 0;
+  box-shadow: 0 2px 12px rgba(26, 26, 46, 0.15);
+}
+pre code { background: transparent; color: inherit; padding: 0; font-weight: 400; }
+pre .kw { color: #f9b67e; }
+pre .str { color: #a8d2a0; }
+pre .cmt { color: #7a7a8e; font-style: italic; }
+pre .num { color: #e8b4d4; }
+pre .fn { color: #9cc5e8; }
+
+/* ==================== DUAL COMPARE ==================== */
+.dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--rule);
+  margin: 2rem 0;
+  background: var(--paper-dim);
+}
+.dual-side { padding: 1.8rem 1.8rem; }
+.dual-side + .dual-side { border-left: 1px solid var(--rule); }
+.dual-label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
+}
+.dual-side.alt .dual-label { color: var(--teal); }
+.dual h4 {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 24;
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+.dual ul {
+  list-style: none;
+  padding: 0;
+  font-size: 0.93rem;
+}
+.dual li {
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--rule);
+  color: var(--ink-soft);
+  display: flex;
+  gap: 0.6rem;
+}
+.dual li::before {
+  content: "→";
+  color: var(--accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.dual-side.alt li::before { color: var(--teal); }
+.dual li:last-child { border-bottom: none; }
+@media (max-width: 700px) {
+  .dual { grid-template-columns: 1fr; }
+  .dual-side + .dual-side { border-left: none; border-top: 1px solid var(--rule); }
+}
+
+/* ==================== ALGO CARDS ==================== */
+.algo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.2rem;
+  margin: 2rem 0;
+}
+.algo-card {
+  background: var(--paper-dim);
+  border: 1px solid var(--rule);
+  padding: 1.5rem 1.6rem 1.4rem;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+.algo-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+.algo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(26, 26, 46, 0.12);
+}
+.algo-card .tag-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+.tag {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--rule-strong);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.tag.accent { color: var(--accent); border-color: var(--accent); }
+.tag.teal { color: var(--teal); border-color: var(--teal); }
+.tag.warn { color: var(--warn); border-color: var(--warn); }
+.algo-card h3 {
+  font-size: 1.35rem;
+  margin-bottom: 0.5rem;
+}
+.algo-card .formula {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  background: var(--paper);
+  padding: 0.55rem 0.8rem;
+  margin: 0.6rem 0 0.9rem;
+  color: var(--teal);
+  border-left: 2px solid var(--teal);
+  overflow-x: auto;
+}
+.algo-card p {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 0.8rem;
+}
+.algo-card .meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.8rem;
+  font-size: 0.82rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed var(--rule);
+}
+.algo-card .meta dt {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.algo-card .meta dd {
+  color: var(--ink-soft);
+}
+
+/* ==================== DEMO FRAMES ==================== */
+.demo-frame {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 1.8rem 1.8rem 1.5rem;
+  margin: 2rem 0;
+  box-shadow: 0 2px 16px rgba(26, 26, 46, 0.06);
+}
+.demo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.demo-title {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 24;
+}
+.demo-title .badge {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  background: var(--accent);
+  color: var(--paper);
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  vertical-align: middle;
+}
+.demo-metrics {
+  display: flex;
+  gap: 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.demo-metrics .metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.demo-metrics .metric-label {
+  font-size: 0.68rem;
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.demo-metrics .metric-value {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem 1.8rem;
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--rule);
+}
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.control-label .val {
+  color: var(--accent);
+  font-weight: 500;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px; width: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: -6px;
+  box-shadow: 0 0 0 3px var(--paper);
+  border: 1px solid var(--accent);
+}
+input[type="range"]::-moz-range-thumb {
+  height: 14px; width: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--paper);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.btn {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+svg.plot {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--paper);
+}
+@media (max-width: 700px) {
+  .control-grid { grid-template-columns: 1fr; }
+  .demo-metrics { width: 100%; justify-content: space-between; }
+}
+
+/* ==================== CONFUSION MATRIX ==================== */
+.conf-matrix {
+  display: grid;
+  grid-template-columns: auto repeat(2, 1fr);
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  background: var(--rule-strong);
+  padding: 2px;
+  margin: 1rem 0;
+}
+.conf-cell {
+  background: var(--paper);
+  padding: 0.9rem 0.7rem;
+  text-align: center;
+}
+.conf-header {
+  background: var(--paper-sub);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-mute);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.conf-cell.tp { background: #dcece9; color: var(--teal); font-weight: 600; }
+.conf-cell.tn { background: #dcece9; color: var(--teal); font-weight: 600; }
+.conf-cell.fp, .conf-cell.fn { background: #fae5e3; color: var(--danger); font-weight: 600; }
+.conf-cell .num { font-size: 1.3rem; display: block; }
+.conf-cell .lbl { font-size: 0.65rem; letter-spacing: 0.08em; color: var(--ink-mute); font-weight: 400; }
+
+/* ==================== TABLE ==================== */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 1.5rem 0;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+.tbl th {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.8rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tbl td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  color: var(--ink-soft);
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:nth-child(even) td { background: var(--paper-dim); }
+.tbl strong { color: var(--ink); }
+.tbl code { font-size: 0.82em; }
+
+/* ==================== FLOWCHART ==================== */
+.flowchart {
+  background: var(--paper-dim);
+  padding: 2.5rem 1.5rem;
+  margin: 2rem 0;
+  border: 1px solid var(--rule);
+  overflow-x: auto;
+}
+.flowchart svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ==================== FOOTER ==================== */
+footer {
+  padding: 4rem 0 3rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-mute);
+  font-size: 0.85rem;
+  margin-top: 4rem;
+}
+.foot-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+footer h4 {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+footer p { line-height: 1.65; }
+footer ul { list-style: none; }
+footer li { padding: 0.2rem 0; color: var(--ink-soft); }
+.foot-bar {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+@media (max-width: 700px) {
+  .foot-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .foot-bar { flex-direction: column; gap: 0.5rem; }
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.8s ease-out both; }
+.fade-up.delay-1 { animation-delay: 0.1s; }
+.fade-up.delay-2 { animation-delay: 0.2s; }
+.fade-up.delay-3 { animation-delay: 0.3s; }
+.fade-up.delay-4 { animation-delay: 0.4s; }
+
+/* ==================== MISC ==================== */
+.marginalia {
+  font-family: var(--display);
+  font-style: italic;
+  font-variation-settings: "opsz" 14;
+  font-size: 0.9rem;
+  color: var(--accent);
+  padding-left: 1rem;
+  border-left: 2px solid var(--accent);
+  margin: 1rem 0;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
+  display: inline-block;
+}
+
+.split-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+@media (max-width: 900px) { .split-layout { grid-template-columns: 1fr; gap: 1.5rem; } }
+
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+}
+.pill {
+  font-size: 0.82rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--paper-dim);
+  border-radius: 20px;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  margin: 2rem 0;
+  border: 1px solid var(--rule);
+}
+.kpi {
+  background: var(--paper);
+  padding: 1.3rem;
+  text-align: center;
+}
+.kpi-num {
+  font-family: var(--display);
+  font-size: 2rem;
+  color: var(--accent);
+  font-weight: 400;
+  line-height: 1;
+}
+.kpi-label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  margin-top: 0.3rem;
+}
+@media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr; } }
+
+/* selection */
+::selection { background: var(--accent); color: var(--paper); }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP NAV ============ -->
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="topbar-left">
+      <a class="back-to-blog" href="/autonomy/">← Autonomy</a>
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>A Field Guide to Regression</span>
+      </div>
+    </div>
+    <nav class="topnav">
+      <a href="#primer"><span class="num">01</span>Primer</a>
+      <a href="#types"><span class="num">02</span>Types</a>
+      <a href="#algorithms"><span class="num">03</span>Algorithms</a>
+      <a href="#data"><span class="num">04</span>Data</a>
+      <a href="#imbalance"><span class="num">05</span>Imbalance</a>
+      <a href="#metrics"><span class="num">06</span>Metrics</a>
+      <a href="#decide"><span class="num">07</span>Decide</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-meta fade-up">
+      <span>Interactive Reference</span>
+      <span class="divider"></span>
+      <span>Rev. 1.0 · 2026</span>
+      <span class="divider"></span>
+      <span>Methods · Data · Practice</span>
+    </div>
+    <h1 class="fade-up delay-1">
+      Fitting <em>lines</em> to<br/>the world, <em>honestly.</em>
+    </h1>
+    <p class="hero-sub fade-up delay-2">
+      A practical tour of regression — what it is, what it isn't, which algorithm to reach for, how much data you really need, and what to do when your labels are wildly imbalanced. With live demos you can poke at.
+    </p>
+    <p class="hero-byline fade-up delay-2">By <strong>Majid Mazouchi</strong></p>
+    <div class="hero-stats fade-up delay-3">
+      <div class="hero-stat">
+        <span class="num">9+</span>
+        <span class="label">Algorithms compared</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">4</span>
+        <span class="label">Interactive demos</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">98:2</span>
+        <span class="label">Imbalance explored</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">1</span>
+        <span class="label">Big clarification</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 01: PRIMER ============ -->
+<section id="primer">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">01 / PRIMER</div>
+      <div class="sec-title">
+        <h2>First, a <em style="font-style:italic;color:var(--accent)">necessary</em> distinction.</h2>
+        <p class="sec-lede">Before we go further — the 98%/2% imbalance question in your prompt is almost certainly a <strong>classification</strong> problem, not a regression one. The confusion is extremely common, and entirely reasonable, because a workhorse algorithm for that exact problem is called <em>logistic regression</em>. Let's untangle it.</p>
+      </div>
+    </div>
+
+    <div class="dual">
+      <div class="dual-side">
+        <span class="dual-label">Regression</span>
+        <h4>Predicts a continuous number</h4>
+        <ul>
+          <li>Output is a real number on a continuum</li>
+          <li>"How many kWh will the motor draw?"</li>
+          <li>"What temperature will the stator reach?"</li>
+          <li>"How long until bearing failure?"</li>
+          <li>Loss functions: MSE, MAE, Huber</li>
+          <li>Evaluated with R², RMSE, MAE</li>
+        </ul>
+      </div>
+      <div class="dual-side alt">
+        <span class="dual-label">Classification</span>
+        <h4>Predicts a discrete category</h4>
+        <ul>
+          <li>Output is a class label (or probability of one)</li>
+          <li>"Is this fault a short circuit? Yes / No"</li>
+          <li>"Which of 5 failure modes is this?"</li>
+          <li>"Will this transaction be fraudulent?"</li>
+          <li>Loss functions: cross-entropy, hinge</li>
+          <li>Evaluated with accuracy, precision, recall, F1, AUC</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-label">The naming trap</span>
+      <p><strong>Logistic regression</strong> is a classification algorithm. The word "regression" in the name refers to the fact that it <em>regresses</em> (fits) a linear model in log-odds space — but its output is a probability between 0 and 1, which you threshold into a class. If someone says "our regression model predicts churn / fraud / failure as yes/no," they mean logistic regression, and they're doing classification.</p>
+      <p>Cases like <strong>98% negative / 2% positive</strong> are definitionally classification. True regression has no "positive" or "negative" — only values. Everything about the imbalance question — SMOTE, class weights, threshold tuning, precision-recall curves — lives on the classification side. We'll treat it fully in §05.</p>
+    </div>
+
+    <div class="prose" style="margin-top: 2.5rem;">
+      <h3>What regression actually <em>is</em>, formally</h3>
+      <p>Regression is the problem of learning a function <code>f: ℝⁿ → ℝ</code> from observed pairs <code>(xᵢ, yᵢ)</code>, so that <code>ŷ = f(x)</code> approximates the true, unknown relationship between inputs and a continuous response. The fit is governed by a <strong>loss function</strong> — most often squared error — and we want the learned <code>f</code> to generalize to inputs it hasn't seen.</p>
+      <p>Every regression method you'll meet is an answer to three questions, in some combination:</p>
+      <ol>
+        <li><strong>What family of functions</strong> can <code>f</code> live in? (lines, polynomials, trees, splines, neural nets, Gaussian processes…)</li>
+        <li><strong>What does it mean to be close?</strong> (squared error, absolute error, quantile loss, robust losses…)</li>
+        <li><strong>How do we keep it from memorizing the training set?</strong> (L1/L2 penalties, early stopping, tree depth limits, dropout, Bayesian priors…)</li>
+      </ol>
+      <p>Those three levers — <em>function family</em>, <em>loss</em>, <em>regularization</em> — are the entire game.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 02: TYPES ============ -->
+<section id="types">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">02 / TYPES</div>
+      <div class="sec-title">
+        <h2>A taxonomy of regression <em style="font-style:italic;color:var(--accent)">problems.</em></h2>
+        <p class="sec-lede">Regression problems come in shapes. Knowing which shape you have before you pick an algorithm saves you a month of debugging.</p>
+      </div>
+    </div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Problem shape</th>
+          <th>What it means</th>
+          <th>Typical example</th>
+          <th>What to reach for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Simple linear</strong></td>
+          <td>One feature, approximately linear relationship</td>
+          <td>Efficiency vs. speed at fixed load</td>
+          <td>OLS; establishes baseline</td>
+        </tr>
+        <tr>
+          <td><strong>Multiple linear</strong></td>
+          <td>Many features, additive linear structure</td>
+          <td>Power consumption vs. speed, load, temp, humidity</td>
+          <td>OLS, Ridge if collinearity</td>
+        </tr>
+        <tr>
+          <td><strong>Polynomial / basis</strong></td>
+          <td>Smooth nonlinear in known form</td>
+          <td>Iron-loss vs. frequency (has known <code>f</code> and <code>f²</code> terms)</td>
+          <td>Polynomial regression, splines</td>
+        </tr>
+        <tr>
+          <td><strong>General nonlinear</strong></td>
+          <td>Unknown nonlinear shape, many features</td>
+          <td>Flux map <code>ψ(id, iq)</code> from measurements</td>
+          <td>Random Forest, Gradient Boosting, NN</td>
+        </tr>
+        <tr>
+          <td><strong>Time series</strong></td>
+          <td>Output depends on time / previous values</td>
+          <td>Stator temp over drive cycle</td>
+          <td>ARIMA, state-space, LSTM, TCN</td>
+        </tr>
+        <tr>
+          <td><strong>Multi-output</strong></td>
+          <td>Predict several continuous targets jointly</td>
+          <td>Predict <code>id*, iq*</code> for MTPA</td>
+          <td>Multi-task NN, Chained MOR, joint GP</td>
+        </tr>
+        <tr>
+          <td><strong>Quantile</strong></td>
+          <td>Predict a specific quantile, not the mean</td>
+          <td>P90 worst-case current for sizing</td>
+          <td>Quantile regression, quantile GBM</td>
+        </tr>
+        <tr>
+          <td><strong>Count / rate</strong></td>
+          <td>Response is a non-negative integer count</td>
+          <td>Faults per 1000 hours</td>
+          <td>Poisson / negative-binomial GLM</td>
+        </tr>
+        <tr>
+          <td><strong>Survival</strong></td>
+          <td>Time-to-event with censoring</td>
+          <td>Remaining useful life</td>
+          <td>Cox PH, AFT, DeepSurv</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout teal">
+      <span class="callout-label">Rule of thumb</span>
+      <p>Always start with the simplest model that could plausibly work. A linear model with well-engineered features beats a transformer on small tabular data about 90% of the time, and it tells you something about the world on the way there.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 03: ALGORITHMS ============ -->
+<section id="algorithms">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">03 / ALGORITHMS</div>
+      <div class="sec-title">
+        <h2>Nine methods, <em style="font-style:italic;color:var(--accent)">honestly</em> compared.</h2>
+        <p class="sec-lede">No algorithm dominates. Each is good at something, bad at something else. Here's what each one actually does, when to reach for it, and what breaks it.</p>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE DEMO 1: Regression Fit Explorer -->
+    <div class="demo-frame">
+      <div class="demo-head">
+        <div class="demo-title"><span class="badge">Demo 01</span>Regression fit explorer</div>
+        <div class="demo-metrics">
+          <div class="metric">
+            <span class="metric-label">Train R²</span>
+            <span class="metric-value" id="m1-trainR2">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Test R²</span>
+            <span class="metric-value" id="m1-testR2">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Train MSE</span>
+            <span class="metric-value" id="m1-mse">—</span>
+          </div>
+        </div>
+      </div>
+      <svg class="plot" id="plot1" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="control-grid">
+        <div class="control" style="grid-column: 1 / -1;">
+          <div class="control-label"><span>Model</span></div>
+          <div class="button-row" id="m1-model-buttons">
+            <button class="btn active" data-model="linear">Linear</button>
+            <button class="btn" data-model="poly2">Poly deg 2</button>
+            <button class="btn" data-model="poly3">Poly deg 3</button>
+            <button class="btn" data-model="poly5">Poly deg 5</button>
+            <button class="btn" data-model="poly10">Poly deg 10</button>
+            <button class="btn" data-model="poly15">Poly deg 15</button>
+            <button class="btn" data-model="ridge10">Ridge (d10)</button>
+            <button class="btn" data-model="lasso10">Lasso (d10)</button>
+          </div>
+        </div>
+        <div class="control">
+          <div class="control-label"><span>Noise σ</span><span class="val" id="m1-noise-val">0.25</span></div>
+          <input type="range" id="m1-noise" min="0" max="0.8" step="0.05" value="0.25" />
+        </div>
+        <div class="control">
+          <div class="control-label"><span>Regularization λ</span><span class="val" id="m1-lambda-val">0.10</span></div>
+          <input type="range" id="m1-lambda" min="0" max="3" step="0.05" value="0.10" />
+        </div>
+        <div class="control">
+          <div class="control-label"><span>Training samples</span><span class="val" id="m1-n-val">25</span></div>
+          <input type="range" id="m1-n" min="8" max="80" step="1" value="25" />
+        </div>
+        <div class="control" style="justify-content:flex-end;">
+          <div class="button-row" style="justify-content:flex-end;">
+            <button class="btn" id="m1-reshuffle">↻ New sample</button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color: var(--ink-mute); margin-top: 1rem; line-height:1.5;">
+        <em>Watch:</em> with <code>Poly deg 15</code> and low noise, the curve snakes through every training point but fails wildly on test. That's <strong>overfitting</strong> — the classic failure mode that regularization is designed to fix. Turn up <code>λ</code> with Ridge or Lasso selected and watch the fit pull back toward sanity.
+      </p>
+    </div>
+
+    <div class="algo-grid">
+      <!-- Linear Regression -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Linear</span><span class="tag">Parametric</span><span class="tag">Interpretable</span></div>
+        <h3>Ordinary Least Squares</h3>
+        <div class="formula">min ‖y − Xβ‖²</div>
+        <p>The granddaddy. A closed-form solution exists: <code>β̂ = (XᵀX)⁻¹Xᵀy</code>. Every prediction is a weighted sum of features. Coefficients have units and meaning.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Relationship is roughly linear, features roughly independent, you want interpretability.</dd>
+          <dt>Breaks when</dt><dd>Collinearity, nonlinearity, heavy outliers, or n &lt; p.</dd>
+        </dl>
+      </div>
+
+      <!-- Ridge -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Linear</span><span class="tag">L2 Reg.</span></div>
+        <h3>Ridge Regression</h3>
+        <div class="formula">min ‖y − Xβ‖² + λ‖β‖²</div>
+        <p>OLS with an L2 penalty on the coefficients. Stabilizes the fit under collinearity and when <code>XᵀX</code> is ill-conditioned. Shrinks coefficients toward zero but rarely makes them exactly zero.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Many correlated features, you want smooth shrinkage, n not much bigger than p.</dd>
+          <dt>Tuning</dt><dd><code>λ</code> via cross-validation. Standardize features first.</dd>
+        </dl>
+      </div>
+
+      <!-- Lasso -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Linear</span><span class="tag">L1 Reg.</span><span class="tag teal">Sparse</span></div>
+        <h3>Lasso Regression</h3>
+        <div class="formula">min ‖y − Xβ‖² + λ‖β‖₁</div>
+        <p>L1 penalty produces <strong>sparse</strong> solutions — it drives some coefficients to exactly zero. Doubles as a feature-selection method. Less stable than Ridge when features are highly correlated.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>You suspect only a few features matter and want the model to tell you which.</dd>
+          <dt>Careful</dt><dd>Among correlated features, Lasso picks one and zeros the rest — which one is somewhat arbitrary.</dd>
+        </dl>
+      </div>
+
+      <!-- Elastic Net -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Linear</span><span class="tag">L1+L2</span></div>
+        <h3>Elastic Net</h3>
+        <div class="formula">min ‖y − Xβ‖² + λ₁‖β‖₁ + λ₂‖β‖²</div>
+        <p>Convex combination of Lasso and Ridge. Gets sparsity from L1 and grouping / stability from L2. In practice, often the default choice for regularized linear regression on real data.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Correlated feature groups you want to select together, n &lt; p scenarios.</dd>
+          <dt>Tuning</dt><dd>Two knobs: <code>α</code> (mix ratio) and <code>λ</code> (total strength).</dd>
+        </dl>
+      </div>
+
+      <!-- Polynomial -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Linear in β</span><span class="tag">Basis expansion</span></div>
+        <h3>Polynomial Regression</h3>
+        <div class="formula">y = β₀ + β₁x + β₂x² + ... + βₖxᵏ</div>
+        <p>Still linear regression — just with <code>x², x³, …</code> as additional features. Higher degree = more flexibility, but degree &gt; 3 is where overfitting lives. Almost always better to use <strong>splines</strong> instead.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>You have strong prior that the shape is polynomial (e.g. physics).</dd>
+          <dt>Careful</dt><dd>Center and scale <code>x</code> before expanding, or you'll get brutal collinearity.</dd>
+        </dl>
+      </div>
+
+      <!-- Trees / RF -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag">Ensemble</span><span class="tag">Tabular king</span></div>
+        <h3>Random Forest Regressor</h3>
+        <div class="formula">ŷ = (1/T) Σ treeₜ(x)</div>
+        <p>Average of many decorrelated decision trees. Handles nonlinearity and interactions automatically. No scaling needed. Robust to outliers in <code>x</code>. Cannot extrapolate beyond training range.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Tabular data, nonlinear, you want a strong baseline with minimal tuning.</dd>
+          <dt>Hyperparams</dt><dd><code>n_estimators</code>, <code>max_depth</code>, <code>min_samples_leaf</code>, <code>max_features</code>.</dd>
+        </dl>
+      </div>
+
+      <!-- GBM -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag">Ensemble</span><span class="tag teal">SOTA tabular</span></div>
+        <h3>Gradient Boosting (XGBoost / LightGBM)</h3>
+        <div class="formula">Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)</div>
+        <p>Trees built sequentially, each correcting the residuals of the previous. Typically the winner on tabular Kaggle. Very sensitive to hyperparameters but rewards careful tuning.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Tabular data &amp; you need the best accuracy you can get.</dd>
+          <dt>Hyperparams</dt><dd>Learning rate, depth, # rounds, row/col subsampling, L1/L2 on leaves.</dd>
+        </dl>
+      </div>
+
+      <!-- SVR -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag">Kernel</span></div>
+        <h3>Support Vector Regression</h3>
+        <div class="formula">min ½‖w‖² + C · Σ max(0, |yᵢ−ŷᵢ|−ε)</div>
+        <p>Kernel method that fits a tube of width <code>ε</code> around the function — predictions inside the tube incur no loss. With RBF kernel, handles smooth nonlinearity. Scales poorly past ~10k samples.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Smooth function, moderate dataset size, you want a principled nonlinear fit.</dd>
+          <dt>Careful</dt><dd>Always standardize inputs. Three knobs: <code>C</code>, <code>ε</code>, kernel params.</dd>
+        </dl>
+      </div>
+
+      <!-- GP -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag teal">Bayesian</span><span class="tag">Uncertainty</span></div>
+        <h3>Gaussian Process Regression</h3>
+        <div class="formula">f ~ GP(μ(x), k(x,x'))</div>
+        <p>A distribution over functions defined by a kernel. Gives you not just a prediction but a <strong>principled uncertainty</strong> estimate — essential for active learning, Bayesian optimization, and safety-critical work. O(n³) cost limits it to small datasets.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Small n (&lt; ~10k), you need calibrated uncertainty, smooth functions.</dd>
+          <dt>Careful</dt><dd>Kernel choice matters. Learn hyperparams by maximizing marginal likelihood.</dd>
+        </dl>
+      </div>
+
+      <!-- Neural net -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag">Universal approximator</span></div>
+        <h3>Neural Network Regression</h3>
+        <div class="formula">ŷ = Wₗσ(Wₗ₋₁σ(...σ(W₁x + b₁)))</div>
+        <p>Stacked affine + nonlinearity layers. Universal approximator given enough width/depth. Shines on high-dimensional, structured data (images, sequences, sensor streams). Hungry for data and compute; needs careful regularization.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Big data (&gt;10⁴ samples), structured inputs, nonlinear with unknown shape.</dd>
+          <dt>Careful</dt><dd>Normalize inputs &amp; outputs. Use early stopping, dropout, weight decay. Huber loss for noisy targets.</dd>
+        </dl>
+      </div>
+
+      <!-- Splines -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag accent">Nonlinear</span><span class="tag">Smooth</span></div>
+        <h3>Splines / GAM</h3>
+        <div class="formula">y = β₀ + Σⱼ fⱼ(xⱼ) + ε</div>
+        <p>Generalized Additive Models fit a smooth function of each feature and sum them. Interpretable like linear regression, flexible like trees, with per-feature partial effect plots. An underused middle ground.</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>You need nonlinearity <em>and</em> per-feature interpretability.</dd>
+          <dt>Tooling</dt><dd>R's <code>mgcv</code>, Python's <code>pygam</code>.</dd>
+        </dl>
+      </div>
+
+      <!-- kNN -->
+      <div class="algo-card">
+        <div class="tag-row"><span class="tag">Instance-based</span><span class="tag">Lazy</span></div>
+        <h3>k-Nearest Neighbors</h3>
+        <div class="formula">ŷ(x) = avg(y of k nearest training points)</div>
+        <p>Almost embarrassingly simple. No training phase. Surprisingly strong baseline when you have dense, well-scaled features and enough data. Collapses in high dimensions (curse of dimensionality).</p>
+        <dl class="meta">
+          <dt>Use when</dt><dd>Quick baseline, low-dimensional problems, &lt;10⁵ samples.</dd>
+          <dt>Careful</dt><dd>Always standardize. Distance metric &amp; k both matter.</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 04: DATA ============ -->
+<section id="data">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">04 / DATA</div>
+      <div class="sec-title">
+        <h2>The data demands <em style="font-style:italic;color:var(--accent)">more</em> than the algorithm does.</h2>
+        <p class="sec-lede">Most "model problems" are actually data problems. Before tuning anything, interrogate your data against the checklist below.</p>
+      </div>
+    </div>
+
+    <div class="split-layout">
+      <div class="prose">
+        <h3>Sample size</h3>
+        <p>A rough rule for linear models: you want at least <strong>10–20 observations per predictor</strong>. For a 30-feature model, that's 300–600 rows minimum before inference is trustworthy. Tree ensembles and neural nets need more — typically <strong>thousands</strong> — because they have effectively many more parameters.</p>
+
+        <h3>Feature scaling</h3>
+        <p>Required for: <strong>Ridge, Lasso, SVR, k-NN, Neural Nets, PCA, GP</strong>. Not required for: <strong>OLS (mathematically), Trees, Random Forest, Gradient Boosting</strong>. When in doubt, standardize (zero mean, unit variance) — it never hurts for distance-based or gradient-based methods.</p>
+
+        <h3>Missing values</h3>
+        <p>Never silently drop rows — you might be dropping a pattern. Three defensible options: (1) <strong>imputation</strong> with median / mean / model-based (k-NN, MICE); (2) <strong>add a missingness indicator</strong> feature; (3) use an algorithm that handles NaN natively (LightGBM, XGBoost).</p>
+
+        <h3>Outliers</h3>
+        <p>OLS is brutally sensitive — a single extreme point can tilt the whole fit. If outliers are real and meaningful, use <strong>Huber loss</strong> or <strong>quantile regression</strong>. If they're errors, fix them in preprocessing. Don't just Winsorize without understanding why.</p>
+
+        <h3>Multicollinearity</h3>
+        <p>When features are highly correlated, OLS coefficients become unstable and their interpretation breaks down. Diagnose with <strong>VIF</strong> (variance inflation factor) — VIF &gt; 10 is a red flag. Remedies: drop one of the pair, use Ridge, or do PCA.</p>
+      </div>
+
+      <div class="prose">
+        <h3>The four OLS assumptions</h3>
+        <p>OLS inference (standard errors, p-values, CIs) relies on:</p>
+        <ol>
+          <li><strong>Linearity</strong> — the relationship between features and target is truly linear. Check: residual vs. fitted plot should look like random noise, no curvature.</li>
+          <li><strong>Independence</strong> of errors — usually violated by time series or clustered data. Fix with GLS, mixed models, or explicit time-series methods.</li>
+          <li><strong>Homoscedasticity</strong> — residuals have constant variance. Check: no funnel shape in residual plot. Fix with log-transform or weighted least squares.</li>
+          <li><strong>Normality</strong> of residuals — needed for small-sample inference only. Check: Q-Q plot.</li>
+        </ol>
+
+        <h3>Train / validation / test</h3>
+        <p>Split <em>once</em> at the start. A classic split: 60/20/20, or 80/20 with k-fold CV on the 80. For time series, always do <strong>chronological splits</strong> — random splits leak the future into the past.</p>
+
+        <h3>Leakage — the silent killer</h3>
+        <p>Any information at training time that wouldn't be available at prediction time is leakage. Common culprits: scaling on full data before split (test stats leak into train), target-derived features, future-looking features in time series, ID columns that encode the target. If your R² looks too good, you have leakage until proven otherwise.</p>
+
+        <h3>Feature engineering beats model tuning</h3>
+        <p>A thoughtful log transform, a well-placed interaction term, or a domain-informed basis (e.g. Park transform for motor control) will almost always yield more improvement than another round of hyperparameter sweeping. Spend 80% of your time understanding features; 20% on models.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-label">A quick checklist</span>
+      <p>Before training: ✓ Plot every feature's distribution. ✓ Plot <em>y</em> vs each feature. ✓ Compute correlation / VIF. ✓ Identify missingness. ✓ Flag outliers. ✓ Decide your split <em>before</em> touching the model. ✓ Define success metric before training, not after.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 05: IMBALANCE ============ -->
+<section id="imbalance">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">05 / IMBALANCE</div>
+      <div class="sec-title">
+        <h2>The 98/2 problem, <em style="font-style:italic;color:var(--accent)">properly</em> treated.</h2>
+        <p class="sec-lede">This is the question that motivated the whole page. It's a classification problem — let's solve it. Your data has 98% class 0 and 2% class 1, and you want the model to detect the minority. Here's the full toolkit.</p>
+      </div>
+    </div>
+
+    <div class="callout danger" style="margin-bottom: 2.5rem;">
+      <span class="callout-label">Trap #1 — the accuracy lie</span>
+      <p>A model that always predicts "class 0" is <strong>98% accurate</strong> on your data and <strong>completely useless</strong>. Accuracy is the wrong metric for imbalanced problems — delete it from your vocabulary. Use <strong>precision, recall, F1, AUC-PR, and the confusion matrix</strong> instead.</p>
+    </div>
+
+    <!-- DEMO 2: Imbalance -->
+    <div class="demo-frame">
+      <div class="demo-head">
+        <div class="demo-title"><span class="badge">Demo 02</span>Imbalance, thresholds, and what the model actually learns</div>
+        <div class="demo-metrics">
+          <div class="metric"><span class="metric-label">Precision</span><span class="metric-value" id="m2-prec">—</span></div>
+          <div class="metric"><span class="metric-label">Recall</span><span class="metric-value" id="m2-rec">—</span></div>
+          <div class="metric"><span class="metric-label">F1</span><span class="metric-value" id="m2-f1">—</span></div>
+          <div class="metric"><span class="metric-label">Accuracy</span><span class="metric-value" id="m2-acc">—</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap: 2rem; align-items:start;">
+        <svg class="plot" id="plot2" viewBox="0 0 600 440" preserveAspectRatio="xMidYMid meet"></svg>
+        <div>
+          <div class="conf-matrix" style="margin-top:1.5rem;">
+            <div class="conf-cell conf-header"></div>
+            <div class="conf-cell conf-header">Pred: Neg</div>
+            <div class="conf-cell conf-header">Pred: Pos</div>
+            <div class="conf-cell conf-header">Actual: Neg</div>
+            <div class="conf-cell tn"><span class="num" id="m2-tn">—</span><span class="lbl">True Negative</span></div>
+            <div class="conf-cell fp"><span class="num" id="m2-fp">—</span><span class="lbl">False Positive</span></div>
+            <div class="conf-cell conf-header">Actual: Pos</div>
+            <div class="conf-cell fn"><span class="num" id="m2-fn">—</span><span class="lbl">False Negative</span></div>
+            <div class="conf-cell tp"><span class="num" id="m2-tp">—</span><span class="lbl">True Positive</span></div>
+          </div>
+          <p style="font-size:0.82rem; color:var(--ink-mute); margin-top:0.8rem; line-height:1.5;">
+            <em>Read the matrix:</em> rows = truth, columns = prediction. The diagonal is what you want; the off-diagonal is your pain. In imbalance, <strong>False Negatives</strong> (missed positives) usually cost much more than False Positives.
+          </p>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <div class="control" style="grid-column: 1 / -1;">
+          <div class="control-label"><span>Strategy</span></div>
+          <div class="button-row" id="m2-strategy-buttons">
+            <button class="btn active" data-strat="none">Baseline (no fix)</button>
+            <button class="btn" data-strat="oversample">Random Oversample</button>
+            <button class="btn" data-strat="undersample">Random Undersample</button>
+            <button class="btn" data-strat="smote">SMOTE (synthetic)</button>
+            <button class="btn" data-strat="weight">Class weighting</button>
+          </div>
+        </div>
+        <div class="control">
+          <div class="control-label"><span>Decision threshold</span><span class="val" id="m2-thresh-val">0.50</span></div>
+          <input type="range" id="m2-thresh" min="0.05" max="0.95" step="0.01" value="0.5" />
+        </div>
+        <div class="control">
+          <div class="control-label"><span>Class ratio (majority : minority)</span><span class="val" id="m2-ratio-val">98:2</span></div>
+          <input type="range" id="m2-ratio" min="60" max="99" step="1" value="98" />
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color: var(--ink-mute); margin-top: 1rem; line-height:1.5;">
+        <em>Try this:</em> Leave on Baseline, set threshold to 0.5 — almost no positives detected. Now drop threshold to 0.2 — recall rockets up, precision collapses. Now try SMOTE at threshold 0.5 — the decision boundary shifts toward the minority. There's no "right answer" — the right threshold depends on how much you care about FP vs FN in your business.
+      </p>
+    </div>
+
+    <h3 class="display" style="font-size:2rem; margin: 3rem 0 1.5rem; font-weight:400;">The full toolkit, ranked by what I'd try first</h3>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 18%">Technique</th>
+          <th style="width: 32%">What it does</th>
+          <th style="width: 25%">When to use</th>
+          <th style="width: 25%">Caveats</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Use the right metrics</strong></td>
+          <td>Switch from accuracy to <strong>precision, recall, F1, AUC-PR</strong>, Matthews Correlation Coefficient.</td>
+          <td>Always. This isn't optional — it's step zero.</td>
+          <td>AUC-ROC can be misleading in extreme imbalance; AUC-PR is more honest.</td>
+        </tr>
+        <tr>
+          <td><strong>Threshold tuning</strong></td>
+          <td>Don't use the default 0.5 cutoff. Pick the threshold that optimizes your business metric on a validation set.</td>
+          <td>Always try this first — it's free.</td>
+          <td>You have to commit to what you care about (e.g. recall ≥ 0.8 at best precision).</td>
+        </tr>
+        <tr>
+          <td><strong>Class weights</strong></td>
+          <td>Tell the loss function that each minority example counts more. <code>class_weight='balanced'</code> in sklearn.</td>
+          <td>Simple, no data manipulation, works for most linear / tree models.</td>
+          <td>Can make training unstable. Combine with early stopping.</td>
+        </tr>
+        <tr>
+          <td><strong>Cost-sensitive learning</strong></td>
+          <td>Explicitly set the cost matrix: <code>cost(FN)</code>, <code>cost(FP)</code>. Closely related to class weights but driven by business cost.</td>
+          <td>When you can actually quantify the cost of a miss vs. a false alarm.</td>
+          <td>Getting the costs wrong is worse than not using them.</td>
+        </tr>
+        <tr>
+          <td><strong>Random oversampling</strong></td>
+          <td>Duplicate minority examples until classes are balanced.</td>
+          <td>Small data, quick baseline.</td>
+          <td>Can overfit to duplicated samples. Never apply before the train/test split.</td>
+        </tr>
+        <tr>
+          <td><strong>SMOTE / ADASYN</strong></td>
+          <td>Create <em>synthetic</em> minority samples by interpolating between minority neighbors.</td>
+          <td>Tabular data, decently separable classes.</td>
+          <td>Can produce noisy synthetic points in overlapping regions. Apply only to training fold.</td>
+        </tr>
+        <tr>
+          <td><strong>Random undersampling</strong></td>
+          <td>Throw away majority examples until balanced.</td>
+          <td>Huge majority class, compute-limited training.</td>
+          <td>You're discarding real data. Consider ensemble methods that undersample many times.</td>
+        </tr>
+        <tr>
+          <td><strong>Focal loss</strong></td>
+          <td>A modified cross-entropy that down-weights easy examples and focuses on hard ones. <code>FL = -(1−p)^γ log(p)</code>.</td>
+          <td>Deep learning, very high imbalance (object detection's home).</td>
+          <td>Additional hyperparameter <code>γ</code>. Requires deep-learning framework.</td>
+        </tr>
+        <tr>
+          <td><strong>Anomaly detection reframe</strong></td>
+          <td>If minority is <strong>very</strong> rare (&lt;1%), treat it as anomaly detection: Isolation Forest, One-Class SVM, autoencoder reconstruction.</td>
+          <td>Fraud detection, manufacturing defects, rare fault modes.</td>
+          <td>You train only on majority ("normal"). Evaluation still needs minority examples.</td>
+        </tr>
+        <tr>
+          <td><strong>Get more minority data</strong></td>
+          <td>Targeted data collection, label more positives, active learning.</td>
+          <td>When it's actually feasible. Often beats any algorithmic trick.</td>
+          <td>Expensive, slow. But usually the highest-leverage move.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-num">AUC-PR</div>
+        <div class="kpi-label">The honest metric under imbalance</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num">Train-only</div>
+        <div class="kpi-label">Resample after the split, never before</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num">Threshold ≠ 0.5</div>
+        <div class="kpi-label">Always tune on validation</div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-label">Trap #2 — resampling leakage</span>
+      <p>Apply SMOTE, oversampling, or undersampling <strong>only to the training fold</strong>, inside your cross-validation loop. If you resample on the full dataset <em>before</em> splitting, synthetic or duplicated samples leak into your test set and your evaluation becomes meaningless. Use <code>imblearn.pipeline.Pipeline</code> to do this safely.</p>
+    </div>
+
+    <div class="callout teal">
+      <span class="callout-label">Trap #3 — calibration</span>
+      <p>After resampling, your model's output probabilities no longer reflect the true population rate. If you need <em>calibrated</em> probabilities (for risk scoring, expected-cost calculations), apply <code>CalibratedClassifierCV</code> or Platt scaling on a held-out set from the <em>original, unbalanced</em> distribution.</p>
+    </div>
+
+    <h3 class="display" style="font-size:1.6rem; margin: 2rem 0 1rem;">A practical recipe for 98/2</h3>
+    <pre><code><span class="cmt"># A defensible baseline for 98/2 imbalance in sklearn</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> StratifiedKFold
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> GradientBoostingClassifier
+<span class="kw">from</span> imblearn.over_sampling <span class="kw">import</span> SMOTE
+<span class="kw">from</span> imblearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> average_precision_score, precision_recall_curve
+
+pipeline = Pipeline([
+    (<span class="str">'smote'</span>, SMOTE(sampling_strategy=<span class="num">0.3</span>, random_state=<span class="num">42</span>)),
+    (<span class="str">'clf'</span>, GradientBoostingClassifier(n_estimators=<span class="num">300</span>, max_depth=<span class="num">3</span>))
+])
+
+<span class="cmt"># Stratified k-fold preserves class ratios in each fold</span>
+cv = StratifiedKFold(n_splits=<span class="num">5</span>, shuffle=<span class="kw">True</span>, random_state=<span class="num">42</span>)
+
+<span class="cmt"># Score with AUC-PR, not accuracy.</span>
+scores = cross_val_score(pipeline, X, y, cv=cv, scoring=<span class="str">'average_precision'</span>)
+
+<span class="cmt"># After fitting: tune threshold on validation, not at 0.5.</span>
+probs = pipeline.predict_proba(X_val)[:, <span class="num">1</span>]
+p, r, th = precision_recall_curve(y_val, probs)
+f1 = <span class="num">2</span>*p*r / (p + r + <span class="num">1e-9</span>)
+best_threshold = th[f1[:-<span class="num">1</span>].argmax()]</code></pre>
+  </div>
+</section>
+
+<!-- ============ SECTION 06: METRICS ============ -->
+<section id="metrics">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">06 / METRICS</div>
+      <div class="sec-title">
+        <h2>Measuring <em style="font-style:italic;color:var(--accent)">honestly.</em></h2>
+        <p class="sec-lede">The metric you choose decides what your model optimizes for. Pick it before you train, not after.</p>
+      </div>
+    </div>
+
+    <div class="split-layout">
+      <div class="prose">
+        <h3>For regression</h3>
+        <h4>MSE — Mean Squared Error</h4>
+        <p>Average of squared residuals. Penalizes large errors quadratically. Units are squared (awkward). The loss most algorithms actually optimize.</p>
+
+        <h4>RMSE — Root Mean Squared Error</h4>
+        <p>Square root of MSE. Same units as <code>y</code>. The go-to for reporting when error magnitude matters.</p>
+
+        <h4>MAE — Mean Absolute Error</h4>
+        <p>Average of absolute residuals. Robust to outliers. Reports "typical" error size, not "worst-case-ish" error size.</p>
+
+        <h4>R² — Coefficient of determination</h4>
+        <p>Proportion of variance explained: <code>R² = 1 − SS_res / SS_tot</code>. Dimensionless, 1.0 is perfect, 0 is as bad as predicting the mean, <em>negative is possible</em> (you did worse than the mean) and should make you reconsider your life choices.</p>
+
+        <h4>MAPE — Mean Abs. Percentage Error</h4>
+        <p>Scale-free, interpretable as a percent. Explodes when actual values are near zero. Use <strong>SMAPE</strong> or <strong>MASE</strong> instead when that's a concern.</p>
+      </div>
+
+      <div class="prose">
+        <h3>For classification (esp. imbalanced)</h3>
+        <h4>Precision = TP / (TP + FP)</h4>
+        <p>Of predicted positives, what fraction are actually positive? High precision = few false alarms.</p>
+
+        <h4>Recall = TP / (TP + FN)</h4>
+        <p>Of actual positives, what fraction did we catch? High recall = few misses. <em>Also called</em> sensitivity or true positive rate.</p>
+
+        <h4>F1 = 2 · P · R / (P + R)</h4>
+        <p>Harmonic mean of precision and recall. A single number that rewards models doing well on both. Default choice for imbalanced problems.</p>
+
+        <h4>AUC-ROC</h4>
+        <p>Area under the ROC curve (TPR vs. FPR). Probability the model ranks a random positive higher than a random negative. <strong>Overly optimistic under heavy imbalance</strong> — use AUC-PR instead.</p>
+
+        <h4>AUC-PR (Average Precision)</h4>
+        <p>Area under the Precision-Recall curve. The honest metric for imbalanced problems because it doesn't get inflated by the huge TN count.</p>
+
+        <h4>Matthews Correlation Coefficient (MCC)</h4>
+        <p>A single number in [−1, 1] that summarizes the whole confusion matrix. Arguably the most balanced single metric for imbalance. Underused.</p>
+
+        <h4>Log Loss / Cross-Entropy</h4>
+        <p>Penalizes confident wrong predictions heavily. Use when you need calibrated probabilities.</p>
+      </div>
+    </div>
+
+    <div class="callout teal">
+      <span class="callout-label">Pick by asking</span>
+      <p><strong>Regression:</strong> Do outliers matter? → MAE. Worst cases matter? → RMSE. Relative errors matter? → MAPE / MASE. Need a dimensionless summary? → R².</p>
+      <p><strong>Classification:</strong> Balanced classes? → Accuracy + F1. Imbalanced? → AUC-PR + F1 + threshold-specific precision/recall. Need probabilities? → Log loss + calibration plot.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 07: DECIDE ============ -->
+<section id="decide">
+  <div class="wrap">
+    <div class="sec-header">
+      <div class="sec-num">07 / DECIDE</div>
+      <div class="sec-title">
+        <h2>Which algorithm, <em style="font-style:italic;color:var(--accent)">actually?</em></h2>
+        <p class="sec-lede">A flowchart is never complete, but it's usually a faster starting point than staring at a textbook. Start at the top, answer honestly, end up somewhere reasonable.</p>
+      </div>
+    </div>
+
+    <div class="flowchart">
+      <svg id="flow-svg" viewBox="0 0 1040 600" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="callout">
+      <span class="callout-label">The honest meta-advice</span>
+      <p>Pick <strong>two</strong> models from the flowchart that seem reasonable. Fit both with default hyperparameters. Compare on a held-out test set with the right metric. If a linear model is within 5% of your fanciest option, use the linear model — it's faster, interpretable, and has fewer ways to fail silently. Complexity should have to earn its keep.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <h4>A Field Guide to Regression</h4>
+        <p>A practical interactive reference for regression methods, data considerations, and what to do when your classes are wildly imbalanced. Built to be read end-to-end, or scanned by section when you need a specific answer.</p>
+      </div>
+      <div>
+        <h4>Further reading</h4>
+        <ul>
+          <li>Hastie, Tibshirani, Friedman — <em>ESL</em></li>
+          <li>Gelman &amp; Hill — <em>Regression and Multilevel Models</em></li>
+          <li>Harrell — <em>Regression Modeling Strategies</em></li>
+          <li>Krawczyk (2016) — imbalanced survey</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Libraries to know</h4>
+        <ul>
+          <li>scikit-learn</li>
+          <li>statsmodels</li>
+          <li>imbalanced-learn</li>
+          <li>xgboost / lightgbm / catboost</li>
+          <li>pygam, pymc, gpytorch</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bar">
+      <span>© 2026 — a field guide</span>
+      <span>No local storage. No tracking. Just math.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   DEMO 1: Regression Fit Explorer
+   ============================================================ */
+(function() {
+  const svg = document.getElementById('plot1');
+  const W = 800, H = 400, PAD_L = 60, PAD_R = 30, PAD_T = 30, PAD_B = 40;
+  const PW = W - PAD_L - PAD_R, PH = H - PAD_T - PAD_B;
+
+  let currentModel = 'linear';
+  let noise = 0.25;
+  let lambda = 0.1;
+  let nSamples = 25;
+  let seed = 42;
+
+  // True function: a sinusoidal-ish nonlinear wiggle
+  function trueFn(x) {
+    return Math.sin(2.2 * x) * 0.8 + 0.3 * x + Math.sin(x * 5) * 0.12;
+  }
+
+  // seeded random
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  }
+  function randn() {
+    let u = 0, v = 0;
+    while (u === 0) u = rand();
+    while (v === 0) v = rand();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function genData() {
+    seed = 42;
+    const xs = [], ys = [];
+    for (let i = 0; i < nSamples; i++) {
+      const x = -3 + 6 * (i + rand() * 0.6) / nSamples;
+      const y = trueFn(x) + randn() * noise;
+      xs.push(x);
+      ys.push(y);
+    }
+    return { xs, ys };
+  }
+
+  // test data (fixed, dense, no noise)
+  function genTest() {
+    const xs = [], ys = [];
+    for (let i = 0; i < 200; i++) {
+      const x = -3 + 6 * i / 199;
+      xs.push(x);
+      ys.push(trueFn(x));
+    }
+    return { xs, ys };
+  }
+
+  // matrix operations
+  function matmul(A, B) {
+    const r = A.length, c = B[0].length, k = B.length;
+    const out = Array.from({ length: r }, () => new Array(c).fill(0));
+    for (let i = 0; i < r; i++)
+      for (let j = 0; j < c; j++)
+        for (let l = 0; l < k; l++)
+          out[i][j] += A[i][l] * B[l][j];
+    return out;
+  }
+  function transpose(A) {
+    const r = A.length, c = A[0].length;
+    const out = Array.from({ length: c }, () => new Array(r).fill(0));
+    for (let i = 0; i < r; i++) for (let j = 0; j < c; j++) out[j][i] = A[i][j];
+    return out;
+  }
+  function identity(n) {
+    const out = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) out[i][i] = 1;
+    return out;
+  }
+  // solve Ax = b via Gauss-Jordan
+  function solve(A, b) {
+    const n = A.length;
+    const M = A.map((row, i) => [...row, b[i][0]]);
+    for (let i = 0; i < n; i++) {
+      // partial pivot
+      let piv = i;
+      for (let k = i + 1; k < n; k++) {
+        if (Math.abs(M[k][i]) > Math.abs(M[piv][i])) piv = k;
+      }
+      [M[i], M[piv]] = [M[piv], M[i]];
+      if (Math.abs(M[i][i]) < 1e-12) continue;
+      for (let j = i + 1; j <= n; j++) M[i][j] /= M[i][i];
+      M[i][i] = 1;
+      for (let k = 0; k < n; k++) {
+        if (k !== i && Math.abs(M[k][i]) > 1e-14) {
+          const f = M[k][i];
+          for (let j = i; j <= n; j++) M[k][j] -= f * M[i][j];
+        }
+      }
+    }
+    return M.map(row => [row[n]]);
+  }
+
+  function designMatrix(xs, degree) {
+    return xs.map(x => {
+      const row = [];
+      for (let d = 0; d <= degree; d++) row.push(Math.pow(x, d));
+      return row;
+    });
+  }
+
+  function fitOLS(X, y) {
+    const Xt = transpose(X);
+    const XtX = matmul(Xt, X);
+    const Xty = matmul(Xt, y.map(v => [v]));
+    return solve(XtX, Xty).map(r => r[0]);
+  }
+  function fitRidge(X, y, lam) {
+    const Xt = transpose(X);
+    const XtX = matmul(Xt, X);
+    // Don't regularize intercept
+    for (let i = 1; i < XtX.length; i++) XtX[i][i] += lam;
+    const Xty = matmul(Xt, y.map(v => [v]));
+    return solve(XtX, Xty).map(r => r[0]);
+  }
+  // Lasso via coordinate descent (simple version)
+  function fitLasso(X, y, lam, iters = 400) {
+    const n = X.length, p = X[0].length;
+    const beta = new Array(p).fill(0);
+    // initialize with ridge for stability
+    const init = fitRidge(X, y, 0.001);
+    for (let i = 0; i < p; i++) beta[i] = init[i];
+    // coordinate descent
+    const colNormSq = new Array(p).fill(0);
+    for (let j = 0; j < p; j++) {
+      for (let i = 0; i < n; i++) colNormSq[j] += X[i][j] * X[i][j];
+    }
+    for (let it = 0; it < iters; it++) {
+      for (let j = 0; j < p; j++) {
+        let r = 0;
+        for (let i = 0; i < n; i++) {
+          let pred = 0;
+          for (let k = 0; k < p; k++) if (k !== j) pred += X[i][k] * beta[k];
+          r += X[i][j] * (y[i] - pred);
+        }
+        if (colNormSq[j] < 1e-12) { beta[j] = 0; continue; }
+        const z = r / colNormSq[j];
+        const thr = lam / colNormSq[j];
+        // don't penalize intercept
+        if (j === 0) { beta[j] = z; continue; }
+        if (z > thr) beta[j] = z - thr;
+        else if (z < -thr) beta[j] = z + thr;
+        else beta[j] = 0;
+      }
+    }
+    return beta;
+  }
+
+  function predict(X, beta) {
+    return X.map(row => row.reduce((s, v, i) => s + v * beta[i], 0));
+  }
+
+  function r2(yTrue, yPred) {
+    const mean = yTrue.reduce((s, v) => s + v, 0) / yTrue.length;
+    let ssRes = 0, ssTot = 0;
+    for (let i = 0; i < yTrue.length; i++) {
+      ssRes += (yTrue[i] - yPred[i]) ** 2;
+      ssTot += (yTrue[i] - mean) ** 2;
+    }
+    return 1 - ssRes / (ssTot + 1e-12);
+  }
+  function mse(yTrue, yPred) {
+    let s = 0;
+    for (let i = 0; i < yTrue.length; i++) s += (yTrue[i] - yPred[i]) ** 2;
+    return s / yTrue.length;
+  }
+
+  function render() {
+    const { xs, ys } = genData();
+    const test = genTest();
+
+    let degree = 1;
+    let fitFn = fitOLS;
+    let useLambda = 0;
+
+    switch (currentModel) {
+      case 'linear': degree = 1; break;
+      case 'poly2': degree = 2; break;
+      case 'poly3': degree = 3; break;
+      case 'poly5': degree = 5; break;
+      case 'poly10': degree = 10; break;
+      case 'poly15': degree = 15; break;
+      case 'ridge10': degree = 10; fitFn = (X, y) => fitRidge(X, y, lambda * 10); break;
+      case 'lasso10': degree = 10; fitFn = (X, y) => fitLasso(X, y, lambda * 5); break;
+    }
+
+    const X = designMatrix(xs, degree);
+    let beta;
+    try {
+      beta = fitFn(X, ys);
+    } catch (e) {
+      beta = new Array(degree + 1).fill(0);
+    }
+
+    const yPredTrain = predict(X, beta);
+    const Xtest = designMatrix(test.xs, degree);
+    const yPredTest = predict(Xtest, beta);
+
+    const trainR2 = r2(ys, yPredTrain);
+    const testR2 = r2(test.ys, yPredTest);
+    const trainMSE = mse(ys, yPredTrain);
+
+    document.getElementById('m1-trainR2').textContent = trainR2.toFixed(3);
+    document.getElementById('m1-testR2').textContent = testR2.toFixed(3);
+    document.getElementById('m1-mse').textContent = trainMSE.toFixed(3);
+
+    draw(xs, ys, test, yPredTest);
+  }
+
+  function draw(xs, ys, test, yPredTest) {
+    const allY = [...ys, ...test.ys, ...yPredTest].filter(v => !isNaN(v) && isFinite(v));
+    const xMin = -3, xMax = 3;
+    // Clip y-axis for display
+    const yMin = -2.2, yMax = 2.2;
+
+    function sx(x) { return PAD_L + ((x - xMin) / (xMax - xMin)) * PW; }
+    function sy(y) { return PAD_T + (1 - (y - yMin) / (yMax - yMin)) * PH; }
+
+    let html = '';
+
+    // axes grid
+    html += `<rect x="${PAD_L}" y="${PAD_T}" width="${PW}" height="${PH}" fill="white" stroke="rgba(26,26,46,0.12)" stroke-width="1"/>`;
+    for (let i = 0; i <= 4; i++) {
+      const gy = PAD_T + (i / 4) * PH;
+      html += `<line x1="${PAD_L}" y1="${gy}" x2="${PAD_L+PW}" y2="${gy}" stroke="rgba(26,26,46,0.06)" stroke-width="1"/>`;
+      const val = yMax - (i / 4) * (yMax - yMin);
+      html += `<text x="${PAD_L - 8}" y="${gy + 4}" fill="#9a9aaa" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="end">${val.toFixed(1)}</text>`;
+    }
+    for (let i = 0; i <= 6; i++) {
+      const gx = PAD_L + (i / 6) * PW;
+      html += `<line x1="${gx}" y1="${PAD_T}" x2="${gx}" y2="${PAD_T+PH}" stroke="rgba(26,26,46,0.06)" stroke-width="1"/>`;
+      const val = xMin + (i / 6) * (xMax - xMin);
+      html += `<text x="${gx}" y="${PAD_T+PH + 18}" fill="#9a9aaa" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="middle">${val.toFixed(1)}</text>`;
+    }
+
+    // true function (faint dashed)
+    let truePath = '';
+    for (let i = 0; i < test.xs.length; i++) {
+      const cmd = i === 0 ? 'M' : 'L';
+      truePath += `${cmd}${sx(test.xs[i]).toFixed(2)},${sy(test.ys[i]).toFixed(2)} `;
+    }
+    html += `<path d="${truePath}" fill="none" stroke="rgba(26,26,46,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+
+    // fitted curve
+    let predPath = '';
+    let lastY = null;
+    for (let i = 0; i < test.xs.length; i++) {
+      const y = yPredTest[i];
+      // clip to display
+      const yc = Math.max(yMin - 1, Math.min(yMax + 1, y));
+      if (lastY !== null && Math.abs(yc - lastY) > 10) {
+        // break
+        predPath += `M${sx(test.xs[i]).toFixed(2)},${sy(yc).toFixed(2)} `;
+      } else {
+        const cmd = i === 0 ? 'M' : 'L';
+        predPath += `${cmd}${sx(test.xs[i]).toFixed(2)},${sy(yc).toFixed(2)} `;
+      }
+      lastY = yc;
+    }
+    html += `<path d="${predPath}" fill="none" stroke="#c2410c" stroke-width="2.5"/>`;
+
+    // training points
+    for (let i = 0; i < xs.length; i++) {
+      html += `<circle cx="${sx(xs[i]).toFixed(2)}" cy="${sy(ys[i]).toFixed(2)}" r="3.2" fill="#1a1a2e" stroke="#f4efe6" stroke-width="1"/>`;
+    }
+
+    // legend
+    html += `<g transform="translate(${PAD_L + 15}, ${PAD_T + 15})">
+      <line x1="0" y1="5" x2="22" y2="5" stroke="#c2410c" stroke-width="2.5"/>
+      <text x="28" y="9" fill="#3a3a52" font-size="11" font-family="IBM Plex Sans, sans-serif">Fitted</text>
+      <line x1="0" y1="22" x2="22" y2="22" stroke="rgba(26,26,46,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <text x="28" y="26" fill="#3a3a52" font-size="11" font-family="IBM Plex Sans, sans-serif">True</text>
+      <circle cx="11" cy="39" r="3.2" fill="#1a1a2e"/>
+      <text x="28" y="43" fill="#3a3a52" font-size="11" font-family="IBM Plex Sans, sans-serif">Training</text>
+    </g>`;
+
+    svg.innerHTML = html;
+  }
+
+  // Controls
+  document.querySelectorAll('#m1-model-buttons .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#m1-model-buttons .btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentModel = btn.dataset.model;
+      render();
+    });
+  });
+
+  document.getElementById('m1-noise').addEventListener('input', (e) => {
+    noise = parseFloat(e.target.value);
+    document.getElementById('m1-noise-val').textContent = noise.toFixed(2);
+    render();
+  });
+  document.getElementById('m1-lambda').addEventListener('input', (e) => {
+    lambda = parseFloat(e.target.value);
+    document.getElementById('m1-lambda-val').textContent = lambda.toFixed(2);
+    render();
+  });
+  document.getElementById('m1-n').addEventListener('input', (e) => {
+    nSamples = parseInt(e.target.value);
+    document.getElementById('m1-n-val').textContent = nSamples;
+    render();
+  });
+  document.getElementById('m1-reshuffle').addEventListener('click', () => {
+    seed = Math.floor(Math.random() * 1e9);
+    render();
+  });
+
+  render();
+})();
+
+/* ============================================================
+   DEMO 2: Imbalance Explorer
+   ============================================================ */
+(function() {
+  const svg = document.getElementById('plot2');
+  const W = 600, H = 440, PAD = 40;
+  const PW = W - PAD*2, PH = H - PAD*2;
+
+  let strategy = 'none';
+  let threshold = 0.5;
+  let ratio = 98;
+
+  // seeded RNG for reproducibility
+  let seed = 7;
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  }
+  function randn() {
+    let u = 0, v = 0;
+    while (u === 0) u = rand();
+    while (v === 0) v = rand();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  let posPts = [], negPts = [];
+  let synthPts = [];
+  let beta = { w1: 0, w2: 0, b: 0 };
+
+  function genData() {
+    seed = 7;
+    posPts = [];
+    negPts = [];
+    const total = 500;
+    const nPos = Math.max(4, Math.round(total * (100 - ratio) / 100));
+    const nNeg = total - nPos;
+
+    // Negatives: centered at (0.3, 0.3)
+    for (let i = 0; i < nNeg; i++) {
+      negPts.push({
+        x: 0.3 + randn() * 0.22,
+        y: 0.3 + randn() * 0.22
+      });
+    }
+    // Positives: centered at (0.75, 0.75), some overlap
+    for (let i = 0; i < nPos; i++) {
+      posPts.push({
+        x: 0.72 + randn() * 0.14,
+        y: 0.72 + randn() * 0.14
+      });
+    }
+  }
+
+  // SMOTE-style: interpolate between pairs of minority
+  function smote(pts, nSynth) {
+    if (pts.length < 2) return [];
+    const out = [];
+    for (let i = 0; i < nSynth; i++) {
+      const a = pts[Math.floor(rand() * pts.length)];
+      // find a neighbor (among 5 random)
+      let bestD = Infinity, bestB = pts[0];
+      for (let k = 0; k < 5; k++) {
+        const cand = pts[Math.floor(rand() * pts.length)];
+        if (cand === a) continue;
+        const d = (cand.x - a.x) ** 2 + (cand.y - a.y) ** 2;
+        if (d < bestD) { bestD = d; bestB = cand; }
+      }
+      const t = rand();
+      out.push({
+        x: a.x + t * (bestB.x - a.x),
+        y: a.y + t * (bestB.y - a.y)
+      });
+    }
+    return out;
+  }
+
+  // Simple logistic regression (gradient descent)
+  function fitLogistic(pts, labels, weights = null, iters = 300, lr = 0.15) {
+    let w1 = 0, w2 = 0, b = 0;
+    const n = pts.length;
+    for (let it = 0; it < iters; it++) {
+      let gw1 = 0, gw2 = 0, gb = 0;
+      let totalW = 0;
+      for (let i = 0; i < n; i++) {
+        const z = w1 * pts[i].x + w2 * pts[i].y + b;
+        const p = 1 / (1 + Math.exp(-z));
+        const err = p - labels[i];
+        const wt = weights ? weights[i] : 1;
+        gw1 += err * pts[i].x * wt;
+        gw2 += err * pts[i].y * wt;
+        gb += err * wt;
+        totalW += wt;
+      }
+      w1 -= lr * gw1 / totalW;
+      w2 -= lr * gw2 / totalW;
+      b -= lr * gb / totalW;
+    }
+    return { w1, w2, b };
+  }
+
+  function fitModel() {
+    let trainPts = [], trainLabels = [], weights = null;
+    synthPts = [];
+
+    if (strategy === 'none') {
+      trainPts = [...negPts, ...posPts];
+      trainLabels = [...negPts.map(() => 0), ...posPts.map(() => 1)];
+    } else if (strategy === 'oversample') {
+      const ratio = Math.ceil(negPts.length / Math.max(1, posPts.length));
+      const dupPos = [];
+      for (let i = 0; i < ratio; i++) dupPos.push(...posPts);
+      trainPts = [...negPts, ...dupPos];
+      trainLabels = [...negPts.map(() => 0), ...dupPos.map(() => 1)];
+    } else if (strategy === 'undersample') {
+      // undersample negatives to size of positives (or ~3x positives)
+      const keep = Math.min(negPts.length, posPts.length * 3);
+      const shuffled = [...negPts].sort(() => rand() - 0.5).slice(0, keep);
+      trainPts = [...shuffled, ...posPts];
+      trainLabels = [...shuffled.map(() => 0), ...posPts.map(() => 1)];
+    } else if (strategy === 'smote') {
+      const nSynth = Math.max(0, negPts.length - posPts.length);
+      synthPts = smote(posPts, nSynth);
+      trainPts = [...negPts, ...posPts, ...synthPts];
+      trainLabels = [...negPts.map(() => 0), ...posPts.map(() => 1), ...synthPts.map(() => 1)];
+    } else if (strategy === 'weight') {
+      trainPts = [...negPts, ...posPts];
+      trainLabels = [...negPts.map(() => 0), ...posPts.map(() => 1)];
+      const wNeg = 1;
+      const wPos = negPts.length / Math.max(1, posPts.length);
+      weights = [...negPts.map(() => wNeg), ...posPts.map(() => wPos)];
+    }
+
+    beta = fitLogistic(trainPts, trainLabels, weights);
+  }
+
+  function predict(pt) {
+    const z = beta.w1 * pt.x + beta.w2 * pt.y + beta.b;
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  function computeMetrics() {
+    let tp = 0, fp = 0, tn = 0, fn = 0;
+    for (const p of posPts) {
+      if (predict(p) >= threshold) tp++;
+      else fn++;
+    }
+    for (const p of negPts) {
+      if (predict(p) >= threshold) fp++;
+      else tn++;
+    }
+    const prec = tp / Math.max(1, tp + fp);
+    const rec = tp / Math.max(1, tp + fn);
+    const f1 = 2 * prec * rec / Math.max(1e-9, prec + rec);
+    const acc = (tp + tn) / (tp + tn + fp + fn);
+    return { tp, fp, tn, fn, prec, rec, f1, acc };
+  }
+
+  function draw() {
+    function sx(x) { return PAD + x * PW; }
+    function sy(y) { return PAD + (1 - y) * PH; }
+
+    let html = '';
+
+    // plot bg
+    html += `<rect x="${PAD}" y="${PAD}" width="${PW}" height="${PH}" fill="white" stroke="rgba(26,26,46,0.12)"/>`;
+    // grid
+    for (let i = 1; i < 5; i++) {
+      html += `<line x1="${PAD + (i/5)*PW}" y1="${PAD}" x2="${PAD + (i/5)*PW}" y2="${PAD+PH}" stroke="rgba(26,26,46,0.05)"/>`;
+      html += `<line x1="${PAD}" y1="${PAD + (i/5)*PH}" x2="${PAD+PW}" y2="${PAD + (i/5)*PH}" stroke="rgba(26,26,46,0.05)"/>`;
+    }
+
+    // decision boundary: w1*x + w2*y + b = logit(threshold)
+    // y = (logit(t) - b - w1*x) / w2
+    const logitT = Math.log(threshold / (1 - threshold));
+    if (Math.abs(beta.w2) > 1e-6) {
+      const pts = [];
+      for (let i = 0; i <= 1; i++) {
+        const x = i;
+        const y = (logitT - beta.b - beta.w1 * x) / beta.w2;
+        if (y >= -0.5 && y <= 1.5) pts.push({ x, y });
+      }
+      if (pts.length >= 2) {
+        // clip to [0,1]
+        const p1 = pts[0], p2 = pts[1];
+        // shade the positive region faintly
+        html += `<defs><clipPath id="clip2"><rect x="${PAD}" y="${PAD}" width="${PW}" height="${PH}"/></clipPath></defs>`;
+        // predicted positive region (above/below line depending on sign)
+        // approximate: find corners that are positive
+        const corners = [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+        const posCorners = corners.filter(c => (beta.w1*c.x + beta.w2*c.y + beta.b) >= logitT);
+        // shaded polygon -- just fill near line
+        // simpler: compute two points on line
+        const a = { x: 0, y: (logitT - beta.b) / beta.w2 };
+        const b2 = { x: 1, y: (logitT - beta.b - beta.w1) / beta.w2 };
+        html += `<line x1="${sx(a.x)}" y1="${sy(a.y)}" x2="${sx(b2.x)}" y2="${sy(b2.y)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="6 3" clip-path="url(#clip2)"/>`;
+        // shade positive region
+        // use direction: positive region = beta.w1*x + beta.w2*y + b > logitT
+        // add two corners to close polygon
+        let polyPts = [sx(a.x)+','+sy(a.y), sx(b2.x)+','+sy(b2.y)];
+        // decide which corners are positive
+        const posCorns = [[1,0],[1,1],[0,1],[0,0]].filter(c => (beta.w1*c[0] + beta.w2*c[1] + beta.b) > logitT);
+        // simple: draw two rectangles covering positive region approximately
+        // for visualization, skip shading
+      }
+    }
+
+    // synthetic points (SMOTE) — drawn under real
+    for (const p of synthPts) {
+      if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) continue;
+      html += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3" fill="none" stroke="#c2410c" stroke-width="1" stroke-dasharray="2 2" opacity="0.6"/>`;
+    }
+
+    // negative points
+    for (const p of negPts) {
+      if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) continue;
+      html += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="2.5" fill="#1a1a2e" opacity="0.55"/>`;
+    }
+    // positive points
+    for (const p of posPts) {
+      if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) continue;
+      html += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="4.2" fill="#c2410c" stroke="#f4efe6" stroke-width="1.2"/>`;
+    }
+
+    // labels
+    html += `<text x="${W/2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6a6a7e" font-family="IBM Plex Mono, monospace">feature 1</text>`;
+    html += `<text x="12" y="${H/2}" text-anchor="middle" font-size="11" fill="#6a6a7e" font-family="IBM Plex Mono, monospace" transform="rotate(-90 12 ${H/2})">feature 2</text>`;
+
+    // legend
+    html += `<g transform="translate(${PAD + 10}, ${PAD + 10})">
+      <circle cx="8" cy="8" r="2.5" fill="#1a1a2e" opacity="0.55"/>
+      <text x="18" y="12" fill="#3a3a52" font-size="10.5" font-family="IBM Plex Sans, sans-serif">Negative (${negPts.length})</text>
+      <circle cx="8" cy="28" r="4.2" fill="#c2410c" stroke="#f4efe6" stroke-width="1.2"/>
+      <text x="18" y="32" fill="#3a3a52" font-size="10.5" font-family="IBM Plex Sans, sans-serif">Positive (${posPts.length})</text>
+      ${synthPts.length > 0 ? `<circle cx="8" cy="48" r="3" fill="none" stroke="#c2410c" stroke-width="1" stroke-dasharray="2 2"/>
+      <text x="18" y="52" fill="#3a3a52" font-size="10.5" font-family="IBM Plex Sans, sans-serif">Synthetic (${synthPts.length})</text>` : ''}
+      <line x1="0" y1="${synthPts.length > 0 ? 68 : 48}" x2="20" y2="${synthPts.length > 0 ? 68 : 48}" stroke="#c2410c" stroke-width="2" stroke-dasharray="6 3"/>
+      <text x="24" y="${synthPts.length > 0 ? 72 : 52}" fill="#3a3a52" font-size="10.5" font-family="IBM Plex Sans, sans-serif">Decision boundary</text>
+    </g>`;
+
+    svg.innerHTML = html;
+  }
+
+  function update() {
+    const m = computeMetrics();
+    document.getElementById('m2-prec').textContent = m.prec.toFixed(3);
+    document.getElementById('m2-rec').textContent = m.rec.toFixed(3);
+    document.getElementById('m2-f1').textContent = m.f1.toFixed(3);
+    document.getElementById('m2-acc').textContent = m.acc.toFixed(3);
+    document.getElementById('m2-tp').textContent = m.tp;
+    document.getElementById('m2-fp').textContent = m.fp;
+    document.getElementById('m2-tn').textContent = m.tn;
+    document.getElementById('m2-fn').textContent = m.fn;
+    draw();
+  }
+
+  function regenerate() {
+    genData();
+    fitModel();
+    update();
+  }
+
+  document.querySelectorAll('#m2-strategy-buttons .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#m2-strategy-buttons .btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      strategy = btn.dataset.strat;
+      fitModel();
+      update();
+    });
+  });
+  document.getElementById('m2-thresh').addEventListener('input', (e) => {
+    threshold = parseFloat(e.target.value);
+    document.getElementById('m2-thresh-val').textContent = threshold.toFixed(2);
+    update();
+  });
+  document.getElementById('m2-ratio').addEventListener('input', (e) => {
+    ratio = parseInt(e.target.value);
+    document.getElementById('m2-ratio-val').textContent = `${ratio}:${100-ratio}`;
+    regenerate();
+  });
+
+  regenerate();
+})();
+
+/* ============================================================
+   FLOWCHART (Section 07)
+   ============================================================ */
+(function() {
+  const svg = document.getElementById('flow-svg');
+  // viewBox is 1000x720; use it cleanly.
+  // Classification column lives in x ∈ [40, 440]
+  // Regression column lives in x ∈ [540, 1000]
+  // Vertical band between is a clean gutter.
+  const nodes = [
+    // Top: single root question
+    { id: 'start', x: 400, y: 30, w: 240, h: 44, label: 'What is your target variable?', type: 'decision' },
+
+    // Path heads
+    { id: 'classif', x: 140, y: 100, w: 220, h: 30, label: 'Discrete class →', type: 'pathhead', color: 'teal' },
+    { id: 'regr', x: 660, y: 100, w: 240, h: 30, label: 'Continuous number →', type: 'pathhead', color: 'accent' },
+
+    // ===== Classification column (left: x 40..440) =====
+    { id: 'classif-use', x: 40, y: 160, w: 400, h: 54, label: 'Use a classifier.\n(Logistic reg., RF, GBM, SVM, NN)', type: 'answer' },
+    { id: 'classif-bal', x: 40, y: 240, w: 400, h: 44, label: 'Is class balance roughly OK?', type: 'decision' },
+    { id: 'classif-yes', x: 40, y: 320, w: 180, h: 72, label: 'Standard pipeline.\nF1, ROC-AUC,\ncalibration curve.', type: 'answer' },
+    { id: 'classif-no', x: 240, y: 320, w: 200, h: 92, label: 'See §05.\n• Class weights\n• Tune threshold\n• SMOTE / focal loss', type: 'answer' },
+
+    // ===== Regression column (right: x 540..1000) =====
+    { id: 'samples', x: 540, y: 160, w: 460, h: 44, label: 'How many samples do you have?', type: 'decision' },
+    { id: 'small',  x: 560, y: 240, w: 140, h: 30, label: '< 500 →',   type: 'pathhead' },
+    { id: 'medium', x: 720, y: 240, w: 140, h: 30, label: '500 – 10k →', type: 'pathhead' },
+    { id: 'large',  x: 880, y: 240, w: 120, h: 30, label: '> 10k →',   type: 'pathhead' },
+
+    { id: 'small-ans',  x: 540, y: 295, w: 180, h: 72, label: 'OLS / Ridge / Lasso.\nGP if uncertainty matters.', type: 'answer' },
+    { id: 'medium-ans', x: 735, y: 295, w: 170, h: 72, label: 'Ridge / Elastic Net.\nTry RF + GBM.',                type: 'answer' },
+    { id: 'large-ans',  x: 920, y: 295, w: 110, h: 72, label: 'GBM / LightGBM.\nNN if structured\n(img/seq).',     type: 'answer' },
+
+    // Regression sub-questions (row 2)
+    { id: 'linear-q',  x: 540, y: 420, w: 200, h: 44, label: 'Linear relationship?', type: 'decision' },
+    { id: 'outlier-q', x: 800, y: 420, w: 200, h: 44, label: 'Heavy outliers?',      type: 'decision' },
+
+    { id: 'linear-y',  x: 440, y: 500, w: 170, h: 72, label: 'OLS + L1/L2.\nValidate assumptions.',     type: 'answer' },
+    { id: 'linear-n',  x: 625, y: 500, w: 170, h: 72, label: 'GAM (interpretable)\nor GBM / NN.',        type: 'answer' },
+    { id: 'outlier-y', x: 810, y: 500, w: 190, h: 72, label: 'Huber / Quantile reg.\nRobust preprocessing.', type: 'answer' }
+  ];
+
+  const edges = [
+    ['start', 'classif'],
+    ['start', 'regr'],
+    ['classif', 'classif-use'],
+    ['classif-use', 'classif-bal'],
+    ['classif-bal', 'classif-yes'],
+    ['classif-bal', 'classif-no'],
+    ['regr', 'samples'],
+    ['samples', 'small'],
+    ['samples', 'medium'],
+    ['samples', 'large'],
+    ['small', 'small-ans'],
+    ['medium', 'medium-ans'],
+    ['large', 'large-ans'],
+    ['medium-ans', 'linear-q'],
+    ['large-ans', 'outlier-q'],
+    ['linear-q', 'linear-y'],
+    ['linear-q', 'linear-n'],
+    ['outlier-q', 'outlier-y']
+  ];
+
+  function findNode(id) { return nodes.find(n => n.id === id); }
+
+  let html = '';
+
+  // edges first
+  for (const [from, to] of edges) {
+    const a = findNode(from);
+    const b = findNode(to);
+    const x1 = a.x + a.w/2, y1 = a.y + a.h;
+    const x2 = b.x + b.w/2, y2 = b.y;
+    const midY = (y1 + y2) / 2;
+    html += `<path d="M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}" fill="none" stroke="rgba(26,26,46,0.35)" stroke-width="1.2"/>`;
+    // arrow head
+    html += `<polygon points="${x2-3.5},${y2-6} ${x2+3.5},${y2-6} ${x2},${y2-1}" fill="rgba(26,26,46,0.5)"/>`;
+  }
+
+  // nodes
+  for (const n of nodes) {
+    let fill = '#ebe5d8', stroke = 'rgba(26,26,46,0.3)', textColor = '#1a1a2e';
+    if (n.type === 'decision') {
+      fill = '#1a1a2e';
+      textColor = '#f4efe6';
+      stroke = '#1a1a2e';
+    } else if (n.type === 'pathhead') {
+      fill = 'transparent';
+      stroke = 'transparent';
+      textColor = n.color === 'teal' ? '#0f766e' : (n.color === 'accent' ? '#c2410c' : '#6a6a7e');
+    }
+
+    if (n.type !== 'pathhead') {
+      html += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
+    }
+
+    // text
+    const lines = n.label.split('\n');
+    const lineH = 15;
+    const startY = n.y + n.h/2 - (lines.length - 1) * lineH/2 + 4;
+    for (let i = 0; i < lines.length; i++) {
+      const fw = n.type === 'decision' ? '500' : (n.type === 'pathhead' ? '600' : '400');
+      const fs = n.type === 'decision' ? '12' : (n.type === 'pathhead' ? '11' : '11.5');
+      const ff = n.type === 'pathhead' ? 'IBM Plex Mono, monospace' : 'IBM Plex Sans, sans-serif';
+      html += `<text x="${n.x + n.w/2}" y="${startY + i*lineH}" text-anchor="middle" font-family="${ff}" font-size="${fs}" font-weight="${fw}" fill="${textColor}">${lines[i]}</text>`;
+    }
+  }
+
+  svg.innerHTML = html;
+})();
+</script>
+</body>
+</html>
