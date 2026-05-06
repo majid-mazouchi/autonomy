@@ -2,7 +2,7 @@
 title: "A Field Guide to Path Planning"
 subtitle: "From grids and graphs through sampling, smooth curves, and optimal trajectories — the principal algorithm families a robot uses to decide where to go."
 date: 2026-04-28 12:00:00 -0400
-category: "Control Systems"
+category: "Robotics"
 slug: path-planning-field-guide
 excerpt: "How a robot, a car, or a vacuum cleaner decides where to go and which way to get there — the principal families of path planning algorithms, with interactive figures you can touch, drag, and watch in motion."
 reading_time: 5
