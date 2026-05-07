@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Setting Up the Jetson Orin Nano Super — A Field Report</title>
+<meta name="description" content="A complete, opinionated walkthrough of bringing up an NVIDIA Jetson Orin Nano Super: from first flash to NVMe storage, Docker on GPU, and the gotchas nobody warns you about." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Source+Serif+4:opsz,wght@8..60,300..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #f7f3ec;
+    --paper-deep: #efe9df;
+    --ink: #1a1612;
+    --ink-soft: #4a4339;
+    --ink-faint: #8a7e6e;
+    --rule: #d8cfbe;
+    --rule-soft: #e9dfcd;
+    --accent: #3a5a3a;
+    --accent-bright: #5e8c5e;
+    --accent-faint: #d8e3d3;
+    --warning: #8b3a1f;
+    --warning-faint: #f3dbc8;
+    --code-bg: #1c1a17;
+    --code-fg: #e6dfd1;
+    --code-accent: #9bc28a;
+    --code-comment: #847762;
+    --code-string: #c9a76b;
+    --max: 720px;
+    --max-wide: 980px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(ellipse at top, rgba(247, 243, 236, 0) 0%, rgba(231, 222, 207, 0.4) 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 19px;
+    line-height: 1.65;
+    font-feature-settings: "kern", "liga", "onum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection { background: var(--accent); color: var(--paper); }
+
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+  .wrap-wide { max-width: var(--max-wide); margin: 0 auto; padding: 0 28px; }
+
+  /* ===== Masthead ===== */
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    background: rgba(247, 243, 236, 0.92);
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+  .masthead-inner {
+    max-width: var(--max-wide); margin: 0 auto;
+    padding: 16px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .masthead-mark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 500; }
+  .masthead-mark .dot {
+    width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(58, 90, 58, 0.18);
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(58, 90, 58, 0.18); }
+    50%      { box-shadow: 0 0 0 6px rgba(58, 90, 58, 0); }
+  }
+  .masthead-meta { color: var(--ink-faint); }
+  .back-to-blog {
+    color: var(--accent);
+    text-decoration: none;
+    margin-right: 18px;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color 0.15s ease;
+  }
+  .back-to-blog:hover {
+    border-bottom-color: var(--accent);
+  }
+
+  /* ===== Hero ===== */
+  .hero { padding: 80px 0 60px; border-bottom: 1px solid var(--rule); position: relative; }
+  .hero::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--rule) 20%, var(--rule) 80%, transparent 100%);
+  }
+  .hero-grid {
+    max-width: var(--max-wide);
+    margin: 0 auto; padding: 0 28px;
+    display: grid; grid-template-columns: 1.15fr 1fr;
+    gap: 60px; align-items: center;
+  }
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-image { order: -1; }
+  }
+  .hero-image {
+    background: linear-gradient(145deg, #1c1a17 0%, #2a2620 100%);
+    border-radius: 4px; padding: 40px;
+    text-align: center;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.3), 0 18px 30px -15px rgba(0,0,0,0.25);
+    position: relative; overflow: hidden;
+  }
+  .hero-image::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(94, 140, 94, 0.15), transparent 50%);
+    pointer-events: none;
+  }
+  .hero-image img {
+    width: 100%; max-width: 360px; height: auto;
+    display: block; margin: 0 auto;
+    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.4));
+    position: relative; z-index: 1;
+  }
+  .hero-image-cap {
+    margin-top: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(230, 223, 209, 0.55);
+    position: relative; z-index: 1;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    font-size: clamp(40px, 5.4vw, 64px);
+    line-height: 1.02; letter-spacing: -0.02em;
+    margin: 0 0 28px; color: var(--ink);
+  }
+  h1 em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    color: var(--accent);
+  }
+  .hero-deck {
+    font-family: 'Source Serif 4', serif;
+    font-size: 21px; line-height: 1.5;
+    color: var(--ink-soft); font-weight: 300;
+  }
+  .byline {
+    margin-top: 32px; padding-top: 24px;
+    border-top: 1px solid var(--rule-soft);
+    display: flex; flex-wrap: wrap; gap: 20px 36px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .byline strong {
+    display: block; color: var(--ink); font-weight: 500;
+    margin-top: 4px; text-transform: none; letter-spacing: 0;
+    font-family: 'Source Serif 4', serif; font-size: 14px;
+  }
+
+  /* ===== Stats ===== */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    padding: 36px 0; border-bottom: 1px solid var(--rule); margin-bottom: 60px;
+  }
+  .stat { padding: 0 24px; border-right: 1px solid var(--rule-soft); }
+  .stat:last-child { border-right: none; }
+  .stat-value {
+    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 144;
+    font-size: 38px; font-weight: 500; line-height: 1;
+    color: var(--ink); margin-bottom: 6px;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { padding: 16px 18px; border-bottom: 1px solid var(--rule-soft); }
+    .stat:nth-child(2) { border-right: none; }
+  }
+
+  /* ===== TOC ===== */
+  .toc {
+    margin: 40px 0 80px;
+    padding: 32px 36px;
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    position: relative;
+  }
+  .toc-label {
+    position: absolute; top: -10px; left: 28px;
+    background: var(--paper); padding: 2px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  .toc li {
+    counter-increment: toc; padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+    display: flex; align-items: baseline; gap: 18px; font-size: 17px;
+  }
+  .toc li:last-child { border-bottom: none; }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--accent);
+    flex-shrink: 0; min-width: 30px;
+  }
+  .toc a { color: var(--ink); text-decoration: none; flex: 1; transition: color 0.2s; }
+  .toc a:hover { color: var(--accent); }
+  .toc-dur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-faint); letter-spacing: 0.06em;
+  }
+
+  /* ===== Article prose ===== */
+  article { padding-bottom: 60px; }
+  article p { margin: 0 0 1.4em; }
+  article p.lead {
+    font-size: 22px; line-height: 1.55;
+    color: var(--ink); font-weight: 300; margin-bottom: 1.6em;
+  }
+  .dropcap::first-letter {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 500; float: left;
+    font-size: 78px; line-height: 0.85;
+    margin: 8px 12px 0 0; color: var(--accent);
+  }
+  article a {
+    color: var(--accent); text-decoration: underline;
+    text-decoration-thickness: 1px; text-underline-offset: 3px;
+    text-decoration-color: var(--accent-bright);
+    transition: all 0.2s;
+  }
+  article a:hover { background: var(--accent-faint); text-decoration-thickness: 2px; }
+  article strong { font-weight: 600; color: var(--ink); }
+  article em { font-style: italic; }
+  article code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+    background: var(--paper-deep);
+    padding: 1px 6px; border-radius: 2px;
+    color: var(--ink); border: 1px solid var(--rule-soft);
+  }
+
+  /* ===== Sections ===== */
+  section { margin-top: 100px; scroll-margin-top: 80px; }
+  .sec-num {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96, "SOFT" 40;
+    font-weight: 500;
+    font-size: clamp(32px, 4vw, 44px);
+    line-height: 1.1; letter-spacing: -0.015em;
+    margin: 0 0 32px; color: var(--ink); max-width: 580px;
+  }
+  h3 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 36;
+    font-weight: 600; font-size: 24px; line-height: 1.2;
+    margin: 56px 0 16px; color: var(--ink);
+  }
+  h4 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600; font-size: 19px;
+    margin: 36px 0 12px; color: var(--ink);
+  }
+
+  /* ===== Code blocks ===== */
+  .code {
+    margin: 24px 0; background: var(--code-bg);
+    border-radius: 4px; overflow: hidden;
+    box-shadow: 0 1px 0 var(--rule), 0 4px 16px rgba(0,0,0,0.06);
+  }
+  .code-head {
+    padding: 10px 18px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--code-comment);
+  }
+  .code-head .dots { display: inline-flex; gap: 6px; }
+  .code-head .dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+  .code-head .dots span:nth-child(1) { background: #5a443a; }
+  .code-head .dots span:nth-child(2) { background: #5a523a; }
+  .code-head .dots span:nth-child(3) { background: #3a5a3a; }
+  .code pre {
+    margin: 0; padding: 18px 20px; overflow-x: auto;
+    color: var(--code-fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .code pre .c { color: var(--code-comment); font-style: italic; }
+  .code pre .s { color: var(--code-string); }
+  .code pre .k { color: var(--code-accent); font-weight: 500; }
+  .code pre .p { color: #8baccc; }
+  .code-cap {
+    font-size: 15px; color: var(--ink-faint);
+    margin: -16px 0 24px; font-style: italic;
+  }
+
+  /* ===== Callouts ===== */
+  .callout {
+    margin: 32px 0;
+    padding: 22px 26px 22px 28px;
+    background: var(--paper-deep);
+    border-left: 3px solid var(--accent);
+    font-size: 17px; line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .callout-label {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px; font-weight: 500;
+  }
+  .callout.warn { background: var(--warning-faint); border-left-color: var(--warning); }
+  .callout.warn .callout-label { color: var(--warning); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* ===== Pull quote ===== */
+  .pull {
+    margin: 50px 0; padding: 0 0 0 32px;
+    border-left: 3px solid var(--accent);
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96, "SOFT" 60;
+    font-style: italic; font-size: 28px; line-height: 1.3;
+    color: var(--ink); font-weight: 400; max-width: 580px;
+  }
+
+  /* ===== Steps ===== */
+  .step {
+    margin: 32px 0;
+    display: grid; grid-template-columns: 60px 1fr; gap: 4px;
+  }
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-size: 38px; font-weight: 500; line-height: 1;
+    color: var(--accent);
+    border-top: 2px solid var(--accent);
+    padding-top: 12px; margin-top: 4px;
+  }
+  .step-body { padding-top: 4px; border-top: 1px solid var(--rule); }
+  .step-body h4 { margin: 8px 0 12px; }
+  .step-body p:last-child { margin-bottom: 0; }
+  @media (max-width: 600px) {
+    .step { grid-template-columns: 44px 1fr; }
+    .step-num { font-size: 30px; }
+  }
+
+  /* ===== Lists ===== */
+  article ul, article ol { padding-left: 26px; margin: 0 0 1.4em; }
+  article ul li, article ol li { padding: 4px 0; line-height: 1.6; }
+  article ul li::marker { color: var(--accent); }
+  article ol li::marker { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+
+  /* ===== Tables ===== */
+  .tbl-wrap { margin: 28px 0; overflow-x: auto; }
+  table.cmd { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.cmd th {
+    text-align: left; padding: 10px 14px;
+    background: var(--paper-deep);
+    border-bottom: 2px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 500;
+  }
+  table.cmd td {
+    padding: 10px 14px; border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  table.cmd td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; white-space: nowrap; color: var(--ink);
+  }
+  table.cmd tr:hover td { background: rgba(58, 90, 58, 0.03); }
+
+  /* ===== Figures and product cards ===== */
+  figure {
+    margin: 36px 0;
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  figure.dark {
+    background: linear-gradient(145deg, #1c1a17 0%, #2a2620 100%);
+    border-color: rgba(255,255,255,0.08);
+  }
+  figure img {
+    display: block; width: 100%; height: auto;
+    max-height: 460px; object-fit: contain; padding: 32px;
+  }
+  figure figcaption {
+    padding: 14px 22px;
+    border-top: 1px solid var(--rule);
+    background: rgba(255,255,255,0.6);
+    font-size: 14px; line-height: 1.5;
+    color: var(--ink-soft); font-style: italic;
+  }
+  figure.dark figcaption {
+    background: rgba(0,0,0,0.25);
+    border-top-color: rgba(255,255,255,0.06);
+    color: rgba(230, 223, 209, 0.65);
+  }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 36px 0;
+  }
+  @media (max-width: 600px) {
+    .compare { grid-template-columns: 1fr; }
+  }
+  .compare figure { margin: 0; }
+
+  /* Product cards */
+  .kit {
+    margin: 40px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .kit-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .kit-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border-color: var(--accent-bright);
+  }
+  .kit-card-img {
+    background: linear-gradient(145deg, #1c1a17, #2a2620);
+    border-radius: 3px;
+    padding: 18px;
+    margin: -20px -20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    aspect-ratio: 4/3;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kit-card-img img {
+    max-width: 100%; max-height: 100%;
+    width: auto; height: auto;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+  }
+  .kit-card h5 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600; font-size: 18px;
+    margin: 0 0 6px; color: var(--ink); line-height: 1.2;
+  }
+  .kit-card p {
+    font-size: 14px; line-height: 1.5;
+    color: var(--ink-soft); margin: 0 0 14px; flex: 1;
+  }
+  .kit-card a.shop {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); text-decoration: none;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: none !important;
+  }
+  .kit-card a.shop::after { content: '→'; transition: transform 0.2s; }
+  .kit-card a.shop:hover::after { transform: translateX(3px); }
+
+  /* ===== Video embeds ===== */
+  .video-wrap {
+    margin: 36px 0;
+    background: var(--code-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .video-head {
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(230, 223, 209, 0.6);
+  }
+  .video-head .yt-mark {
+    width: 18px; height: 13px;
+    background: #ff0033; border-radius: 3px;
+    position: relative; flex-shrink: 0;
+  }
+  .video-head .yt-mark::after {
+    content: ''; position: absolute;
+    left: 7px; top: 3px;
+    width: 0; height: 0;
+    border-left: 6px solid white;
+    border-top: 3.5px solid transparent;
+    border-bottom: 3.5px solid transparent;
+  }
+  .video-frame {
+    position: relative; padding-bottom: 56.25%;
+    height: 0; background: #000;
+  }
+  .video-frame iframe {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; border: 0;
+  }
+  .video-cap {
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.03);
+    font-size: 14px;
+    color: rgba(230, 223, 209, 0.7);
+    font-style: italic; line-height: 1.5;
+  }
+
+  /* ===== Horizontal rule ===== */
+  .hr-orn {
+    margin: 80px auto; max-width: 80px; height: 1px;
+    border: none; background: var(--rule);
+    position: relative; overflow: visible;
+  }
+  .hr-orn::after {
+    content: '§'; position: absolute; top: -14px; left: 50%;
+    transform: translateX(-50%); background: var(--paper);
+    padding: 0 12px; color: var(--accent);
+    font-family: 'Fraunces', serif; font-size: 22px; font-style: italic;
+  }
+
+  /* ===== References ===== */
+  .refs { margin: 40px 0; padding: 0; list-style: none; }
+  .refs li {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 18px;
+    align-items: baseline;
+  }
+  .refs li:last-child { border-bottom: none; }
+  .ref-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-faint);
+    padding: 3px 8px; border-radius: 2px;
+    text-align: center; align-self: start; margin-top: 4px;
+  }
+  .ref-tag.video { color: #c43030; background: #f8d8d8; }
+  .ref-body a {
+    font-family: 'Fraunces', serif;
+    font-weight: 500; font-size: 18px;
+    color: var(--ink); text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    background: none !important;
+  }
+  .ref-body a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .ref-body p {
+    margin: 4px 0 0; font-size: 14px;
+    color: var(--ink-faint); line-height: 1.5;
+  }
+  @media (max-width: 600px) {
+    .refs li { grid-template-columns: 1fr; gap: 8px; }
+    .ref-tag { justify-self: start; }
+  }
+
+  /* ===== Footer ===== */
+  footer {
+    margin-top: 100px; padding: 60px 0 80px;
+    border-top: 1px solid var(--rule);
+    background: var(--paper-deep);
+  }
+  footer .wrap { display: flex; flex-direction: column; gap: 28px; }
+  footer .colophon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-faint); line-height: 1.8;
+  }
+  footer .sig {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96, "SOFT" 80;
+    font-style: italic; font-size: 28px; color: var(--ink);
+  }
+  footer a { color: var(--accent); }
+
+  /* ===== Reveal on scroll ===== */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .reveal.on { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <span class="masthead-mark"><span class="dot"></span>Field&nbsp;Notes</span>
+    <span class="masthead-meta"><a class="back-to-blog" href="/autonomy/">←&nbsp;Autonomy</a>N°&nbsp;03&nbsp;·&nbsp;Embedded&nbsp;Linux</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">Setup&nbsp;Guide&nbsp;·&nbsp;NVIDIA&nbsp;Jetson&nbsp;Orin&nbsp;Nano</div>
+      <h1>Bringing up the Jetson, the <em>opinionated</em> way.</h1>
+      <p class="hero-deck">A complete walkthrough of provisioning an NVIDIA Jetson Orin Nano Super from a fresh SD card to a fully-configured AI development platform: NVMe storage, GPU-aware Docker, real Firefox, and the gotchas nobody warns you about.</p>
+
+      <div class="byline">
+        <div>Author<strong>Majid Mazouchi</strong></div>
+        <div>Written&nbsp;for<strong>Hobbyists, robotics folks, AI tinkerers</strong></div>
+        <div>Hardware<strong>Orin Nano Super (8&nbsp;GB)</strong></div>
+        <div>JetPack<strong>6.2.2 / L4T r36.4.3</strong></div>
+        <div>Time<strong>~3 hours, with patience</strong></div>
+      </div>
+    </div>
+
+    <div class="hero-image">
+      <img src="jetson/jetson-board.png" alt="NVIDIA Jetson Orin Nano Super Developer Kit board with active cooling fan, M.2 slots, USB ports, Ethernet, DisplayPort, and DC barrel jack." />
+      <div class="hero-image-cap">Jetson Orin Nano Super Developer Kit · 8&nbsp;GB · 67&nbsp;TOPS</div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap-wide">
+  <div class="stats">
+    <div class="stat"><div class="stat-value">916&thinsp;GB</div><div class="stat-label">NVMe&nbsp;mounted</div></div>
+    <div class="stat"><div class="stat-value">11&thinsp;GB</div><div class="stat-label">Total&nbsp;swap</div></div>
+    <div class="stat"><div class="stat-value">CUDA&nbsp;12.6</div><div class="stat-label">In&nbsp;containers</div></div>
+    <div class="stat"><div class="stat-value">67&thinsp;TOPS</div><div class="stat-label">After&nbsp;MAXN</div></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <nav class="toc reveal">
+    <span class="toc-label">Contents</span>
+    <ol>
+      <li><a href="#why">What this guide is, and isn't</a><span class="toc-dur">5&nbsp;min&nbsp;read</span></li>
+      <li><a href="#hardware">Hardware checklist</a><span class="toc-dur">10&nbsp;min</span></li>
+      <li><a href="#flash">Flashing JetPack &amp; first boot</a><span class="toc-dur">30&nbsp;min</span></li>
+      <li><a href="#peripherals">The USB peripheral trap</a><span class="toc-dur">5&nbsp;min</span></li>
+      <li><a href="#case">Case, power button, Wi-Fi swap</a><span class="toc-dur">15&nbsp;min</span></li>
+      <li><a href="#nvme">NVMe storage from scratch</a><span class="toc-dur">25&nbsp;min</span></li>
+      <li><a href="#swap">Real swap on NVMe</a><span class="toc-dur">10&nbsp;min</span></li>
+      <li><a href="#docker">Docker on NVMe with GPU</a><span class="toc-dur">25&nbsp;min</span></li>
+      <li><a href="#firefox">Installing Firefox without snap</a><span class="toc-dur">10&nbsp;min</span></li>
+      <li><a href="#after">What you have at the end</a><span class="toc-dur">3&nbsp;min</span></li>
+      <li><a href="#pitfalls">Pitfalls and lessons</a><span class="toc-dur">5&nbsp;min</span></li>
+      <li><a href="#refs">References &amp; further reading</a><span class="toc-dur">—</span></li>
+    </ol>
+  </nav>
+
+  <article>
+
+    <section id="why">
+      <span class="sec-num">§ 01 — Preface</span>
+      <h2>What this guide is, and isn&rsquo;t.</h2>
+
+      <p class="lead">There are roughly a thousand Jetson tutorials on the internet. Most of them are stale &mdash; written for older JetPack versions, copy-pasted commands without explanation, or stop at the moment Ubuntu boots and call it a day. This is not that.</p>
+
+      <p class="dropcap">This is a chronological field report from setting up a real Jetson Orin Nano Super (8&nbsp;GB) for serious robotics and AI work. Every command you'll see here was actually run on real hardware. Every error addressed is one I actually hit. The order is the order I actually did things in &mdash; including the parts where I had to back up and try again, because that's the honest experience.</p>
+
+      <p>By the end of this guide, you'll have:</p>
+      <ul>
+        <li>A clean, current JetPack 6.2.x install on a microSD</li>
+        <li>A 1&nbsp;TB NVMe SSD partitioned, formatted, and auto-mounted</li>
+        <li>An 8&nbsp;GB swapfile on the NVMe in addition to the default zram</li>
+        <li>Docker with its data root on NVMe and the NVIDIA runtime as default, so containers see the GPU automatically</li>
+        <li>A working web browser that doesn't fight you (Firefox installed directly from Mozilla, bypassing snap)</li>
+        <li>An understanding of <em>why</em> every step matters, not just what to type</li>
+      </ul>
+
+      <div class="callout">
+        <span class="callout-label">A note on prerequisites</span>
+        <p>This guide assumes you're comfortable opening a terminal and running commands. You don't need to be a Linux expert &mdash; I'll explain what each piece does &mdash; but I'm not going to teach you what <code>cd</code> means. If you've ever SSH'd into a Raspberry Pi, you're qualified.</p>
+      </div>
+    </section>
+
+    <section id="hardware">
+      <span class="sec-num">§ 02 — Bill of Materials</span>
+      <h2>Hardware checklist before you start.</h2>
+
+      <p>Before flashing anything, make sure you have everything in front of you. Skipping ahead with missing pieces leads to half-finished setups and reboots-from-the-wrong-USB-port that waste an hour.</p>
+
+      <p>Here's the kit I used. Every piece earned its place; nothing on this list is incidental.</p>
+
+      <div class="kit">
+        <div class="kit-card">
+          <div class="kit-card-img"><img src="jetson/jetson-board.png" alt="Jetson Orin Nano dev kit"></div>
+          <h5>Orin Nano Super Dev Kit</h5>
+          <p>The 8&nbsp;GB version. NVIDIA's official board with 67&nbsp;TOPS of AI performance. Make sure firmware is at least r36.</p>
+          <a class="shop" href="https://www.amazon.com/dp/B0BZJTQ5YP" target="_blank" rel="noopener">View on Amazon</a>
+        </div>
+
+        <div class="kit-card">
+          <div class="kit-card-img"><img src="jetson/nvme-kingston.png" alt="Kingston NV3 NVMe SSD"></div>
+          <h5>1&nbsp;TB NVMe (Kingston NV3)</h5>
+          <p>PCIe 4.0 NVMe in M.2 2280. The single most impactful upgrade you can make. Cheap, fast, plug-and-play.</p>
+        </div>
+
+        <div class="kit-card">
+          <div class="kit-card-img"><img src="jetson/case-assembled.png" alt="Aluminum case for Jetson Orin Nano"></div>
+          <h5>Aluminum Case w/ Antennas</h5>
+          <p>Power button, SMA antenna mounts, camera holder, and dramatically better thermals than bare board.</p>
+          <a class="shop" href="https://www.amazon.com/dp/B0D4LP7XWR" target="_blank" rel="noopener">View on Amazon</a>
+        </div>
+
+        <div class="kit-card">
+          <div class="kit-card-img"><img src="jetson/wifi-ac8265.png" alt="Intel AC 8265 Wi-Fi card"></div>
+          <h5>Intel AC 8265 Wi-Fi</h5>
+          <p>The boring, reliable choice. Plug-and-play on JetPack 6. Skip the AX210 — its driver doesn't compile cleanly on Tegra.</p>
+        </div>
+      </div>
+
+      <h4>Also needed</h4>
+      <ul>
+        <li><strong>microSD card, 64&nbsp;GB or larger, U3/A2 class</strong> &mdash; the OS lives here. SanDisk Extreme Pro and Samsung Pro Plus are reliable.</li>
+        <li><strong>USB-C power supply, 5&nbsp;V × 5&nbsp;A (25&nbsp;W minimum)</strong> &mdash; the official NVIDIA brick or any quality 27&nbsp;W+ USB-C PD adapter. Phone chargers brown out under load.</li>
+        <li><strong>HDMI or DisplayPort monitor.</strong> The carrier board has DP native; HDMI requires a passive DP→HDMI adapter.</li>
+        <li><strong>Wired USB keyboard &amp; mouse.</strong> More on this later — wireless dongles can cause boot issues.</li>
+        <li><strong>Ethernet cable</strong> for initial setup. Wi-Fi may or may not work out of the box depending on your card.</li>
+      </ul>
+
+      <div class="callout warn">
+        <span class="callout-label">Wi-Fi card warning</span>
+        <p>The Intel AX210 (Wi-Fi 6E) is a great card on x86 laptops &mdash; but on JetPack 6's NVIDIA-modified Tegra kernel, the <code>iwlwifi</code> driver isn't included, and compiling the backport fails because of kernel-API mismatches. If your case kit ships with an AX210, set it aside for a future PC build and order an AC 8265 instead. I have the bricked compile logs to prove it.</p>
+      </div>
+    </section>
+
+    <section id="flash">
+      <span class="sec-num">§ 03 — First Boot</span>
+      <h2>Flashing JetPack and the first-boot wizard.</h2>
+
+      <p>Download the JetPack 6.2.x image from <a href="https://developer.nvidia.com/embedded/learn/get-started-jetson-orin-nano-devkit" target="_blank" rel="noopener">NVIDIA's official Get Started page</a>. Pick the Jetson Orin Nano Developer Kit SD Card image &mdash; not the one for the older Jetson Nano (different product, confusingly).</p>
+
+      <p>If you'd rather watch someone else do it first &mdash; entirely reasonable &mdash; the official walkthrough video from NVIDIA is the canonical reference:</p>
+
+      <div class="video-wrap">
+        <div class="video-head">
+          <span class="yt-mark"></span>
+          <span>Official Walkthrough · YouTube</span>
+        </div>
+        <div class="video-frame">
+          <iframe src="https://www.youtube.com/embed/-PjMC0gyH9s" title="Jetson Orin Nano Developer Kit Setup" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div class="video-cap">NVIDIA's official getting-started video covers unboxing, flashing, and first boot. Useful as a sanity check while you read along.</div>
+      </div>
+
+      <p>Flash to your microSD using <a href="https://etcher.balena.io/" target="_blank" rel="noopener">Balena Etcher</a> or the equivalent. Etcher is dead-simple: select image, select drive, click Flash. Verify the write when prompted &mdash; bad SD writes cause weird kernel panics on first boot that look like hardware faults but aren't.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Insert the SD card and connect peripherals</h4>
+          <p>Slot the microSD into the underside of the Orin module. Connect display, keyboard, mouse, Ethernet, and power last. The board boots immediately when power is connected &mdash; there's no power button by default.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Walk through the Ubuntu first-boot wizard</h4>
+          <p>You'll be asked for keyboard layout, Wi-Fi (or skip and use Ethernet), timezone, and to create a user. <strong>Pick the same username everywhere</strong> &mdash; it'll be your shell prompt, your home directory, and your Docker group identity. I used <code>majid</code> with hostname <code>majid-desktop</code>.</p>
+          <p>When prompted for the APP partition size, take the default (the maximum). The microSD is your OS drive; you don't need to leave room for anything else there.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Verify firmware version</h4>
+          <p>After the desktop loads, open a terminal (Activities → search "Terminal" → Enter) and run:</p>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · majid@majid-desktop</span></div>
+  <pre><span class="k">cat</span> /etc/nv_tegra_release</pre>
+</div>
+
+          <p>You're looking for a line that starts with <code>R36</code>. If it says <code>R35</code>, your firmware is from JetPack 5 and you'll need to run a firmware update via apt before continuing. Most boards shipped after late 2024 are already on R36.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="peripherals">
+      <span class="sec-num">§ 04 — Pitfall</span>
+      <h2>The USB peripheral trap, or: why your board won&rsquo;t boot.</h2>
+
+      <p>The single weirdest issue I ran into during setup wasn't software at all. It was a 2.4&nbsp;GHz USB dongle for an off-brand wireless keyboard.</p>
+
+      <p>Symptom: the board would boot, the fan would <em>not</em> spin up, and the display would show vertical color-bar corruption that looked like a dying GPU. Power-cycling didn't help. Different SD card, same issue.</p>
+
+      <p>Cause: the cheap dongle apparently glitched the USB hub during initialization, and the Orin Nano is dramatically more sensitive to flaky USB devices during boot than a desktop PC is. Removing the dongle and connecting a wired keyboard fixed everything immediately. The fan spun, the display worked, and Ubuntu booted normally.</p>
+
+      <div class="pull">
+        If your Jetson does anything strange on boot, unplug every USB device first. Try again. Half the time, the board is fine and one of your peripherals is rude.
+      </div>
+
+      <p>The lesson: when the Jetson does something inexplicable, your first three debugging steps are (1) pull all USB peripherals, (2) try a wired keyboard, (3) try a different USB port (the lower ports route through a different controller). Save yourself an hour.</p>
+    </section>
+
+    <section id="case">
+      <span class="sec-num">§ 05 — Mechanical</span>
+      <h2>Installing the case, power button, and Wi-Fi card.</h2>
+
+      <p>Aftermarket cases for the Orin Nano are roughly $30 and worth every cent. They give you a power button (the bare board has none), better thermals, mounting points for SMA antennas, and the ability to actually use the thing on your desk without a fan tower trying to throw itself off the table.</p>
+
+      <figure class="dark">
+        <img src="jetson/case-assembled.png" alt="Aluminum alloy case for Jetson Orin Nano with two SMA antennas, camera mount bracket, and exposed USB, Ethernet, and Type-C ports.">
+        <figcaption>The finished package. Aluminum case with antenna mounts, camera bracket, and clean cable routing. Drops the noise floor and makes the system desk-friendly.</figcaption>
+      </figure>
+
+      <h3>Power button wiring</h3>
+      <p>The carrier board exposes a header labeled <strong>J14</strong> with several pins for power button, LED, and reset. Most cases route four wires: power button (to the PWR BTN and GND pins) and an LED (LED+ and LED−).</p>
+      <p>There's also a jumper labeled <strong>AUTO_ON / DIS</strong> that determines boot behavior. With the jumper installed, the board powers on automatically when external power is supplied (the default behavior). Remove or move the jumper to require a manual button press to start. Pick whichever matches your workflow; I left mine on auto-on for now.</p>
+
+      <h3>NVMe install</h3>
+      <p>The M.2 Key M slot for NVMe is on the <em>bottom</em> of the carrier board, under the module. Use the included standoff and screw. The slot supports both 2230 and 2280 form factors.</p>
+
+      <figure>
+        <img src="jetson/nvme-kingston.png" alt="Kingston NV3 1TB PCIe 4.0 NVMe M.2 SSD in 2280 form factor." style="background: white; max-height: 200px;">
+        <figcaption>Kingston NV3 1&nbsp;TB. PCIe 4.0 NVMe in M.2 2280. Boring, fast, cheap &mdash; the right choice for a Jetson dev box. Once installed, the kernel sees the device immediately, but no filesystem is on it until we partition and format in §06.</figcaption>
+      </figure>
+
+      <h3>Wi-Fi card</h3>
+      <p>The M.2 Key E slot for Wi-Fi is on top of the carrier board. Drop the card in, secure with the included screw, and route the two u.FL antenna cables out through the case to your external SMA-mounted antennas.</p>
+
+      <div class="compare">
+        <figure>
+          <img src="jetson/wifi-ax210.png" alt="Intel AX210 Wi-Fi 6E card with two black antennas." style="max-height: 220px;">
+          <figcaption><strong>Intel AX210 (Wi-Fi 6E).</strong> Tempting on paper. Will not work cleanly on JetPack 6 &mdash; the iwlwifi backport won't compile against the Tegra kernel. Skip.</figcaption>
+        </figure>
+        <figure>
+          <img src="jetson/wifi-ac8265.png" alt="Intel AC 8265 Wi-Fi card with u.FL antenna cables and SMA-mount antennas." style="max-height: 220px;">
+          <figcaption><strong>Intel AC 8265 (Wi-Fi 5).</strong> Boring but works perfectly. Plug-and-play on JetPack 6. Appears as <code>wlan0</code> on first boot. This is the right answer.</figcaption>
+        </figure>
+      </div>
+
+      <p>If you're using an Intel AC 8265: you're done. JetPack 6.2 includes <code>iwlwifi</code> support out of the box for this chipset, and the card will appear as <code>wlan0</code> on first boot. Connect via GNOME settings or via <code>nmcli</code>.</p>
+
+      <p>If you're using anything else (AX210, MediaTek, etc.): expect to do extra work. Sometimes hours of extra work, sometimes a clean failure that forces you to use a different card. The Tegra kernel does not include the same driver matrix as a stock Ubuntu kernel.</p>
+
+      <p>For a more visual walk-through of unboxing, case assembly, and the initial bring-up, this community video is genuinely good:</p>
+
+      <div class="video-wrap">
+        <div class="video-head">
+          <span class="yt-mark"></span>
+          <span>Community Walkthrough · YouTube</span>
+        </div>
+        <div class="video-frame">
+          <iframe src="https://www.youtube.com/embed/NksYHoLcPKs" title="Jetson Orin Nano Super hands-on" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div class="video-cap">A practical hands-on covering hardware setup, flashing, and first boot from a maker's perspective.</div>
+      </div>
+    </section>
+
+    <section id="nvme">
+      <span class="sec-num">§ 06 — Storage</span>
+      <h2>Setting up the NVMe from scratch.</h2>
+
+      <p>This is the most impactful part of the setup. The microSD is fine for the OS, but it's slow (60–100&nbsp;MB/s typical), it wears out under heavy writes, and it's only 64–128&nbsp;GB. AI/ML container images alone can be 8–15&nbsp;GB each. You want a real SSD.</p>
+
+      <p>The plan: partition the entire NVMe as a single ext4 filesystem, mount it at <code>/mnt/nvme</code>, give your user ownership of it, and add an entry to <code>/etc/fstab</code> so it auto-mounts at every boot.</p>
+
+      <h3>Step 1: Confirm the kernel sees the drive</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · check storage</span></div>
+  <pre><span class="k">lsblk</span></pre>
+</div>
+
+      <p>You should see a line like <code>nvme0n1 &nbsp;&nbsp;259:0 &nbsp;0&nbsp; 931.5G &nbsp;0 disk</code>. The "p1" suffix won't be there yet because we haven't partitioned it. If the device doesn't appear at all, reseat the card; the M.2 connector seats a hair more firmly than feels right.</p>
+
+      <h3>Step 2: Create a GPT partition table and one big partition</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · partition the disk</span></div>
+  <pre><span class="k">sudo</span> parted /dev/nvme0n1 --script mklabel gpt
+<span class="k">sudo</span> parted /dev/nvme0n1 --script mkpart primary ext4 0% 100%</pre>
+</div>
+
+      <p>The first command wipes any existing partition table and creates a fresh GPT one. The second creates a single partition that spans the entire disk. The <code>--script</code> flag prevents <code>parted</code> from prompting interactively, and the <code>0%</code> and <code>100%</code> values let it pick optimal alignment automatically.</p>
+
+      <h3>Step 3: Format as ext4</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · format</span></div>
+  <pre><span class="k">sudo</span> mkfs.ext4 -L jetson-nvme /dev/nvme0n1p1</pre>
+</div>
+
+      <p>ext4 is the boring, correct choice for Linux storage. The <code>-L jetson-nvme</code> flag sets a friendly label that shows up in <code>lsblk -f</code> output. Note the new UUID printed by <code>mkfs</code> &mdash; you'll need it in the next step.</p>
+
+      <h3>Step 4: Create the mount point and add to fstab</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · mount permanently</span></div>
+  <pre><span class="k">sudo</span> mkdir -p /mnt/nvme
+<span class="k">sudo</span> blkid /dev/nvme0n1p1   <span class="c"># note the UUID it prints</span>
+
+<span class="c"># Append a line to /etc/fstab using the UUID from above:</span>
+<span class="k">echo</span> <span class="s">"UUID=YOUR-UUID-HERE  /mnt/nvme  ext4  defaults,noatime,nofail  0  2"</span> | <span class="k">sudo</span> tee -a /etc/fstab
+
+<span class="k">sudo</span> mount -a
+<span class="k">sudo</span> chown -R $USER:$USER /mnt/nvme</pre>
+</div>
+
+      <p class="code-cap">Anatomy of an fstab line: source, mountpoint, filesystem type, options, dump flag, fsck order. The <code>noatime</code> option skips writing access timestamps on every read &mdash; faster, less SSD wear. The <code>nofail</code> option prevents the system from refusing to boot if the drive is missing for some reason; valuable for development hardware.</p>
+
+      <p>Verify with <code>df -h /mnt/nvme</code>. You should see ~916&nbsp;GB available on a 1&nbsp;TB drive (the difference is filesystem overhead and reserved blocks).</p>
+    </section>
+
+    <section id="swap">
+      <span class="sec-num">§ 07 — Memory</span>
+      <h2>An 8&nbsp;GB swapfile on NVMe.</h2>
+
+      <p>JetPack ships with six 635&nbsp;MB <em>zram</em> swap blocks active by default &mdash; about 3.8&nbsp;GB of compressed swap that lives in RAM. zram is great for normal use because compressed pages are still ~50× faster than disk swap, but it has a fundamental limit: when you run out of physical RAM, zram has nowhere to evict <em>to</em>. It's RAM all the way down.</p>
+
+      <p>For AI workloads &mdash; running models bigger than 8&nbsp;GB, training a small network, working with large datasets &mdash; you want real swap on real disk as overflow. Eight gigabytes is the sweet spot. More just wastes SSD space; less and you'll OOM-kill your training job at 90% complete.</p>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · create the swapfile</span></div>
+  <pre><span class="k">sudo</span> fallocate -l 8G /mnt/nvme/swapfile
+<span class="k">sudo</span> chmod 600 /mnt/nvme/swapfile
+<span class="k">sudo</span> mkswap /mnt/nvme/swapfile
+<span class="k">sudo</span> swapon /mnt/nvme/swapfile
+
+<span class="c"># Make it persistent across reboots:</span>
+<span class="k">echo</span> <span class="s">"/mnt/nvme/swapfile  none  swap  sw  0  0"</span> | <span class="k">sudo</span> tee -a /etc/fstab</pre>
+</div>
+
+      <p>The <code>chmod 600</code> step is mandatory, not cosmetic. The <code>mkswap</code> command refuses to format a file that's readable by anyone other than its owner &mdash; a security check to prevent your swap (which contains decrypted memory pages) from leaking to other users.</p>
+
+      <p>Verify with <code>swapon --show</code> and <code>free -h</code>. You should see your new 8&nbsp;GB file alongside the six zram entries, and your total swap should jump to about 11&nbsp;GB.</p>
+
+      <div class="callout">
+        <span class="callout-label">Why keep both?</span>
+        <p>Linux uses higher-priority swap first. zram is priority 5, your file is priority −2, so normal pressure goes to fast in-RAM compressed swap, and only when zram fills up does Linux fall back to your NVMe file. You get the speed of zram for everyday work and the headroom of disk swap for the AI moments where it matters.</p>
+      </div>
+    </section>
+
+    <section id="docker">
+      <span class="sec-num">§ 08 — Containers</span>
+      <h2>Moving Docker to NVMe and enabling GPU access.</h2>
+
+      <p>By default, Docker stores its images, containers, volumes, and build cache under <code>/var/lib/docker</code> &mdash; which lives on your microSD. AI/ML container images are huge; a single PyTorch + CUDA image can be 8 to 15&nbsp;GB. You'll fill the SD card with three pulls. We're going to relocate Docker's data root to the NVMe and, while we're there, configure the NVIDIA container runtime as the default so containers automatically see the GPU.</p>
+
+      <h3>Step 1: Stop Docker cleanly</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · stop the daemon</span></div>
+  <pre><span class="k">sudo</span> systemctl stop docker
+<span class="k">sudo</span> systemctl stop docker.socket
+<span class="k">sudo</span> systemctl stop containerd</pre>
+</div>
+
+      <p>Docker, its socket activator, and its underlying container runtime all need to be down. Otherwise file moves and config changes can corrupt the metadata DB.</p>
+
+      <h3>Step 2: Write the new Docker daemon config</h3>
+
+      <p>JetPack pre-configures the NVIDIA runtime in <code>/etc/docker/daemon.json</code>, but doesn't make it the default. We need to add two new keys: <code>data-root</code> (where Docker stores its files) and <code>default-runtime</code> (so containers get GPU access without needing <code>--runtime=nvidia</code> on every command).</p>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>file · /etc/docker/daemon.json</span></div>
+  <pre><span class="k">sudo</span> tee /etc/docker/daemon.json &gt; /dev/null &lt;&lt;<span class="s">'EOF'</span>
+{
+    <span class="p">"runtimes"</span>: {
+        <span class="p">"nvidia"</span>: {
+            <span class="p">"args"</span>: [],
+            <span class="p">"path"</span>: <span class="s">"nvidia-container-runtime"</span>
+        }
+    },
+    <span class="p">"default-runtime"</span>: <span class="s">"nvidia"</span>,
+    <span class="p">"data-root"</span>: <span class="s">"/mnt/nvme/docker"</span>
+}
+EOF</pre>
+</div>
+
+      <p>The heredoc syntax (<code>&lt;&lt;'EOF'</code> ... <code>EOF</code>) lets us write the entire JSON block atomically without nano-induced typos. JSON is strict about commas; the file above is the exact correct shape.</p>
+
+      <h3>Step 3: Move existing Docker data</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · relocate</span></div>
+  <pre><span class="k">sudo</span> mkdir -p /mnt/nvme/docker
+<span class="k">sudo</span> rsync -aP /var/lib/docker/ /mnt/nvme/docker/
+<span class="k">sudo</span> mv /var/lib/docker /var/lib/docker.old</pre>
+</div>
+
+      <p><code>rsync -a</code> preserves permissions, ownership, timestamps, and symbolic links exactly. <code>-P</code> shows progress and supports resuming. The trailing slash on the source path means "copy the contents of this directory" rather than "copy this directory." We rename the old directory to <code>.old</code> instead of deleting it; once we've verified the move worked, we can remove it later.</p>
+
+      <h3>Step 4: Start Docker, add yourself to the group, test</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · finalize</span></div>
+  <pre><span class="k">sudo</span> systemctl start docker
+<span class="k">sudo</span> usermod -aG docker $USER
+newgrp docker
+
+docker info | <span class="k">grep</span> -iE <span class="s">"docker root|runtime"</span>
+docker run --rm hello-world</pre>
+</div>
+
+      <p>The <code>usermod -aG docker</code> step is what lets you run <code>docker</code> commands without <code>sudo</code>. The <code>-a</code> means "append to groups" &mdash; without it, you'd <em>replace</em> all your existing groups with just "docker" and lock yourself out of <code>sudo</code>. Don't ever forget the <code>-a</code>.</p>
+
+      <p><code>newgrp docker</code> activates the new group in your current shell session immediately. Logging out and back in does the same thing more permanently for all future shells.</p>
+
+      <h3>Step 5: The real test &mdash; GPU passthrough</h3>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · prove the GPU works inside containers</span></div>
+  <pre>docker run --rm nvcr.io/nvidia/l4t-base:r36.2.0 nvidia-smi</pre>
+</div>
+
+      <p>This pulls NVIDIA's official L4T base image (~700&nbsp;MB) and runs <code>nvidia-smi</code> inside it. We don't need to pass <code>--runtime=nvidia</code> because we set it as the default. If you see a table with <code>Orin (nvgpu)</code> listed and a CUDA version, you're done. The whole stack &mdash; Docker on NVMe, NVIDIA runtime, GPU exposure to containers &mdash; is working end to end.</p>
+
+      <div class="callout">
+        <span class="callout-label">Why nvidia-smi shows N/A for everything</span>
+        <p>Don't be alarmed when the table shows <code>N/A</code> for fan speed, temperature, power draw, and memory. <code>nvidia-smi</code> was designed for discrete desktop and datacenter GPUs with separate VRAM and dedicated sensors. The Jetson is a unified-memory SoC &mdash; the GPU shares system RAM with the CPU and there's no separate fan tied to just the GPU. To monitor properly, install <code>jetson-stats</code> and use <code>jtop</code>; that tool understands the SoC architecture and reports real numbers.</p>
+      </div>
+    </section>
+
+    <section id="firefox">
+      <span class="sec-num">§ 09 — Browser</span>
+      <h2>Installing Firefox without snap.</h2>
+
+      <p>JetPack ships with a broken Chromium snap (the icon's there, but the binary is missing) and Ubuntu 22.04's <code>apt install firefox</code> tries to install Firefox via the snap store. On many networks &mdash; and from many regions &mdash; the snap store endpoint <code>api.snapcraft.io</code> is unreachable. You'll get cryptic timeout errors during a routine apt run.</p>
+
+      <p>The cleanest solution is to skip snap entirely and install Firefox directly from Mozilla's official tarball. Mozilla's CDN is hosted on completely different infrastructure and is reachable nearly everywhere.</p>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · install firefox the proper way</span></div>
+  <pre><span class="c"># Remove the broken transitional snap shim if it's installed</span>
+<span class="k">sudo</span> apt remove --purge firefox -y
+<span class="k">sudo</span> apt autoremove -y
+
+<span class="c"># Download the official ARM64 build directly from Mozilla</span>
+<span class="k">cd</span> ~
+<span class="k">wget</span> --output-document=firefox.tar.xz <span class="s">"https://download.mozilla.org/?product=firefox-latest-ssl&amp;os=linux64-aarch64&amp;lang=en-US"</span>
+
+<span class="c"># Extract to /opt and symlink into PATH</span>
+<span class="k">sudo</span> tar -xJf firefox.tar.xz -C /opt/
+<span class="k">sudo</span> ln -sf /opt/firefox/firefox /usr/local/bin/firefox
+
+<span class="c"># Add a desktop launcher</span>
+<span class="k">sudo</span> tee /usr/share/applications/firefox.desktop &gt; /dev/null &lt;&lt;<span class="s">'EOF'</span>
+[Desktop Entry]
+Name=Firefox
+Comment=Web Browser
+Exec=/opt/firefox/firefox %u
+Terminal=false
+Type=Application
+Icon=/opt/firefox/browser/chrome/icons/default/default128.png
+Categories=Network;WebBrowser;
+StartupWMClass=firefox
+EOF
+
+<span class="k">sudo</span> update-desktop-database
+firefox --version
+firefox &amp;</pre>
+</div>
+
+      <p>The Firefox you get this way is the official Mozilla build, identical to what you'd download on any other platform. It self-updates from Mozilla's update servers (no apt involved), so you'll never have to repeat this process. Your profile lives at <code>~/.mozilla/firefox/</code> exactly like every other Linux Firefox installation.</p>
+
+      <p>Don't forget to clean up the tarball when you're done: <code>rm ~/firefox.tar.xz</code>.</p>
+    </section>
+
+    <hr class="hr-orn" />
+
+    <section id="after">
+      <span class="sec-num">§ 10 — Recap</span>
+      <h2>What you have at the end.</h2>
+
+      <p>If you've followed along, here's the state of your machine:</p>
+
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <thead>
+            <tr><th>Component</th><th>Configuration</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>OS</td><td>JetPack 6.2.x on microSD, 916&nbsp;GB ext4 on NVMe at /mnt/nvme</td></tr>
+            <tr><td>Swap</td><td>3.8&nbsp;GB zram + 8&nbsp;GB file on NVMe = ~11&nbsp;GB total</td></tr>
+            <tr><td>Docker</td><td>Data root on NVMe; nvidia runtime as default</td></tr>
+            <tr><td>GPU access</td><td>CUDA 12.6 visible inside any container automatically</td></tr>
+            <tr><td>Browser</td><td>Native Firefox from Mozilla, self-updating</td></tr>
+            <tr><td>User</td><td>In docker, sudo, video, gpio, i2c groups</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>You're now ready to pull AI/ML containers from NGC, build robotics applications with GPU acceleration, and treat the Jetson as a serious development platform rather than a hobby toy.</p>
+
+      <h3>Two things still worth doing</h3>
+
+      <p><strong>Switch to MAXN SUPER power mode.</strong> Click the NVIDIA icon in the top bar (the green eye) → Power Mode → MAXN SUPER. The default 25&nbsp;W mode caps the GPU; MAXN unlocks the full 67 TOPS the chip is rated for. Worth doing only when actually running heavy workloads &mdash; it draws more power and the case will get warm.</p>
+
+      <p><strong>Install jtop for proper monitoring.</strong></p>
+
+<div class="code">
+  <div class="code-head"><span class="dots"><span></span><span></span><span></span></span><span>terminal · proper Jetson monitoring</span></div>
+  <pre><span class="k">sudo</span> apt install -y python3-pip
+<span class="k">sudo</span> pip3 install -U jetson-stats
+<span class="k">sudo</span> reboot
+<span class="c"># after reboot:</span>
+jtop</pre>
+</div>
+
+      <p><code>jtop</code> understands the Tegra SoC architecture properly and shows you live CPU/GPU/memory utilization, power rails, fan speeds, and hardware sensor data that <code>nvidia-smi</code> can't surface. Treat it as your default monitoring tool from now on.</p>
+    </section>
+
+    <section id="pitfalls">
+      <span class="sec-num">§ 11 — Lessons</span>
+      <h2>Pitfalls and lessons.</h2>
+
+      <p>Things I learned the hard way, so you don't have to:</p>
+
+      <ul>
+        <li><strong>Pull every USB peripheral when debugging boot issues.</strong> Cheap dongles can poison the boot process in ways that look like hardware failure.</li>
+        <li><strong>Use UUIDs in fstab, not device names.</strong> <code>/dev/nvme0n1p1</code> can change order if you ever add another drive; UUIDs are stable.</li>
+        <li><strong>Always include <code>nofail</code> in fstab entries for non-root drives.</strong> Without it, a missing or failed drive will refuse to boot the system, leaving you at an emergency shell.</li>
+        <li><strong>Don't use <code>sudo</code> in front of redirects.</strong> <code>sudo echo x &gt; /etc/somefile</code> doesn't work; the redirect is performed by your unprivileged shell. Use <code>echo x | sudo tee /etc/somefile</code> instead.</li>
+        <li><strong>The <code>-a</code> in <code>usermod -aG</code> is mandatory.</strong> Without it, you replace all your existing groups with just the new one &mdash; locking yourself out of sudo. I cannot stress this enough.</li>
+        <li><strong>Verify JSON config files before restarting daemons.</strong> A single misplaced comma in <code>/etc/docker/daemon.json</code> will make Docker fail to start with a useless error. Test with <code>python3 -c "import json; json.load(open('/etc/docker/daemon.json'))"</code> before <code>systemctl start</code>.</li>
+        <li><strong>Heredocs (<code>&lt;&lt;'EOF'</code>) beat nano for config files.</strong> They're atomic, reproducible, and work the same way every time.</li>
+        <li><strong>Skip Wi-Fi cards that aren't AC 8265.</strong> The AX210, MediaTek, and various other "great on laptops" cards have driver problems on Tegra. Save yourself an evening of compile errors.</li>
+        <li><strong>If apt drags in snapd as a dependency, that package is a snap shim.</strong> Find another install method (PPA, vendor tarball, AppImage). Direct vendor tarballs are usually fastest.</li>
+        <li><strong>Read error messages slowly.</strong> Linux is verbose, but it's almost always telling you exactly what's wrong. The fix is in the message 80% of the time.</li>
+      </ul>
+
+      <div class="pull">
+        Half of getting good at Linux is just slowing down enough to read what's already on the screen.
+      </div>
+
+      <p>That's all. The Jetson is a tremendous piece of hardware once you've gotten past the on-ramp; the on-ramp is just steeper than it should be. With the setup above, you've cleared it. Now go build something.</p>
+    </section>
+
+    <section id="refs">
+      <span class="sec-num">§ 12 — Further Reading</span>
+      <h2>References &amp; further reading.</h2>
+
+      <p>If you want to dig deeper, these are the resources I trust. Official sources first, community ones below.</p>
+
+      <ul class="refs">
+        <li>
+          <span class="ref-tag">Docs</span>
+          <div class="ref-body">
+            <a href="https://developer.nvidia.com/embedded/learn/get-started-jetson-orin-nano-devkit" target="_blank" rel="noopener">NVIDIA · Get Started with Jetson Orin Nano Developer Kit</a>
+            <p>The official getting-started page from NVIDIA. Image downloads, hardware overview, and the canonical first-boot procedure. Always start here.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ref-tag">Docs</span>
+          <div class="ref-body">
+            <a href="https://www.jetson-ai-lab.com/tutorials/initial-setup-jetson-orin-nano/" target="_blank" rel="noopener">Jetson AI Lab · Initial Setup Tutorial</a>
+            <p>Community-maintained reference covering JetPack flashing, NVMe migration, and the AI-specific setup steps. More current than most third-party guides &mdash; updated alongside JetPack releases.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ref-tag video">Video</span>
+          <div class="ref-body">
+            <a href="https://www.youtube.com/watch?v=-PjMC0gyH9s" target="_blank" rel="noopener">NVIDIA · Jetson Orin Nano Developer Kit Setup Walkthrough</a>
+            <p>The official video companion to the get-started guide. Watch this if you prefer seeing each step before doing it.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ref-tag video">Video</span>
+          <div class="ref-body">
+            <a href="https://www.youtube.com/watch?v=NksYHoLcPKs" target="_blank" rel="noopener">Community Hands-On · Jetson Orin Nano Super</a>
+            <p>A maker-perspective walkthrough of unboxing through first boot. Good for the case-assembly and antenna-routing parts that the official video doesn't cover.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ref-tag">Shop</span>
+          <div class="ref-body">
+            <a href="https://www.amazon.com/dp/B0BZJTQ5YP" target="_blank" rel="noopener">Jetson Orin Nano Super Developer Kit · Amazon</a>
+            <p>The 8&nbsp;GB version of the dev kit. Confirm the firmware revision when it arrives &mdash; you want r36 or newer.</p>
+          </div>
+        </li>
+        <li>
+          <span class="ref-tag">Shop</span>
+          <div class="ref-body">
+            <a href="https://www.amazon.com/dp/B0D4LP7XWR" target="_blank" rel="noopener">Aluminum Alloy Case for Jetson Orin · Amazon</a>
+            <p>Camera holder, Wi-Fi antenna mounts, accessible USB/Ethernet/Type-C ports. The case I used for this guide.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+  </article>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="sig">— <em>m.</em></div>
+    <div class="colophon">
+      Set in Fraunces, Source Serif&nbsp;4, and JetBrains Mono.<br>
+      Written from a working Orin Nano. No AI hallucinations harmed in the making of this guide.<br>
+      Corrections welcome. Reproduce freely with attribution.
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('on');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.reveal, section').forEach(el => {
+    el.classList.add('reveal');
+    io.observe(el);
+  });
+</script>
+
+</body>
+</html>
