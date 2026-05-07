@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Localization, Mapping &amp; SLAM — A Visual Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4ecd8; --paper: #fbf6e9; --paper-2: #fdfaf0;
+  --ink: #1f1a14; --ink-soft: #534637; --ink-faint: #8a7960;
+  --rule: #ccbfa3; --rule-soft: #e0d5b8;
+  --accent: #8a2424; --accent-2: #1f3a5e; --accent-3: #3a6b3a; --accent-4: #b6792f;
+  --shade: #ebe2c8;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 16.5px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+body { padding: 0 1rem; }
+main { max-width: 880px; margin: 0 auto; padding: 4rem 0 3rem; }
+h1, h2, h3, h4 { font-family: 'Crimson Pro', Georgia, serif; color: var(--ink); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+h1 { font-size: 2.7rem; margin: 0 0 0.3em; font-weight: 700; }
+h2 { font-size: 2rem; margin: 3.5rem 0 0.6em; border-top: 1px solid var(--rule); padding-top: 2rem; font-weight: 700; }
+h2 em { color: var(--accent); font-weight: 400; }
+h3 { font-size: 1.35rem; margin: 2rem 0 0.5em; color: var(--accent-2); font-weight: 600; }
+h4 { font-size: 1.02rem; margin: 1.4rem 0 0.4em; color: var(--ink-soft); font-weight: 600; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; }
+.eyebrow { font-family: 'Inter', sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-faint); margin-bottom: 0.4em; }
+header.front { padding-bottom: 2rem; border-bottom: 1px solid var(--rule); }
+
+.back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 1.6rem;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--accent);
+}
+.subtitle { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 1.3rem; color: var(--ink-soft); margin-top: 0.2rem; line-height: 1.4; }
+.byline { font-size: 0.82rem; color: var(--ink-faint); margin-top: 1.4rem; font-family: 'JetBrains Mono', monospace; }
+p { margin: 0.8em 0; }
+strong { color: var(--ink); font-weight: 600; }
+em { color: var(--ink-soft); }
+a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 0.86em; background: var(--shade); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-2); }
+.callout { background: var(--paper); border-left: 3px solid var(--accent); padding: 0.9rem 1.2rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0; font-size: 0.96rem; }
+.callout.note { border-color: var(--accent-2); }
+.callout.tip { border-color: var(--accent-3); }
+.callout.warn { border-color: var(--accent-4); }
+.callout-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600; margin-bottom: 0.3em; color: var(--accent); font-family: 'Inter', sans-serif; }
+.callout.note .callout-label { color: var(--accent-2); }
+.callout.tip .callout-label { color: var(--accent-3); }
+.callout.warn .callout-label { color: var(--accent-4); }
+.callout p:first-of-type { margin-top: 0; }
+.callout p:last-child { margin-bottom: 0; }
+.demo { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 1.2rem; margin: 1.8rem 0; }
+.demo-title { font-family: 'Crimson Pro', serif; font-size: 1.15rem; font-weight: 600; color: var(--ink); margin-bottom: 0.3rem; }
+.demo-caption { font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 1rem; font-style: italic; }
+canvas { display: block; width: 100%; height: auto; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 4px; }
+.controls { display: flex; flex-wrap: wrap; gap: 0.55rem 0.7rem; margin-top: 0.9rem; align-items: center; }
+.controls button { font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 500; background: var(--ink); color: var(--bg); border: 1px solid var(--ink); padding: 0.42rem 0.95rem; border-radius: 3px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.controls button:hover { background: var(--accent); border-color: var(--accent); }
+.controls button.secondary { background: transparent; color: var(--ink); }
+.controls button.secondary:hover { background: var(--ink); color: var(--bg); }
+.controls button.toggle.active { background: var(--accent-3); border-color: var(--accent-3); color: var(--paper); }
+.controls label { font-size: 0.82rem; color: var(--ink-soft); display: flex; align-items: center; gap: 0.5rem; }
+.controls input[type=range] { width: 110px; accent-color: var(--accent); }
+.readout { display: flex; flex-wrap: wrap; gap: 1.2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.8rem; padding-top: 0.7rem; border-top: 1px dashed var(--rule); }
+.readout span b { color: var(--accent); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.9rem 1rem; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.5rem; }
+.legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; vertical-align: middle; border: 1px solid var(--rule); }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.92rem; }
+th, td { padding: 0.7rem 0.85rem; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+th { font-family: 'Crimson Pro', serif; font-weight: 600; background: var(--shade); border-bottom: 2px solid var(--rule); font-size: 1.02rem; }
+td:first-child { font-weight: 500; color: var(--accent-2); white-space: nowrap; }
+ol.refs { font-size: 0.9rem; padding-left: 1.5rem; color: var(--ink-soft); line-height: 1.6; }
+ol.refs li { margin: 0.55rem 0; }
+ol.refs li b { color: var(--ink); font-weight: 600; }
+ul.checklist { list-style: none; padding-left: 0; }
+ul.checklist li { position: relative; padding-left: 1.4em; margin: 0.45em 0; }
+ul.checklist li:before { content: "→"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+.toc { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 0.9rem 1.3rem; margin: 1.8rem 0; font-size: 0.9rem; columns: 2; column-gap: 1.5rem; }
+.toc a { color: var(--ink-soft); text-decoration: none; display: block; padding: 0.18em 0; }
+.toc a:hover { color: var(--accent); }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--rule); font-size: 0.82rem; color: var(--ink-faint); text-align: center; font-family: 'JetBrains Mono', monospace; }
+.eq { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; color: var(--ink-soft); margin: 1.2rem 0; background: var(--paper); padding: 0.6rem 1rem; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.pill { display: inline-block; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; background: var(--shade); color: var(--accent-2); padding: 0.1em 0.55em; border-radius: 10px; border: 1px solid var(--rule); margin-left: 0.4em; vertical-align: middle; }
+@media (max-width: 640px) { .toc { columns: 1; } h1 { font-size: 2rem; } h2 { font-size: 1.55rem; } body { padding: 0 0.8rem; } main { padding: 2.5rem 0 2rem; } }
+</style>
+</head>
+<body>
+<main>
+
+<a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+
+<header class="front">
+  <div class="eyebrow">Robotics · A Visual Primer</div>
+  <h1>Localization, Mapping &amp; SLAM</h1>
+  <div class="subtitle">Where am I? What's around me? And how do I figure out both at the same time?</div>
+  <div class="byline">By Majid Mazouchi</div>
+</header>
+
+<nav class="toc">
+  <a href="#intro">§1 — Three questions, three problems</a>
+  <a href="#localization">§2 — Localization (3 demos)</a>
+  <a href="#mapping">§3 — Mapping (1 demo)</a>
+  <a href="#slam">§4 — SLAM (3 demos)</a>
+  <a href="#loop-closure">§5 — Loop closure</a>
+  <a href="#comparison">§6 — Side by side</a>
+  <a href="#stack">§7 — A real SLAM stack</a>
+  <a href="#references">§8 — References</a>
+</nav>
+
+<section id="intro">
+<h2>1 — Three questions, three problems</h2>
+
+<p>A robot moving through space — a vacuum, a forklift, a drone, a rover, an AR headset on your face — almost always needs to answer some combination of three deceptively simple questions:</p>
+
+<ol>
+  <li><strong>Where am I?</strong> — given a map, figure out my pose in it.</li>
+  <li><strong>What's around me?</strong> — given that I know where I am, build a map.</li>
+  <li><strong>Both at once?</strong> — given neither, figure out both simultaneously.</li>
+</ol>
+
+<p>These map onto three classical problems: <strong>Localization</strong>, <strong>Mapping</strong>, and <strong>SLAM</strong>. They look related, and they are, but the third is hilariously harder than the other two combined. This page works through all three with seven interactive demos so you can <em>see</em> how the algorithms behave, fail, and recover.</p>
+
+<div class="callout note">
+<div class="callout-label">The unifying idea</div>
+<p>All three problems are solved roughly the same way: maintain a probability distribution over what you don't know (pose, map, or both), and update it whenever you (a) move or (b) sense something. This is <strong>recursive Bayesian estimation</strong>. The rest is engineering: which distribution, which approximation, which sensor.</p>
+</div>
+
+<div class="callout tip">
+<div class="callout-label">Reference implementation</div>
+<p>The methods covered here are all implemented in <a href="https://github.com/AtsushiSakai/PythonRobotics" target="_blank">AtsushiSakai/PythonRobotics</a>, a widely-used open-source collection of Python sample code for robotics algorithms. Where we name a specific algorithm, you can find a runnable Python version in that repo. We borrow its taxonomy of methods throughout this primer.</p>
+</div>
+
+</section>
+
+<section id="localization">
+<h2>2 — Localization: <em>"Where am I?"</em></h2>
+
+<p>You hand the robot a map and switch it on somewhere on that map. It doesn't know where. As it drives and senses, it has to figure out which point on the map matches what it's seeing.</p>
+
+<h3>The intuition</h3>
+
+<p>Imagine being teleported, blindfolded, into an apartment whose floor plan you've memorized. You take off the blindfold. You see a kitchen counter to your left and a window to your right. There might be three rooms in the apartment that match that description — so you're not sure yet. You take a step forward and now you see a hallway. Only one room had a hallway exit in that direction. <em>Now</em> you know where you are.</p>
+
+<p>That's exactly how a localization algorithm works. It starts with many hypotheses ("I could be anywhere"), and as observations arrive, the hypotheses that don't match get killed off until only the right ones survive. The four classical methods differ in <em>how they represent</em> those hypotheses:</p>
+
+<ul class="checklist">
+  <li><strong>Particles</strong> — a swarm of weighted samples (Monte Carlo Localization).</li>
+  <li><strong>A Gaussian</strong> — a single mean and covariance (Kalman filter family).</li>
+  <li><strong>A grid</strong> — one probability per cell (histogram filter).</li>
+  <li><strong>A scan match</strong> — no probabilities, just optimization (ICP / NDT-based).</li>
+</ul>
+
+<p>The first three are below as live demos. The fourth shows up in §4 because it's also the workhorse of SLAM front ends.</p>
+
+<h3>Method 1 — Monte Carlo Localization (MCL) <span class="pill">particle filter</span></h3>
+
+<p>The most flexible representation: maintain a swarm of weighted samples (particles) of where you could be. On every motion, each particle moves with motion noise. On every sensor observation, weight each particle by the likelihood of the observation given that particle's pose. Resample to keep the swarm focused on the high-likelihood regions.</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 1 — Monte Carlo Localization in a 1D corridor</div>
+  <div class="demo-caption">A robot (green) drives along a known corridor with doors (blue) at known positions. It senses distance to the nearest door, with noise. The 300 red particles each represent one hypothesis. Watch them collapse onto the truth — and try the kidnap button to see what recovery looks like.</div>
+  <canvas id="mclCanvas" data-w="820" data-h="240"></canvas>
+  <div class="controls">
+    <button id="mclPlay">Play</button>
+    <button id="mclStep" class="secondary">Step</button>
+    <button id="mclReset" class="secondary">Reset</button>
+    <button id="mclKidnap" class="secondary">Kidnap robot</button>
+    <label>Sensor noise <input type="range" id="mclNoise" min="0.1" max="3" step="0.1" value="0.6"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#3a6b3a"></span>True robot pose</span>
+    <span><span class="swatch" style="background:#1f3a5e"></span>Doors (landmarks)</span>
+    <span><span class="swatch" style="background:#8a2424"></span>Particle hypotheses</span>
+  </div>
+  <div class="readout">
+    <span>step <b id="mclStepCount">0</b></span>
+    <span>true x = <b id="mclTrue">—</b></span>
+    <span>mean estimate = <b id="mclEst">—</b></span>
+    <span>std dev = <b id="mclStd">—</b></span>
+  </div>
+</div>
+
+<p>Three things to notice:</p>
+<ul class="checklist">
+  <li>At start, particles are uniform — the robot has no idea where it is.</li>
+  <li>After a few steps, particles cluster at <em>multiple</em> spots — anywhere consistent with the sensor history. This is <strong>perceptual aliasing</strong>: a single measurement cannot disambiguate similar-looking places.</li>
+  <li>After more motion, the wrong clusters die off. Hit <em>Kidnap robot</em> to teleport it elsewhere — most filters fail at this; MCL with random particle injection recovers.</li>
+</ul>
+
+<h3>Method 2 — Extended Kalman Filter (EKF) localization <span class="pill">single Gaussian</span></h3>
+
+<p>If you trust your initial pose and your sensors aren't too crazy, you can summarize the entire belief with a single Gaussian: a mean (best guess) and a covariance matrix (how confident, in which direction). The EKF runs the same predict / update cycle as MCL, but instead of a swarm it carries the mean and covariance through linearized motion and observation models.</p>
+
+<div class="eq">
+predict: &nbsp; x̂⁻ = f(x̂, u), &nbsp; P⁻ = F P Fᵀ + Q<br>
+update: &nbsp; K = P⁻ Hᵀ (H P⁻ Hᵀ + R)⁻¹, &nbsp; x̂ = x̂⁻ + K(z − h(x̂⁻)), &nbsp; P = (I − K H) P⁻
+</div>
+
+<p>The covariance ellipse is the visual signature of a Kalman filter: it grows when the robot moves (uncertainty accumulating) and shrinks when a measurement comes in (information gained).</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 2 — EKF localization with range measurements to landmarks</div>
+  <div class="demo-caption">The robot drives a known trajectory (gray dashed). The red ellipse is the 2σ covariance of the EKF's estimate. Whenever a landmark falls within sensor range, the filter performs a range-only Kalman update — innovations shown as thin red lines. Watch the ellipse expand on prediction and shrink on update.</div>
+  <canvas id="ekfCanvas" data-w="820" data-h="380"></canvas>
+  <div class="controls">
+    <button id="ekfPlay">Play</button>
+    <button id="ekfStep" class="secondary">Step</button>
+    <button id="ekfReset" class="secondary">Reset</button>
+    <label>Process noise Q <input type="range" id="ekfQ" min="0.5" max="8" step="0.5" value="2.5"></label>
+    <label>Sensor noise R <input type="range" id="ekfR" min="3" max="40" step="1" value="12"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#bcb29b"></span>True trajectory</span>
+    <span><span class="swatch" style="background:#8a2424"></span>EKF estimate</span>
+    <span><span class="swatch" style="background:rgba(138,36,36,0.18); border-color:#8a2424"></span>2σ covariance</span>
+    <span><span class="swatch" style="background:#1f3a5e"></span>Landmarks (RFID-like)</span>
+  </div>
+  <div class="readout">
+    <span>step <b id="ekfStep2">0</b></span>
+    <span>tr(P) = <b id="ekfTrP">—</b></span>
+    <span>position error <b id="ekfErr">—</b></span>
+    <span>updates <b id="ekfUpd">0</b></span>
+  </div>
+</div>
+
+<p>EKF localization is fast and composes naturally with multi-sensor fusion. It's what you find inside most production GPS+IMU+wheel-odometry stacks.</p>
+
+<div class="callout note">
+<div class="callout-label">EKF vs UKF</div>
+<p>The <strong>Unscented Kalman Filter</strong> replaces the EKF's Jacobian linearization with a deterministic set of <em>sigma points</em> propagated through the true nonlinear functions. The UKF uses a deterministic sampling approach to capture the mean and covariance of the state distribution, unlike the EKF which linearizes the nonlinear functions using Jacobians. UKF is usually slightly more accurate when motion or measurement models are strongly nonlinear; EKF is simpler to implement when you can write the Jacobians cleanly. Both are in PythonRobotics.</p>
+</div>
+
+<h3>Method 3 — Histogram filter localization <span class="pill">grid belief</span></h3>
+
+<p>The most literal Bayesian filter: discretize the world into cells, store one probability per cell, and update them all at every step. No assumptions about Gaussianity, no resampling — just multiplication and renormalization. It's slow for large worlds but conceptually the cleanest.</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 3 — Histogram filter localization</div>
+  <div class="demo-caption">The world is divided into a grid. Each cell stores P(robot is here). Initially flat (no idea). Predict shifts the distribution by commanded motion and blurs it (motion noise). Update multiplies by the likelihood of the observed range to landmarks. Watch the heatmap concentrate.</div>
+  <canvas id="histCanvas" data-w="820" data-h="380"></canvas>
+  <div class="controls">
+    <button id="histPlay">Play</button>
+    <button id="histStep" class="secondary">Step</button>
+    <button id="histReset" class="secondary">Reset</button>
+    <label>Sensor noise <input type="range" id="histNoise" min="3" max="25" step="1" value="10"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:rgba(138,36,36,0.85)"></span>High probability</span>
+    <span><span class="swatch" style="background:rgba(138,36,36,0.15)"></span>Low probability</span>
+    <span><span class="swatch" style="background:#3a6b3a"></span>True robot pose</span>
+    <span><span class="swatch" style="background:#1f3a5e"></span>Landmarks</span>
+  </div>
+  <div class="readout">
+    <span>step <b id="histStep2">0</b></span>
+    <span>entropy ≈ <b id="histEnt">—</b></span>
+    <span>peak probability <b id="histPeak">—</b></span>
+  </div>
+</div>
+
+<p>The histogram filter handles the "I have no idea where I am" case naturally — start uniform and let the math do its work. Note how multimodality is handled: when only one landmark is in range, the belief has a circular ridge of equally-likely positions; a second observation breaks the symmetry.</p>
+
+<h3>Methods at a glance</h3>
+
+<table>
+<tr><th>Method</th><th>Belief representation</th><th>Per-step cost</th><th>Best for…</th></tr>
+<tr><td>EKF / UKF</td><td>Single Gaussian</td><td>O(n²) – O(n³)</td><td>Tracking when the prior is good and the world is roughly linear.</td></tr>
+<tr><td>Ensemble Kalman Filter</td><td>Sample-approximated Gaussian</td><td>O(N·n)</td><td>Very high-dimensional state where full covariance is intractable.</td></tr>
+<tr><td>Histogram filter</td><td>Probability per grid cell</td><td>O(cells)</td><td>Small worlds, global localization, multimodal beliefs.</td></tr>
+<tr><td>Particle filter (MCL)</td><td>Weighted samples</td><td>O(N·sensors)</td><td>Arbitrary distributions, kidnapped robot, long-term recovery.</td></tr>
+<tr><td>Scan matching (ICP, NDT)</td><td>No distribution; pure optimization</td><td>O(K·iterations)</td><td>You already know roughly where you are and you have a lidar scan.</td></tr>
+</table>
+
+<h3>Use cases</h3>
+<ul class="checklist">
+  <li><strong>Warehouse robots</strong> (Amazon Kiva-style fleets) localize against a known floor plan and fiducial markers.</li>
+  <li><strong>Self-driving cars</strong> localize against pre-built HD maps using lidar + GPS + IMU; centimeter accuracy is the bar.</li>
+  <li><strong>Robot vacuums</strong> localize against a saved house map so they can resume cleaning where they stopped.</li>
+  <li><strong>AR/VR headsets</strong> localize against a scene model the device built earlier and re-uses across sessions.</li>
+  <li><strong>Indoor delivery and service robots</strong> use Adaptive MCL (the AMCL package in ROS is the canonical example) over occupancy grids.</li>
+</ul>
+
+<h3>Practical notes</h3>
+
+<div class="callout warn">
+<div class="callout-label">Watch out for</div>
+<p><strong>Symmetric environments.</strong> Long featureless corridors, square rooms, and warehouse aisles produce multiple equally-good hypotheses. The filter will not converge. Add fiducials, use ceiling features, or bias the initial pose if you can.</p>
+<p><strong>Linearization breakdown (EKF/UKF).</strong> If your covariance grows large, the linear approximation around the mean stops being valid. Either reduce your update period, switch to UKF, or add a global recovery layer (PF on top of EKF, AMCL-style).</p>
+<p><strong>Sample impoverishment (PF).</strong> Resampling every step kills off particle diversity. Inject a small fraction of random particles each step, or only resample when effective sample size drops below a threshold.</p>
+<p><strong>The kidnapped robot problem.</strong> Pure EKF cannot recover from being moved without warning. MCL with random injection or a histogram filter that re-sees the world fresh will. Plan for this if your robot can be picked up or slipped.</p>
+</div>
+
+</section>
+
+<section id="mapping">
+<h2>3 — Mapping: <em>"What's around me?"</em></h2>
+
+<p>Now the opposite: assume you know exactly where you are at every moment (perfect GPS, motion capture, wheel encoders with no slip). Build a map of what you observe.</p>
+
+<h3>The intuition</h3>
+
+<p>You're a surveyor with a known position at every step. You shine a laser at the world, it bounces back, and you get a distance. Multiply by direction and you have a 3D point. Do this thousands of times per second from a moving platform and you have a point cloud of the world.</p>
+
+<p>Point clouds aren't enough for planning. The robot wants to know not just "there's a wall here" but also "this region is empty and safe to drive through." That's what <strong>occupancy grid maps</strong> give you: every cell stores a probability that it is occupied.</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 4 — Building an occupancy grid with a lidar</div>
+  <div class="demo-caption">Click anywhere in the map to teleport the robot. The robot fires lidar rays in all directions. Cells that rays pass through become free (light). Cells that rays hit become occupied (dark). Drive around to fill in the map.</div>
+  <canvas id="ogCanvas" data-w="820" data-h="500" style="cursor:crosshair"></canvas>
+  <div class="controls">
+    <button id="ogReset" class="secondary">Reset map</button>
+    <button id="ogShowRays" class="toggle active">Show rays</button>
+    <label><input type="checkbox" id="ogProb" checked> show probability</label>
+    <label>Sensor range <input type="range" id="ogRange" min="60" max="280" step="10" value="180"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#1f1a14"></span>Occupied (hit)</span>
+    <span><span class="swatch" style="background:#fdfaf0"></span>Free (cleared)</span>
+    <span><span class="swatch" style="background:#bcb29b"></span>Unknown</span>
+    <span><span class="swatch" style="background:#3a6b3a"></span>Robot</span>
+  </div>
+  <div class="readout">
+    <span>cells observed <b id="ogCells">0</b></span>
+    <span>scans taken <b id="ogScans">0</b></span>
+    <span>coverage <b id="ogCov">0%</b></span>
+  </div>
+</div>
+
+<p>What you're watching is the textbook occupancy grid update from Moravec &amp; Elfes (1985). Each cell stores a <strong>log-odds</strong> value:</p>
+
+<div class="eq">ℓ(c) = log [ p(c is occupied) / p(c is free) ]</div>
+
+<p>When a ray endpoint lands on a cell, that cell's log-odds goes up. When a ray <em>passes through</em> a cell, log-odds goes down. Adding log-odds is equivalent to multiplying probabilities, which is what makes this update so fast.</p>
+
+<h3>Methods at a glance</h3>
+
+<table>
+<tr><th>Map type</th><th>What it stores</th><th>Best for</th></tr>
+<tr><td>Occupancy grid</td><td>P(occupied) per cell</td><td>2D navigation, planning, vacuum robots</td></tr>
+<tr><td>Gaussian grid map</td><td>Gaussian per cell aggregating raw range hits</td><td>Smoother surfaces; sensor noise modeling</td></tr>
+<tr><td>NDT map</td><td>One Gaussian per voxel summarizing point distribution</td><td>Compact registration target for NDT scan matching</td></tr>
+<tr><td>Voxel / OctoMap</td><td>P(occupied) per 3D voxel (sparse octree)</td><td>3D navigation, drones, manipulators</td></tr>
+<tr><td>Distance map</td><td>Distance to nearest obstacle per cell</td><td>Path planning costs, obstacle avoidance fields</td></tr>
+<tr><td>Point cloud</td><td>List of 3D points</td><td>Visualization, ICP, surveying</td></tr>
+<tr><td>Feature / landmark map</td><td>List of (id, 3D position)</td><td>Sparse SLAM, AR anchors</td></tr>
+<tr><td>Object-shape map</td><td>Fitted primitives: lines, circles, rectangles</td><td>Compact representation, semantic reasoning</td></tr>
+<tr><td>Topological map</td><td>Graph of places + edges</td><td>High-level planning, biology-inspired navigation</td></tr>
+<tr><td>Signed Distance Field (TSDF)</td><td>Distance to nearest surface per voxel</td><td>3D reconstruction (KinectFusion-style)</td></tr>
+<tr><td>Neural fields (NeRF, Gaussian Splat)</td><td>Implicit / volumetric scene representation</td><td>Photorealistic reconstruction, novel views</td></tr>
+</table>
+
+<div class="callout note">
+<div class="callout-label">Beyond grids</div>
+<p>Once you have raw lidar points, mapping often involves <em>extracting structure</em> rather than dumping points into cells. PythonRobotics shows several approaches: <strong>k-means clustering</strong> to group lidar returns into objects, <strong>circle fitting</strong> for round obstacles like trees and pillars, and <strong>rectangle fitting</strong> for cars and walls. The output is a much smaller, more semantically useful map than a dense grid.</p>
+</div>
+
+<h3>Use cases</h3>
+<ul class="checklist">
+  <li><strong>Indoor floor plans.</strong> Robot vacuums and warehouse robots produce occupancy grids you can literally screenshot and use as a blueprint.</li>
+  <li><strong>Mining and construction surveys.</strong> Mobile mapping rigs walk through tunnels and produce point clouds with sub-centimeter accuracy.</li>
+  <li><strong>Agriculture.</strong> Tractors with RTK-GPS map fields and crop heights for variable-rate fertilizer application.</li>
+  <li><strong>3D reconstruction for film and games.</strong> Drone photogrammetry rebuilds entire neighborhoods.</li>
+  <li><strong>Autonomous-vehicle HD maps.</strong> Pre-recorded lidar maps with lane geometry, sign positions, and traffic-light locations.</li>
+</ul>
+
+<h3>Practical notes</h3>
+
+<div class="callout warn">
+<div class="callout-label">Watch out for</div>
+<p><strong>Resolution vs memory.</strong> A 5 cm grid over a 100 m × 100 m warehouse is 4 million cells. A 1 cm grid is 100 million. 3D voxel grids blow up cubically. Production systems use sparse structures (octrees, hash tables) instead of dense arrays.</p>
+<p><strong>Dynamic objects pollute the map.</strong> If a person walks in front of the lidar while you're mapping, you'll record them as a wall. Real systems either filter dynamic returns (semantic segmentation), or use a slow forgetting factor so transient occupancy decays away.</p>
+<p><strong>Sensor model matters more than you think.</strong> Glass walls, mirrors, and dark fabrics confuse lidars. Sunlight saturates structured-light depth cameras. Map quality is bounded by how well you've modeled your sensor's failure modes.</p>
+</div>
+
+</section>
+
+<section id="slam">
+<h2>4 — SLAM: <em>"Both at once."</em></h2>
+
+<p>Now the hard one. The robot has neither a map nor a known pose. It has to figure out both, simultaneously, from raw sensor data.</p>
+
+<h3>Why it's so much harder</h3>
+
+<p>It's a chicken-and-egg problem. <em>To localize, I need a map. To map, I need to know where I am.</em> The only way out is to estimate them jointly: every pose helps build the map, and every piece of map helps refine past poses.</p>
+
+<p>Modern SLAM splits cleanly into two halves:</p>
+<ul class="checklist">
+  <li>The <strong>front end</strong> turns raw sensor data into observations: feature detection, scan matching, descriptor matching, RANSAC.</li>
+  <li>The <strong>back end</strong> takes those observations and produces a globally consistent estimate: filter-based or graph-based.</li>
+</ul>
+
+<p>We'll look at one canonical front-end algorithm (ICP), then one classical back end (EKF-SLAM), and finally what loop closure does to a long trajectory.</p>
+
+<h3>Front end — Iterative Closest Point (ICP) <span class="pill">scan matching</span></h3>
+
+<p>ICP is the workhorse of every lidar-based SLAM front end. Given two point clouds — the previous scan and the current scan — find the rigid transform (rotation + translation) that best aligns them. Repeat once per frame, accumulate, and you have lidar odometry.</p>
+
+<p>The algorithm is alternating minimization:</p>
+<ol>
+  <li>For each point in the moving cloud, find the nearest point in the fixed cloud (the <em>correspondence</em>).</li>
+  <li>Solve a closed-form least-squares problem for the rotation R and translation t that minimize the sum of squared distances under those correspondences.</li>
+  <li>Apply (R, t) to the moving cloud. Repeat until convergence.</li>
+</ol>
+
+<div class="demo">
+  <div class="demo-title">Demo 5 — ICP scan matching</div>
+  <div class="demo-caption">Two point clouds of the same scene, captured from slightly different poses, start misaligned (red) against a reference (gray). Each iteration finds nearest-point correspondences (thin lines) and solves for the best rigid transform. Step through to watch the alignment converge.</div>
+  <canvas id="icpCanvas" data-w="820" data-h="380"></canvas>
+  <div class="controls">
+    <button id="icpStep">Step iteration</button>
+    <button id="icpRun">Run to convergence</button>
+    <button id="icpReset" class="secondary">New scene</button>
+    <button id="icpCorr" class="toggle active">Show correspondences</button>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#534637"></span>Reference cloud (fixed)</span>
+    <span><span class="swatch" style="background:#8a2424"></span>Moving cloud</span>
+    <span><span class="swatch" style="background:#b6792f"></span>Correspondences</span>
+  </div>
+  <div class="readout">
+    <span>iteration <b id="icpIter">0</b></span>
+    <span>mean residual <b id="icpRes">—</b></span>
+    <span>Δrotation <b id="icpDR">—</b></span>
+  </div>
+</div>
+
+<p>The optimal rotation between two point sets has a beautiful closed form. Let H be the cross-covariance matrix of the centered correspondences. Then the SVD gives H = U Σ Vᵀ, and the optimal rotation is R = V Uᵀ. In 2D, this collapses to a single arctan:</p>
+
+<div class="eq">θ* = atan2(Σ Hₓᵧ − Σ Hᵧₓ, Σ Hₓₓ + Σ Hᵧᵧ)</div>
+
+<p>That's the formula running in the demo. The translation is then the difference between the two centroids after rotation. Variants like <strong>point-to-plane ICP</strong>, <strong>NDT</strong>, and <strong>generalized ICP</strong> use the same loop with smarter cost functions.</p>
+
+<h3>Back end — EKF-SLAM <span class="pill">filter-based</span></h3>
+
+<p>Now the joint estimation. Stack the robot pose and every landmark position into one giant state vector, with one giant covariance matrix capturing every correlation between them. The EKF runs on that joint state, treating each landmark observation as a constraint between robot and landmark.</p>
+
+<div class="eq">state x = [ rₓ, rᵧ, &nbsp; lm₁ₓ, lm₁ᵧ, &nbsp; lm₂ₓ, lm₂ᵧ, &nbsp; … ]</div>
+
+<p>The crucial property is that the covariance is <em>not</em> block-diagonal. Robot and landmarks become correlated as soon as the robot observes them. That correlation is what makes loop closure work: when the robot re-observes an old landmark, the constraint propagates through the whole covariance and drags the entire trajectory back into shape.</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 6 — EKF-SLAM with explicit landmark estimation</div>
+  <div class="demo-caption">The robot drives the gray dashed loop. It has noisy odometry (so the red estimated path drifts) and observes nearby landmarks with noisy relative-position measurements. New landmarks are initialized into the state with high uncertainty (large blue ellipses) and shrink each time they're re-observed. Watch the loop closure when the robot returns to landmarks it saw at the start.</div>
+  <canvas id="ekfslamCanvas" data-w="820" data-h="460"></canvas>
+  <div class="controls">
+    <button id="esPlay">Play</button>
+    <button id="esStep" class="secondary">Step</button>
+    <button id="esReset" class="secondary">Reset</button>
+    <label>Sensor range <input type="range" id="esRange" min="60" max="200" step="10" value="120"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#bcb29b"></span>True path</span>
+    <span><span class="swatch" style="background:#8a2424"></span>SLAM estimate</span>
+    <span><span class="swatch" style="background:rgba(138,36,36,0.18); border-color:#8a2424"></span>Robot covariance</span>
+    <span><span class="swatch" style="background:#1f3a5e"></span>True landmark</span>
+    <span><span class="swatch" style="background:rgba(31,58,94,0.18); border-color:#1f3a5e"></span>Landmark covariance</span>
+  </div>
+  <div class="readout">
+    <span>step <b id="esStepN">0</b></span>
+    <span>landmarks tracked <b id="esLM">0</b></span>
+    <span>state size <b id="esN">2</b></span>
+    <span>position error <b id="esErr">—</b></span>
+  </div>
+</div>
+
+<p>EKF-SLAM has a famous flaw: the covariance matrix is dense once landmarks become correlated, so each update is O(n²) in the number of landmarks. Above a few hundred landmarks it becomes prohibitively slow. This is why the field moved on.</p>
+
+<h3>FastSLAM 1.0 and 2.0 <span class="pill">particle filter</span></h3>
+
+<p>FastSLAM exploits a clever factorization. <em>Conditional on the robot's trajectory</em>, the landmarks become independent of one another. So you can use a particle filter for the trajectory (handling its non-Gaussian uncertainty) and a small EKF <em>per landmark per particle</em> for the landmark positions. FastSLAM is a feature-based SLAM example where the blue line is ground truth, the black line is dead reckoning, the red line is the estimated trajectory, the red points are particles, black points are landmarks, and blue crosses are estimated landmark positions. The 2.0 variant improves the proposal distribution to keep particle diversity over long runs.</p>
+
+<h3>Graph-based SLAM <span class="pill">optimization</span></h3>
+
+<p>The modern formulation. Forget the covariance matrix. Build a graph where nodes are robot poses (and optionally landmarks) and edges are constraints (odometry, observations, loop closures). Find the configuration of the graph that best satisfies all constraints in the least-squares sense:</p>
+
+<div class="eq">x* = argmin Σᵢⱼ ‖zᵢⱼ − h(xᵢ, xⱼ)‖²_Ωᵢⱼ</div>
+
+<p>This is a sparse nonlinear least-squares problem. Sparsity (each pose only connects to a few neighbors) makes it tractable for tens of thousands of poses. Solvers like <strong>g²o</strong>, <strong>GTSAM</strong>, and <strong>Ceres</strong> are the standard back ends. Almost every modern SLAM system — ORB-SLAM, Cartographer, Kimera, VINS — runs a graph back end.</p>
+
+<h3>The conceptual loop-closure picture</h3>
+
+<p>Before the methods table, here's the shape of the problem. Drift accumulates linearly with distance. Loop closure is the single observation that yanks the trajectory back into place.</p>
+
+<div class="demo">
+  <div class="demo-title">Demo 7 — Drift, then snap back: a high-level view of loop closure</div>
+  <div class="demo-caption">Pure conceptual visualization. Dashed gray is the truth, solid red is what SLAM thinks happened. Without loop closure the estimate peels off; with loop closure on, recognizing the start point yanks the whole trajectory back. This is what graph-SLAM optimization does in one frame.</div>
+  <canvas id="slamCanvas" data-w="820" data-h="460"></canvas>
+  <div class="controls">
+    <button id="slamPlay">Play</button>
+    <button id="slamReset" class="secondary">Reset</button>
+    <button id="slamLoop" class="toggle active">Loop closure on</button>
+    <label>Odometry noise <input type="range" id="slamNoise" min="0.005" max="0.06" step="0.005" value="0.025"></label>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#bcb29b"></span>True path</span>
+    <span><span class="swatch" style="background:#8a2424"></span>SLAM estimate</span>
+    <span><span class="swatch" style="background:rgba(138,36,36,0.18); border-color:#8a2424"></span>Pose uncertainty</span>
+    <span><span class="swatch" style="background:#1f3a5e"></span>Landmarks</span>
+  </div>
+  <div class="readout">
+    <span>step <b id="slamStep">0</b></span>
+    <span>position error <b id="slamErr">0.00</b> m</span>
+    <span>loop closures <b id="slamLC">0</b></span>
+  </div>
+</div>
+
+<h3>Methods at a glance</h3>
+
+<table>
+<tr><th>Approach</th><th>What it represents</th><th>Strengths / weaknesses</th></tr>
+<tr><td>EKF-SLAM</td><td>One Gaussian over (robot, all landmarks)</td><td>Conceptually clean. O(n²) per update kills it above ~10³ landmarks.</td></tr>
+<tr><td>FastSLAM 1.0</td><td>Particles over robot trajectory + EKF per landmark</td><td>Scales to many landmarks. Particle depletion on long runs is real.</td></tr>
+<tr><td>FastSLAM 2.0</td><td>Same, with smarter proposal distribution</td><td>Robust to high motion/observation noise; standard for textbook PF SLAM.</td></tr>
+<tr><td>Graph SLAM (g²o, GTSAM, Ceres)</td><td>Pose graph + sparse least-squares</td><td>What everyone uses now. Scales to 10⁵+ poses; modular.</td></tr>
+<tr><td>Visual SLAM (ORB-SLAM3, DSO, LSD-SLAM)</td><td>Bundle adjustment on visual features or pixels</td><td>Just a camera; sensitive to motion blur, low texture, illumination.</td></tr>
+<tr><td>Lidar SLAM (Cartographer, LOAM, KISS-ICP)</td><td>Scan-to-scan + scan-to-map matching, pose graph back end</td><td>Robust and accurate; lidars are expensive.</td></tr>
+<tr><td>Visual-Inertial SLAM (VINS, OKVIS, ORB-SLAM3)</td><td>Tightly couples camera + IMU</td><td>State of the art for drones, AR/VR; metric scale comes for free.</td></tr>
+</table>
+
+<h3>Use cases</h3>
+<ul class="checklist">
+  <li><strong>AR / VR.</strong> ARKit, ARCore, Quest, Vision Pro all run visual-inertial SLAM continuously to anchor virtual content.</li>
+  <li><strong>Drones in GPS-denied environments.</strong> Indoor inspection, under-bridge surveys, search and rescue.</li>
+  <li><strong>Self-driving in unmapped or stale-map areas.</strong> Fills the gaps between HD-map updates.</li>
+  <li><strong>Planetary rovers.</strong> No GPS on Mars. Curiosity and Perseverance navigate with stereo visual odometry and SLAM-style optimization.</li>
+  <li><strong>Robot vacuums and lawn mowers.</strong> Build the map on the first run, localize against it after.</li>
+</ul>
+
+<h3>Practical notes</h3>
+
+<div class="callout warn">
+<div class="callout-label">Watch out for</div>
+<p><strong>Drift is inevitable; the only fix is loop closure.</strong> Plan for closures: drive in loops, reuse known anchors, or fuse GPS when available.</p>
+<p><strong>False loop closures kill SLAM dead.</strong> Wrongly matching the current scene to a similar-looking part of the map will pull your trajectory into a horribly wrong shape. Robust back-end methods (switchable constraints, robust kernels, max-mixtures) exist exactly to reject these.</p>
+<p><strong>ICP fails when initialization is bad.</strong> The nearest-point heuristic gets stuck in local minima. Always seed ICP with the best estimate you have (odometry, IMU integration, prior frame). For very large displacements, use a global registration method first (e.g., FPFH features + RANSAC).</p>
+<p><strong>Initialization is fragile.</strong> Pure visual SLAM cannot recover scale from a single frame. The IMU helps, but you need a few seconds of motion before the system stabilizes.</p>
+<p><strong>Dynamic environments are still hard.</strong> Most SLAM systems assume the world is static. Crowds, traffic, and weather break that assumption; semantic segmentation to mask out moving objects is now standard in production stacks.</p>
+</div>
+
+</section>
+
+<section id="loop-closure">
+<h2>5 — Loop closure: the trick that saves SLAM</h2>
+
+<p>It's worth dwelling on loop closure because it's the single most important idea in modern SLAM and the one most outsiders miss.</p>
+
+<p>Imagine walking around a city blindfolded, counting your steps. After two hours you'll have a guess at where you are, but your error in step count and turn angle has compounded. Now suppose halfway through, you take off the blindfold for one second and recognize a fountain you passed earlier. <em>That single recognition</em> doesn't just tell you where you are <em>now</em> — it tells you that your path between the two visits forms a closed loop, which means you can redistribute the error you've accumulated.</p>
+
+<p>That's loop closure. The optimization step that pushes the error backward through the trajectory is called <strong>pose-graph optimization</strong>. Toggle it off in Demo 7 and you'll see exactly the error compounding I described.</p>
+
+<div class="callout tip">
+<div class="callout-label">A useful mental model</div>
+<p>Think of the trajectory as a chain of rubber-band edges between poses. Odometry gives a soft constraint between consecutive poses ("step ~1 m, ~5° turn"). Loop closure adds a single rigid edge between two poses far apart in time. The optimizer relaxes the whole chain to minimize tension. The longer the loop, the more dramatically the chain reshapes.</p>
+</div>
+
+<h3>How systems actually detect loop closures</h3>
+
+<ul class="checklist">
+  <li><strong>Bag-of-Words (DBoW2 / DBoW3)</strong> — the workhorse for visual SLAM. Each image is a histogram of visual-word occurrences from a pre-trained vocabulary. New frame is queried against all past keyframes; high similarity flags a candidate closure, which is then geometrically verified.</li>
+  <li><strong>Scan-Context</strong> — for lidar SLAM. Convert each scan into a polar-coordinate fingerprint robust to viewpoint changes.</li>
+  <li><strong>Learned descriptors</strong> — NetVLAD, MixVPR, AnyLoc. Increasingly common in production, especially for places with weather or lighting changes.</li>
+  <li><strong>GPS / WiFi / known anchors</strong> — when available, basically free loop closures.</li>
+</ul>
+
+</section>
+
+<section id="comparison">
+<h2>6 — Side by side</h2>
+
+<table>
+<tr><th></th><th>Localization</th><th>Mapping</th><th>SLAM</th></tr>
+<tr><td>What's known</td><td>Map</td><td>Pose</td><td>Neither</td></tr>
+<tr><td>What's estimated</td><td>Pose</td><td>Map</td><td>Both, jointly</td></tr>
+<tr><td>Difficulty</td><td>Easy–medium</td><td>Easy if pose is good</td><td>Hard</td></tr>
+<tr><td>Failure mode</td><td>Wrong initial pose, perceptual aliasing</td><td>Pose drift corrupts the map</td><td>Drift + bad data association</td></tr>
+<tr><td>Canonical algorithm</td><td>MCL / EKF / Histogram filter</td><td>Occupancy grid</td><td>Pose-graph optimization with ICP front end</td></tr>
+<tr><td>Key trick</td><td>Multimodal beliefs</td><td>Log-odds update</td><td>Loop closure</td></tr>
+<tr><td>Where you've used it</td><td>Vacuum returning to dock</td><td>First mapping run of a vacuum</td><td>Phone AR session</td></tr>
+</table>
+
+</section>
+
+<section id="stack">
+<h2>7 — What a real SLAM stack looks like</h2>
+
+<p>If you peel open a modern visual-inertial SLAM system (say ORB-SLAM3 or a typical AR runtime), you'll find a pipeline that looks roughly like this:</p>
+
+<div style="background:var(--paper); border:1px solid var(--rule); border-radius:6px; padding:1.2rem 1.5rem; margin:1.5rem 0; font-family:'JetBrains Mono', monospace; font-size:0.85rem; color:var(--ink-soft); line-height:1.9;">
+[ camera + IMU ]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+<b style="color:var(--accent)">Front end</b> &nbsp;— feature detection (ORB, FAST), descriptor matching, IMU pre-integration<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓ &nbsp;<i>(matched 2D–3D correspondences)</i><br>
+<b style="color:var(--accent-2)">Tracking thread</b> &nbsp;— pose at frame rate via PnP / motion-only BA<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓ &nbsp;<i>(keyframes, every ~10 frames)</i><br>
+<b style="color:var(--accent-3)">Local mapping thread</b> &nbsp;— add new map points, local bundle adjustment<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+<b style="color:var(--accent-4)">Loop &amp; map merging thread</b> &nbsp;— DBoW place recognition, pose-graph optimization, full BA<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+[ globally consistent map + 6-DoF pose at 30+ Hz ]
+</div>
+
+<p>The pattern — fast front-end loop, slow back-end optimization, occasional global correction — is universal. Replace the camera with a lidar (Cartographer, LIO-SAM) and the same architecture applies. Replace it with wheel encoders and beacon tags and you're back at warehouse-robot localization.</p>
+
+</section>
+
+<section id="references">
+<h2>8 — References &amp; further reading</h2>
+
+<h4>Code &amp; tutorials (start here)</h4>
+<ol class="refs">
+  <li><b>Sakai, A. et al.</b> <a href="https://github.com/AtsushiSakai/PythonRobotics" target="_blank">PythonRobotics</a> — Python sample codes for almost every algorithm in this primer. Covers EKF / Ensemble / Unscented Kalman / Histogram / Particle filter localization; Gaussian-grid, NDT, ray-casting, lidar-to-grid, k-means clustering, circle/rectangle fitting, and Distance Map for mapping; ICP, EKF-SLAM, FastSLAM 1.0/2.0, and Graph-based SLAM. The most accessible reference codebase in the field.</li>
+  <li><b>Sakai, A., Ingram, D., et al.</b> "PythonRobotics: a Python code collection of robotics algorithms." arXiv:1808.10703 (2018). The companion paper.</li>
+</ol>
+
+<h4>Books</h4>
+<ol class="refs">
+  <li><b>Thrun, S., Burgard, W., &amp; Fox, D.</b> <em>Probabilistic Robotics.</em> MIT Press, 2005. — The canonical textbook.</li>
+  <li><b>Barfoot, T.</b> <em>State Estimation for Robotics.</em> Cambridge University Press, 2017. — A more modern, math-forward treatment with strong factor-graph emphasis.</li>
+  <li><b>Siegwart, R., Nourbakhsh, I., &amp; Scaramuzza, D.</b> <em>Introduction to Autonomous Mobile Robots.</em> 2nd ed., MIT Press, 2011.</li>
+</ol>
+
+<h4>Foundational papers</h4>
+<ol class="refs">
+  <li><b>Smith, R., Self, M., &amp; Cheeseman, P.</b> "On the Representation and Estimation of Spatial Uncertainty." <em>IJRR</em>, 1986. — The paper that started it all.</li>
+  <li><b>Moravec, H. &amp; Elfes, A.</b> "High Resolution Maps from Wide Angle Sonar." <em>ICRA</em>, 1985. — The original occupancy grid.</li>
+  <li><b>Besl, P. &amp; McKay, N.</b> "A Method for Registration of 3-D Shapes." <em>IEEE TPAMI</em>, 1992. — The original ICP paper.</li>
+  <li><b>Montemerlo, M., et al.</b> "FastSLAM: A Factored Solution to the Simultaneous Localization and Mapping Problem." <em>AAAI</em>, 2002.</li>
+  <li><b>Dellaert, F. &amp; Kaess, M.</b> "Factor Graphs for Robot Perception." <em>Foundations and Trends in Robotics</em>, 2017.</li>
+  <li><b>Cadena, C., et al.</b> "Past, Present, and Future of Simultaneous Localization and Mapping: Toward the Robust-Perception Age." <em>IEEE T-RO</em>, 2016.</li>
+  <li><b>Durrant-Whyte, H. &amp; Bailey, T.</b> "Simultaneous Localization and Mapping: Part I &amp; II." <em>IEEE RAM</em>, 2006.</li>
+  <li><b>Julier, S. &amp; Uhlmann, J.</b> "A New Extension of the Kalman Filter to Nonlinear Systems." <em>SPIE</em>, 1997. — The UKF paper.</li>
+</ol>
+
+<h4>Influential systems</h4>
+<ol class="refs">
+  <li><b>Davison, A. J.</b> "MonoSLAM: Real-Time Single Camera SLAM." <em>IEEE TPAMI</em>, 2007.</li>
+  <li><b>Mur-Artal, R. &amp; Tardós, J. D.</b> "ORB-SLAM2 / ORB-SLAM3." <em>IEEE T-RO</em>, 2017 / 2021.</li>
+  <li><b>Hess, W., et al.</b> "Real-Time Loop Closure in 2D LIDAR SLAM." <em>ICRA</em>, 2016. — Cartographer.</li>
+  <li><b>Zhang, J. &amp; Singh, S.</b> "LOAM: Lidar Odometry and Mapping in Real-time." <em>RSS</em>, 2014.</li>
+  <li><b>Qin, T., Li, P., &amp; Shen, S.</b> "VINS-Mono: A Robust and Versatile Monocular Visual-Inertial State Estimator." <em>IEEE T-RO</em>, 2018.</li>
+  <li><b>Vizzo, I., et al.</b> "KISS-ICP: In Defense of Point-to-Point ICP." <em>IEEE RA-L</em>, 2023.</li>
+</ol>
+
+<h4>Online courses and lectures</h4>
+<ol class="refs">
+  <li><b>Cyrill Stachniss</b> — SLAM and Mobile Robotics lecture series on YouTube.</li>
+  <li><b>Sebastian Thrun</b> — Udacity "Artificial Intelligence for Robotics" (CS373).</li>
+  <li><b>Daniel Cremers</b> — TUM "Computer Vision II: Multiple View Geometry" lectures.</li>
+  <li><b>Davide Scaramuzza</b> — UZH Robotics &amp; Perception lectures.</li>
+</ol>
+
+<h4>Open-source codebases worth reading</h4>
+<ol class="refs">
+  <li><b>GTSAM</b> (Georgia Tech) — factor-graph back end used by many systems.</li>
+  <li><b>g²o</b> — the original general-purpose graph optimizer.</li>
+  <li><b>Ceres Solver</b> (Google) — generic nonlinear least squares; the optimizer behind a lot of SLAM and bundle adjustment.</li>
+  <li><b>ORB-SLAM3</b> — clean, well-documented C++ reference for visual-inertial SLAM.</li>
+  <li><b>Cartographer</b> — production-grade 2D/3D lidar SLAM.</li>
+  <li><b>OctoMap</b> — the standard 3D occupancy mapping library.</li>
+  <li><b>Open3D</b> — modern point-cloud processing including ICP variants.</li>
+</ol>
+
+</section>
+
+<footer>
+Localization, Mapping &amp; SLAM — A Visual Primer · Last revised May 2026
+</footer>
+
+</main>
+
+<script>
+/* Shared helpers */
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const W = parseInt(c.dataset.w, 10);
+  const H = parseInt(c.dataset.h, 10);
+  const dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr;
+  c.style.aspectRatio = W + '/' + H;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { canvas: c, ctx, W, H };
+}
+function gauss(mu, sigma) {
+  const u = 1 - Math.random(), v = Math.random();
+  return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function drawCovEllipse(ctx, cx, cy, P, scale, stroke, fill) {
+  const a = P[0][0], b = P[0][1], d = P[1][1];
+  const tr = a + d, det = a * d - b * b;
+  const disc = Math.max(0, tr * tr / 4 - det);
+  const e1 = tr / 2 + Math.sqrt(disc);
+  const e2 = tr / 2 - Math.sqrt(disc);
+  let vx, vy;
+  if (Math.abs(b) > 1e-9) { vx = b; vy = e1 - a; }
+  else if (a >= d) { vx = 1; vy = 0; } else { vx = 0; vy = 1; }
+  const angle = Math.atan2(vy, vx);
+  const rx = Math.sqrt(Math.max(0, e1)) * scale;
+  const ry = Math.sqrt(Math.max(0, e2)) * scale;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.restore();
+}
+
+/* Demo 1: MCL */
+(function mclDemo() {
+  const { ctx, W, H } = setupCanvas('mclCanvas');
+  const corridorLen = 50;
+  const doors = [4, 11, 22, 27, 35, 43];
+  const N = 300, margin = 30;
+  const corrTop = 60, corrH = 70;
+  const histTop = corrTop + corrH + 24, histH = 60;
+  let robotX = 5, particles = [], stepCount = 0;
+  let playing = false, sensorNoise = 0.6;
+  const motionNoise = 0.18;
+  function init() {
+    particles = [];
+    for (let i = 0; i < N; i++) particles.push({ x: Math.random() * corridorLen, w: 1/N, y: Math.random() });
+    robotX = 5 + Math.random() * 5; stepCount = 0;
+  }
+  function nearestDoorDist(x) {
+    let m = Infinity;
+    for (const d of doors) { const dist = Math.abs(x - d); if (dist < m) m = dist; }
+    return m;
+  }
+  function step() {
+    stepCount++;
+    const dx = 0.55;
+    robotX = (robotX + dx + gauss(0, 0.04)) % corridorLen;
+    if (robotX < 0) robotX += corridorLen;
+    for (const p of particles) {
+      p.x = (p.x + dx + gauss(0, motionNoise)) % corridorLen;
+      if (p.x < 0) p.x += corridorLen;
+    }
+    const measured = nearestDoorDist(robotX) + gauss(0, sensorNoise);
+    let total = 0;
+    for (const p of particles) {
+      const expected = nearestDoorDist(p.x);
+      const err = measured - expected;
+      p.w = Math.exp(-(err*err) / (2*sensorNoise*sensorNoise)) + 1e-9;
+      total += p.w;
+    }
+    for (const p of particles) p.w /= total;
+    const fresh = [];
+    const r = Math.random() / N;
+    let c = particles[0].w, idx = 0;
+    for (let m = 0; m < N; m++) {
+      const u = r + m / N;
+      while (u > c && idx < N - 1) { idx++; c += particles[idx].w; }
+      fresh.push({ x: particles[idx].x + gauss(0, 0.08), w: 1/N, y: particles[idx].y });
+    }
+    for (let i = 0; i < 6; i++) {
+      fresh[Math.floor(Math.random() * N)] = { x: Math.random() * corridorLen, w: 1/N, y: Math.random() };
+    }
+    particles = fresh;
+    updateReadout();
+  }
+  function updateReadout() {
+    document.getElementById('mclStepCount').textContent = stepCount;
+    document.getElementById('mclTrue').textContent = robotX.toFixed(2);
+    let mean = 0;
+    for (const p of particles) mean += p.x;
+    mean /= N;
+    let v = 0;
+    for (const p of particles) v += (p.x - mean) * (p.x - mean);
+    v /= N;
+    document.getElementById('mclEst').textContent = mean.toFixed(2);
+    document.getElementById('mclStd').textContent = Math.sqrt(v).toFixed(2);
+  }
+  function toX(x) { return margin + (x / corridorLen) * (W - 2 * margin); }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ebe2c8'; ctx.fillRect(margin, corrTop, W - 2*margin, corrH);
+    ctx.strokeStyle = '#534637'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(margin, corrTop, W - 2*margin, corrH);
+    ctx.fillStyle = '#1f3a5e';
+    for (const d of doors) {
+      const sx = toX(d);
+      ctx.fillRect(sx - 7, corrTop - 9, 14, 9);
+      ctx.fillRect(sx - 7, corrTop + corrH, 14, 9);
+    }
+    ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+    for (const d of doors) ctx.fillText(d.toString(), toX(d), corrTop - 14);
+    for (const p of particles) {
+      const sx = toX(p.x);
+      const sy = corrTop + 8 + p.y * (corrH - 16);
+      ctx.fillStyle = 'rgba(138,36,36,0.45)';
+      ctx.beginPath(); ctx.arc(sx, sy, 1.8, 0, Math.PI*2); ctx.fill();
+    }
+    const rsx = toX(robotX);
+    ctx.fillStyle = '#3a6b3a';
+    ctx.beginPath(); ctx.arc(rsx, corrTop + corrH/2, 8, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    const bins = 100;
+    const counts = new Array(bins).fill(0);
+    for (const p of particles) {
+      const b = Math.min(bins - 1, Math.floor((p.x / corridorLen) * bins));
+      counts[b]++;
+    }
+    let maxC = 1;
+    for (const c of counts) if (c > maxC) maxC = c;
+    ctx.strokeStyle = '#ccbfa3';
+    ctx.beginPath(); ctx.moveTo(margin, histTop + histH); ctx.lineTo(W - margin, histTop + histH); ctx.stroke();
+    for (let b = 0; b < bins; b++) {
+      const sx = margin + (b / bins) * (W - 2*margin);
+      const sw = (W - 2*margin) / bins;
+      const h = (counts[b] / maxC) * histH;
+      ctx.fillStyle = 'rgba(138,36,36,0.7)';
+      ctx.fillRect(sx, histTop + histH - h, sw - 0.5, h);
+    }
+    ctx.strokeStyle = '#3a6b3a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(rsx, histTop - 4); ctx.lineTo(rsx, histTop + histH + 4); ctx.stroke();
+    ctx.fillStyle = '#534637'; ctx.textAlign = 'left'; ctx.font = '11px Inter';
+    ctx.fillText('Corridor (50 m, doors at known positions)', margin, 24);
+    ctx.fillText('Particle distribution over corridor position', margin, histTop - 8);
+  }
+  function loop() { if (playing) step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('mclPlay').addEventListener('click', e => {
+    playing = !playing; e.target.textContent = playing ? 'Pause' : 'Play';
+  });
+  document.getElementById('mclStep').addEventListener('click', () => { step(); draw(); });
+  document.getElementById('mclReset').addEventListener('click', () => { init(); updateReadout(); draw(); });
+  document.getElementById('mclKidnap').addEventListener('click', () => { robotX = Math.random() * corridorLen; updateReadout(); draw(); });
+  document.getElementById('mclNoise').addEventListener('input', e => { sensorNoise = parseFloat(e.target.value); });
+  init(); updateReadout(); loop();
+})();
+
+/* Demo 2: EKF Localization */
+(function ekfDemo() {
+  const { ctx, W, H } = setupCanvas('ekfCanvas');
+  const cx = W/2, cy = H/2;
+  const rx = W*0.35, ry = H*0.32;
+  let landmarks = [];
+  let est = { x: 0, y: 0 };
+  let P = [[200, 0], [0, 200]];
+  let stepIdx = 0, playing = false, updates = 0;
+  let lastInnovations = [];
+  let Q = 2.5, R = 12;
+  const totalSteps = 320;
+  const sensorRange = 220;
+  function poseAt(t) {
+    const a = (t / totalSteps) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry };
+  }
+  function init() {
+    landmarks = [];
+    const positions = [[0.18,0.22],[0.5,0.12],[0.82,0.22],[0.92,0.55],
+                       [0.82,0.85],[0.5,0.92],[0.18,0.85],[0.08,0.55],
+                       [0.35,0.5],[0.65,0.5]];
+    for (const pos of positions) landmarks.push({ x: pos[0]*W, y: pos[1]*H });
+    stepIdx = 0; updates = 0; lastInnovations = [];
+    const init0 = poseAt(0);
+    est.x = init0.x + gauss(0, 8);
+    est.y = init0.y + gauss(0, 8);
+    P = [[200, 0], [0, 200]];
+    updateReadout();
+  }
+  function step() {
+    if (stepIdx >= totalSteps) {
+      playing = false;
+      document.getElementById('ekfPlay').textContent = 'Play';
+      return;
+    }
+    stepIdx++;
+    const prev = poseAt(stepIdx - 1);
+    const cur = poseAt(stepIdx);
+    est.x += cur.x - prev.x;
+    est.y += cur.y - prev.y;
+    P[0][0] += Q; P[1][1] += Q;
+    lastInnovations = [];
+    for (const lm of landmarks) {
+      const trueDist = Math.hypot(cur.x - lm.x, cur.y - lm.y);
+      if (trueDist > sensorRange) continue;
+      const z = trueDist + gauss(0, Math.sqrt(R));
+      const ex = est.x - lm.x, ey = est.y - lm.y;
+      const dist = Math.hypot(ex, ey);
+      if (dist < 0.1) continue;
+      const innov = z - dist;
+      const Hh = [ex/dist, ey/dist];
+      const HP = [P[0][0]*Hh[0] + P[0][1]*Hh[1], P[1][0]*Hh[0] + P[1][1]*Hh[1]];
+      const S = HP[0]*Hh[0] + HP[1]*Hh[1] + R;
+      const K = [HP[0]/S, HP[1]/S];
+      est.x += K[0] * innov;
+      est.y += K[1] * innov;
+      const KH00 = K[0]*Hh[0], KH01 = K[0]*Hh[1];
+      const KH10 = K[1]*Hh[0], KH11 = K[1]*Hh[1];
+      const newP00 = (1-KH00)*P[0][0] + (-KH01)*P[1][0];
+      const newP01 = (1-KH00)*P[0][1] + (-KH01)*P[1][1];
+      const newP10 = (-KH10)*P[0][0] + (1-KH11)*P[1][0];
+      const newP11 = (-KH10)*P[0][1] + (1-KH11)*P[1][1];
+      P[0][0] = newP00; P[0][1] = newP01;
+      P[1][0] = newP10; P[1][1] = newP11;
+      updates++;
+      lastInnovations.push({ lm: lm, est: { x: est.x, y: est.y } });
+    }
+    updateReadout();
+  }
+  function updateReadout() {
+    document.getElementById('ekfStep2').textContent = stepIdx;
+    document.getElementById('ekfTrP').textContent = (P[0][0] + P[1][1]).toFixed(1);
+    const cur = poseAt(stepIdx);
+    const err = Math.hypot(est.x - cur.x, est.y - cur.y) * 0.05;
+    document.getElementById('ekfErr').textContent = err.toFixed(2) + ' m';
+    document.getElementById('ekfUpd').textContent = updates;
+  }
+  function drawTruePath() {
+    ctx.strokeStyle = '#bcb29b'; ctx.lineWidth = 2;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    for (let i = 0; i <= totalSteps; i += 4) {
+      const p = poseAt(i);
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    drawTruePath();
+    for (const lm of landmarks) {
+      ctx.fillStyle = '#1f3a5e';
+      ctx.beginPath(); ctx.arc(lm.x, lm.y, 4.5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fdfaf0'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    const cur = poseAt(stepIdx);
+    ctx.strokeStyle = 'rgba(58,107,58,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cur.x, cur.y, sensorRange, 0, Math.PI*2); ctx.stroke();
+    for (const inn of lastInnovations) {
+      ctx.strokeStyle = 'rgba(138,36,36,0.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(inn.est.x, inn.est.y); ctx.lineTo(inn.lm.x, inn.lm.y); ctx.stroke();
+    }
+    drawCovEllipse(ctx, est.x, est.y, P, 2.0, '#8a2424', 'rgba(138,36,36,0.18)');
+    ctx.fillStyle = '#534637';
+    ctx.beginPath(); ctx.arc(cur.x, cur.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8a2424';
+    ctx.beginPath(); ctx.arc(est.x, est.y, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#534637'; ctx.font = '11px Inter'; ctx.textAlign = 'left';
+    ctx.fillText('EKF localization · range-only updates · 2σ covariance ellipse', 14, 20);
+  }
+  function loop() { if (playing) step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('ekfPlay').addEventListener('click', e => {
+    if (stepIdx >= totalSteps) init();
+    playing = !playing;
+    e.target.textContent = playing ? 'Pause' : 'Play';
+  });
+  document.getElementById('ekfStep').addEventListener('click', () => { step(); draw(); });
+  document.getElementById('ekfReset').addEventListener('click', () => {
+    playing = false;
+    document.getElementById('ekfPlay').textContent = 'Play';
+    init(); draw();
+  });
+  document.getElementById('ekfQ').addEventListener('input', e => { Q = parseFloat(e.target.value); });
+  document.getElementById('ekfR').addEventListener('input', e => { R = parseFloat(e.target.value); });
+  init(); draw(); loop();
+})();
+
+/* Demo 3: Histogram filter */
+(function histDemo() {
+  const { ctx, W, H } = setupCanvas('histCanvas');
+  const cellSize = 16;
+  const cols = Math.floor(W / cellSize);
+  const rows = Math.floor(H / cellSize);
+  let grid;
+  let landmarks = [];
+  let stepIdx = 0, playing = false;
+  let sensorNoise = 10;
+  const totalSteps = 200;
+  const cx = W/2, cy = H/2;
+  const rx = W*0.32, ry = H*0.30;
+  function poseAt(t) {
+    const a = (t / totalSteps) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry };
+  }
+  function init() {
+    grid = new Float32Array(cols * rows);
+    const u = 1 / (cols * rows);
+    for (let i = 0; i < grid.length; i++) grid[i] = u;
+    landmarks = [];
+    const lpos = [[0.2,0.25],[0.5,0.15],[0.8,0.25],[0.85,0.6],[0.5,0.85],[0.2,0.75]];
+    for (const p of lpos) landmarks.push({ x: p[0]*W, y: p[1]*H });
+    stepIdx = 0;
+    updateReadout();
+  }
+  function predictAndBlur(dxCells, dyCells) {
+    const fdx = Math.round(dxCells), fdy = Math.round(dyCells);
+    const shifted = new Float32Array(cols * rows);
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const ni = i + fdx, nj = j + fdy;
+        if (ni >= 0 && ni < cols && nj >= 0 && nj < rows) {
+          shifted[ni*rows + nj] += grid[i*rows + j];
+        }
+      }
+    }
+    const k = [0.04,0.10,0.04,0.10,0.44,0.10,0.04,0.10,0.04];
+    const out = new Float32Array(cols * rows);
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        let s = 0, kI = 0;
+        for (let dj = -1; dj <= 1; dj++) {
+          for (let di = -1; di <= 1; di++) {
+            const ii = Math.max(0, Math.min(cols-1, i+di));
+            const jj = Math.max(0, Math.min(rows-1, j+dj));
+            s += shifted[ii*rows + jj] * k[kI++];
+          }
+        }
+        out[i*rows + j] = s;
+      }
+    }
+    grid = out;
+    let total = 0;
+    for (let i = 0; i < grid.length; i++) { grid[i] += 1e-7; total += grid[i]; }
+    if (total > 0) for (let i = 0; i < grid.length; i++) grid[i] /= total;
+  }
+  function update() {
+    const truth = poseAt(stepIdx);
+    let nearest = null, nearestD = Infinity;
+    for (const lm of landmarks) {
+      const d = Math.hypot(truth.x - lm.x, truth.y - lm.y);
+      if (d < nearestD) { nearestD = d; nearest = lm; }
+    }
+    const z = nearestD + gauss(0, sensorNoise);
+    let total = 0;
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const px = (i + 0.5) * cellSize, py = (j + 0.5) * cellSize;
+        const exp = Math.hypot(px - nearest.x, py - nearest.y);
+        const err = z - exp;
+        const lik = Math.exp(-(err*err) / (2*sensorNoise*sensorNoise));
+        const idx = i*rows + j;
+        grid[idx] *= lik;
+        total += grid[idx];
+      }
+    }
+    if (total > 0) for (let i = 0; i < grid.length; i++) grid[i] /= total;
+  }
+  function step() {
+    if (stepIdx >= totalSteps) {
+      playing = false;
+      document.getElementById('histPlay').textContent = 'Play';
+      return;
+    }
+    const prev = poseAt(stepIdx);
+    stepIdx++;
+    const cur = poseAt(stepIdx);
+    predictAndBlur((cur.x - prev.x) / cellSize, (cur.y - prev.y) / cellSize);
+    update();
+    updateReadout();
+  }
+  function updateReadout() {
+    document.getElementById('histStep2').textContent = stepIdx;
+    let peak = 0, ent = 0;
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] > peak) peak = grid[i];
+      if (grid[i] > 1e-9) ent -= grid[i] * Math.log(grid[i]);
+    }
+    document.getElementById('histPeak').textContent = peak.toFixed(3);
+    document.getElementById('histEnt').textContent = ent.toFixed(2);
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    let peak = 1e-9;
+    for (let i = 0; i < grid.length; i++) if (grid[i] > peak) peak = grid[i];
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const v = grid[i*rows + j] / peak;
+        if (v < 0.005) continue;
+        const a = Math.min(0.92, 0.05 + v * 0.9);
+        ctx.fillStyle = 'rgba(138,36,36,' + a + ')';
+        ctx.fillRect(i*cellSize, j*cellSize, cellSize, cellSize);
+      }
+    }
+    ctx.strokeStyle = 'rgba(83,70,55,0.06)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= cols; i++) { ctx.beginPath(); ctx.moveTo(i*cellSize+0.5, 0); ctx.lineTo(i*cellSize+0.5, H); ctx.stroke(); }
+    for (let j = 0; j <= rows; j++) { ctx.beginPath(); ctx.moveTo(0, j*cellSize+0.5); ctx.lineTo(W, j*cellSize+0.5); ctx.stroke(); }
+    for (const lm of landmarks) {
+      ctx.fillStyle = '#1f3a5e';
+      ctx.beginPath(); ctx.arc(lm.x, lm.y, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fdfaf0'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    const t = poseAt(stepIdx);
+    ctx.fillStyle = '#3a6b3a';
+    ctx.beginPath(); ctx.arc(t.x, t.y, 7, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#534637'; ctx.font = '11px Inter'; ctx.textAlign = 'left';
+    ctx.fillText('Histogram filter · grid belief · range to nearest landmark', 14, 20);
+  }
+  function loop() { if (playing) step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('histPlay').addEventListener('click', e => {
+    if (stepIdx >= totalSteps) init();
+    playing = !playing;
+    e.target.textContent = playing ? 'Pause' : 'Play';
+  });
+  document.getElementById('histStep').addEventListener('click', () => { step(); draw(); });
+  document.getElementById('histReset').addEventListener('click', () => {
+    playing = false;
+    document.getElementById('histPlay').textContent = 'Play';
+    init(); draw();
+  });
+  document.getElementById('histNoise').addEventListener('input', e => { sensorNoise = parseFloat(e.target.value); });
+  init(); draw(); loop();
+})();
+
+/* Demo 4: Occupancy grid */
+(function ogDemo() {
+  const { canvas, ctx, W, H } = setupCanvas('ogCanvas');
+  const cellSize = 10;
+  const cols = Math.floor(W / cellSize);
+  const rows = Math.floor(H / cellSize);
+  let grid, truth;
+  let robot = { x: W*0.25, y: H*0.5 };
+  let scans = 0, observed = 0;
+  let showRays = true, showProb = true;
+  let sensorRange = 180;
+  const numRays = 90;
+  const lOcc = 0.85, lFree = -0.4, lClamp = 5;
+  function buildTruth() {
+    const t = [];
+    for (let i = 0; i < cols; i++) t.push(new Uint8Array(rows));
+    for (let i = 0; i < cols; i++) { t[i][0] = 1; t[i][rows-1] = 1; }
+    for (let j = 0; j < rows; j++) { t[0][j] = 1; t[cols-1][j] = 1; }
+    function wall(x1, y1, x2, y2) {
+      const dx = Math.sign(x2-x1), dy = Math.sign(y2-y1);
+      let x = x1, y = y1;
+      while (true) {
+        if (x >= 0 && x < cols && y >= 0 && y < rows) t[x][y] = 1;
+        if (x === x2 && y === y2) break;
+        if (x !== x2) x += dx; else if (y !== y2) y += dy;
+      }
+    }
+    wall(20,5,20,22); wall(20,28,20,44);
+    wall(40,0,40,14); wall(40,22,40,36); wall(58,8,58,38);
+    wall(20,22,35,22); wall(45,30,60,30);
+    const pillars = [[10,10],[10,35],[50,18],[70,25],[70,12],[70,40]];
+    for (const p of pillars) {
+      const px = p[0], py = p[1];
+      t[px][py] = 1;
+      if (px+1 < cols) t[px+1][py] = 1;
+      if (py+1 < rows) t[px][py+1] = 1;
+      if (px+1 < cols && py+1 < rows) t[px+1][py+1] = 1;
+    }
+    return t;
+  }
+  function init() {
+    truth = buildTruth();
+    grid = [];
+    for (let i = 0; i < cols; i++) grid.push(new Float32Array(rows));
+    scans = 0; observed = 0;
+    robot = { x: W*0.25, y: H*0.5 };
+    updateReadout();
+  }
+  function castRay(x0, y0, ang) {
+    const dx = Math.cos(ang), dy = Math.sin(ang);
+    let tt = 0; const dt = 2;
+    while (tt < sensorRange) {
+      const x = x0 + dx*tt, y = y0 + dy*tt;
+      const ccx = Math.floor(x/cellSize), ccy = Math.floor(y/cellSize);
+      if (ccx < 0 || ccx >= cols || ccy < 0 || ccy >= rows) return { hit: true, x, y };
+      if (truth[ccx][ccy]) return { hit: true, x, y };
+      tt += dt;
+    }
+    return { hit: false, x: x0 + dx*sensorRange, y: y0 + dy*sensorRange };
+  }
+  function bresenhamCells(x0, y0, x1, y1) {
+    const cells = [];
+    let cxc = Math.floor(x0/cellSize), cyc = Math.floor(y0/cellSize);
+    const tx = Math.floor(x1/cellSize), ty = Math.floor(y1/cellSize);
+    const dx = Math.abs(tx-cxc), dy = Math.abs(ty-cyc);
+    const sx = cxc < tx ? 1 : -1, sy = cyc < ty ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      cells.push([cxc, cyc]);
+      if (cxc === tx && cyc === ty) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cxc += sx; }
+      if (e2 <  dx) { err += dx; cyc += sy; }
+    }
+    return cells;
+  }
+  function scan() {
+    scans++;
+    const lastEnd = [];
+    for (let i = 0; i < numRays; i++) {
+      const ang = (i / numRays) * Math.PI * 2;
+      const r = castRay(robot.x, robot.y, ang);
+      lastEnd.push(r);
+      const cells = bresenhamCells(robot.x, robot.y, r.x, r.y);
+      for (let k = 0; k < cells.length; k++) {
+        const ccx = cells[k][0], ccy = cells[k][1];
+        if (ccx < 0 || ccx >= cols || ccy < 0 || ccy >= rows) continue;
+        const isLast = (k === cells.length - 1) && r.hit;
+        const before = grid[ccx][ccy];
+        if (isLast) grid[ccx][ccy] = Math.min(lClamp, grid[ccx][ccy] + lOcc);
+        else grid[ccx][ccy] = Math.max(-lClamp, grid[ccx][ccy] + lFree);
+        if (before === 0) observed++;
+      }
+    }
+    return lastEnd;
+  }
+  let lastRays = [];
+  function updateReadout() {
+    document.getElementById('ogCells').textContent = observed;
+    document.getElementById('ogScans').textContent = scans;
+    document.getElementById('ogCov').textContent = ((observed / (cols*rows)) * 100).toFixed(1) + '%';
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#bcb29b'; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const l = grid[i][j];
+        if (l === 0) continue;
+        if (showProb) {
+          const p = 1 / (1 + Math.exp(-l));
+          if (p < 0.5) {
+            const tt = (0.5 - p) * 2;
+            const r = 188 + (253 - 188) * tt;
+            const g = 178 + (250 - 178) * tt;
+            const b = 155 + (240 - 155) * tt;
+            ctx.fillStyle = 'rgb(' + (r|0) + ',' + (g|0) + ',' + (b|0) + ')';
+          } else {
+            const tt = (p - 0.5) * 2;
+            const r = 188 + (31 - 188) * tt;
+            const g = 178 + (26 - 178) * tt;
+            const b = 155 + (20 - 155) * tt;
+            ctx.fillStyle = 'rgb(' + (r|0) + ',' + (g|0) + ',' + (b|0) + ')';
+          }
+        } else {
+          if (l > 0.5) ctx.fillStyle = '#1f1a14';
+          else if (l < -0.5) ctx.fillStyle = '#fdfaf0';
+          else ctx.fillStyle = '#bcb29b';
+        }
+        ctx.fillRect(i*cellSize, j*cellSize, cellSize, cellSize);
+      }
+    }
+    ctx.strokeStyle = 'rgba(83,70,55,0.06)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= cols; i++) { ctx.beginPath(); ctx.moveTo(i*cellSize+0.5, 0); ctx.lineTo(i*cellSize+0.5, H); ctx.stroke(); }
+    for (let j = 0; j <= rows; j++) { ctx.beginPath(); ctx.moveTo(0, j*cellSize+0.5); ctx.lineTo(W, j*cellSize+0.5); ctx.stroke(); }
+    if (showRays && lastRays.length) {
+      ctx.strokeStyle = 'rgba(138,36,36,0.18)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const r of lastRays) { ctx.moveTo(robot.x, robot.y); ctx.lineTo(r.x, r.y); }
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(138,36,36,0.85)';
+      for (const r of lastRays) {
+        if (r.hit) { ctx.beginPath(); ctx.arc(r.x, r.y, 1.4, 0, Math.PI*2); ctx.fill(); }
+      }
+    }
+    ctx.fillStyle = '#3a6b3a';
+    ctx.beginPath(); ctx.arc(robot.x, robot.y, 8, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#fdfaf0';
+    ctx.beginPath(); ctx.arc(robot.x, robot.y, 3, 0, Math.PI*2); ctx.fill();
+  }
+  let dragging = false;
+  function localPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) * (W / rect.width), y: (e.clientY - rect.top) * (H / rect.height) };
+  }
+  function moveTo(p) {
+    p.x = Math.max(cellSize*1.5, Math.min(W - cellSize*1.5, p.x));
+    p.y = Math.max(cellSize*1.5, Math.min(H - cellSize*1.5, p.y));
+    const ccx = Math.floor(p.x/cellSize), ccy = Math.floor(p.y/cellSize);
+    if (ccx >= 0 && ccx < cols && ccy >= 0 && ccy < rows && truth[ccx][ccy]) return;
+    robot.x = p.x; robot.y = p.y;
+    lastRays = scan();
+    updateReadout(); draw();
+  }
+  canvas.addEventListener('mousedown', e => { dragging = true; moveTo(localPos(e)); });
+  canvas.addEventListener('mousemove', e => { if (dragging) moveTo(localPos(e)); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); dragging = true; moveTo(localPos(e.touches[0])); }, { passive: false });
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (dragging) moveTo(localPos(e.touches[0])); }, { passive: false });
+  canvas.addEventListener('touchend', () => { dragging = false; });
+  document.getElementById('ogReset').addEventListener('click', () => { init(); lastRays = []; draw(); });
+  const showRaysBtn = document.getElementById('ogShowRays');
+  showRaysBtn.addEventListener('click', () => {
+    showRays = !showRays;
+    showRaysBtn.classList.toggle('active', showRays);
+    draw();
+  });
+  document.getElementById('ogProb').addEventListener('change', e => { showProb = e.target.checked; draw(); });
+  document.getElementById('ogRange').addEventListener('input', e => { sensorRange = parseInt(e.target.value, 10); });
+  init(); lastRays = scan(); draw();
+})();
+
+/* Demo 5: ICP */
+(function icpDemo() {
+  const { ctx, W, H } = setupCanvas('icpCanvas');
+  let fixed = [], moving = [];
+  let iter = 0, lastRes = 0, lastDR = 0;
+  let showCorr = true;
+  const cx = W/2, cy = H/2;
+  function makeShape() {
+    const pts = [];
+    for (let t = 0; t < 220; t += 5) pts.push({ x: -200 + t, y: -110 });
+    for (let t = 0; t < 90; t += 5) pts.push({ x: 20, y: -110 + t });
+    for (let t = 0; t < 50; t += 5) pts.push({ x: 20 + t, y: -20 });
+    for (let t = 0; t < 100; t += 5) pts.push({ x: 70, y: -20 + t });
+    for (let t = 0; t < 270; t += 5) pts.push({ x: 70 - t, y: 80 });
+    for (let t = 0; t < 190; t += 5) pts.push({ x: -200, y: 80 - t });
+    for (let a = 0; a < Math.PI*2; a += 0.32) {
+      pts.push({ x: -90 + Math.cos(a)*22, y: 0 + Math.sin(a)*22 });
+    }
+    return pts.map(p => ({ x: p.x + cx, y: p.y + cy }));
+  }
+  function init() {
+    const base = makeShape();
+    fixed = base.map(p => ({ x: p.x + gauss(0, 0.6), y: p.y + gauss(0, 0.6) }));
+    const ang = (Math.random() - 0.5) * 0.7;
+    const tx = (Math.random() - 0.5) * 80;
+    const ty = (Math.random() - 0.5) * 60;
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    moving = base.map(p => {
+      const dx = p.x - cx, dy = p.y - cy;
+      return {
+        x: cx + (ca*dx - sa*dy) + tx + gauss(0, 1.2),
+        y: cy + (sa*dx + ca*dy) + ty + gauss(0, 1.2)
+      };
+    });
+    iter = 0; lastRes = 0; lastDR = 0;
+    updateReadout();
+  }
+  function icpStep() {
+    const corr = [];
+    let totalRes = 0;
+    for (const p of moving) {
+      let best = null, bestD = Infinity;
+      for (const f of fixed) {
+        const d2 = (p.x-f.x)*(p.x-f.x) + (p.y-f.y)*(p.y-f.y);
+        if (d2 < bestD) { bestD = d2; best = f; }
+      }
+      corr.push(best);
+      totalRes += Math.sqrt(bestD);
+    }
+    let muMx = 0, muMy = 0, muFx = 0, muFy = 0;
+    for (let i = 0; i < moving.length; i++) {
+      muMx += moving[i].x; muMy += moving[i].y;
+      muFx += corr[i].x; muFy += corr[i].y;
+    }
+    const n = moving.length;
+    muMx /= n; muMy /= n; muFx /= n; muFy /= n;
+    let Hxx = 0, Hxy = 0, Hyx = 0, Hyy = 0;
+    for (let i = 0; i < n; i++) {
+      const dmx = moving[i].x - muMx, dmy = moving[i].y - muMy;
+      const dfx = corr[i].x - muFx, dfy = corr[i].y - muFy;
+      Hxx += dmx*dfx; Hxy += dmx*dfy;
+      Hyx += dmy*dfx; Hyy += dmy*dfy;
+    }
+    const ang = Math.atan2(Hxy - Hyx, Hxx + Hyy);
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const tx = muFx - (ca*muMx - sa*muMy);
+    const ty = muFy - (sa*muMx + ca*muMy);
+    for (let i = 0; i < moving.length; i++) {
+      const x = moving[i].x, y = moving[i].y;
+      moving[i].x = ca*x - sa*y + tx;
+      moving[i].y = sa*x + ca*y + ty;
+    }
+    iter++;
+    lastRes = totalRes / n;
+    lastDR = ang;
+    updateReadout();
+    return Math.abs(ang) < 1e-4;
+  }
+  function updateReadout() {
+    document.getElementById('icpIter').textContent = iter;
+    document.getElementById('icpRes').textContent = lastRes.toFixed(2);
+    document.getElementById('icpDR').textContent = (lastDR * 180 / Math.PI).toFixed(2) + '°';
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    if (showCorr && iter < 50) {
+      ctx.strokeStyle = 'rgba(182,121,47,0.45)'; ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      for (const p of moving) {
+        let best = null, bestD = Infinity;
+        for (const f of fixed) {
+          const d2 = (p.x-f.x)*(p.x-f.x) + (p.y-f.y)*(p.y-f.y);
+          if (d2 < bestD) { bestD = d2; best = f; }
+        }
+        if (best) { ctx.moveTo(p.x, p.y); ctx.lineTo(best.x, best.y); }
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#534637';
+    for (const p of fixed) { ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2); ctx.fill(); }
+    ctx.fillStyle = '#8a2424';
+    for (const p of moving) { ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2); ctx.fill(); }
+    ctx.fillStyle = '#534637'; ctx.font = '11px Inter'; ctx.textAlign = 'left';
+    ctx.fillText('ICP scan matching · iterative closest-point alignment', 14, 20);
+  }
+  document.getElementById('icpStep').addEventListener('click', () => { icpStep(); draw(); });
+  document.getElementById('icpRun').addEventListener('click', () => {
+    let count = 0;
+    function tick() {
+      if (count++ > 60) return;
+      const done = icpStep();
+      draw();
+      if (!done && count < 60) setTimeout(tick, 90);
+    }
+    tick();
+  });
+  document.getElementById('icpReset').addEventListener('click', () => { init(); draw(); });
+  const corrBtn = document.getElementById('icpCorr');
+  corrBtn.addEventListener('click', () => {
+    showCorr = !showCorr;
+    corrBtn.classList.toggle('active', showCorr);
+    draw();
+  });
+  init(); draw();
+})();
+
+/* Demo 6: EKF-SLAM */
+(function ekfSlamDemo() {
+  const { ctx, W, H } = setupCanvas('ekfslamCanvas');
+  const cx = W/2, cy = H/2;
+  const rx = W*0.35, ry = H*0.32;
+  let trueLandmarks = [];
+  let state, P, lmIndex;
+  let stepIdx = 0, playing = false;
+  let sensorRange = 120;
+  const totalSteps = 360;
+  const Q_robot = 1.5;
+  const R_obs = 6;
+  const newLmInitVar = 800;
+  function poseAt(t) {
+    const a = (t / totalSteps) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry };
+  }
+  function init() {
+    trueLandmarks = [];
+    const positions = [[0.18,0.22],[0.5,0.10],[0.82,0.22],
+                       [0.92,0.55],[0.82,0.85],[0.5,0.94],
+                       [0.18,0.85],[0.08,0.55],
+                       [0.32,0.42],[0.68,0.42],[0.32,0.62],[0.68,0.62]];
+    for (let i = 0; i < positions.length; i++) {
+      trueLandmarks.push({ id: i, x: positions[i][0]*W, y: positions[i][1]*H });
+    }
+    const init0 = poseAt(0);
+    state = [init0.x, init0.y];
+    P = [[1, 0], [0, 1]];
+    lmIndex = new Map();
+    stepIdx = 0;
+    updateReadout();
+  }
+  function predict(dx, dy) {
+    state[0] += dx; state[1] += dy;
+    P[0][0] += Q_robot; P[1][1] += Q_robot;
+  }
+  function observeLandmark(lmTrue, zRel) {
+    let idx;
+    if (!lmIndex.has(lmTrue.id)) {
+      idx = state.length;
+      state.push(state[0] + zRel.x);
+      state.push(state[1] + zRel.y);
+      const oldN = idx, newN = oldN + 2;
+      const newP = [];
+      for (let i = 0; i < newN; i++) {
+        const row = new Array(newN).fill(0);
+        if (i < oldN) {
+          for (let j = 0; j < oldN; j++) row[j] = P[i][j];
+        } else {
+          row[i] = newLmInitVar;
+        }
+        newP.push(row);
+      }
+      P = newP;
+      lmIndex.set(lmTrue.id, idx);
+      return;
+    }
+    idx = lmIndex.get(lmTrue.id);
+    const n = state.length;
+    const zhx = state[idx] - state[0];
+    const zhy = state[idx+1] - state[1];
+    const yx = zRel.x - zhx;
+    const yy = zRel.y - zhy;
+    const Prr00 = P[0][0], Prr01 = P[0][1], Prr10 = P[1][0], Prr11 = P[1][1];
+    const Pll00 = P[idx][idx], Pll01 = P[idx][idx+1], Pll10 = P[idx+1][idx], Pll11 = P[idx+1][idx+1];
+    const Prl00 = P[0][idx], Prl01 = P[0][idx+1], Prl10 = P[1][idx], Prl11 = P[1][idx+1];
+    const Plr00 = P[idx][0], Plr01 = P[idx][1], Plr10 = P[idx+1][0], Plr11 = P[idx+1][1];
+    const S00 = Prr00 + Pll00 - Prl00 - Plr00 + R_obs;
+    const S01 = Prr01 + Pll01 - Prl01 - Plr01;
+    const S10 = Prr10 + Pll10 - Prl10 - Plr10;
+    const S11 = Prr11 + Pll11 - Prl11 - Plr11 + R_obs;
+    const detS = S00*S11 - S01*S10;
+    if (Math.abs(detS) < 1e-9) return;
+    const Si00 = S11/detS, Si01 = -S01/detS;
+    const Si10 = -S10/detS, Si11 = S00/detS;
+    const PHt = [];
+    for (let k = 0; k < n; k++) {
+      PHt.push([P[k][idx] - P[k][0], P[k][idx+1] - P[k][1]]);
+    }
+    const K = [];
+    for (let k = 0; k < n; k++) {
+      K.push([
+        PHt[k][0]*Si00 + PHt[k][1]*Si10,
+        PHt[k][0]*Si01 + PHt[k][1]*Si11
+      ]);
+    }
+    for (let k = 0; k < n; k++) {
+      state[k] += K[k][0]*yx + K[k][1]*yy;
+    }
+    const newP = [];
+    for (let i = 0; i < n; i++) {
+      const row = new Array(n);
+      for (let j = 0; j < n; j++) {
+        const KHP = -K[i][0]*P[0][j] - K[i][1]*P[1][j]
+                  +  K[i][0]*P[idx][j] + K[i][1]*P[idx+1][j];
+        row[j] = P[i][j] - KHP;
+      }
+      newP.push(row);
+    }
+    P = newP;
+  }
+  function step() {
+    if (stepIdx >= totalSteps) {
+      playing = false;
+      document.getElementById('esPlay').textContent = 'Play';
+      return;
+    }
+    stepIdx++;
+    const prev = poseAt(stepIdx - 1);
+    const cur = poseAt(stepIdx);
+    const odoNx = gauss(0, 0.7), odoNy = gauss(0, 0.7);
+    predict(cur.x - prev.x + odoNx, cur.y - prev.y + odoNy);
+    for (const lm of trueLandmarks) {
+      const d = Math.hypot(cur.x - lm.x, cur.y - lm.y);
+      if (d > sensorRange) continue;
+      const zRel = {
+        x: lm.x - cur.x + gauss(0, Math.sqrt(R_obs)),
+        y: lm.y - cur.y + gauss(0, Math.sqrt(R_obs))
+      };
+      observeLandmark(lm, zRel);
+    }
+    updateReadout();
+  }
+  function updateReadout() {
+    document.getElementById('esStepN').textContent = stepIdx;
+    document.getElementById('esLM').textContent = lmIndex ? lmIndex.size : 0;
+    document.getElementById('esN').textContent = state ? state.length : 2;
+    if (state) {
+      const cur = poseAt(stepIdx);
+      const err = Math.hypot(state[0] - cur.x, state[1] - cur.y) * 0.05;
+      document.getElementById('esErr').textContent = err.toFixed(2) + ' m';
+    }
+  }
+  function drawTruePath() {
+    ctx.strokeStyle = '#bcb29b'; ctx.lineWidth = 2;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    for (let i = 0; i <= totalSteps; i += 4) {
+      const p = poseAt(i);
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    drawTruePath();
+    for (const lm of trueLandmarks) {
+      ctx.fillStyle = '#1f3a5e';
+      ctx.beginPath(); ctx.arc(lm.x, lm.y, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fdfaf0'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    const cur = poseAt(stepIdx);
+    ctx.strokeStyle = 'rgba(58,107,58,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cur.x, cur.y, sensorRange, 0, Math.PI*2); ctx.stroke();
+    if (lmIndex) {
+      lmIndex.forEach((idx) => {
+        const lx = state[idx], ly = state[idx+1];
+        const Pll = [[P[idx][idx], P[idx][idx+1]], [P[idx+1][idx], P[idx+1][idx+1]]];
+        drawCovEllipse(ctx, lx, ly, Pll, 2.0, '#1f3a5e', 'rgba(31,58,94,0.14)');
+        ctx.fillStyle = '#1f3a5e';
+        ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI*2); ctx.fill();
+      });
+    }
+    const Prr = [[P[0][0], P[0][1]], [P[1][0], P[1][1]]];
+    drawCovEllipse(ctx, state[0], state[1], Prr, 2.0, '#8a2424', 'rgba(138,36,36,0.18)');
+    ctx.fillStyle = '#534637';
+    ctx.beginPath(); ctx.arc(cur.x, cur.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8a2424';
+    ctx.beginPath(); ctx.arc(state[0], state[1], 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#534637'; ctx.font = '11px Inter'; ctx.textAlign = 'left';
+    ctx.fillText('EKF-SLAM · joint estimation of robot pose + all landmarks', 14, 20);
+  }
+  function loop() { if (playing) step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('esPlay').addEventListener('click', e => {
+    if (stepIdx >= totalSteps) init();
+    playing = !playing;
+    e.target.textContent = playing ? 'Pause' : 'Play';
+  });
+  document.getElementById('esStep').addEventListener('click', () => { step(); draw(); });
+  document.getElementById('esReset').addEventListener('click', () => {
+    playing = false;
+    document.getElementById('esPlay').textContent = 'Play';
+    init(); draw();
+  });
+  document.getElementById('esRange').addEventListener('input', e => { sensorRange = parseFloat(e.target.value); });
+  init(); draw(); loop();
+})();
+
+/* Demo 7: SLAM drift + loop closure */
+(function slamDemo() {
+  const { ctx, W, H } = setupCanvas('slamCanvas');
+  const cx = W/2, cy = H/2;
+  const radiusX = W*0.35, radiusY = H*0.32;
+  let landmarks = [], truePath = [], estPath = [];
+  let stepIdx = 0;
+  const totalSteps = 200;
+  let playing = false, loopOn = true;
+  let odoNoise = 0.025;
+  let lcCount = 0;
+  function poseAt(t) {
+    const a = (t / totalSteps) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * radiusX, y: cy + Math.sin(a) * radiusY, th: a + Math.PI/2 };
+  }
+  function init() {
+    landmarks = [];
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + 0.3;
+      const r = 0.85 + Math.random() * 0.4;
+      landmarks.push({
+        x: cx + Math.cos(a) * radiusX * r * (0.85 + Math.random()*0.3),
+        y: cy + Math.sin(a) * radiusY * r * (0.85 + Math.random()*0.3)
+      });
+    }
+    truePath = []; estPath = [];
+    stepIdx = 0; lcCount = 0;
+    const p0 = poseAt(0);
+    truePath.push(p0);
+    estPath.push({ x: p0.x, y: p0.y, th: p0.th, sigma: 0.5 });
+    document.getElementById('slamLC').textContent = '0';
+    document.getElementById('slamStep').textContent = '0';
+    document.getElementById('slamErr').textContent = '0.00';
+  }
+  function step() {
+    if (stepIdx >= totalSteps) {
+      playing = false;
+      document.getElementById('slamPlay').textContent = 'Play';
+      return;
+    }
+    stepIdx++;
+    const tp = poseAt(stepIdx);
+    truePath.push(tp);
+    const prevTrue = truePath[stepIdx - 1];
+    const dx = tp.x - prevTrue.x, dy = tp.y - prevTrue.y;
+    const stepLen = Math.hypot(dx, dy);
+    const ang = Math.atan2(dy, dx);
+    const noisyAng = ang + gauss(0, odoNoise * 1.4);
+    const noisyLen = stepLen * (1 + gauss(0, odoNoise * 0.6));
+    const prevEst = estPath[stepIdx - 1];
+    const ex = prevEst.x + Math.cos(noisyAng) * noisyLen;
+    const ey = prevEst.y + Math.sin(noisyAng) * noisyLen;
+    let sigma = prevEst.sigma + odoNoise * 6;
+    let didClose = false;
+    if (loopOn && stepIdx > totalSteps * 0.85) {
+      const dx0 = tp.x - truePath[0].x, dy0 = tp.y - truePath[0].y;
+      const distToStart = Math.hypot(dx0, dy0);
+      if (distToStart < 18) didClose = true;
+    }
+    estPath.push({ x: ex, y: ey, th: noisyAng + Math.PI/2, sigma: sigma });
+    if (didClose) {
+      const finalIdx = estPath.length - 1;
+      const errX = estPath[finalIdx].x - estPath[0].x;
+      const errY = estPath[finalIdx].y - estPath[0].y;
+      for (let i = 1; i < estPath.length; i++) {
+        const f = i / finalIdx;
+        estPath[i].x -= errX * f;
+        estPath[i].y -= errY * f;
+        estPath[i].sigma = Math.max(1.5, estPath[i].sigma * 0.18 * (1 - f * 0.3));
+      }
+      lcCount++;
+      document.getElementById('slamLC').textContent = lcCount;
+    }
+    const finalErr = Math.hypot(estPath[stepIdx].x - tp.x, estPath[stepIdx].y - tp.y);
+    document.getElementById('slamStep').textContent = stepIdx;
+    document.getElementById('slamErr').textContent = (finalErr * 0.05).toFixed(2);
+  }
+  function drawEllipseSimple(cxe, cye, r, color) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color.replace('1)', '0.08)');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cxe, cye, r, r * 0.85, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fdfaf0'; ctx.fillRect(0, 0, W, H);
+    for (const lm of landmarks) {
+      ctx.fillStyle = '#1f3a5e';
+      ctx.beginPath(); ctx.arc(lm.x, lm.y, 4, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fdfaf0'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    if (truePath.length > 1) {
+      ctx.strokeStyle = '#bcb29b'; ctx.lineWidth = 2;
+      ctx.setLineDash([6,4]);
+      ctx.beginPath();
+      ctx.moveTo(truePath[0].x, truePath[0].y);
+      for (let i = 1; i < truePath.length; i++) ctx.lineTo(truePath[i].x, truePath[i].y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    for (let i = 0; i < estPath.length; i += 12) {
+      const p = estPath[i];
+      drawEllipseSimple(p.x, p.y, p.sigma, 'rgba(138,36,36,1)');
+    }
+    if (estPath.length > 1) {
+      ctx.strokeStyle = '#8a2424'; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(estPath[0].x, estPath[0].y);
+      for (let i = 1; i < estPath.length; i++) ctx.lineTo(estPath[i].x, estPath[i].y);
+      ctx.stroke();
+    }
+    if (truePath.length) {
+      const t = truePath[truePath.length - 1];
+      ctx.fillStyle = '#534637';
+      ctx.beginPath(); ctx.arc(t.x, t.y, 5, 0, Math.PI*2); ctx.fill();
+    }
+    if (estPath.length) {
+      const e = estPath[estPath.length - 1];
+      ctx.fillStyle = '#8a2424';
+      ctx.beginPath(); ctx.arc(e.x, e.y, 6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    if (truePath.length) {
+      const s = truePath[0];
+      ctx.strokeStyle = '#3a6b3a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(s.x, s.y, 11, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = '#3a6b3a'; ctx.font = '11px JetBrains Mono';
+      ctx.fillText('start', s.x + 14, s.y - 8);
+    }
+    ctx.fillStyle = '#534637'; ctx.font = '11px Inter'; ctx.textAlign = 'left';
+    ctx.fillText(loopOn ? 'Loop closure: ON' : 'Loop closure: OFF', 16, 22);
+    ctx.fillText('Step ' + stepIdx + ' / ' + totalSteps, 16, 40);
+  }
+  function loop() { if (playing) step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('slamPlay').addEventListener('click', e => {
+    if (stepIdx >= totalSteps) init();
+    playing = !playing;
+    e.target.textContent = playing ? 'Pause' : 'Play';
+  });
+  document.getElementById('slamReset').addEventListener('click', () => {
+    playing = false;
+    document.getElementById('slamPlay').textContent = 'Play';
+    init(); draw();
+  });
+  const lcBtn = document.getElementById('slamLoop');
+  lcBtn.addEventListener('click', () => {
+    loopOn = !loopOn;
+    lcBtn.textContent = loopOn ? 'Loop closure on' : 'Loop closure off';
+    lcBtn.classList.toggle('active', loopOn);
+  });
+  document.getElementById('slamNoise').addEventListener('input', e => { odoNoise = parseFloat(e.target.value); });
+  init(); draw(); loop();
+})();
+
+</script>
+
+</body>
+</html>
