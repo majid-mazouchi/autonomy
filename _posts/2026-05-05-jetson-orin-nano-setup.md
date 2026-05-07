@@ -1,7 +1,7 @@
----
+﻿---
 title: "Setting Up the Jetson Orin Nano Super — A Field Report"
 subtitle: "A complete walkthrough of provisioning an NVIDIA Jetson Orin Nano Super from a fresh SD card to a working AI development platform — NVMe storage, GPU-aware Docker, real Firefox, and the gotchas nobody warns you about."
-date: 2026-05-06 12:00:00 -0400
+date: 2026-05-05 08:00:00 -0400
 category: "Tools"
 slug: jetson-orin-nano-setup
 excerpt: "A field report from setting up an NVIDIA Jetson Orin Nano Super for AI development. NVMe migration, swap on a 1TB drive, GPU-aware Docker, MAXN power mode, and the small handful of mistakes that cost the most time."
@@ -40,4 +40,5 @@ The guide lives at its own URL with a forest-green palette and a Field Notes fra
 ---
 
 ← Back to [Autonomy]({{ '/' | relative_url }})
+
 
