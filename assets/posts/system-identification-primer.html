@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>System Identification for Control — An Interactive Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<style>
+:root {
+  --paper: #f6f1e4;
+  --paper-2: #efe8d4;
+  --paper-3: #e7decb;
+  --ink: #1b1c24;
+  --ink-soft: #2c2e3a;
+  --ink-mute: #5a5b6a;
+  --rust: #b04628;
+  --rust-deep: #8a3118;
+  --steel: #2f526b;
+  --steel-deep: #1e384a;
+  --ochre: #d9a441;
+  --sage: #6b7f5a;
+  --rule: #cdc3a9;
+  --rule-soft: #dcd3b8;
+  --shadow: 0 1px 0 rgba(27,28,36,0.04), 0 2px 12px rgba(27,28,36,0.06);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: 'Newsreader', Georgia, serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--paper);
+  background-image:
+    radial-gradient(1400px 900px at 85% -10%, rgba(217,164,65,0.10), transparent 60%),
+    radial-gradient(1000px 800px at -10% 40%, rgba(47,82,107,0.06), transparent 55%);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* subtle paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.12  0 0 0 0 0.15  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.page { position: relative; z-index: 1; }
+
+/* ---------- Top Banner ---------- */
+.banner {
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  background: rgba(246,241,228,0.8);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.banner .mark { color: var(--rust); font-weight: 600; }
+.banner nav a { color: var(--ink-mute); text-decoration: none; margin-left: 24px; transition: color .2s; }
+.banner nav a:hover { color: var(--rust); }
+
+/* ---------- Layout ---------- */
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 32px; }
+main {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 64px;
+  padding: 48px 0 96px;
+}
+aside.toc {
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-right: 12px;
+  border-right: 1px solid var(--rule-soft);
+}
+aside.toc .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+aside.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: sec; }
+aside.toc li { counter-increment: sec; margin: 0; }
+aside.toc a {
+  display: block;
+  padding: 8px 0 8px 32px;
+  position: relative;
+  font-family: 'Newsreader', serif;
+  font-size: 15px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  line-height: 1.35;
+  border-left: 2px solid transparent;
+  margin-left: -2px;
+  transition: all .2s;
+}
+aside.toc a::before {
+  content: counter(sec, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-mute);
+  letter-spacing: 0.05em;
+}
+aside.toc a:hover { color: var(--rust); border-left-color: var(--rust); padding-left: 36px; }
+
+/* ---------- Hero ---------- */
+.hero {
+  grid-column: 1 / -1;
+  margin-bottom: 32px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 48px;
+  align-items: end;
+}
+.back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rust);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 28px;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+  grid-column: 1 / -1;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--rust);
+}
+.author-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-mute);
+  margin: 14px 0 0;
+}
+.author-line strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.hero .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--rust);
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-size: clamp(44px, 6vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  margin: 0 0 24px;
+  color: var(--ink);
+}
+.hero h1 em {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "wght" 300;
+  color: var(--rust);
+}
+.hero .lede {
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  font-weight: 400;
+}
+.hero-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-mute);
+  border-left: 2px solid var(--rust);
+  padding: 4px 0 4px 16px;
+  line-height: 1.7;
+}
+.hero-meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- Section ---------- */
+section {
+  scroll-margin-top: 80px;
+  padding: 40px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+section:last-of-type { border-bottom: none; }
+section h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144, "wght" 600;
+  font-size: 44px;
+  letter-spacing: -0.018em;
+  line-height: 1.05;
+  margin: 0 0 8px;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+section h2 .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--rust);
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+section .subtitle {
+  font-family: 'Newsreader', serif;
+  font-style: italic;
+  font-size: 19px;
+  color: var(--ink-mute);
+  margin-bottom: 28px;
+  max-width: 70ch;
+}
+section h3 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 48, "wght" 600;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  margin: 36px 0 12px;
+  color: var(--ink);
+}
+section h4 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 36, "wght" 600;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 24px 0 8px;
+  color: var(--rust-deep);
+}
+p { margin: 0 0 16px; }
+
+/* ---------- Inline type ---------- */
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+  background: var(--paper-2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--ink);
+}
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+a { color: var(--rust); text-decoration-color: rgba(176,70,40,0.4); text-underline-offset: 3px; }
+
+/* ---------- Callouts ---------- */
+.callout {
+  border-left: 3px solid var(--rust);
+  background: linear-gradient(to right, rgba(217,164,65,0.10), transparent 60%);
+  padding: 16px 20px 16px 22px;
+  margin: 20px 0;
+  border-radius: 0 6px 6px 0;
+}
+.callout .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rust);
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+.callout.steel { border-left-color: var(--steel); background: linear-gradient(to right, rgba(47,82,107,0.08), transparent 60%); }
+.callout.steel .tag { color: var(--steel); }
+.callout.sage { border-left-color: var(--sage); background: linear-gradient(to right, rgba(107,127,90,0.10), transparent 60%); }
+.callout.sage .tag { color: var(--sage); }
+
+/* ---------- Glossary cards ---------- */
+.gloss {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.gterm {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 6px;
+  padding: 16px 18px;
+  transition: all .25s;
+}
+.gterm:hover { border-color: var(--rust); transform: translateY(-1px); box-shadow: var(--shadow); }
+.gterm h5 {
+  margin: 0 0 6px;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24, "wght" 600;
+  font-size: 17px;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.gterm h5 .sym {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--rust);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.gterm p { font-size: 15px; margin: 0; color: var(--ink-soft); line-height: 1.55; }
+
+/* ---------- Tables ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 15.5px;
+}
+thead th {
+  text-align: left;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rust);
+  border-bottom: 2px solid var(--rust);
+  padding: 8px 14px 8px 0;
+}
+tbody td {
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+  line-height: 1.5;
+}
+tbody tr:hover { background: rgba(217,164,65,0.07); }
+td code { background: var(--paper-3); }
+
+/* ---------- Equation blocks ---------- */
+.eqn {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-left: 3px solid var(--steel);
+  border-radius: 0 6px 6px 0;
+  padding: 14px 20px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-size: 1.05em;
+}
+.eqn .label {
+  float: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+}
+
+/* ---------- Interactive lab ---------- */
+.lab {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 10px;
+  padding: 24px;
+  margin: 28px 0;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.lab::before {
+  content: "LAB";
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: var(--rust);
+  color: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+.lab-head {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 36, "wght" 600;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 4px 0 14px;
+}
+.lab-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) { .lab-grid { grid-template-columns: 1fr; } }
+.plot-wrap {
+  background: #faf6e9;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+}
+canvas.plot { width: 100%; height: 320px; display: block; }
+.controls { display: flex; flex-direction: column; gap: 18px; }
+.ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ctrl label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-mute);
+  letter-spacing: 0.05em;
+}
+.ctrl label .val {
+  color: var(--rust);
+  font-weight: 600;
+  font-size: 14px;
+}
+.ctrl input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  outline: none;
+  margin: 6px 0 0;
+}
+.ctrl input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--rust);
+  cursor: pointer;
+  border: 2px solid var(--paper);
+  box-shadow: 0 1px 4px rgba(176,70,40,0.5);
+}
+.ctrl input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--rust); cursor: pointer;
+  border: 2px solid var(--paper);
+}
+.metrics {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--paper-3);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 14px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.metrics b { color: var(--ink); font-weight: 600; }
+.metrics .m-ok { color: var(--sage); font-weight: 600; }
+.metrics .m-warn { color: var(--rust); font-weight: 600; }
+.lab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--steel);
+  border: 1px solid var(--steel);
+  padding: 7px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.lab-btn:hover { background: var(--steel); color: var(--paper); }
+
+/* ---------- Rule cards ---------- */
+.rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.rule {
+  border: 1px solid var(--rule-soft);
+  border-top: 3px solid var(--ochre);
+  background: var(--paper);
+  border-radius: 0 0 8px 8px;
+  padding: 14px 16px;
+  position: relative;
+}
+.rule .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ochre);
+  font-weight: 600;
+}
+.rule h5 {
+  margin: 4px 0 6px;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24, "wght" 600;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.rule p { margin: 0; font-size: 14.5px; color: var(--ink-soft); line-height: 1.5; }
+
+/* ---------- Comparison table card for parametric ---------- */
+.pm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.pm-card {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 6px;
+  padding: 14px 18px;
+}
+.pm-card h5 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 36, "wght" 700;
+  font-size: 22px;
+  margin: 0 0 4px;
+  color: var(--rust);
+  letter-spacing: 0.02em;
+}
+.pm-card .formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: var(--paper);
+  border-radius: 4px;
+  border: 1px solid var(--rule-soft);
+}
+.pm-card ul { margin: 4px 0 0 18px; padding: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.55;}
+
+/* lists */
+ul.lucid { list-style: none; padding: 0; margin: 8px 0 16px; }
+ul.lucid li {
+  padding: 6px 0 6px 24px;
+  position: relative;
+  line-height: 1.55;
+}
+ul.lucid li::before {
+  content: "›";
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  color: var(--rust);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+/* Signal comparison small plot */
+.sigcompare {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+.sigbox {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 6px;
+  padding: 10px 12px 6px;
+}
+.sigbox h5 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24, "wght" 600;
+  font-size: 15px;
+  margin: 0 0 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sigbox h5 span { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); font-weight: 400; }
+.sigbox canvas { width: 100%; height: 80px; display: block; }
+.sigbox p { font-size: 13px; margin: 4px 0 4px; color: var(--ink-soft); line-height: 1.45; }
+@media (max-width: 760px) { .sigcompare { grid-template-columns: 1fr; } }
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0 48px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+footer .rust { color: var(--rust); }
+
+/* Responsive */
+@media (max-width: 960px) {
+  main { grid-template-columns: 1fr; gap: 32px; }
+  aside.toc { display: none; }
+  .hero { grid-template-columns: 1fr; gap: 24px; }
+  .lab-grid { grid-template-columns: 1fr; }
+}
+
+/* drop cap on first section */
+section:first-of-type > p:first-of-type::first-letter {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144, "wght" 700;
+  font-size: 5.2em;
+  float: left;
+  line-height: 0.82;
+  margin: 6px 10px 0 0;
+  color: var(--rust);
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="banner">
+  <div><span class="mark">◆</span>&nbsp;&nbsp;SYSID · A PRACTITIONER'S PRIMER</div>
+  <nav>
+    <a href="#terminology">Terms</a>
+    <a href="#nonparam">Non-param</a>
+    <a href="#first">1st Order</a>
+    <a href="#second">2nd Order</a>
+    <a href="#param">Parametric</a>
+    <a href="#rules">Rules</a>
+  </nav>
+</div>
+
+<div class="wrap">
+<main>
+
+<a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+
+<!-- HERO -->
+<header class="hero">
+  <div>
+    <div class="eyebrow">Vol. I  ·  Control Engineer's Field Guide</div>
+    <h1>System&nbsp;Identification<br><em>for Control.</em></h1>
+    <p class="lede">Every good controller rests on a model it trusts. This primer walks the experimental path — from wiggling an input to fitting an ARMAX — with the working engineer in mind. Interactive where it helps, ruthlessly practical where it matters.</p>
+    <p class="author-line">By <strong>Majid Mazouchi</strong></p>
+  </div>
+  <div class="hero-meta">
+    <b>Scope.</b> Linear SISO, time-invariant.<br>
+    <b>Audience.</b> Control, motor, and mechatronics engineers.<br>
+    <b>Tools.</b> Step tests, PRBS, MATLAB/Simulink, pen &amp; paper.<br>
+    <b>Reading time.</b> ≈ 45 min + tinkering.
+  </div>
+</header>
+
+<!-- TOC SIDEBAR -->
+<aside class="toc">
+  <div class="tag">Contents</div>
+  <ol>
+    <li><a href="#foundations">Foundations &amp; Workflow</a></li>
+    <li><a href="#terminology">Essential Terminology</a></li>
+    <li><a href="#nonparam">Non-parametric Methods</a></li>
+    <li><a href="#first">The First-Order Model</a></li>
+    <li><a href="#second">The Second-Order Model</a></li>
+    <li><a href="#param">Parametric Methods</a></li>
+    <li><a href="#inputs">Input Design &amp; Excitation</a></li>
+    <li><a href="#validation">Validation &amp; Model Choice</a></li>
+    <li><a href="#pitfalls">Common Pitfalls</a></li>
+    <li><a href="#rules">Rules of Thumb</a></li>
+  </ol>
+</aside>
+
+<!-- MAIN CONTENT -->
+<article>
+
+<!-- ============================================================== -->
+<section id="foundations">
+  <h2><span class="num">§ 01</span> Foundations &amp; Workflow</h2>
+  <p class="subtitle">Before any algebra, a mental model of the loop you're trying to close.</p>
+
+  <p>System identification is the art of turning experimental data into dynamic models. You give a physical plant some carefully chosen input, record its reaction, and fit an equation that predicts what it will do next time. The fit is never perfect — but a model that is simple, validated, and honest about its uncertainty is worth more to a controller designer than any block diagram drawn from first principles alone.</p>
+
+  <h3>The three boxes: white, gray, black</h3>
+  <table>
+    <thead><tr><th>Approach</th><th>Structure</th><th>Parameters</th><th>Typical use</th></tr></thead>
+    <tbody>
+      <tr><td><b>White-box</b></td><td>Full physics known</td><td>All known or computed</td><td>Simulators, digital twins</td></tr>
+      <tr><td><b>Gray-box</b></td><td>Structure known</td><td>Some identified from data</td><td>Motor parameter extraction, plant tuning</td></tr>
+      <tr><td><b>Black-box</b></td><td>Generic form (ARX, state-space)</td><td>All identified</td><td>Complex or uncertain plants</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The canonical workflow</h3>
+  <ul class="lucid">
+    <li><b>Design the experiment.</b> Pick input signal, amplitude, sampling rate, duration. This is where 80% of success is won or lost.</li>
+    <li><b>Collect and pre-process.</b> Detrend, remove means, decimate if oversampled, apply anti-alias filtering.</li>
+    <li><b>Choose a model structure.</b> First-order? ARX? State-space of order 4? Start simple.</li>
+    <li><b>Estimate parameters.</b> Least squares, prediction-error, subspace — pick the tool that fits the structure.</li>
+    <li><b>Validate.</b> On <em>fresh</em> data. Check residuals, compare simulated vs measured output.</li>
+    <li><b>Iterate.</b> Increase order, try different structures, re-excite if residuals are coloured.</li>
+  </ul>
+
+  <div class="callout steel">
+    <span class="tag">Perspective</span>
+    The goal is not the "true" model. It is a model good enough for the <em>purpose</em> — usually controller design, fault diagnosis, or simulation. A second-order fit that captures the dominant dynamics often out-performs an over-fit eighth-order monster when it comes to robust control design.
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="terminology">
+  <h2><span class="num">§ 02</span> Essential Terminology</h2>
+  <p class="subtitle">The shared vocabulary of identification. Skim now, return when you hit it in the wild.</p>
+
+  <div class="gloss">
+    <div class="gterm"><h5>Persistent Excitation <span class="sym">PE(n)</span></h5><p>An input that excites enough frequencies to uniquely identify an <i>n</i>-parameter model. A step is PE of order 1; white noise and PRBS are PE of arbitrarily high order.</p></div>
+
+    <div class="gterm"><h5>Signal-to-Noise Ratio <span class="sym">SNR</span></h5><p>Ratio of output variance due to input vs variance due to disturbance. Below ~10 dB your estimates will be noisy; above ~30 dB you may be ignoring nonlinearity.</p></div>
+
+    <div class="gterm"><h5>PRBS <span class="sym">u ∈ {−a, +a}</span></h5><p>Pseudo-random binary sequence. A deterministic, periodic square-wave-like signal with near-white spectrum. Cheap to generate, easy on actuators, PE of high order.</p></div>
+
+    <div class="gterm"><h5>Chirp / Swept Sine <span class="sym">sin(ω(t)t)</span></h5><p>Frequency-swept sinusoid. Gives direct control of which band is excited. Ideal for frequency-response estimation.</p></div>
+
+    <div class="gterm"><h5>Nyquist Rate <span class="sym">fₛ ≥ 2fₘₐₓ</span></h5><p>Minimum sampling rate to avoid aliasing. In practice use 10–20× the dominant bandwidth and analog anti-alias filter before the ADC.</p></div>
+
+    <div class="gterm"><h5>Residuals <span class="sym">ε(t) = y − ŷ</span></h5><p>Difference between measured output and model prediction. A well-identified model has residuals that look white and uncorrelated with past inputs.</p></div>
+
+    <div class="gterm"><h5>Prediction Error <span class="sym">ε̂(t|θ)</span></h5><p>One-step-ahead error used as the objective in PEM. Minimising its variance yields maximum-likelihood estimates under Gaussian assumptions.</p></div>
+
+    <div class="gterm"><h5>Model Order <span class="sym">n</span></h5><p>The number of poles (or states). Higher order fits data better but generalises worse and amplifies noise. Parsimony rules.</p></div>
+
+    <div class="gterm"><h5>Parsimony <span class="sym">Occam</span></h5><p>Among models that fit the data similarly well, prefer the simplest. Penalised by AIC, BIC, and sanity.</p></div>
+
+    <div class="gterm"><h5>FIT % <span class="sym">NRMSE</span></h5><p>100·(1 − ‖y − ŷ‖ / ‖y − ȳ‖). 100% is perfect, 0% is the mean. Below ~70% on validation data is usually a problem.</p></div>
+
+    <div class="gterm"><h5>VAF <span class="sym">%</span></h5><p>Variance Accounted For = 100·(1 − var(y − ŷ)/var(y)). Similar spirit to FIT but in variance terms.</p></div>
+
+    <div class="gterm"><h5>AIC / BIC <span class="sym">−log L + kp</span></h5><p>Information criteria that trade off fit quality against number of parameters. BIC penalises complexity harder than AIC.</p></div>
+
+    <div class="gterm"><h5>Innovations <span class="sym">e(t)</span></h5><p>The unpredictable part of the output given past data. In an ideal model, residuals and innovations coincide.</p></div>
+
+    <div class="gterm"><h5>Closed-loop ID <span class="sym">u = K(r − y)</span></h5><p>Identification while the loop is closed. Powerful but dangerous: disturbances correlate with the input, biasing naive least squares.</p></div>
+
+    <div class="gterm"><h5>Detrending <span class="sym">y ← y − ȳ</span></h5><p>Removing the operating point. LTI models describe <i>deviations</i> from steady state — always subtract means before fitting.</p></div>
+
+    <div class="gterm"><h5>Prewhitening <span class="sym">u → W⁻¹u</span></h5><p>Filtering the input so its spectrum becomes white. Makes correlation-based non-parametric estimates less biased.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="nonparam">
+  <h2><span class="num">§ 03</span> Non-parametric Methods</h2>
+  <p class="subtitle">No model structure assumed. You get a curve or a frequency table — not coefficients.</p>
+
+  <p>Non-parametric methods estimate the plant's <i>response</i> directly — its impulse response, step response, or frequency response function — without committing to a transfer-function order. They are excellent for discovery, fast sanity checks, and feeding downstream parametric fits with a good initial guess.</p>
+
+  <h3>Step response</h3>
+  <p>Apply a sudden change in input, record the output. The shape tells you almost everything you need to pick a first-order or second-order starting model:</p>
+  <ul class="lucid">
+    <li><b>Monotonic, no overshoot</b> → first-order or over-damped second-order.</li>
+    <li><b>Damped oscillation</b> → under-damped second-order or higher.</li>
+    <li><b>Long flat, then rise</b> → dead-time / pure delay present.</li>
+    <li><b>Inverse response</b> (dips the wrong way first) → non-minimum-phase zero.</li>
+  </ul>
+
+  <h3>Impulse response</h3>
+  <p>Theoretically elegant — the impulse response <i>is</i> the plant (for LTI). Practically limited because true impulses are hard to apply and SNR is poor. Usually obtained indirectly from correlation analysis rather than from an actual impulse.</p>
+
+  <h3>Frequency response (Bode from data)</h3>
+  <p>Inject a sinusoid of frequency $\omega_k$, wait for steady state, measure amplitude ratio and phase shift. Repeat for many frequencies. The result is $G(j\omega_k)$ sampled across the band of interest — a Bode plot built empirically. Modern variants use chirp or multisine inputs and FFT-based estimation, often called the <b>Empirical Transfer Function Estimate (ETFE)</b>:</p>
+
+  <div class="eqn">
+    $$ \hat{G}_N(e^{j\omega}) \;=\; \frac{Y_N(\omega)}{U_N(\omega)} $$
+    <span class="label">ETFE — ratio of DFTs</span>
+  </div>
+  <p>ETFE is unbiased but variance-noisy; smoothing with a spectral window (Hamming, Parzen) yields the <b>spectral analysis estimate</b>.</p>
+
+  <h3>Correlation analysis</h3>
+  <p>If you feed the plant a zero-mean input, the cross-correlation between input and output divided by the input auto-correlation gives the impulse response:</p>
+  <div class="eqn">
+    $$ \hat{g}(\tau) \;=\; \frac{R_{yu}(\tau)}{R_{uu}(0)} \quad \text{for white } u $$
+    <span class="label">correlation estimator</span>
+  </div>
+  <p>This is the engine behind PRBS-based identification: PRBS has nearly white auto-correlation, so the cross-correlation with the output essentially <i>is</i> the impulse response estimate.</p>
+
+  <div class="callout">
+    <span class="tag">Practical note</span>
+    Always start a campaign with a clean step or two before PRBS. The step tells you if the plant is even <i>approximately</i> linear at your operating point, and gives a ballpark for time-constant — which in turn sets the PRBS clock period.
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="first">
+  <h2><span class="num">§ 04</span> The First-Order Model</h2>
+  <p class="subtitle">The workhorse. Two parameters, one exponential, enormous explanatory power.</p>
+
+  <p>A surprising fraction of industrial loops are well-approximated by a first-order transfer function with optional dead time:</p>
+  <div class="eqn">
+    $$ G(s) \;=\; \frac{K}{\tau s + 1}\,e^{-Ls} $$
+    <span class="label">FOPDT — first-order plus dead time</span>
+  </div>
+  <p>Three scalars, three physical meanings: gain $K$ (how much the output eventually moves), time constant $\tau$ (how fast), and dead time $L$ (how long before you see anything).</p>
+
+  <h3>Reading parameters off a step response</h3>
+  <p>For a step of size $U$ applied at $t=0$, the response is $y(t) = KU(1 - e^{-t/\tau})$ for $t \geq L$. Three classic graphical rules:</p>
+  <ul class="lucid">
+    <li><b>Gain.</b> $K = \Delta y_{\infty} / \Delta u$. Read final value minus initial value, divide by input step size.</li>
+    <li><b>Time constant — the 63.2% rule.</b> At $t = \tau$ the output has reached $1 - e^{-1} \approx 0.632$ of its final value. Draw horizontal at 0.632·Δy∞, drop a vertical.</li>
+    <li><b>Time constant — the two-point method.</b> Use $t_{28.3\%}$ and $t_{63.2\%}$: then $\tau = 1.5\,(t_{63.2} - t_{28.3})$ and dead time $L = t_{63.2} - \tau$. More noise-robust than a single-point read.</li>
+  </ul>
+
+  <!-- ================= LAB 1 ================= -->
+  <div class="lab">
+    <div class="lab-head">Lab 1 &middot; Fit a first-order model to noisy step data</div>
+    <p style="font-size:15.5px; color:var(--ink-soft); margin-top:0;">Real data hides the exponential under a fog of noise. Move the sliders to match $\hat{K}$ and $\hat{\tau}$ to the hidden truth. Use the 63.2% rule: where does the data cross 63% of its final value?</p>
+    <div class="lab-grid">
+      <div class="plot-wrap"><canvas id="plot1" class="plot" width="800" height="360"></canvas></div>
+      <div class="controls">
+        <div class="ctrl">
+          <label>Gain  K̂ <span class="val" id="v_K1">1.00</span></label>
+          <input type="range" id="s_K1" min="0.2" max="4" step="0.01" value="1.0">
+        </div>
+        <div class="ctrl">
+          <label>Time constant  τ̂ (s) <span class="val" id="v_T1">1.00</span></label>
+          <input type="range" id="s_T1" min="0.05" max="3" step="0.01" value="1.0">
+        </div>
+        <div class="metrics" id="m1">
+          <span>RMSE:</span><b id="rmse1">—</b>
+          <span>FIT %:</span><b id="fit1">—</b>
+          <span>63.2% point:</span><b id="t632_1">—</b>
+          <span>Residual mean:</span><b id="rmean1">—</b>
+        </div>
+        <button class="lab-btn" id="reveal1">Reveal truth</button>
+        <button class="lab-btn" id="new1">New dataset</button>
+      </div>
+    </div>
+  </div>
+
+  <h3>When first-order is not enough</h3>
+  <p>If the step response has a clear overshoot, an inflection point, or a visible delay followed by an S-shape, the plant needs more than one pole. The S-shape in particular usually signals either (a) dead time, or (b) multiple real poles whose combined behaviour mimics a sluggish second-order. The tangent method (Ziegler-Nichols) handles (b) by fitting an equivalent FOPDT to the steepest-slope tangent line.</p>
+</section>
+
+<!-- ============================================================== -->
+<section id="second">
+  <h2><span class="num">§ 05</span> The Second-Order Model</h2>
+  <p class="subtitle">Two poles, and suddenly the world oscillates.</p>
+
+  <p>The canonical underdamped second-order form:</p>
+  <div class="eqn">
+    $$ G(s) \;=\; \frac{K\,\omega_n^{2}}{s^{2} + 2\zeta\omega_n s + \omega_n^{2}} $$
+    <span class="label">standard second-order</span>
+  </div>
+  <p>Three knobs: DC gain $K$, natural frequency $\omega_n$ (how fast), and damping ratio $\zeta$ (how oscillatory). The ratio $\zeta$ tells the whole story:</p>
+
+  <ul class="lucid">
+    <li><b>$\zeta = 0$</b> — undamped, pure sinusoid forever.</li>
+    <li><b>$0 &lt; \zeta &lt; 1$</b> — underdamped, decaying oscillation.</li>
+    <li><b>$\zeta = 1$</b> — critically damped, fastest approach without overshoot.</li>
+    <li><b>$\zeta &gt; 1$</b> — overdamped, two real poles, slow monotonic rise.</li>
+  </ul>
+
+  <h3>Reading parameters from the step response</h3>
+  <p>For an underdamped step response, the following three relations usually give you everything:</p>
+  <div class="eqn">
+    $$ M_p = \exp\!\left(\frac{-\pi\zeta}{\sqrt{1-\zeta^{2}}}\right),\quad
+       t_p = \frac{\pi}{\omega_n\sqrt{1-\zeta^{2}}},\quad
+       t_s \approx \frac{4}{\zeta\omega_n}\;(2\%\text{ band}) $$
+    <span class="label">overshoot · peak time · settling time</span>
+  </div>
+  <p>So: measure overshoot $M_p$ and peak time $t_p$ from the plot. Invert the first relation for $\zeta$, then the second for $\omega_n$. Gain $K$ is again just $\Delta y_\infty / \Delta u$.</p>
+
+  <h4>The logarithmic decrement method</h4>
+  <p>More robust when noise contaminates a single peak reading, use two successive peaks (amplitudes $a_1$ and $a_2$ above steady state):</p>
+  <div class="eqn">
+    $$ \delta = \ln(a_1/a_2) \;\;\Rightarrow\;\; \zeta = \frac{\delta}{\sqrt{4\pi^{2} + \delta^{2}}} $$
+    <span class="label">log-decrement formula</span>
+  </div>
+
+  <!-- ================= LAB 2 ================= -->
+  <div class="lab">
+    <div class="lab-head">Lab 2 &middot; Fit an underdamped second-order system</div>
+    <p style="font-size:15.5px; color:var(--ink-soft); margin-top:0;">Three sliders. Use the first overshoot to lock in ζ̂, the peak time to lock in ω̂ₙ, and the final value to lock in K̂. Watch peak time and overshoot predictions update live.</p>
+    <div class="lab-grid">
+      <div class="plot-wrap"><canvas id="plot2" class="plot" width="800" height="360"></canvas></div>
+      <div class="controls">
+        <div class="ctrl">
+          <label>Gain  K̂ <span class="val" id="v_K2">1.00</span></label>
+          <input type="range" id="s_K2" min="0.2" max="3" step="0.01" value="1.0">
+        </div>
+        <div class="ctrl">
+          <label>ω̂ₙ (rad/s) <span class="val" id="v_W2">3.00</span></label>
+          <input type="range" id="s_W2" min="0.5" max="10" step="0.05" value="3.0">
+        </div>
+        <div class="ctrl">
+          <label>Damping  ζ̂ <span class="val" id="v_Z2">0.50</span></label>
+          <input type="range" id="s_Z2" min="0.02" max="1.5" step="0.01" value="0.5">
+        </div>
+        <div class="metrics" id="m2">
+          <span>RMSE:</span><b id="rmse2">—</b>
+          <span>FIT %:</span><b id="fit2">—</b>
+          <span>Predicted M_p:</span><b id="mp2">—</b>
+          <span>Predicted t_p (s):</span><b id="tp2">—</b>
+        </div>
+        <button class="lab-btn" id="reveal2">Reveal truth</button>
+        <button class="lab-btn" id="new2">New dataset</button>
+      </div>
+    </div>
+  </div>
+
+  <h3>Higher-order echoes of second-order thinking</h3>
+  <p>Real plants often have many poles. A useful rule: if two poles are much closer to the $j\omega$ axis than all the others, the slow pair <i>dominates</i> — you can treat the plant as second-order for controller design, and push the faster dynamics into an unmodeled residue. This is the foundation of dominant-pole design.</p>
+
+  <div class="callout steel">
+    <span class="tag">Motor-control Note</span>
+    A PMSM current loop, once tuned, behaves almost as a first-order system (τ ≈ L/R in the rotor frame). The outer speed loop, by contrast, is often a gentle second-order with ζ between 0.6 and 0.8 — a deliberate design choice that trades a small overshoot for faster settling.
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="param">
+  <h2><span class="num">§ 06</span> Parametric Methods</h2>
+  <p class="subtitle">Commit to a model structure. Crank the data. Get numbers out.</p>
+
+  <p>Parametric identification assumes a model form with a finite parameter vector $\theta$ and finds the $\hat\theta$ that minimises a criterion — usually the one-step-ahead prediction error variance. The difference between ARX, ARMAX, OE, and BJ is <i>where</i> you allow the noise to enter the model.</p>
+
+  <div class="pm-grid">
+    <div class="pm-card">
+      <h5>ARX</h5>
+      <div class="formula">A(q) y(t) = B(q) u(t) + e(t)</div>
+      <ul>
+        <li>Linear in parameters → one-shot least squares</li>
+        <li>Assumes white noise <em>after</em> A-filtering</li>
+        <li>Biased if true noise is coloured; fast and robust</li>
+        <li>Best first cut for any parametric campaign</li>
+      </ul>
+    </div>
+    <div class="pm-card">
+      <h5>ARMAX</h5>
+      <div class="formula">A(q) y = B(q) u + C(q) e</div>
+      <ul>
+        <li>Separate noise-colouring polynomial C(q)</li>
+        <li>Iterative (nonlinear) optimisation</li>
+        <li>Handles coloured disturbances gracefully</li>
+        <li>Standard choice when residual whiteness fails on ARX</li>
+      </ul>
+    </div>
+    <div class="pm-card">
+      <h5>OE  (Output Error)</h5>
+      <div class="formula">y = B(q)/F(q) · u  +  e</div>
+      <ul>
+        <li>Plant and noise models are <em>independent</em></li>
+        <li>Noise assumed additive at output — realistic for many rigs</li>
+        <li>Consistent plant estimate regardless of disturbance colour</li>
+        <li>Nonlinear in parameters; may have local minima</li>
+      </ul>
+    </div>
+    <div class="pm-card">
+      <h5>Box–Jenkins</h5>
+      <div class="formula">y = (B/F) u  +  (C/D) e</div>
+      <ul>
+        <li>Most general: fully decoupled plant and noise</li>
+        <li>Best statistical properties — and the most parameters</li>
+        <li>Use when you care about accurate disturbance modelling (e.g. Kalman filter design)</li>
+      </ul>
+    </div>
+    <div class="pm-card">
+      <h5>State-space /<br>Subspace (N4SID, MOESP)</h5>
+      <div class="formula">x(k+1) = Ax + Bu + w,  y = Cx + Du + v</div>
+      <ul>
+        <li>Returns (A, B, C, D) directly</li>
+        <li>Non-iterative, numerically stable (SVD-based)</li>
+        <li>Excellent for MIMO systems</li>
+        <li>Picks model order from singular-value drop-off</li>
+      </ul>
+    </div>
+    <div class="pm-card">
+      <h5>Instrumental Variables</h5>
+      <div class="formula">θ̂ = (Zᵀ φ)⁻¹ Zᵀ y</div>
+      <ul>
+        <li>Bias-corrected variant of least squares</li>
+        <li>Uses "instruments" Z uncorrelated with noise but correlated with regressors</li>
+        <li>Staple tool for closed-loop identification</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>How ARX actually gets solved</h3>
+  <p>Stack the regression $y(t) = \varphi(t)^{\!\top}\theta + e(t)$ where $\varphi(t) = [-y(t-1), \dots, -y(t-n_a),\, u(t-n_k), \dots, u(t-n_k-n_b+1)]^{\!\top}$. Minimising $\sum \varepsilon(t)^{2}$ yields the normal equations:</p>
+  <div class="eqn">
+    $$ \hat\theta_{\text{LS}} \;=\; \left(\sum_{t=1}^{N} \varphi(t)\varphi(t)^{\!\top}\right)^{\!-1}\!\sum_{t=1}^{N} \varphi(t) y(t) $$
+    <span class="label">ARX least-squares solution</span>
+  </div>
+  <p>This is ordinary linear regression — the same mechanics as fitting a polynomial. The beauty of ARX is that a one-line QR solve delivers the parameters. The price is the (usually unrealistic) assumption that the driving noise $e(t)$ is white.</p>
+
+  <h3>The prediction-error method (PEM)</h3>
+  <p>A general framework: given a model $\mathcal{M}(\theta)$ that produces a one-step prediction $\hat y(t|t-1;\theta)$, choose $\theta$ to minimise</p>
+  <div class="eqn">
+    $$ V_N(\theta) \;=\; \frac{1}{N}\sum_{t=1}^{N}\,\ell\!\left(\,y(t) - \hat y(t\mid t-1;\theta)\,\right) $$
+    <span class="label">prediction-error criterion</span>
+  </div>
+  <p>with $\ell(\cdot)$ typically the squared norm. ARX, ARMAX, OE, and BJ all sit inside this framework — they differ only in how the predictor is parameterised. In MATLAB, <code>tfest</code>, <code>armax</code>, <code>oe</code>, <code>bj</code>, and <code>ssest</code> all invoke variants of PEM.</p>
+
+  <h3>Model-order selection</h3>
+  <p>You want the smallest model that explains the data. Three tools:</p>
+  <ul class="lucid">
+    <li><b>AIC:</b> $\text{AIC} = N\log V_N + 2 d$ where $d$ is the number of free parameters. Penalises complexity lightly.</li>
+    <li><b>BIC (MDL):</b> $\text{BIC} = N\log V_N + d\log N$. Penalises complexity more — preferred when $N$ is large.</li>
+    <li><b>Hankel singular values</b> (subspace methods): plot them; an obvious gap indicates the right order.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== -->
+<section id="inputs">
+  <h2><span class="num">§ 07</span> Input Design &amp; Excitation</h2>
+  <p class="subtitle">A good experiment matters more than a clever algorithm.</p>
+
+  <p>No fitting routine can recover dynamics you never excited. The question is not just "what input?" but "what <i>spectrum</i>?" — you need energy in every frequency band you care about modelling.</p>
+
+  <div class="sigcompare">
+    <div class="sigbox">
+      <h5>Step<span>PE order 1</span></h5>
+      <canvas id="sig_step" width="240" height="80"></canvas>
+      <p>Simple, physical, great for quick first-order fits. Poor spectral coverage — energy concentrated at low frequencies.</p>
+    </div>
+    <div class="sigbox">
+      <h5>PRBS<span>PE ≈ 2ⁿ−1</span></h5>
+      <canvas id="sig_prbs" width="240" height="80"></canvas>
+      <p>Binary, periodic, near-white spectrum. Workhorse of parametric identification. Easy on actuators (bang-bang).</p>
+    </div>
+    <div class="sigbox">
+      <h5>Chirp<span>band-shaped</span></h5>
+      <canvas id="sig_chirp" width="240" height="80"></canvas>
+      <p>Swept sine. Direct control of excited bandwidth. Excellent for frequency-response estimation and resonance finding.</p>
+    </div>
+  </div>
+
+  <h3>Amplitude selection — the Goldilocks problem</h3>
+  <ul class="lucid">
+    <li><b>Too small:</b> output swamped by noise, SNR collapses, estimates become garbage.</li>
+    <li><b>Too large:</b> plant leaves its linear region — saturation, friction break-away, back-EMF nonlinearity in motors.</li>
+    <li><b>Goldilocks:</b> largest amplitude that still produces linear-looking output. Start at 5% of normal operating span and sweep up while watching for output asymmetry (response to +step ≠ − response to −step).</li>
+  </ul>
+
+  <h3>Duration and record length</h3>
+  <p>Rules of thumb: collect data for at least <b>10–20 dominant time constants</b>, or at least <b>one full period of your lowest-frequency PRBS</b>, whichever is longer. For statistical confidence, $N \gtrsim 20 \cdot d$ samples where $d$ is the number of parameters.</p>
+
+  <h3>Sampling rate</h3>
+  <p>Pick $f_s$ so that $f_s / f_{\text{bandwidth}} \in [10, 30]$. Slower and you miss dynamics; faster and you waste data and amplify quantisation noise. Always precede the ADC with an analog anti-alias filter at $f_s/2$.</p>
+</section>
+
+<!-- ============================================================== -->
+<section id="validation">
+  <h2><span class="num">§ 08</span> Validation &amp; Model Choice</h2>
+  <p class="subtitle">Never validate on the data you fit. Never.</p>
+
+  <p>Fitting is the easy part — anything will fit if you throw enough parameters at it. Validation is what separates a model you can stake a controller on from a pretty curve.</p>
+
+  <h3>Three validation pillars</h3>
+  <ul class="lucid">
+    <li><b>Fresh-data simulation (FIT %).</b> Simulate the model on input data it has never seen. Compare to measured output. FIT above 80% usually means the model is usable.</li>
+    <li><b>Residual whiteness.</b> Compute $R_{\varepsilon\varepsilon}(\tau)$; it should look like a delta at τ=0 and noise everywhere else. Colour in the residuals means the model is missing dynamics.</li>
+    <li><b>Residual-input cross-correlation.</b> $R_{\varepsilon u}(\tau)$ should be zero for $\tau \geq 0$. Non-zero values mean the input is still predicting something the model isn't capturing.</li>
+  </ul>
+
+  <h3>Simulation vs prediction — a subtle distinction</h3>
+  <p>A one-step-ahead prediction uses past measured outputs as inputs. It almost always looks great, because yesterday's output is a superb predictor of today's output. <b>Simulation</b> uses only past inputs and the model's own past predictions — it's the honest test. Always report FIT on simulation, not prediction.</p>
+
+  <div class="callout sage">
+    <span class="tag">Workflow Tip</span>
+    Split your data 70/30 before you even start fitting. Keep the 30% locked in a separate file. Only touch it after your model choice is final. If final-validation FIT is much lower than fit-data FIT, you've overfit.
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="pitfalls">
+  <h2><span class="num">§ 09</span> Common Pitfalls</h2>
+  <p class="subtitle">The traps every practitioner falls into at least once.</p>
+
+  <ul class="lucid">
+    <li><b>Forgetting to detrend.</b> A 5 V steady-state bias on a 10 V step test will wreck your least-squares fit. Always subtract operating-point means.</li>
+    <li><b>Insufficient excitation.</b> Identifying a 6-parameter model from a single step is mathematically possible but statistically reckless. Use PRBS.</li>
+    <li><b>Closed-loop bias.</b> With the controller running, noise affects both $y$ and $u$, so standard least-squares is biased. Use OE, BJ, or instrumental-variable methods — or break the loop if you can.</li>
+    <li><b>Sampling too fast.</b> At $f_s \gg$ bandwidth, model poles cluster near $z=1$, numerical conditioning degrades, and noise variance dominates the regression.</li>
+    <li><b>Sampling too slow.</b> You alias dynamics you cared about into frequencies you didn't want. No amount of clever fitting fixes this.</li>
+    <li><b>Over-modelling.</b> Adding states to chase residuals that are really measurement noise. Watch AIC/BIC; watch whether added parameters change sign between datasets.</li>
+    <li><b>Under-modelling.</b> A first-order fit to a system with oscillatory behaviour. Residuals will scream.</li>
+    <li><b>Ignoring dead time.</b> Even 2–3 samples of transport delay, if unmodelled, will ruin a good estimator. Always check cross-correlation for a peak offset from zero.</li>
+    <li><b>Operating-point trap.</b> A nonlinear plant fit linearly at one setpoint may behave completely differently at another. Identify across the envelope, not at a single op-point.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== -->
+<section id="rules">
+  <h2><span class="num">§ 10</span> Rules of Thumb</h2>
+  <p class="subtitle">Ten commandments, refined by everyone who ever burned a day on bad data.</p>
+
+  <div class="rules">
+    <div class="rule"><div class="num">RULE 01</div><h5>Sample 10–20× your bandwidth.</h5><p>Faster than that, you amplify noise; slower, you alias. Always include an analog anti-alias filter before the ADC.</p></div>
+    <div class="rule"><div class="num">RULE 02</div><h5>Excite every frequency you care about.</h5><p>Steps excite only DC well. Use PRBS or multisine for broadband work. Design the spectrum to match the controller's bandwidth.</p></div>
+    <div class="rule"><div class="num">RULE 03</div><h5>Collect 10–20 dominant time constants of data.</h5><p>Less than that and low-frequency content is poorly conditioned. For PRBS, at least one full sequence period.</p></div>
+    <div class="rule"><div class="num">RULE 04</div><h5>Always detrend.</h5><p>Subtract means, remove linear trends. LTI models live in deviation variables, not absolute values.</p></div>
+    <div class="rule"><div class="num">RULE 05</div><h5>Start with first-order plus dead time.</h5><p>Always fit FOPDT first. If residuals are coloured or structured, <em>then</em> escalate to second-order or parametric.</p></div>
+    <div class="rule"><div class="num">RULE 06</div><h5>Parsimony wins.</h5><p>Smallest model with FIT &gt; ~80% on fresh data beats a larger model that fits training data better. Use BIC when unsure.</p></div>
+    <div class="rule"><div class="num">RULE 07</div><h5>Split your data: 70% fit, 30% validate.</h5><p>Hold the 30% back from the very first line of code. No peeking.</p></div>
+    <div class="rule"><div class="num">RULE 08</div><h5>Amplitude: largest still-linear.</h5><p>Identification needs SNR. Push amplitude until you detect nonlinearity (check ±step symmetry), then back off 20%.</p></div>
+    <div class="rule"><div class="num">RULE 09</div><h5>Look at residuals. Always.</h5><p>If they are white and uncorrelated with the input, you are done. If not, the plant is telling you what it has that you don't.</p></div>
+    <div class="rule"><div class="num">RULE 10</div><h5>Identify at the operating point you control at.</h5><p>A motor identified at 200 rpm will not describe 4000 rpm. Span the envelope, or schedule models.</p></div>
+  </div>
+
+  <div class="callout">
+    <span class="tag">Closing Thought</span>
+    System identification is less a mathematical procedure than a disciplined conversation with a physical device. The data has something to tell you; your job is to build the simplest possible structure that lets it say so clearly — then design a controller worthy of the answer.
+  </div>
+</section>
+
+</article>
+</main>
+</div>
+
+<footer>
+  <span class="rust">§</span>&nbsp; SYSID Primer · Vol. I &nbsp; <span class="rust">·</span> &nbsp; Compiled for the working control engineer
+</footer>
+
+</div>
+
+<script>
+/* ============================================================
+   COMMON HELPERS
+   ============================================================ */
+function lerp(a,b,t){ return a + (b-a)*t; }
+function rand(min, max){ return Math.random()*(max-min)+min; }
+function randn(){ // Box-Muller
+  let u=0, v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function fmt(x, n=3){ if (!isFinite(x)) return "—"; return Number(x).toFixed(n); }
+
+function setupHiDPI(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.floor(rect.width  * dpr);
+  canvas.height = Math.floor(rect.height * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w: rect.width, h: rect.height};
+}
+
+/* ============================================================
+   PLOTTING — minimal in-house axes + series
+   ============================================================ */
+function drawPlot(canvas, series, opts={}){
+  const {ctx, w, h} = setupHiDPI(canvas);
+  ctx.clearRect(0,0,w,h);
+  const pad = { l: 48, r: 16, t: 18, b: 36 };
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+
+  // determine ranges
+  let xmin = opts.xmin ?? Infinity, xmax = opts.xmax ?? -Infinity;
+  let ymin = opts.ymin ?? Infinity, ymax = opts.ymax ?? -Infinity;
+  if (opts.xmin===undefined || opts.xmax===undefined || opts.ymin===undefined || opts.ymax===undefined) {
+    for (const s of series) {
+      for (let i=0; i<s.x.length; i++) {
+        if (s.x[i] < xmin) xmin = s.x[i];
+        if (s.x[i] > xmax) xmax = s.x[i];
+        if (s.y[i] < ymin) ymin = s.y[i];
+        if (s.y[i] > ymax) ymax = s.y[i];
+      }
+    }
+  }
+  if (opts.yminHard!==undefined) ymin = Math.min(ymin, opts.yminHard);
+  if (opts.ymaxHard!==undefined) ymax = Math.max(ymax, opts.ymaxHard);
+  if (ymax === ymin) { ymax = ymin + 1; }
+  const yr = ymax - ymin;
+  ymin -= yr*0.08; ymax += yr*0.08;
+
+  const X = x => pad.l + (x - xmin)/(xmax - xmin) * plotW;
+  const Y = y => pad.t + (1 - (y - ymin)/(ymax - ymin)) * plotH;
+
+  // background
+  ctx.fillStyle = '#faf6e9';
+  ctx.fillRect(pad.l, pad.t, plotW, plotH);
+
+  // gridlines
+  ctx.strokeStyle = '#e7decb';
+  ctx.lineWidth = 1;
+  ctx.font = "11px 'JetBrains Mono', monospace";
+  ctx.fillStyle = '#5a5b6a';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const yTicks = 5;
+  for (let i=0; i<=yTicks; i++){
+    const yv = ymin + i*(ymax-ymin)/yTicks;
+    const py = Y(yv);
+    ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(pad.l+plotW, py); ctx.stroke();
+    ctx.fillText(yv.toFixed(1), pad.l - 6, py);
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const xTicks = 6;
+  for (let i=0; i<=xTicks; i++){
+    const xv = xmin + i*(xmax-xmin)/xTicks;
+    const px = X(xv);
+    ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+plotH); ctx.stroke();
+    ctx.fillText(xv.toFixed(1), px, pad.t + plotH + 6);
+  }
+
+  // axis borders
+  ctx.strokeStyle = '#b8ad8e';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.rect(pad.l, pad.t, plotW, plotH);
+  ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle = '#2c2e3a';
+  ctx.font = "italic 13px 'Newsreader', serif";
+  ctx.textAlign = 'center';
+  ctx.fillText(opts.xlabel||'time (s)', pad.l + plotW/2, h - 6);
+  ctx.save();
+  ctx.translate(12, pad.t + plotH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center';
+  ctx.fillText(opts.ylabel||'y', 0, 0);
+  ctx.restore();
+
+  // horizontal guides
+  if (opts.guides) {
+    for (const g of opts.guides){
+      ctx.save();
+      ctx.strokeStyle = g.color || '#2f526b';
+      ctx.setLineDash(g.dash || [3,4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (g.y !== undefined){
+        const py = Y(g.y);
+        ctx.moveTo(pad.l, py); ctx.lineTo(pad.l+plotW, py);
+      } else if (g.x !== undefined){
+        const px = X(g.x);
+        ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+plotH);
+      }
+      ctx.stroke();
+      ctx.restore();
+      if (g.label){
+        ctx.fillStyle = g.color || '#2f526b';
+        ctx.font = "11px 'JetBrains Mono', monospace";
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        if (g.y!==undefined){
+          ctx.fillText(g.label, pad.l + 6, Y(g.y) - 3);
+        } else {
+          ctx.save();
+          ctx.translate(X(g.x)+4, pad.t+14);
+          ctx.fillText(g.label, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  // series
+  for (const s of series){
+    ctx.strokeStyle = s.color || '#1b1c24';
+    ctx.fillStyle   = s.color || '#1b1c24';
+    if (s.style === 'dots') {
+      for (let i=0; i<s.x.length; i++){
+        ctx.beginPath();
+        ctx.arc(X(s.x[i]), Y(s.y[i]), s.size||1.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+    } else {
+      ctx.lineWidth = s.width || 2;
+      if (s.dash) ctx.setLineDash(s.dash); else ctx.setLineDash([]);
+      ctx.beginPath();
+      for (let i=0; i<s.x.length; i++){
+        const px = X(s.x[i]), py = Y(s.y[i]);
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+
+  // legend
+  if (opts.legend){
+    const lx = pad.l + 12, ly = pad.t + 12;
+    ctx.font = "12px 'JetBrains Mono', monospace";
+    ctx.textBaseline = 'middle';
+    opts.legend.forEach((L, i) => {
+      const yy = ly + i*18;
+      ctx.strokeStyle = L.color; ctx.lineWidth = 3;
+      if (L.style==='dots'){
+        ctx.fillStyle = L.color;
+        ctx.beginPath(); ctx.arc(lx+8, yy, 3, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.beginPath(); ctx.moveTo(lx, yy); ctx.lineTo(lx+18, yy); ctx.stroke();
+      }
+      ctx.fillStyle = '#1b1c24';
+      ctx.textAlign = 'left';
+      ctx.fillText(L.name, lx + 26, yy);
+    });
+  }
+}
+
+/* ============================================================
+   LAB 1 — FIRST-ORDER
+   ============================================================ */
+const lab1 = { data: null, truth: null, revealed: false };
+
+function genFirstOrderData() {
+  const Ktrue = rand(0.8, 2.8);
+  const Ttrue = rand(0.3, 1.6);
+  const U = 1.0;
+  const N = 200;
+  const tmax = 6 * Ttrue;
+  const t = [], y = [];
+  const sigma = 0.035 * Ktrue;
+  for (let i=0; i<N; i++){
+    const ti = i * tmax / (N-1);
+    const yi = Ktrue * U * (1 - Math.exp(-ti / Ttrue)) + sigma * randn();
+    t.push(ti); y.push(yi);
+  }
+  return { t, y, Ktrue, Ttrue, U, tmax, sigma };
+}
+
+function modelFirstOrder(t, K, T, U){
+  return t.map(ti => K * U * (1 - Math.exp(-ti / T)));
+}
+
+function updateLab1(){
+  const K = parseFloat(document.getElementById('s_K1').value);
+  const T = parseFloat(document.getElementById('s_T1').value);
+  document.getElementById('v_K1').textContent = K.toFixed(2);
+  document.getElementById('v_T1').textContent = T.toFixed(2);
+
+  const d = lab1.data;
+  const yhat = modelFirstOrder(d.t, K, T, d.U);
+
+  // Metrics
+  let se=0, rsum=0;
+  let ymean = 0;
+  for (const v of d.y) ymean += v; ymean /= d.y.length;
+  let denom = 0;
+  for (let i=0; i<d.y.length; i++){
+    const e = d.y[i] - yhat[i];
+    se += e*e;
+    denom += (d.y[i]-ymean)*(d.y[i]-ymean);
+    rsum += e;
+  }
+  const rmse = Math.sqrt(se / d.y.length);
+  const fit = 100 * (1 - Math.sqrt(se)/Math.sqrt(denom));
+  const rmean = rsum / d.y.length;
+
+  document.getElementById('rmse1').textContent = fmt(rmse,4);
+  const fitEl = document.getElementById('fit1');
+  fitEl.textContent = fmt(fit,1) + "%";
+  fitEl.className = fit >= 85 ? 'm-ok' : (fit >= 60 ? '' : 'm-warn');
+  document.getElementById('t632_1').textContent = fmt(T,3) + " s";
+  document.getElementById('rmean1').textContent = fmt(rmean,4);
+
+  // Plot
+  const canvas = document.getElementById('plot1');
+  const y63 = K * d.U * (1 - Math.exp(-1));  // 0.632*K
+  const truthSeries = lab1.revealed
+    ? [{
+        x: d.t,
+        y: modelFirstOrder(d.t, d.Ktrue, d.Ttrue, d.U),
+        color: '#6b7f5a', width: 2, dash: [2,4]
+      }]
+    : [];
+
+  drawPlot(canvas, [
+    { x: d.t, y: d.y, style: 'dots', color: '#2f526b', size: 2 },
+    { x: d.t, y: yhat, color: '#b04628', width: 2.5 },
+    ...truthSeries
+  ], {
+    xlabel: 'time (s)',
+    ylabel: 'output y(t)',
+    xmin: 0, xmax: d.tmax,
+    guides: [
+      { y: y63, color: '#b04628', dash: [2,3], label: `0.632·K̂ = ${y63.toFixed(2)}` },
+      { x: T,   color: '#b04628', dash: [2,3], label: `τ̂ = ${T.toFixed(2)} s` }
+    ],
+    legend: [
+      { name: 'measured',  color: '#2f526b', style: 'dots' },
+      { name: 'model ĝ(t)', color: '#b04628' },
+      ...(lab1.revealed ? [{ name: `truth  K=${d.Ktrue.toFixed(2)}, τ=${d.Ttrue.toFixed(2)}`, color: '#6b7f5a' }] : [])
+    ]
+  });
+}
+
+function newLab1(){
+  lab1.data = genFirstOrderData();
+  lab1.revealed = false;
+  updateLab1();
+}
+
+/* ============================================================
+   LAB 2 — SECOND-ORDER
+   ============================================================ */
+const lab2 = { data: null, revealed: false };
+
+function simulateSecondOrder(K, wn, zeta, U, tmax, N){
+  // Discrete simulation via RK4 of  ÿ + 2ζωₙ ẏ + ωₙ² y  = K ωₙ² u
+  const t = new Array(N), y = new Array(N);
+  const dt = tmax / (N-1);
+  let y1 = 0, y2 = 0; // y1 = y, y2 = y_dot
+  const f = (y1, y2) => [y2, K * wn*wn * U - 2*zeta*wn*y2 - wn*wn*y1];
+  for (let i=0; i<N; i++){
+    t[i] = i*dt;
+    y[i] = y1;
+    const k1 = f(y1, y2);
+    const k2 = f(y1 + 0.5*dt*k1[0], y2 + 0.5*dt*k1[1]);
+    const k3 = f(y1 + 0.5*dt*k2[0], y2 + 0.5*dt*k2[1]);
+    const k4 = f(y1 + dt*k3[0],     y2 + dt*k3[1]);
+    y1 += dt*(k1[0]+2*k2[0]+2*k3[0]+k4[0])/6;
+    y2 += dt*(k1[1]+2*k2[1]+2*k3[1]+k4[1])/6;
+  }
+  return { t, y };
+}
+
+function genSecondOrderData(){
+  const Ktrue = rand(0.8, 2.0);
+  const Wtrue = rand(2.0, 6.0);
+  const Ztrue = rand(0.12, 0.6);
+  const U = 1.0;
+  const tmax = Math.max(8/(Ztrue*Wtrue), 6);
+  const N = 220;
+  const sim = simulateSecondOrder(Ktrue, Wtrue, Ztrue, U, tmax, N);
+  const sigma = 0.03 * Ktrue;
+  const y = sim.y.map(v => v + sigma*randn());
+  return { t: sim.t, y, Ktrue, Wtrue, Ztrue, U, tmax, sigma };
+}
+
+function updateLab2(){
+  const K = parseFloat(document.getElementById('s_K2').value);
+  const W = parseFloat(document.getElementById('s_W2').value);
+  const Z = parseFloat(document.getElementById('s_Z2').value);
+  document.getElementById('v_K2').textContent = K.toFixed(2);
+  document.getElementById('v_W2').textContent = W.toFixed(2);
+  document.getElementById('v_Z2').textContent = Z.toFixed(2);
+
+  const d = lab2.data;
+  const sim = simulateSecondOrder(K, W, Z, d.U, d.tmax, d.t.length);
+
+  // Metrics
+  let se = 0, denom = 0, ymean = 0;
+  for (const v of d.y) ymean += v; ymean /= d.y.length;
+  for (let i=0; i<d.y.length; i++){
+    const e = d.y[i] - sim.y[i];
+    se += e*e;
+    denom += (d.y[i]-ymean)*(d.y[i]-ymean);
+  }
+  const rmse = Math.sqrt(se/d.y.length);
+  const fit = 100 * (1 - Math.sqrt(se)/Math.sqrt(denom));
+
+  // Predicted Mp and tp
+  let Mp = 0, tp = Infinity;
+  if (Z < 1.0 && Z > 0){
+    Mp = Math.exp(-Math.PI*Z / Math.sqrt(1-Z*Z));
+    tp = Math.PI / (W * Math.sqrt(1-Z*Z));
+  }
+
+  document.getElementById('rmse2').textContent = fmt(rmse, 4);
+  const fitEl = document.getElementById('fit2');
+  fitEl.textContent = fmt(fit,1) + "%";
+  fitEl.className = fit >= 85 ? 'm-ok' : (fit >= 60 ? '' : 'm-warn');
+  document.getElementById('mp2').textContent = Z < 1 ? (100*Mp).toFixed(1)+"%" : "overdamped";
+  document.getElementById('tp2').textContent = isFinite(tp) ? tp.toFixed(2) : "—";
+
+  const canvas = document.getElementById('plot2');
+
+  const truthSeries = lab2.revealed
+    ? [{
+        x: d.t,
+        y: simulateSecondOrder(d.Ktrue, d.Wtrue, d.Ztrue, d.U, d.tmax, d.t.length).y,
+        color: '#6b7f5a', width: 2, dash: [2,4]
+      }]
+    : [];
+
+  const guides = [
+    { y: K * d.U, color: '#2f526b', dash: [2,3], label: `K̂·U = ${(K*d.U).toFixed(2)}` }
+  ];
+  if (isFinite(tp) && tp < d.tmax){
+    guides.push({ x: tp, color: '#b04628', dash: [2,3], label: `t_p = ${tp.toFixed(2)}s` });
+    guides.push({ y: K*d.U*(1+Mp), color: '#b04628', dash: [2,3], label: `peak = ${(K*d.U*(1+Mp)).toFixed(2)}` });
+  }
+
+  drawPlot(canvas, [
+    { x: d.t, y: d.y, style: 'dots', color: '#2f526b', size: 2 },
+    { x: sim.t, y: sim.y, color: '#b04628', width: 2.5 },
+    ...truthSeries
+  ], {
+    xlabel: 'time (s)',
+    ylabel: 'output y(t)',
+    xmin: 0, xmax: d.tmax,
+    guides,
+    legend: [
+      { name: 'measured', color: '#2f526b', style: 'dots' },
+      { name: 'model',    color: '#b04628' },
+      ...(lab2.revealed ? [{ name: `truth  K=${d.Ktrue.toFixed(2)}, ωₙ=${d.Wtrue.toFixed(2)}, ζ=${d.Ztrue.toFixed(2)}`, color: '#6b7f5a' }] : [])
+    ]
+  });
+}
+
+function newLab2(){
+  lab2.data = genSecondOrderData();
+  lab2.revealed = false;
+  updateLab2();
+}
+
+/* ============================================================
+   SIGNAL COMPARISON MINIS
+   ============================================================ */
+function drawSignal(canvasId, mode){
+  const canvas = document.getElementById(canvasId);
+  const {ctx, w, h} = setupHiDPI(canvas);
+  ctx.clearRect(0,0,w,h);
+  const pad = 4;
+  const N = 240;
+  const xs = [], ys = [];
+  if (mode === 'step'){
+    for (let i=0; i<N; i++){ xs.push(i); ys.push(i > N*0.2 ? 1 : 0); }
+  } else if (mode === 'prbs'){
+    // deterministic PRBS-ish
+    let s = 1;
+    const seq = [];
+    for (let i=0; i<N; i++){
+      if (i % 6 === 0) s = Math.random() > 0.5 ? 1 : -1;
+      seq.push(s);
+    }
+    // renormalise to [0,1]
+    for (let i=0; i<N; i++){ xs.push(i); ys.push( (seq[i]+1)/2 ); }
+  } else if (mode === 'chirp'){
+    const f0 = 0.005, f1 = 0.18;
+    for (let i=0; i<N; i++){
+      xs.push(i);
+      const phi = 2*Math.PI * (f0*i + (f1-f0)/(2*N) * i*i);
+      ys.push(0.5 + 0.45*Math.sin(phi));
+    }
+  }
+  // axis baseline
+  ctx.strokeStyle = '#dcd3b8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, h/2); ctx.lineTo(w-pad, h/2); ctx.stroke();
+  // signal
+  ctx.strokeStyle = '#b04628'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let i=0; i<N; i++){
+    const px = pad + (w-2*pad) * (xs[i]/(N-1));
+    const py = h - pad - (h-2*pad) * ys[i];
+    if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+/* ============================================================
+   WIRE UP
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Lab 1
+  newLab1();
+  ['s_K1','s_T1'].forEach(id => document.getElementById(id).addEventListener('input', updateLab1));
+  document.getElementById('new1').addEventListener('click', newLab1);
+  document.getElementById('reveal1').addEventListener('click', () => {
+    lab1.revealed = !lab1.revealed;
+    document.getElementById('reveal1').textContent = lab1.revealed ? 'Hide truth' : 'Reveal truth';
+    updateLab1();
+  });
+
+  // Lab 2
+  newLab2();
+  ['s_K2','s_W2','s_Z2'].forEach(id => document.getElementById(id).addEventListener('input', updateLab2));
+  document.getElementById('new2').addEventListener('click', newLab2);
+  document.getElementById('reveal2').addEventListener('click', () => {
+    lab2.revealed = !lab2.revealed;
+    document.getElementById('reveal2').textContent = lab2.revealed ? 'Hide truth' : 'Reveal truth';
+    updateLab2();
+  });
+
+  // Signal comparison
+  drawSignal('sig_step',  'step');
+  drawSignal('sig_prbs',  'prbs');
+  drawSignal('sig_chirp', 'chirp');
+});
+
+// re-render on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    updateLab1(); updateLab2();
+    drawSignal('sig_step','step');
+    drawSignal('sig_prbs','prbs');
+    drawSignal('sig_chirp','chirp');
+  }, 150);
+});
+</script>
+
+</body>
+</html>

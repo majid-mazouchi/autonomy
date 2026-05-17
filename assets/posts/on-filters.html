@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>On Filters — Analog & Digital, First-Order and Beyond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FOUNDATION
+   ============================================================ */
+:root {
+  --bg:        #0e1116;
+  --bg-elev:  #151a22;
+  --bg-card:  #1a2029;
+  --ink:      #e8e4da;
+  --ink-dim:  #a49d8f;
+  --ink-faint:#6b6558;
+  --rule:     #2a2f39;
+  --rule-soft:#1f242d;
+
+  --accent-amber:  #d49a3d;   /* primary signal — warm phosphor */
+  --accent-red:    #c94f4f;   /* warning / high-pass */
+  --accent-teal:   #5cc8b4;   /* low-pass */
+  --accent-violet: #a78bd9;   /* band-pass */
+  --accent-blue:   #6aa6d9;   /* butterworth */
+  --accent-gold:   #e6c56a;   /* chebyshev */
+
+  --ff-display: 'Fraunces', 'Times New Roman', serif;
+  --ff-body:    'Inter Tight', system-ui, sans-serif;
+  --ff-mono:    'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ff-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Subtle paper grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(212, 154, 61, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 80% 90%, rgba(106, 166, 217, 0.03) 0%, transparent 50%);
+  z-index: 0;
+}
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 80px 32px 120px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+h1, h2, h3, h4 {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+
+h1 {
+  font-size: clamp(3rem, 7vw, 5.8rem);
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 0.3em;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+  margin: 3em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+h2::before {
+  content: attr(data-chapter);
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--accent-amber);
+  margin-bottom: 1em;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 2.2em 0 0.6em;
+  color: var(--ink);
+}
+
+h4 {
+  font-family: var(--ff-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+  margin-bottom: 0.8em;
+}
+
+p {
+  margin-bottom: 1.1em;
+  max-width: 68ch;
+}
+p.lead {
+  font-family: var(--ff-display);
+  font-weight: 300;
+  font-size: 1.35rem;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 60ch;
+  margin-bottom: 1.5em;
+}
+
+em { font-style: italic; color: var(--ink); }
+strong { font-weight: 600; color: var(--ink); }
+
+code, .mono {
+  font-family: var(--ff-mono);
+  font-size: 0.9em;
+  color: var(--accent-amber);
+}
+
+a { color: var(--accent-teal); text-decoration: none; border-bottom: 1px dotted var(--accent-teal); }
+
+.eq {
+  font-family: var(--ff-mono);
+  font-size: 1.02em;
+  display: inline-block;
+  padding: 0 4px;
+  color: var(--ink);
+}
+
+.eq-block {
+  display: block;
+  margin: 1.5em auto;
+  text-align: center;
+  font-family: var(--ff-mono);
+  font-size: 1.1rem;
+  color: var(--ink);
+  padding: 1em;
+  background: var(--bg-elev);
+  border-left: 2px solid var(--accent-amber);
+  border-radius: 2px;
+  max-width: 600px;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   HEADER / HERO
+   ============================================================ */
+.hero {
+  padding: 60px 0 80px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 20px;
+}
+
+.back-to-blog {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 2em;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--accent-amber);
+}
+
+.author-line {
+  font-family: var(--ff-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: 1.5em 0 0;
+}
+.author-line strong {
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.hero .kicker {
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--accent-amber);
+  text-transform: uppercase;
+  margin-bottom: 2em;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+.hero .kicker::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: var(--rule);
+}
+
+.hero-sub {
+  font-family: var(--ff-display);
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-dim);
+  max-width: 30ch;
+  line-height: 1.4;
+  margin-top: 1em;
+}
+
+.hero-meta {
+  display: flex;
+  gap: 3em;
+  margin-top: 4em;
+  padding-top: 2em;
+  border-top: 1px solid var(--rule-soft);
+  font-family: var(--ff-mono);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+.hero-meta span b {
+  display: block;
+  color: var(--ink-dim);
+  font-weight: 500;
+  margin-bottom: 0.3em;
+}
+
+/* ============================================================
+   INTERACTIVE LAB — shared grid
+   ============================================================ */
+.lab {
+  margin: 2.5em 0;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lab-head {
+  padding: 16px 22px;
+  background: linear-gradient(180deg, rgba(212,154,61,0.06), transparent);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--ff-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.lab-head .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+  display: inline-block;
+  margin-right: 10px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.lab-body {
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+}
+@media (max-width: 780px) {
+  .lab-body { grid-template-columns: 1fr; }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+}
+
+.control label {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.control label .val {
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+
+.control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--rule);
+  border-radius: 2px;
+  outline: none;
+}
+.control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--bg-card), 0 0 10px rgba(212,154,61,0.4);
+  transition: transform 0.1s;
+}
+.control input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.control input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--bg-card);
+}
+
+.control select, .control .seg {
+  display: flex;
+  gap: 0;
+  background: var(--bg-elev);
+  border-radius: 3px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+}
+.seg button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-family: var(--ff-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 7px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.seg button:hover { color: var(--ink); }
+.seg button.active {
+  background: var(--accent-amber);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.readout {
+  padding: 10px 12px;
+  background: var(--bg-elev);
+  border-left: 2px solid var(--accent-amber);
+  font-family: var(--ff-mono);
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  border-radius: 2px;
+}
+.readout b { color: var(--ink); font-weight: 500; }
+
+.plots {
+  display: grid;
+  gap: 18px;
+}
+.plots.two-col { grid-template-columns: 1fr 1fr; }
+@media (max-width: 780px) {
+  .plots.two-col { grid-template-columns: 1fr; }
+}
+
+.plot {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 12px 14px 14px;
+  position: relative;
+}
+.plot-title {
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.plot-title .axis {
+  color: var(--ink-faint);
+  letter-spacing: 0.08em;
+}
+.plot canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ============================================================
+   CIRCUIT DIAGRAMS
+   ============================================================ */
+.circuit-wrap {
+  background: var(--bg-elev);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 18px;
+  margin: 1.2em 0;
+  text-align: center;
+}
+.circuit-wrap svg {
+  max-width: 100%;
+  height: auto;
+}
+.circuit-caption {
+  margin-top: 10px;
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.08em;
+}
+
+/* ============================================================
+   COMPARISON TABLE
+   ============================================================ */
+.compare {
+  margin: 2em 0;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.compare table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.compare th, .compare td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+.compare th {
+  background: var(--bg-elev);
+  font-family: var(--ff-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+.compare td:first-child {
+  font-family: var(--ff-display);
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink);
+}
+.compare tr:last-child td { border-bottom: none; }
+
+/* ============================================================
+   CALLOUT / ASIDE
+   ============================================================ */
+.aside {
+  margin: 2em 0;
+  padding: 18px 22px;
+  background: var(--bg-elev);
+  border-left: 3px solid var(--accent-teal);
+  font-size: 0.95rem;
+  color: var(--ink-dim);
+  border-radius: 2px;
+}
+.aside h4 { color: var(--accent-teal); margin-bottom: 0.4em; }
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+nav.toc {
+  position: sticky;
+  top: 20px;
+  float: right;
+  width: 180px;
+  margin-left: 40px;
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  display: none;
+}
+@media (min-width: 1280px) {
+  nav.toc { display: block; }
+}
+nav.toc ol { list-style: none; border-left: 1px solid var(--rule); padding-left: 14px; }
+nav.toc li { margin: 0.8em 0; }
+nav.toc a {
+  color: var(--ink-faint);
+  border-bottom: none;
+  letter-spacing: 0.05em;
+}
+nav.toc a:hover { color: var(--accent-amber); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  margin-top: 6em;
+  padding-top: 2em;
+  border-top: 1px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+footer .sig { font-style: italic; font-family: var(--ff-display); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<header class="hero">
+  <div class="kicker">A Field Guide · № 01 · Signal Processing</div>
+  <h1>On Filters.</h1>
+  <p class="hero-sub">From the humble <span style="color:var(--accent-amber)">RC</span> pair to the exacting geometry of Butterworth, Chebyshev, and Elliptic &mdash; an interactive walk through the analog and digital frontiers of frequency selectivity.</p>
+  <p class="author-line">By <strong>Majid Mazouchi</strong></p>
+
+  <div class="hero-meta">
+    <span><b>Scope</b>LPF · HPF · BPF · 1st-order analog → IIR digital</span>
+    <span><b>Method</b>Live math. Real poles. Real responses.</span>
+    <span><b>Audience</b>Engineers who prefer the transfer function to the hand-wave.</span>
+  </div>
+</header>
+
+<!-- ============================================================
+     §1 — WHY FILTER
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 01">The Problem of Separation</h2>
+
+<p class="lead">A filter is, at heart, a polite machine for ignoring. It selects a band of frequencies to pass, another to suppress &mdash; and its elegance lies entirely in <em>how gracefully</em> it draws that line.</p>
+
+<p>Every filter answers the same question: given an input signal <span class="eq">x(t)</span> composed of many frequency components, how do we produce an output <span class="eq">y(t)</span> that keeps the ones we want and attenuates the rest? The ideal answer &mdash; a perfect brick-wall cut at cutoff frequency <span class="eq">ω<sub>c</sub></span> &mdash; is <em>physically unrealizable</em>. It would require infinite memory and acausal behavior (a response before the cause). What we build instead are compromises, and the <strong>shape</strong> of that compromise is what distinguishes a Butterworth from a Chebyshev from a Bessel.</p>
+
+<p>We characterize every filter through three coupled views:</p>
+
+<div class="eq-block">|H(jω)|  &nbsp;·&nbsp;  ∠H(jω)  &nbsp;·&nbsp;  {poles, zeros}</div>
+
+<p>The <strong>magnitude response</strong> |H(jω)| tells us how much each frequency is attenuated. The <strong>phase response</strong> ∠H(jω) tells us how much each frequency is delayed. The <strong>pole-zero plot</strong> encodes both, in the geometry of the complex plane. These three are not independent; they are three projections of the same object, the transfer function <span class="eq">H(s)</span>.</p>
+
+</section>
+
+<!-- ============================================================
+     §2 — RC LOW-PASS
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 02">The RC Low-Pass &mdash; First Principles</h2>
+
+<p>The humblest filter in electronics is a resistor feeding a capacitor. Apply Kirchhoff's voltage law, write the capacitor impedance as <span class="eq">1/(sC)</span>, and the voltage divider gives:</p>
+
+<div class="eq-block">H(s) = V<sub>out</sub>/V<sub>in</sub> = 1 / (1 + sRC) = 1 / (1 + s/ω<sub>c</sub>)</div>
+
+<p>with cutoff angular frequency <span class="eq">ω<sub>c</sub> = 1/(RC)</span>, or equivalently <span class="eq">f<sub>c</sub> = 1/(2πRC)</span>. At <span class="eq">ω = ω<sub>c</sub></span> the magnitude is exactly <span class="eq">1/√2 ≈ −3.01 dB</span> &mdash; the so-called <em>half-power point</em>, the universal definition of "cutoff" for a first-order filter. Above cutoff the response rolls off at <strong>−20 dB/decade</strong> (equivalently −6 dB/octave), which is the signature slope of every first-order system in the known universe.</p>
+
+<div class="circuit-wrap">
+<svg viewBox="0 0 420 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .wire { stroke: #a49d8f; stroke-width: 1.5; fill: none; }
+      .lbl  { font-family: 'JetBrains Mono', monospace; font-size: 12px; fill: #e8e4da; }
+      .acc  { fill: #d49a3d; }
+    </style>
+  </defs>
+  <!-- Input -->
+  <text x="18" y="64" class="lbl">V<tspan dy="3" font-size="9">in</tspan></text>
+  <circle cx="55" cy="60" r="3" class="acc"/>
+  <line x1="55" y1="60" x2="130" y2="60" class="wire"/>
+  <!-- Resistor (zigzag) -->
+  <polyline points="130,60 138,50 146,70 154,50 162,70 170,50 178,60" class="wire"/>
+  <text x="148" y="42" class="lbl">R</text>
+  <!-- Wire: R → output node → Vout -->
+  <line x1="178" y1="60" x2="340" y2="60" class="wire"/>
+  <circle cx="340" cy="60" r="3" class="acc"/>
+  <text x="350" y="64" class="lbl">V<tspan dy="3" font-size="9">out</tspan></text>
+  <!-- Capacitor dropping from output node to ground -->
+  <line x1="265" y1="60" x2="265" y2="82" class="wire"/>
+  <line x1="250" y1="82" x2="280" y2="82" class="wire"/>
+  <line x1="250" y1="89" x2="280" y2="89" class="wire"/>
+  <text x="288" y="90" class="lbl">C</text>
+  <line x1="265" y1="89" x2="265" y2="110" class="wire"/>
+  <!-- Ground symbol -->
+  <line x1="250" y1="110" x2="280" y2="110" class="wire"/>
+  <line x1="256" y1="115" x2="274" y2="115" class="wire"/>
+  <line x1="261" y1="120" x2="269" y2="120" class="wire"/>
+</svg>
+<div class="circuit-caption">FIG. 1 &nbsp;·&nbsp; RC low-pass. τ = RC sets the time constant.</div>
+</div>
+
+<p>Tune <span class="eq">R</span> and <span class="eq">C</span> below. The three views respond together &mdash; Bode magnitude, phase, and step response &mdash; because they all follow from the same <span class="eq">H(s)</span>. Note that at <span class="eq">ω<sub>c</sub></span> the phase is exactly <strong>−45°</strong>; this is another universal signature of first-order systems.</p>
+
+<div class="lab" id="lab-rc-lpf">
+  <div class="lab-head">
+    <span><span class="dot"></span>Lab 01 · RC Low-Pass</span>
+    <span>H(s) = 1 / (1 + sRC)</span>
+  </div>
+  <div class="lab-body">
+    <div class="controls">
+      <div class="control">
+        <label>Resistance R <span class="val" id="rc-lpf-r-val">1.00 kΩ</span></label>
+        <input type="range" id="rc-lpf-r" min="100" max="100000" step="100" value="1000">
+      </div>
+      <div class="control">
+        <label>Capacitance C <span class="val" id="rc-lpf-c-val">100 nF</span></label>
+        <input type="range" id="rc-lpf-c" min="1" max="1000" step="1" value="100">
+      </div>
+      <div class="readout" id="rc-lpf-readout">&nbsp;</div>
+    </div>
+    <div class="plots">
+      <div class="plot"><div class="plot-title"><span>Bode &mdash; Magnitude</span><span class="axis">dB vs log₁₀ f</span></div><canvas id="rc-lpf-mag" width="640" height="220"></canvas></div>
+      <div class="plots two-col">
+        <div class="plot"><div class="plot-title"><span>Bode &mdash; Phase</span><span class="axis">deg</span></div><canvas id="rc-lpf-phase" width="320" height="180"></canvas></div>
+        <div class="plot"><div class="plot-title"><span>Step Response</span><span class="axis">v<sub>out</sub> vs t</span></div><canvas id="rc-lpf-step" width="320" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     §3 — RC HIGH-PASS
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 03">The RC High-Pass &mdash; The Mirror Image</h2>
+
+<p>Swap the positions of R and C in the previous circuit and we obtain the mirror: the low-frequency components now see a capacitor blocking DC, while high frequencies sail through. The transfer function is</p>
+
+<div class="eq-block">H(s) = sRC / (1 + sRC) = s / (s + ω<sub>c</sub>)</div>
+
+<p>It has a <strong>zero at the origin</strong> &mdash; which is precisely what kills DC &mdash; and the same pole at <span class="eq">s = −ω<sub>c</sub></span> as the low-pass. At DC, H(0) = 0. At infinity, H(∞) = 1. At cutoff, |H(jω<sub>c</sub>)| = 1/√2 and the phase is <strong>+45°</strong> (not −45°; the zero adds +90° of phase that the pole then partially subtracts).</p>
+
+<div class="lab" id="lab-rc-hpf">
+  <div class="lab-head">
+    <span><span class="dot" style="background:var(--accent-red);box-shadow:0 0 8px var(--accent-red)"></span>Lab 02 · RC High-Pass</span>
+    <span>H(s) = sRC / (1 + sRC)</span>
+  </div>
+  <div class="lab-body">
+    <div class="controls">
+      <div class="control">
+        <label>Resistance R <span class="val" id="rc-hpf-r-val">1.00 kΩ</span></label>
+        <input type="range" id="rc-hpf-r" min="100" max="100000" step="100" value="1000">
+      </div>
+      <div class="control">
+        <label>Capacitance C <span class="val" id="rc-hpf-c-val">100 nF</span></label>
+        <input type="range" id="rc-hpf-c" min="1" max="1000" step="1" value="100">
+      </div>
+      <div class="readout" id="rc-hpf-readout">&nbsp;</div>
+    </div>
+    <div class="plots">
+      <div class="plot"><div class="plot-title"><span>Bode &mdash; Magnitude</span><span class="axis">dB vs log₁₀ f</span></div><canvas id="rc-hpf-mag" width="640" height="220"></canvas></div>
+      <div class="plots two-col">
+        <div class="plot"><div class="plot-title"><span>Bode &mdash; Phase</span><span class="axis">deg</span></div><canvas id="rc-hpf-phase" width="320" height="180"></canvas></div>
+        <div class="plot"><div class="plot-title"><span>Step Response</span><span class="axis">v<sub>out</sub> vs t</span></div><canvas id="rc-hpf-step" width="320" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     §4 — RLC BAND-PASS
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 04">Band-Pass &mdash; Two Poles Meet a Zero</h2>
+
+<p>A true band-pass response is inherently <strong>second-order</strong> &mdash; it cannot be built from a single storage element. The classic realization is a series RLC circuit with output taken across the resistor:</p>
+
+<div class="eq-block">H(s) = (s/Q·ω<sub>0</sub>) / (s² + s·ω<sub>0</sub>/Q + ω<sub>0</sub>²)</div>
+
+<p>Two parameters describe the full behavior: the <strong>center frequency</strong> <span class="eq">ω<sub>0</sub> = 1/√(LC)</span> and the <strong>quality factor</strong> <span class="eq">Q = (1/R)·√(L/C)</span>. Q controls sharpness: high-Q gives a narrow, tall peak (selective, ringy); low-Q gives a broad, mellow peak. The bandwidth between the two −3 dB points is exactly <span class="eq">BW = ω<sub>0</sub>/Q</span>.</p>
+
+<p class="aside"><strong>Why stack a first-order LPF with a first-order HPF?</strong> &nbsp;That gives a broad band-pass with gentle skirts &mdash; perfectly respectable for separating two well-separated bands (DC blocking + anti-aliasing, for instance). But for a <em>sharp</em> band-pass around a specific ω<sub>0</sub>, cascaded first-orders never match an RLC of comparable Q. You need the complex-conjugate pole pair.</p>
+
+<div class="lab" id="lab-rlc-bpf">
+  <div class="lab-head">
+    <span><span class="dot" style="background:var(--accent-violet);box-shadow:0 0 8px var(--accent-violet)"></span>Lab 03 · RLC Band-Pass</span>
+    <span>ω₀ = 1/√(LC),  Q = (1/R)·√(L/C)</span>
+  </div>
+  <div class="lab-body">
+    <div class="controls">
+      <div class="control">
+        <label>Center f₀ <span class="val" id="rlc-f0-val">1.00 kHz</span></label>
+        <input type="range" id="rlc-f0" min="10" max="10000" step="10" value="1000">
+      </div>
+      <div class="control">
+        <label>Quality Q <span class="val" id="rlc-q-val">5.0</span></label>
+        <input type="range" id="rlc-q" min="0.5" max="30" step="0.1" value="5">
+      </div>
+      <div class="readout" id="rlc-readout">&nbsp;</div>
+    </div>
+    <div class="plots">
+      <div class="plot"><div class="plot-title"><span>Bode &mdash; Magnitude</span><span class="axis">dB vs log₁₀ f</span></div><canvas id="rlc-mag" width="640" height="220"></canvas></div>
+      <div class="plots two-col">
+        <div class="plot"><div class="plot-title"><span>Bode &mdash; Phase</span><span class="axis">deg</span></div><canvas id="rlc-phase" width="320" height="180"></canvas></div>
+        <div class="plot"><div class="plot-title"><span>Pole-Zero (s-plane)</span><span class="axis">Re · Im</span></div><canvas id="rlc-pz" width="320" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     §5 — ANALOG TO DIGITAL
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 05">From s-Plane to z-Plane &mdash; The Bilinear Transform</h2>
+
+<p>A digital filter is a difference equation: today's output is a weighted sum of recent inputs and recent outputs. The transfer function lives in the <strong>z-domain</strong>, where stability requires all poles to sit inside the unit circle <span class="eq">|z| &lt; 1</span> (rather than in the left half of the s-plane as for analog).</p>
+
+<p>The most widely used bridge between the two worlds is the <strong>bilinear transform</strong>:</p>
+
+<div class="eq-block">s ← (2/T) · (z − 1)/(z + 1)</div>
+
+<p>where <span class="eq">T = 1/f<sub>s</sub></span> is the sampling period. This conformal map sends the entire imaginary axis <span class="eq">s = jω</span> onto the unit circle <span class="eq">z = e<sup>jΩ</sup></span>, and the entire left half-plane into the interior of the unit disk. Stability is preserved; no aliasing. The only cost is <strong>frequency warping</strong>: the analog frequency <span class="eq">ω</span> and the digital frequency <span class="eq">Ω</span> are related by</p>
+
+<div class="eq-block">ω = (2/T) · tan(Ω/2)</div>
+
+<p>which stretches as we approach <span class="eq">Ω = π</span> (the Nyquist frequency). Pre-warping the analog prototype at the target cutoff cancels this on a chosen point.</p>
+
+<p>Applying the bilinear transform to our first-order low-pass <span class="eq">H(s) = ω<sub>c</sub>/(s + ω<sub>c</sub>)</span> and simplifying yields a first-order IIR:</p>
+
+<div class="eq-block">y[n] = α · (x[n] + x[n−1]) + (1 − 2α/·) · y[n−1]</div>
+
+<p>More cleanly written, with <span class="eq">K = tan(π f<sub>c</sub>/f<sub>s</sub>)</span>:</p>
+
+<div class="eq-block">H(z) = (K/(K+1)) · (1 + z⁻¹) / (1 − ((1−K)/(1+K)) z⁻¹)</div>
+
+<div class="lab" id="lab-digital-first">
+  <div class="lab-head">
+    <span><span class="dot" style="background:var(--accent-teal);box-shadow:0 0 8px var(--accent-teal)"></span>Lab 04 · Digital First-Order IIR (Bilinear)</span>
+    <span id="dig-title">LPF · via bilinear transform</span>
+  </div>
+  <div class="lab-body">
+    <div class="controls">
+      <div class="control">
+        <label>Type</label>
+        <div class="seg" id="dig-type">
+          <button data-v="lpf" class="active">LPF</button>
+          <button data-v="hpf">HPF</button>
+        </div>
+      </div>
+      <div class="control">
+        <label>Sample rate f<sub>s</sub> <span class="val" id="dig-fs-val">48.0 kHz</span></label>
+        <input type="range" id="dig-fs" min="1000" max="192000" step="1000" value="48000">
+      </div>
+      <div class="control">
+        <label>Cutoff f<sub>c</sub> <span class="val" id="dig-fc-val">2.00 kHz</span></label>
+        <input type="range" id="dig-fc" min="10" max="20000" step="10" value="2000">
+      </div>
+      <div class="readout" id="dig-readout">&nbsp;</div>
+    </div>
+    <div class="plots">
+      <div class="plot"><div class="plot-title"><span>Magnitude |H(e^jΩ)|</span><span class="axis">dB vs log₁₀ f</span></div><canvas id="dig-mag" width="640" height="220"></canvas></div>
+      <div class="plots two-col">
+        <div class="plot"><div class="plot-title"><span>Pole-Zero (z-plane)</span><span class="axis">unit circle</span></div><canvas id="dig-pz" width="320" height="220"></canvas></div>
+        <div class="plot"><div class="plot-title"><span>Impulse Response h[n]</span><span class="axis">samples</span></div><canvas id="dig-impulse" width="320" height="220"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     §6 — THE ARCHETYPES
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 06">The Archetypes &mdash; Butterworth, Chebyshev, Elliptic, Bessel</h2>
+
+<p class="lead">At higher orders, filter design becomes an act of choosing your compromise. Flatness, roll-off, ripple, phase linearity &mdash; you cannot have all four. Each archetype is a different point on that trade-off surface.</p>
+
+<p>Every archetype we discuss is a prototype low-pass: it defines a magnitude response <span class="eq">|H(jω)|²</span> as an explicit function of <span class="eq">ω/ω<sub>c</sub></span>, from which the poles (and sometimes zeros) follow by algebra. High-pass, band-pass, and band-stop variants are obtained by frequency transformations.</p>
+
+<div class="compare">
+<table>
+<thead>
+<tr><th>Family</th><th>Magnitude behaviour</th><th>Strength</th><th>Cost</th></tr>
+</thead>
+<tbody>
+<tr><td>Butterworth</td><td>Maximally flat in passband</td><td>No ripples anywhere; smooth phase</td><td>Gentlest transition for a given order</td></tr>
+<tr><td>Chebyshev I</td><td>Equiripple in passband, monotonic stopband</td><td>Steeper roll-off than Butterworth</td><td>Passband ripple; worse phase</td></tr>
+<tr><td>Chebyshev II</td><td>Monotonic passband, equiripple stopband</td><td>Flat passband + steep skirt</td><td>Stopband doesn't go to −∞; phase worse</td></tr>
+<tr><td>Elliptic (Cauer)</td><td>Equiripple in both</td><td>Steepest transition for a given order</td><td>Ripples on both sides; poorest phase</td></tr>
+<tr><td>Bessel</td><td>Maximally flat <em>group delay</em></td><td>Best pulse fidelity, minimal overshoot</td><td>Slowest roll-off of the lot</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>The governing formulas</h3>
+
+<p>Each archetype is defined by a squared magnitude of the form <span class="eq">|H(jω)|² = 1 / (1 + F(ω/ω<sub>c</sub>))</span>, where the characteristic function F differs:</p>
+
+<div class="eq-block">
+Butterworth:&nbsp;&nbsp; F(x) = x<sup>2N</sup><br>
+Chebyshev I:&nbsp;&nbsp; F(x) = ε² · T<sub>N</sub>²(x)<br>
+Chebyshev II:&nbsp; F(x) = 1 / (ε² · T<sub>N</sub>²(1/x))<br>
+Elliptic:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; F(x) = ε² · R<sub>N</sub>²(x, L)<br>
+Bessel:&nbsp;&nbsp; defined via maximally flat group delay
+</div>
+
+<p>Here <span class="eq">T<sub>N</sub></span> is the Chebyshev polynomial of the first kind, <span class="eq">R<sub>N</sub></span> is the Chebyshev rational function (which requires Jacobi elliptic functions), <span class="eq">ε</span> controls ripple, and <span class="eq">L</span> controls the ratio between passband and stopband edges in the elliptic case.</p>
+
+<p>Adjust order, ripple, and cutoff in the lab below. All five curves are computed directly from the analytical definitions &mdash; no pre-baked coefficients.</p>
+
+<div class="lab" id="lab-archetypes">
+  <div class="lab-head">
+    <span><span class="dot" style="background:var(--accent-blue);box-shadow:0 0 8px var(--accent-blue)"></span>Lab 05 · The Archetypes Compared</span>
+    <span>N &nbsp;·&nbsp; ε &nbsp;·&nbsp; ω<sub>c</sub></span>
+  </div>
+  <div class="lab-body">
+    <div class="controls">
+      <div class="control">
+        <label>Response</label>
+        <div class="seg" id="arch-type">
+          <button data-v="lpf" class="active">LPF</button>
+          <button data-v="hpf">HPF</button>
+          <button data-v="bpf">BPF</button>
+        </div>
+      </div>
+      <div class="control">
+        <label>Order N <span class="val" id="arch-n-val">4</span></label>
+        <input type="range" id="arch-n" min="1" max="10" step="1" value="4">
+      </div>
+      <div class="control">
+        <label>Passband ripple <span class="val" id="arch-rp-val">1.0 dB</span></label>
+        <input type="range" id="arch-rp" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+      <div class="control">
+        <label>Stopband atten <span class="val" id="arch-rs-val">40 dB</span></label>
+        <input type="range" id="arch-rs" min="20" max="80" step="1" value="40">
+      </div>
+      <div class="control">
+        <label>Cutoff f<sub>c</sub> (norm.) <span class="val" id="arch-fc-val">0.20</span></label>
+        <input type="range" id="arch-fc" min="0.01" max="0.49" step="0.01" value="0.2">
+      </div>
+      <div class="readout" id="arch-readout">Legend keys to colours below.</div>
+    </div>
+    <div class="plots">
+      <div class="plot"><div class="plot-title"><span>Magnitude Response</span><span class="axis">dB vs normalised f</span></div><canvas id="arch-mag" width="640" height="280"></canvas></div>
+      <div class="plots two-col">
+        <div class="plot"><div class="plot-title"><span>Phase Response</span><span class="axis">deg</span></div><canvas id="arch-phase" width="320" height="200"></canvas></div>
+        <div class="plot"><div class="plot-title"><span>Group Delay</span><span class="axis">samples</span></div><canvas id="arch-gd" width="320" height="200"></canvas></div>
+      </div>
+      <div class="plot"><div class="plot-title"><span>Step Response (overlay)</span><span class="axis">samples</span></div><canvas id="arch-step" width="640" height="220"></canvas></div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     §7 — IIR vs FIR
+     ============================================================ -->
+<section>
+<h2 data-chapter="§ 07">A Word on IIR vs FIR</h2>
+
+<p>Everything we've called "Butterworth" or "Chebyshev" above is an <strong>Infinite Impulse Response</strong> (IIR) filter &mdash; its difference equation has feedback terms (<span class="eq">y[n−k]</span>), so its impulse response rings on forever (theoretically). Advantages: very efficient, low order gets you sharp responses. Disadvantages: nonlinear phase by default; potential for instability if poles wander outside the unit circle due to finite wordlength.</p>
+
+<p>A <strong>Finite Impulse Response</strong> (FIR) filter has only feedforward terms; its impulse response terminates after N samples. Advantages: always stable, easy to make <em>exactly linear phase</em> (zero phase distortion), which matters for audio and control systems where waveform shape must be preserved. Disadvantage: to match an IIR's selectivity you typically need a much higher order &mdash; tens to hundreds of taps.</p>
+
+<p class="aside"><h4>For embedded control engineers</h4>First-order IIR low-pass filters &mdash; sometimes called "leaky integrators" or "exponential moving averages" &mdash; are ubiquitous in motor control: speed filtering, torque reference smoothing, current measurement de-noising. The single-coefficient form <span class="eq">y[n] = α·x[n] + (1−α)·y[n−1]</span> with <span class="eq">α = T·ω<sub>c</sub>/(1 + T·ω<sub>c</sub>)</span> (from impulse-invariant design) or <span class="eq">α = K/(K+1)</span> with <span class="eq">K = tan(πf<sub>c</sub>/f<sub>s</sub>)</span> (from bilinear) costs one multiply-add. For harmonic injection paths, where phase alignment with a carrier matters, the &minus;45° phase lag at cutoff of a first-order IIR is a crucial consideration; the cutoff must be chosen high enough above the injection frequency that the phase error stays within budget.</p>
+
+</section>
+
+<footer>
+<span>On Filters · A Field Guide</span>
+<span class="sig">&mdash; fin.</span>
+<span>All responses computed client-side from analytical definitions.</span>
+</footer>
+
+</div>
+
+<script>
+/* ====== FILTER MATH ====== */
+/* Pure filter math — no DOM, no IIFE. Exposed via globals. */
+
+/* ======== COMPLEX ======== */
+const cAdd = (a,b) => [a[0]+b[0], a[1]+b[1]];
+const cSub = (a,b) => [a[0]-b[0], a[1]-b[1]];
+const cMul = (a,b) => [a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]];
+const cDiv = (a,b) => { const d=b[0]*b[0]+b[1]*b[1]; return [(a[0]*b[0]+a[1]*b[1])/d, (a[1]*b[0]-a[0]*b[1])/d]; };
+const cAbs = a => Math.hypot(a[0], a[1]);
+const cArg = a => Math.atan2(a[1], a[0]);
+const cConj = a => [a[0], -a[1]];
+const cNeg = a => [-a[0], -a[1]];
+function cSqrt(a){ const r=cAbs(a), t=cArg(a), m=Math.sqrt(r); return [m*Math.cos(t/2), m*Math.sin(t/2)]; }
+
+/* ======== COMPLETE ELLIPTIC INTEGRAL & JACOBI ======== */
+function ellipK(k){
+  k = Math.min(Math.max(k, 0), 1 - 1e-15);
+  let a = 1, b = Math.sqrt(1 - k*k);
+  for (let i = 0; i < 60; i++){
+    const an = 0.5*(a+b), bn = Math.sqrt(a*b);
+    if (Math.abs(an-bn) < 1e-15*an){ a = an; break; }
+    a = an; b = bn;
+  }
+  return Math.PI/(2*a);
+}
+function jacobi(u, k){
+  if (k < 1e-12) return { sn: Math.sin(u), cn: Math.cos(u), dn: 1 };
+  if (k > 1 - 1e-12){ const s=Math.tanh(u), c=1/Math.cosh(u); return {sn:s,cn:c,dn:c}; }
+  const N = 14;
+  const a=[1], b=[Math.sqrt(1-k*k)], c=[k];
+  for (let i=0;i<N;i++){
+    a.push(0.5*(a[i]+b[i]));
+    b.push(Math.sqrt(a[i]*b[i]));
+    c.push(0.5*(a[i]-b[i]));
+    if (Math.abs(c[i+1]) < 1e-14) break;
+  }
+  const n = a.length - 1;
+  let phi = Math.pow(2,n)*a[n]*u;
+  for (let i=n; i>0; i--){
+    const arg = Math.max(-1, Math.min(1, (c[i]/a[i])*Math.sin(phi)));
+    phi = 0.5*(phi + Math.asin(arg));
+  }
+  return { sn: Math.sin(phi), cn: Math.cos(phi),
+           dn: Math.sqrt(Math.max(0, 1 - k*k*Math.sin(phi)*Math.sin(phi))) };
+}
+const jSN = (u,k) => jacobi(u,k).sn;
+
+/* ======== ANALOG PROTOTYPES ======== */
+function butterAP(N){
+  const p = [];
+  for (let i=1; i<=N; i++){
+    const t = Math.PI*(2*i + N - 1)/(2*N);
+    p.push([Math.cos(t), Math.sin(t)]);
+  }
+  return { z:[], p, k:1 };
+}
+function cheb1AP(N, rp){
+  const eps = Math.sqrt(Math.pow(10, rp/10) - 1);
+  const mu = (1/N)*Math.asinh(1/eps);
+  const sh = Math.sinh(mu), ch = Math.cosh(mu);
+  const p = [];
+  for (let i=1; i<=N; i++){
+    const t = Math.PI*(2*i-1)/(2*N);
+    p.push([-sh*Math.sin(t), ch*Math.cos(t)]);
+  }
+  return { z:[], p, k:1 };
+}
+function cheb2AP(N, rs){
+  const eps = 1/Math.sqrt(Math.pow(10, rs/10) - 1);
+  const mu = (1/N)*Math.asinh(1/eps);
+  const sh = Math.sinh(mu), ch = Math.cosh(mu);
+  const p = [], z = [];
+  for (let i=1; i<=N; i++){
+    const t = Math.PI*(2*i-1)/(2*N);
+    const pr = -sh*Math.sin(t), pi = ch*Math.cos(t);
+    const d = pr*pr + pi*pi;
+    p.push([pr/d, -pi/d]);
+    const c = Math.cos(t);
+    if (Math.abs(c) > 1e-12) z.push([0, 1/c]);
+  }
+  return { z, p, k:1 };
+}
+
+function besselCoeffs(N){
+  if (N === 0) return [1];
+  if (N === 1) return [1, 1];
+  let prev=[1], curr=[1,1];
+  for (let n=2; n<=N; n++){
+    const f = 2*n - 1;
+    const scaled = curr.map(c => c*f);          // length = n  (curr has n terms for θ_{n-1})
+    const shifted = prev.concat([0,0]);           // s²·prev: prepend two zeros to higher-degree side
+    const L = Math.max(scaled.length, shifted.length);
+    const out = new Array(L).fill(0);
+    const sI = L - scaled.length;
+    const hI = L - shifted.length;
+    for (let i=0; i<L; i++){
+      out[i] = (i>=sI ? scaled[i-sI] : 0) + (i>=hI ? shifted[i-hI] : 0);
+    }
+    prev = curr; curr = out;
+  }
+  return curr;
+}
+function polyRoots(coeffs){
+  const n = coeffs.length - 1;
+  if (n < 1) return [];
+  const c = coeffs.map(v => v/coeffs[0]);
+  const r = [];
+  for (let i=0; i<n; i++){
+    const t = 2*Math.PI*i/n + 0.4;
+    r.push([0.4*Math.cos(t), 0.9*Math.sin(t)]);
+  }
+  for (let it=0; it<400; it++){
+    let maxD = 0;
+    for (let i=0; i<n; i++){
+      let val=[1,0];
+      for (let j=1; j<=n; j++) val = cAdd(cMul(val, r[i]), [c[j], 0]);
+      let den=[1,0];
+      for (let j=0; j<n; j++) if (j!==i) den = cMul(den, cSub(r[i], r[j]));
+      const d = cDiv(val, den);
+      r[i] = cSub(r[i], d);
+      maxD = Math.max(maxD, cAbs(d));
+    }
+    if (maxD < 1e-14) break;
+  }
+  return r;
+}
+function besselAP(N){
+  const poly = besselCoeffs(N);
+  const roots = polyRoots(poly);
+  const stable = roots.map(p => p[0] > 0 ? cNeg(p) : p);
+  const magAt = (w, scl) => {
+    let num=[1,0], den=[1,0];
+    for (const p of scl){ num = cMul(num, cNeg(p)); den = cMul(den, cSub([0,w], p)); }
+    return cAbs(cDiv(num, den));
+  };
+  let lo=0.01, hi=100;
+  for (let i=0;i<80;i++){
+    const mid = Math.sqrt(lo*hi);
+    const scl = stable.map(p => [p[0]/mid, p[1]/mid]);
+    if (magAt(1, scl) < 1/Math.SQRT2) hi=mid; else lo=mid;
+  }
+  const s = Math.sqrt(lo*hi);
+  return { z:[], p: stable.map(q=>[q[0]/s, q[1]/s]), k:1 };
+}
+
+function ellipAP(N, rp, rs){
+  const eps_p = Math.sqrt(Math.pow(10, rp/10) - 1);
+  const eps_s = Math.sqrt(Math.pow(10, rs/10) - 1);
+  const k1  = eps_p / eps_s;
+  const k1p = Math.sqrt(Math.max(1e-30, 1 - k1*k1));
+  const K1  = ellipK(k1);
+  const K1p = ellipK(k1p);
+  const q1  = Math.exp(-Math.PI * K1p / K1);
+  const q   = Math.pow(q1, 1/N);
+  /* k = (θ2/θ3)² via theta series */
+  let t2 = 0, t3 = 1;
+  for (let n=0; n<50; n++) t2 += Math.pow(q, n*(n+1));
+  t2 *= 2 * Math.pow(q, 0.25);
+  for (let n=1; n<50; n++) t3 += 2 * Math.pow(q, n*n);
+  const kk_ratio = t2 / t3;                      // = sqrt(k)
+  const kk = kk_ratio * kk_ratio;                // modulus k
+  const kkp = Math.sqrt(Math.max(1e-20, 1 - kk*kk));
+  const K  = ellipK(kk);
+
+  /* Zeros on imaginary axis at j/(kk · sn(u_i · K, kk)) */
+  const z = [];
+  const M = Math.floor(N/2);
+  for (let i=1; i<=M; i++){
+    const u_i = (N % 2 === 1) ? (2*i)/N : (2*i-1)/N;
+    const sn = jSN(u_i*K, kk);
+    if (Math.abs(sn) > 1e-12){
+      const wz = 1/(kk*sn);
+      z.push([0, wz]); z.push([0, -wz]);
+    }
+  }
+
+  /* V0 determined by the passband ripple condition:
+       sc(V·K(k1'), k1') = 1/eps_p
+     where V·K(k1') is the argument to solve for. Then v0 = V·K1'/(N·K1). */
+  let u_V = 0;
+  {
+    let lo = 0, hi = K1p * (1 - 1e-9);
+    for (let i = 0; i < 80; i++){
+      const mid = 0.5*(lo + hi);
+      const J = jacobi(mid, k1p);
+      const val = J.sn / J.cn;         /* sc(mid, k1') */
+      if (val < 1/eps_p) lo = mid; else hi = mid;
+    }
+    u_V = 0.5*(lo + hi);
+  }
+  const v0 = u_V / (N * K1);
+
+  /* Poles: s_i = j · cd((u_i - j v0) · K, kk) */
+  const p = [];
+  for (let i=1; i<=N; i++){
+    const u_i = (2*i-1)/N;
+    const a = u_i*K, b = -v0*K;
+    const Ja = jacobi(a, kk);
+    const Jb = jacobi(b, kkp);
+    const D = Jb.cn*Jb.cn + kk*kk*Ja.sn*Ja.sn*Jb.sn*Jb.sn;
+    const cn_re =  Ja.cn*Jb.cn / D;
+    const cn_im = -Ja.sn*Ja.dn*Jb.sn*Jb.dn / D;
+    const dn_re =  Ja.dn*Jb.cn*Jb.dn / D;
+    const dn_im = -kk*kk*Ja.sn*Ja.cn*Jb.sn / D;
+    const cd = cDiv([cn_re, cn_im], [dn_re, dn_im]);
+    const sP = [-cd[1], cd[0]];
+    p.push(sP[0] > 0 ? cNeg(sP) : sP);
+  }
+  return { z, p, k:1 };
+}
+
+/* ======== FREQUENCY TRANSFORMS ======== */
+function ap2lp(proto, wc){
+  const z = proto.z.map(q => [q[0]*wc, q[1]*wc]);
+  const p = proto.p.map(q => [q[0]*wc, q[1]*wc]);
+  return { z, p, k:1 };
+}
+function ap2hp(proto, wc){
+  const z = proto.z.map(q => { const d=q[0]*q[0]+q[1]*q[1]; return [wc*q[0]/d, -wc*q[1]/d]; });
+  const p = proto.p.map(q => { const d=q[0]*q[0]+q[1]*q[1]; return [wc*q[0]/d, -wc*q[1]/d]; });
+  const extra = proto.p.length - proto.z.length;
+  for (let i=0; i<extra; i++) z.push([0,0]);
+  return { z, p, k:1 };
+}
+function ap2bp(proto, w0, BW){
+  const transform = (q, target) => {
+    const bpT = [q[0]*BW/2, q[1]*BW/2];
+    const disc = cSub(cMul(bpT, bpT), [w0*w0, 0]);
+    const r = cSqrt(disc);
+    target.push(cAdd(bpT, r));
+    target.push(cSub(bpT, r));
+  };
+  const newP = [], newZ = [];
+  for (const q of proto.p) transform(q, newP);
+  for (const q of proto.z) transform(q, newZ);
+  const extra = proto.p.length - proto.z.length;
+  for (let i=0; i<extra; i++) newZ.push([0,0]);
+  return { z: newZ, p: newP, k:1 };
+}
+
+/* ======== BILINEAR ======== */
+function bilinear(ap){
+  const map = q => cDiv(cAdd([1,0], q), cSub([1,0], q));
+  const z = ap.z.map(map);
+  const p = ap.p.map(map);
+  const extra = ap.p.length - ap.z.length;
+  for (let i=0; i<extra; i++) z.push([-1, 0]);
+  return { z, p, k:1 };
+}
+function evalZPK(zpk, Om){
+  const z = [Math.cos(Om), Math.sin(Om)];
+  let num=[1,0], den=[1,0];
+  for (const zz of zpk.z) num = cMul(num, cSub(z, zz));
+  for (const pp of zpk.p) den = cMul(den, cSub(z, pp));
+  const H = cDiv(num, den);
+  return [H[0]*zpk.k, H[1]*zpk.k];
+}
+function normalizeZPK(zpk, type, OmCenter){
+  let z_ref;
+  if (type === 'hpf') z_ref = [-1, 0];
+  else if (type === 'bpf') z_ref = [Math.cos(OmCenter), Math.sin(OmCenter)];
+  else z_ref = [1, 0];
+  let num=[1,0], den=[1,0];
+  for (const zz of zpk.z) num = cMul(num, cSub(z_ref, zz));
+  for (const pp of zpk.p) den = cMul(den, cSub(z_ref, pp));
+  const mag = cAbs(cDiv(num, den));
+  zpk.k = mag > 1e-15 ? 1/mag : 1;
+  return zpk;
+}
+
+/* Normalize gain so that max |H| in the passband is exactly 1.
+   For LPF: passband = (0, fc).  HPF: passband = (fc, 0.5).
+   BPF: passband = (fLo, fHi) — both in normalized f/fs units. */
+function normalizePassbandMax(zpk, type, fc, fLo, fHi){
+  let loBand, hiBand;
+  if (type === 'lpf'){ loBand = 1e-5; hiBand = fc; }
+  else if (type === 'hpf'){ loBand = fc; hiBand = 0.4995; }
+  else { loBand = fLo; hiBand = fHi; }
+  let maxMag = 0;
+  const N = 300;
+  for (let i = 0; i <= N; i++){
+    const f = loBand + (hiBand - loBand) * i / N;
+    const m = cAbs(evalZPK(zpk, 2*Math.PI*f));
+    if (m > maxMag) maxMag = m;
+  }
+  zpk.k = maxMag > 1e-15 ? 1/maxMag : 1;
+  return zpk;
+}
+
+/* ======== BIQUAD CASCADE ======== */
+function zpkToBiquads(zpk){
+  const group = (arr) => {
+    const pairs=[], reals=[], used=new Array(arr.length).fill(false);
+    for (let i=0; i<arr.length; i++){
+      if (used[i]) continue;
+      if (Math.abs(arr[i][1]) < 1e-9){ reals.push(arr[i]); used[i]=true; }
+      else {
+        let match = -1;
+        for (let j=i+1; j<arr.length; j++){
+          if (used[j]) continue;
+          if (Math.abs(arr[j][0]-arr[i][0]) < 1e-6 && Math.abs(arr[j][1]+arr[i][1]) < 1e-6){ match=j; break; }
+        }
+        if (match < 0){ pairs.push([arr[i], cConj(arr[i])]); used[i]=true; }
+        else { pairs.push([arr[i], arr[match]]); used[i]=used[match]=true; }
+      }
+    }
+    return { pairs, reals };
+  };
+  const P = group(zpk.p), Z = group(zpk.z);
+  const nSec = Math.max(
+    P.pairs.length + Math.ceil(P.reals.length/2),
+    Z.pairs.length + Math.ceil(Z.reals.length/2)
+  );
+  const sections = [];
+  for (let i=0; i<nSec; i++){
+    let a1=0, a2=0, b0=1, b1=0, b2=0;
+    if (i < P.pairs.length){
+      const [p1,p2] = P.pairs[i];
+      a1 = -(p1[0]+p2[0]);
+      a2 = p1[0]*p2[0] - p1[1]*p2[1];
+    } else {
+      const idx = 2*(i - P.pairs.length);
+      const r1 = P.reals[idx]  ? P.reals[idx][0]  : 0;
+      const r2 = P.reals[idx+1]? P.reals[idx+1][0]: 0;
+      a1 = -(r1+r2); a2 = r1*r2;
+    }
+    if (i < Z.pairs.length){
+      const [z1,z2] = Z.pairs[i];
+      b1 = -(z1[0]+z2[0]);
+      b2 = z1[0]*z2[0] - z1[1]*z2[1];
+    } else {
+      const idx = 2*(i - Z.pairs.length);
+      const r1 = Z.reals[idx]  ? Z.reals[idx][0]  : 0;
+      const r2 = Z.reals[idx+1]? Z.reals[idx+1][0]: 0;
+      b1 = -(r1+r2); b2 = r1*r2;
+    }
+    sections.push({ b0, b1, b2, a1, a2 });
+  }
+  if (sections.length){
+    sections[0].b0 *= zpk.k;
+    sections[0].b1 *= zpk.k;
+    sections[0].b2 *= zpk.k;
+  }
+  return sections;
+}
+function simulateBiquads(sections, x){
+  const N = x.length, y = new Array(N);
+  const st = sections.map(() => ({ x1:0, x2:0, y1:0, y2:0 }));
+  for (let n=0; n<N; n++){
+    let v = x[n];
+    for (let i=0; i<sections.length; i++){
+      const S = sections[i], s = st[i];
+      const out = S.b0*v + S.b1*s.x1 + S.b2*s.x2 - S.a1*s.y1 - S.a2*s.y2;
+      s.x2 = s.x1; s.x1 = v;
+      s.y2 = s.y1; s.y1 = out;
+      v = out;
+    }
+    y[n] = v;
+    if (!isFinite(v)) return y;
+  }
+  return y;
+}
+
+/* ======== EXPORTS ======== */
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = {
+    cAdd, cSub, cMul, cDiv, cAbs, cArg, cSqrt, cConj, cNeg,
+    ellipK, jacobi, butterAP, cheb1AP, cheb2AP, besselCoeffs, polyRoots, besselAP, ellipAP,
+    ap2lp, ap2hp, ap2bp, bilinear, evalZPK, normalizeZPK, normalizePassbandMax, zpkToBiquads, simulateBiquads
+  };
+}
+
+
+/* ====== UI / PLOTTING ====== */
+/* ================================================================
+   ON FILTERS — UI layer
+   Plotting and interactivity. Uses math functions from the embedded
+   filter math module (exposed via globals in browser).
+   ================================================================ */
+
+/* ======== PLOTTING CORE ======== */
+function setupCanvas(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+const PAL = {
+  grid: '#2a2f39', gridSoft: '#1f242d', axis: '#4a4f59',
+  text: '#a49d8f', dim: '#6b6558',
+  amber: '#d49a3d', red: '#c94f4f', teal: '#5cc8b4',
+  violet: '#a78bd9', blue: '#6aa6d9', gold: '#e6c56a'
+};
+const FONT_SM = '9px "JetBrains Mono", monospace';
+
+function drawAxes(ctx, ox, oy, w, h, xT, yT, xLab, yLab){
+  ctx.save();
+  ctx.strokeStyle = PAL.gridSoft; ctx.lineWidth = 1;
+  ctx.font = FONT_SM; ctx.fillStyle = PAL.dim;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const t of yT){
+    const y = oy + h - t.t*h;
+    ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox+w, y); ctx.stroke();
+    ctx.fillText(t.label, ox - 5, y);
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const t of xT){
+    const x = ox + t.t*w;
+    ctx.beginPath(); ctx.moveTo(x, oy); ctx.lineTo(x, oy+h); ctx.stroke();
+    ctx.fillText(t.label, x, oy + h + 4);
+  }
+  ctx.strokeStyle = PAL.grid;
+  ctx.strokeRect(ox, oy, w, h);
+  ctx.fillStyle = PAL.text;
+  if (xLab){ ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText(xLab, ox+w, oy+h+22); }
+  if (yLab){
+    ctx.save();
+    ctx.translate(ox - 32, oy + h/2); ctx.rotate(-Math.PI/2);
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(yLab, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawLine(ctx, pts, color, width = 1.5, dash = null){
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath();
+  let go = false;
+  for (const [x, y] of pts){
+    if (!isFinite(x) || !isFinite(y)){ go = false; continue; }
+    if (!go){ ctx.moveTo(x, y); go = true; } else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+const pow10g = (p) => p >= 0 && p < 10 ? '10' + '⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(p)
+                    : p < 0 ? '10⁻' + '⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(-p) : '10^' + p;
+
+/* ================================================================
+   § LAB 01/02 — RC LPF / HPF
+   ================================================================ */
+function plotRC(kind){
+  const pref = kind === 'lpf' ? 'rc-lpf' : 'rc-hpf';
+  const R = parseFloat(document.getElementById(pref+'-r').value);
+  const C = parseFloat(document.getElementById(pref+'-c').value) * 1e-9;
+  const tau = R*C, fc = 1/(2*Math.PI*tau);
+  const col = kind === 'lpf' ? PAL.teal : PAL.red;
+
+  document.getElementById(pref+'-r-val').textContent =
+    R >= 1000 ? (R/1000).toFixed(2)+' kΩ' : R.toFixed(0)+' Ω';
+  document.getElementById(pref+'-c-val').textContent = (C*1e9).toFixed(0)+' nF';
+  const fcLbl = fc >= 1000 ? (fc/1000).toFixed(2)+' kHz' : fc.toFixed(1)+' Hz';
+  const tauLbl = tau >= 1e-3 ? (tau*1000).toFixed(2)+' ms' : (tau*1e6).toFixed(1)+' µs';
+  document.getElementById(pref+'-readout').innerHTML =
+    `<b>f<sub>c</sub> = ${fcLbl}</b> &nbsp;·&nbsp; τ = ${tauLbl}<br>` +
+    (kind === 'lpf'
+      ? `At f<sub>c</sub>: |H| = −3.01 dB, ∠H = −45°<br>DC: |H| = 1  ·  ∞: |H| = 0`
+      : `At f<sub>c</sub>: |H| = −3.01 dB, ∠H = +45°<br>DC: |H| = 0  ·  ∞: |H| = 1`);
+
+  /* Magnitude */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById(pref+'-mag'));
+    const ox=46, oy=10, pw=w-ox-10, ph=h-oy-32;
+    const fMin = Math.max(1, fc/1000), fMax = fc*1000;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin=-60, yMax=5;
+    const xT=[], yT=[];
+    for (let p=Math.ceil(lg0); p<=Math.floor(lg1); p++)
+      xT.push({ t:(p-lg0)/(lg1-lg0), label: pow10g(p) });
+    for (let y=yMin; y<=yMax; y+=10)
+      yT.push({ t:(y-yMin)/(yMax-yMin), label: y+'' });
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Hz', 'dB');
+
+    const tFc=(Math.log10(fc)-lg0)/(lg1-lg0);
+    ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle=PAL.amber; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(ox+tFc*pw, oy); ctx.lineTo(ox+tFc*pw, oy+ph); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle=PAL.amber; ctx.font=FONT_SM;
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText('f_c', ox+tFc*pw+4, oy+2);
+    ctx.restore();
+    const t3=(-3-yMin)/(yMax-yMin);
+    ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='#3e4450';
+    ctx.beginPath(); ctx.moveTo(ox, oy+ph-t3*ph); ctx.lineTo(ox+pw, oy+ph-t3*ph); ctx.stroke();
+    ctx.restore();
+
+    const pts=[];
+    const NP=320;
+    for (let i=0; i<NP; i++){
+      const lg = lg0 + (lg1-lg0)*i/(NP-1);
+      const f = Math.pow(10, lg);
+      const wt = 2*Math.PI*f*tau;
+      const mag = kind === 'lpf' ? 1/Math.sqrt(1+wt*wt) : wt/Math.sqrt(1+wt*wt);
+      const db = 20*Math.log10(Math.max(mag, 1e-10));
+      pts.push([ox + i*pw/(NP-1), oy+ph-((db-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, col, 2);
+  }
+
+  /* Phase */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById(pref+'-phase'));
+    const ox=40, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const fMin=Math.max(1, fc/1000), fMax=fc*1000;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin = kind==='lpf' ? -100 : -10, yMax = kind==='lpf' ? 10 : 100;
+    const xT=[], yT=[];
+    for (let p=Math.ceil(lg0); p<=Math.floor(lg1); p++)
+      xT.push({ t:(p-lg0)/(lg1-lg0), label:pow10g(p) });
+    for (let y=Math.ceil(yMin/30)*30; y<=yMax; y+=30)
+      yT.push({ t:(y-yMin)/(yMax-yMin), label:y+'°' });
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Hz', '∠H');
+
+    const pts=[];
+    const NP=250;
+    for (let i=0; i<NP; i++){
+      const lg = lg0 + (lg1-lg0)*i/(NP-1);
+      const wf = 2*Math.PI*Math.pow(10, lg);
+      const ph_deg = kind === 'lpf'
+        ? -Math.atan(wf*tau)*180/Math.PI
+        : (Math.PI/2 - Math.atan(wf*tau))*180/Math.PI;
+      pts.push([ox + i*pw/(NP-1), oy+ph-((ph_deg-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, col, 1.8);
+  }
+
+  /* Step response */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById(pref+'-step'));
+    const ox=36, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const tMax=5*tau, yMin=-0.1, yMax=1.1;
+    const xT=[
+      {t:0,label:'0'},{t:0.2,label:'τ'},{t:0.4,label:'2τ'},
+      {t:0.6,label:'3τ'},{t:0.8,label:'4τ'},{t:1.0,label:'5τ'}
+    ];
+    const yT=[
+      {t:(0-yMin)/(yMax-yMin),label:'0'},
+      {t:(0.5-yMin)/(yMax-yMin),label:'0.5'},
+      {t:(1-yMin)/(yMax-yMin),label:'1'}
+    ];
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 't', 'v_out');
+    const tAsym = (kind==='lpf' ? 1 : 0) - yMin;
+    const tAsymT = tAsym/(yMax-yMin);
+    ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='#3e4450';
+    ctx.beginPath(); ctx.moveTo(ox, oy+ph-tAsymT*ph); ctx.lineTo(ox+pw, oy+ph-tAsymT*ph); ctx.stroke();
+    ctx.restore();
+
+    const pts=[];
+    const NP=220;
+    for (let i=0; i<NP; i++){
+      const t = tMax*i/(NP-1);
+      const v = kind==='lpf' ? (1 - Math.exp(-t/tau)) : Math.exp(-t/tau);
+      pts.push([ox + i*pw/(NP-1), oy+ph-((v-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, col, 2);
+  }
+}
+
+/* ================================================================
+   § LAB 03 — RLC Band-pass
+   ================================================================ */
+function plotRLC(){
+  const f0 = parseFloat(document.getElementById('rlc-f0').value);
+  const Q  = parseFloat(document.getElementById('rlc-q').value);
+  const w0 = 2*Math.PI*f0;
+  const BW = f0/Q;
+  document.getElementById('rlc-f0-val').textContent =
+    f0 >= 1000 ? (f0/1000).toFixed(2)+' kHz' : f0.toFixed(0)+' Hz';
+  document.getElementById('rlc-q-val').textContent = Q.toFixed(1);
+  document.getElementById('rlc-readout').innerHTML =
+    `<b>f₀ = ${f0.toFixed(0)} Hz · Q = ${Q.toFixed(1)}</b><br>BW = f₀/Q = ${BW.toFixed(0)} Hz<br>` +
+    `Poles: s = −ω₀/(2Q) ± jω₀·√(1 − 1/(4Q²))`;
+
+  const H = (wf) => {
+    const im_num = wf*w0/Q;
+    const re_den = w0*w0 - wf*wf;
+    const im_den = wf*w0/Q;
+    return {
+      mag: Math.abs(im_num) / Math.hypot(re_den, im_den),
+      ph: (Math.atan2(im_num, 0) - Math.atan2(im_den, re_den))*180/Math.PI
+    };
+  };
+
+  /* Magnitude */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('rlc-mag'));
+    const ox=46, oy=10, pw=w-ox-10, ph=h-oy-32;
+    const fMin=f0/100, fMax=f0*100;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin=-60, yMax=5;
+    const xT=[], yT=[];
+    for (let p=Math.floor(lg0); p<=Math.ceil(lg1); p++){
+      const tt=(p-lg0)/(lg1-lg0);
+      if (tt>=0 && tt<=1) xT.push({t:tt,label:pow10g(p)});
+    }
+    for (let y=yMin; y<=yMax; y+=10) yT.push({t:(y-yMin)/(yMax-yMin),label:y+''});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Hz', 'dB');
+
+    const tF0=(Math.log10(f0)-lg0)/(lg1-lg0);
+    ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle=PAL.amber;
+    ctx.beginPath(); ctx.moveTo(ox+tF0*pw, oy); ctx.lineTo(ox+tF0*pw, oy+ph); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=PAL.amber; ctx.font=FONT_SM; ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText('f₀', ox+tF0*pw+4, oy+2);
+    ctx.restore();
+
+    const pts=[];
+    const NP=420;
+    for (let i=0; i<NP; i++){
+      const lg=lg0+(lg1-lg0)*i/(NP-1);
+      const f=Math.pow(10,lg);
+      const db=20*Math.log10(Math.max(H(2*Math.PI*f).mag, 1e-10));
+      pts.push([ox+i*pw/(NP-1), oy+ph-((db-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, PAL.violet, 2);
+  }
+
+  /* Phase */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('rlc-phase'));
+    const ox=40, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const fMin=f0/100, fMax=f0*100;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin=-100, yMax=100;
+    const xT=[], yT=[];
+    for (let p=Math.floor(lg0); p<=Math.ceil(lg1); p++){
+      const tt=(p-lg0)/(lg1-lg0);
+      if (tt>=0 && tt<=1) xT.push({t:tt,label:pow10g(p)});
+    }
+    for (let y=-90;y<=90;y+=45) yT.push({t:(y-yMin)/(yMax-yMin),label:y+'°'});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Hz', '∠H');
+
+    const pts=[];
+    const NP=320;
+    for (let i=0;i<NP;i++){
+      const lg=lg0+(lg1-lg0)*i/(NP-1);
+      const ph_deg=H(2*Math.PI*Math.pow(10,lg)).ph;
+      pts.push([ox+i*pw/(NP-1), oy+ph-((ph_deg-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, PAL.violet, 1.8);
+  }
+
+  /* Pole-zero */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('rlc-pz'));
+    const ox=34, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const sigma=-1/(2*Q);
+    const radical = 1 - 1/(4*Q*Q);
+    const wd = radical > 0 ? Math.sqrt(radical) : 0;
+    const sReal = radical > 0 ? null : [-1/(2*Q) + Math.sqrt(-radical), -1/(2*Q) - Math.sqrt(-radical)];
+    const rng=1.3;
+    const xT=[{t:(-1-(-rng))/(2*rng),label:'−1'},{t:(0-(-rng))/(2*rng),label:'0'},{t:(1-(-rng))/(2*rng),label:'1'}];
+    const yT=[{t:(-1-(-rng))/(2*rng),label:'−1'},{t:(0-(-rng))/(2*rng),label:'0'},{t:(1-(-rng))/(2*rng),label:'1'}];
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'σ', 'jω');
+    const tx0=(0-(-rng))/(2*rng), ty0=(0-(-rng))/(2*rng);
+    ctx.strokeStyle=PAL.axis; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(ox+tx0*pw, oy); ctx.lineTo(ox+tx0*pw, oy+ph);
+    ctx.moveTo(ox, oy+ph-ty0*ph); ctx.lineTo(ox+pw, oy+ph-ty0*ph);
+    ctx.stroke();
+    ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle=PAL.gridSoft;
+    ctx.beginPath();
+    ctx.arc(ox+tx0*pw, oy+ph-ty0*ph, pw/(2*rng), 0, 2*Math.PI);
+    ctx.stroke(); ctx.restore();
+
+    const X = (x) => ox + ((x-(-rng))/(2*rng))*pw;
+    const Y = (y) => oy + ph - ((y-(-rng))/(2*rng))*ph;
+    const drawX = (sx, sy, color) => {
+      const xx=X(sx), yy=Y(sy);
+      ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(xx-5,yy-5); ctx.lineTo(xx+5,yy+5);
+      ctx.moveTo(xx-5,yy+5); ctx.lineTo(xx+5,yy-5);
+      ctx.stroke(); ctx.restore();
+    };
+    const drawO = (sx, sy, color) => {
+      ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(X(sx),Y(sy),4.5,0,2*Math.PI); ctx.stroke(); ctx.restore();
+    };
+    if (sReal){ drawX(sReal[0],0,PAL.violet); drawX(sReal[1],0,PAL.violet); }
+    else      { drawX(sigma, wd, PAL.violet); drawX(sigma, -wd, PAL.violet); }
+    drawO(0, 0, PAL.amber);
+  }
+}
+
+/* ================================================================
+   § LAB 04 — Digital first-order IIR via bilinear
+   ================================================================ */
+let digType = 'lpf';
+function plotDigital(){
+  const fs = parseFloat(document.getElementById('dig-fs').value);
+  const fc = Math.min(parseFloat(document.getElementById('dig-fc').value), fs/2 - 1);
+
+  document.getElementById('dig-fs-val').textContent =
+    fs>=1000 ? (fs/1000).toFixed(1)+' kHz' : fs.toFixed(0)+' Hz';
+  document.getElementById('dig-fc-val').textContent =
+    fc>=1000 ? (fc/1000).toFixed(2)+' kHz' : fc.toFixed(0)+' Hz';
+
+  const K = Math.tan(Math.PI * fc/fs);
+  const pole = (1-K)/(1+K);
+  let b0, b1, a1 = -(1-K)/(1+K);
+  if (digType === 'lpf'){ b0 = K/(K+1); b1 = K/(K+1); }
+  else                  { b0 = 1/(K+1); b1 = -1/(K+1); }
+
+  document.getElementById('dig-title').textContent =
+    (digType==='lpf' ? 'LPF' : 'HPF') + ' · via bilinear transform';
+  document.getElementById('dig-readout').innerHTML =
+    `<b>f<sub>c</sub> = ${fc.toFixed(0)} Hz</b>, f<sub>s</sub> = ${fs.toFixed(0)} Hz<br>` +
+    `K = tan(π·f<sub>c</sub>/f<sub>s</sub>) = ${K.toFixed(4)}<br>` +
+    `Pole: z = ${pole.toFixed(4)}<br>` +
+    `b₀=${b0.toFixed(4)}, b₁=${b1.toFixed(4)}, a₁=${a1.toFixed(4)}`;
+
+  /* Magnitude */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('dig-mag'));
+    const ox=46, oy=10, pw=w-ox-10, ph=h-oy-32;
+    const fMin=1, fMax=fs/2;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin=-60, yMax=5;
+    const xT=[], yT=[];
+    for (let p=Math.ceil(lg0); p<=Math.floor(lg1); p++)
+      xT.push({t:(p-lg0)/(lg1-lg0), label:pow10g(p)});
+    for (let y=yMin; y<=yMax; y+=10) yT.push({t:(y-yMin)/(yMax-yMin), label:y+''});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Hz', 'dB');
+
+    ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle=PAL.red;
+    ctx.beginPath(); ctx.moveTo(ox+pw, oy); ctx.lineTo(ox+pw, oy+ph); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle=PAL.red; ctx.font=FONT_SM;
+    ctx.textAlign='right'; ctx.textBaseline='top';
+    ctx.fillText('f_s/2', ox+pw-3, oy+2);
+    ctx.restore();
+
+    const tFc=(Math.log10(fc)-lg0)/(lg1-lg0);
+    ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle=PAL.amber;
+    ctx.beginPath(); ctx.moveTo(ox+tFc*pw, oy); ctx.lineTo(ox+tFc*pw, oy+ph); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle=PAL.amber;
+    ctx.textAlign='left'; ctx.fillText('f_c', ox+tFc*pw+4, oy+2);
+    ctx.restore();
+
+    const pts=[];
+    const NP=500;
+    for (let i=0; i<NP; i++){
+      const lg = lg0 + (lg1-lg0)*i/(NP-1);
+      const f = Math.pow(10, lg);
+      const Om = 2*Math.PI*f/fs;
+      const z1 = [Math.cos(-Om), Math.sin(-Om)];
+      const num = cAdd([b0,0], cMul([b1,0], z1));
+      const den = cAdd([1, 0], cMul([a1, 0], z1));
+      const Hv = cDiv(num, den);
+      const db = 20*Math.log10(Math.max(cAbs(Hv), 1e-10));
+      pts.push([ox+i*pw/(NP-1), oy+ph-((db-yMin)/(yMax-yMin))*ph]);
+    }
+    drawLine(ctx, pts, PAL.teal, 2);
+  }
+
+  /* z-plane pole-zero */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('dig-pz'));
+    const ox=28, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const rng=1.3;
+    const xT=[{t:0,label:'−'+rng.toFixed(1)},{t:(1-(-rng))/(2*rng),label:'0'},{t:1,label:rng.toFixed(1)}];
+    const yT=[{t:0,label:'−'+rng.toFixed(1)},{t:(1-(-rng))/(2*rng),label:'0'},{t:1,label:rng.toFixed(1)}];
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'Re', 'Im');
+
+    const tx0=(0-(-rng))/(2*rng), ty0=(0-(-rng))/(2*rng);
+    ctx.strokeStyle=PAL.axis; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(ox+tx0*pw, oy); ctx.lineTo(ox+tx0*pw, oy+ph);
+    ctx.moveTo(ox, oy+ph-ty0*ph); ctx.lineTo(ox+pw, oy+ph-ty0*ph);
+    ctx.stroke();
+    ctx.save(); ctx.strokeStyle=PAL.amber; ctx.globalAlpha=0.55;
+    ctx.beginPath(); ctx.arc(ox+tx0*pw, oy+ph-ty0*ph, pw/(2*rng), 0, 2*Math.PI); ctx.stroke();
+    ctx.restore();
+
+    const X=(x)=>ox+((x-(-rng))/(2*rng))*pw;
+    const Y=(y)=>oy+ph-((y-(-rng))/(2*rng))*ph;
+    const drawX=(sx,sy,c)=>{const xx=X(sx),yy=Y(sy);ctx.save();ctx.strokeStyle=c;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(xx-5,yy-5);ctx.lineTo(xx+5,yy+5);ctx.moveTo(xx-5,yy+5);ctx.lineTo(xx+5,yy-5);ctx.stroke();ctx.restore();};
+    const drawO=(sx,sy,c)=>{ctx.save();ctx.strokeStyle=c;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(X(sx),Y(sy),4.5,0,2*Math.PI);ctx.stroke();ctx.restore();};
+    drawX(pole, 0, PAL.teal);
+    drawO(digType==='lpf' ? -1 : 1, 0, PAL.amber);
+  }
+
+  /* Impulse response */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('dig-impulse'));
+    const ox=36, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const NN=60;
+    const x=new Array(NN).fill(0); x[0]=1;
+    const y=new Array(NN).fill(0);
+    for (let n=0; n<NN; n++){
+      y[n] = b0*x[n] + (n>0 ? b1*x[n-1] : 0) - (n>0 ? a1*y[n-1] : 0);
+    }
+    let maxA=0.001;
+    for (const v of y) maxA = Math.max(maxA, Math.abs(v));
+    const yMin=-maxA*1.2, yMax=maxA*1.2;
+    const xT=[{t:0,label:'0'},{t:0.25,label:(NN/4).toFixed(0)},{t:0.5,label:(NN/2).toFixed(0)},{t:0.75,label:(3*NN/4).toFixed(0)},{t:1,label:NN.toFixed(0)}];
+    const yT=[{t:0,label:(-maxA).toFixed(2)},{t:0.5,label:'0'},{t:1,label:maxA.toFixed(2)}];
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'n', 'h[n]');
+    const y0t=(0-yMin)/(yMax-yMin);
+    ctx.strokeStyle=PAL.axis;
+    ctx.beginPath(); ctx.moveTo(ox, oy+ph-y0t*ph); ctx.lineTo(ox+pw, oy+ph-y0t*ph); ctx.stroke();
+    for (let n=0; n<NN; n++){
+      const tx = n/(NN-1);
+      const xx = ox + tx*pw;
+      const yt = (y[n]-yMin)/(yMax-yMin);
+      const yy = oy+ph-yt*ph;
+      const y0 = oy+ph-y0t*ph;
+      ctx.strokeStyle=PAL.teal; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, yy); ctx.stroke();
+      ctx.fillStyle=PAL.teal;
+      ctx.beginPath(); ctx.arc(xx, yy, 2.5, 0, 2*Math.PI); ctx.fill();
+    }
+  }
+}
+
+/* ================================================================
+   § LAB 05 — Archetypes Comparison
+   ================================================================ */
+const ARCHS = ['butter','cheb1','cheb2','ellip','bessel'];
+const ARCH_COL = { butter:PAL.blue, cheb1:PAL.gold, cheb2:PAL.teal, ellip:PAL.violet, bessel:PAL.red };
+const ARCH_NAM = { butter:'Butterworth', cheb1:'Chebyshev I', cheb2:'Chebyshev II', ellip:'Elliptic', bessel:'Bessel' };
+let archType = 'lpf';
+
+function designDigital(arch, respType, N, rp, rs, fc){
+  let proto;
+  try {
+    if (arch === 'butter')      proto = butterAP(N);
+    else if (arch === 'cheb1')  proto = cheb1AP(N, rp);
+    else if (arch === 'cheb2')  proto = cheb2AP(N, rs);
+    else if (arch === 'ellip')  proto = ellipAP(N, rp, rs);
+    else if (arch === 'bessel') proto = besselAP(N);
+  } catch (e) { return null; }
+
+  /* For Chebyshev II the prototype has its STOPBAND edge at ω=1 (the passband
+     is somewhere below). For visual comparison, pre-scale so the -3 dB point
+     lines up with fc, matching the other families' cutoff convention. */
+  let wcA;
+  if (arch === 'cheb2'){
+    const eps = 1/Math.sqrt(Math.pow(10, rs/10) - 1);
+    const w3dB_proto = 1/Math.cosh((1/N)*Math.acosh(1/eps));
+    wcA = Math.tan(Math.PI*fc) / w3dB_proto;
+  } else {
+    wcA = Math.tan(Math.PI*fc);
+  }
+
+  let ap, fLo, fHi;
+  if (respType === 'lpf'){
+    ap = ap2lp(proto, wcA);
+  } else if (respType === 'hpf'){
+    ap = ap2hp(proto, wcA);
+  } else {
+    /* BPF: symmetric BW around fc. */
+    const BWn = 0.4 * fc;
+    fLo = Math.max(0.001, fc - BWn/2);
+    fHi = Math.min(0.498, fc + BWn/2);
+    const wla = Math.tan(Math.PI*fLo);
+    const wha = Math.tan(Math.PI*fHi);
+    if (arch === 'cheb2'){
+      /* Apply the same -3dB correction for Cheby II */
+      const eps = 1/Math.sqrt(Math.pow(10, rs/10) - 1);
+      const w3dB = 1/Math.cosh((1/N)*Math.acosh(1/eps));
+      /* Rescale the bandpass transform edges */
+      const cWla = Math.tan(Math.PI*fLo)/w3dB;
+      const cWha = Math.tan(Math.PI*fHi)/w3dB;
+      const w0a = Math.sqrt(cWla*cWha);
+      const BWa = cWha - cWla;
+      ap = ap2bp(proto, w0a, BWa);
+    } else {
+      const w0a = Math.sqrt(wla*wha);
+      const BWa = wha - wla;
+      ap = ap2bp(proto, w0a, BWa);
+    }
+  }
+  const zpk = bilinear(ap);
+  normalizePassbandMax(zpk, respType, fc, fLo, fHi);
+  const sections = zpkToBiquads(zpk);
+  return { zpk, sections };
+}
+
+function plotArchetypes(){
+  const N  = parseInt(document.getElementById('arch-n').value);
+  const rp = parseFloat(document.getElementById('arch-rp').value);
+  const rs = parseFloat(document.getElementById('arch-rs').value);
+  const fc = parseFloat(document.getElementById('arch-fc').value);
+
+  document.getElementById('arch-n-val').textContent = N;
+  document.getElementById('arch-rp-val').textContent = rp.toFixed(1)+' dB';
+  document.getElementById('arch-rs-val').textContent = rs.toFixed(0)+' dB';
+  document.getElementById('arch-fc-val').textContent = fc.toFixed(2);
+
+  const designs = {};
+  for (const a of ARCHS) designs[a] = designDigital(a, archType, N, rp, rs, fc);
+
+  document.getElementById('arch-readout').innerHTML = ARCHS.map(a =>
+    `<span style="display:inline-block;width:10px;height:10px;background:${ARCH_COL[a]};margin-right:8px;vertical-align:middle;border-radius:1px"></span><b style="color:${ARCH_COL[a]}">${ARCH_NAM[a]}</b>`
+  ).join('<br>');
+
+  /* Magnitude */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('arch-mag'));
+    const ox=46, oy=10, pw=w-ox-10, ph=h-oy-32;
+    const fMin=0.001, fMax=0.5;
+    const lg0=Math.log10(fMin), lg1=Math.log10(fMax);
+    const yMin=-100, yMax=5;
+    const xT=[
+      {t:0, label:'0.001'},
+      {t:(Math.log10(0.01)-lg0)/(lg1-lg0), label:'0.01'},
+      {t:(Math.log10(0.1)-lg0)/(lg1-lg0), label:'0.1'},
+      {t:1, label:'0.5'}
+    ];
+    const yT=[];
+    for (let y=-100; y<=0; y+=20) yT.push({t:(y-yMin)/(yMax-yMin), label:y+''});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'f / f_s', 'dB');
+
+    const tFc=(Math.log10(fc)-lg0)/(lg1-lg0);
+    if (tFc>=0 && tFc<=1){
+      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle=PAL.amber;
+      ctx.beginPath(); ctx.moveTo(ox+tFc*pw, oy); ctx.lineTo(ox+tFc*pw, oy+ph); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle=PAL.amber; ctx.font=FONT_SM;
+      ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.fillText('f_c', ox+tFc*pw+4, oy+2);
+      ctx.restore();
+    }
+
+    const NP=700;
+    for (const a of ARCHS){
+      if (!designs[a]) continue;
+      const pts=[];
+      for (let i=0; i<NP; i++){
+        const lg=lg0+(lg1-lg0)*i/(NP-1);
+        const f=Math.pow(10, lg);
+        const Hv=evalZPK(designs[a].zpk, 2*Math.PI*f);
+        const db=20*Math.log10(Math.max(cAbs(Hv), 1e-12));
+        pts.push([ox+i*pw/(NP-1), oy+ph-((db-yMin)/(yMax-yMin))*ph]);
+      }
+      drawLine(ctx, pts, ARCH_COL[a], 1.6);
+    }
+  }
+
+  /* Phase (unwrapped) */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('arch-phase'));
+    const ox=40, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const xT=[{t:0,label:'0'},{t:0.25,label:'.125'},{t:0.5,label:'.25'},{t:0.75,label:'.375'},{t:1,label:'.5'}];
+    const NP=400;
+    const phaseData = {};
+    let yLo=0, yHi=0;
+    for (const a of ARCHS){
+      if (!designs[a]) continue;
+      const arr=new Array(NP);
+      let acc=0, prev=0;
+      for (let i=0; i<NP; i++){
+        const f=0.5*i/(NP-1);
+        const Hv=evalZPK(designs[a].zpk, 2*Math.PI*f);
+        const phi=Math.atan2(Hv[1], Hv[0]);
+        let d=phi-prev;
+        while (d > Math.PI){ acc -= 2*Math.PI; d -= 2*Math.PI; }
+        while (d < -Math.PI){ acc += 2*Math.PI; d += 2*Math.PI; }
+        prev=phi;
+        arr[i] = (phi+acc)*180/Math.PI;
+        yLo = Math.min(yLo, arr[i]);
+        yHi = Math.max(yHi, arr[i]);
+      }
+      phaseData[a] = arr;
+    }
+    yLo = Math.floor(yLo/90)*90;
+    yHi = Math.ceil(yHi/90)*90;
+    if (yHi <= yLo) yHi = yLo + 180;
+    const yMin=yLo, yMax=yHi;
+    const yT=[];
+    const step = (yMax-yMin) > 720 ? 360 : 180;
+    for (let y=yMin; y<=yMax; y+=step) yT.push({t:(y-yMin)/(yMax-yMin), label:y+'°'});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'f/f_s', '°');
+    for (const a of ARCHS){
+      if (!phaseData[a]) continue;
+      const pts=[];
+      for (let i=0; i<NP; i++){
+        pts.push([ox+i*pw/(NP-1), oy+ph-((phaseData[a][i]-yMin)/(yMax-yMin))*ph]);
+      }
+      drawLine(ctx, pts, ARCH_COL[a], 1.4);
+    }
+  }
+
+  /* Group delay */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('arch-gd'));
+    const ox=40, oy=10, pw=w-ox-8, ph=h-oy-28;
+    const NP=300;
+    const gdData = {};
+    let gdMax = 1;
+    for (const a of ARCHS){
+      if (!designs[a]) continue;
+      const phArr = new Array(NP);
+      let acc=0, prev=0;
+      for (let i=0; i<NP; i++){
+        const f=0.5*i/(NP-1);
+        const Hv=evalZPK(designs[a].zpk, 2*Math.PI*f);
+        const phi=Math.atan2(Hv[1], Hv[0]);
+        let d=phi-prev;
+        while (d > Math.PI){ acc -= 2*Math.PI; d -= 2*Math.PI; }
+        while (d < -Math.PI){ acc += 2*Math.PI; d += 2*Math.PI; }
+        prev=phi;
+        phArr[i]=phi+acc;
+      }
+      const gd=new Array(NP).fill(0);
+      const dOm = 2*Math.PI*0.5/(NP-1);
+      for (let i=1; i<NP-1; i++){
+        gd[i] = -(phArr[i+1]-phArr[i-1])/(2*dOm);
+      }
+      gdData[a]=gd;
+      for (const g of gd) if (isFinite(g) && g > 0 && g < 1000) gdMax = Math.max(gdMax, g);
+    }
+    const yMin=0, yMax=gdMax*1.1;
+    const xT=[{t:0,label:'0'},{t:0.5,label:'.25'},{t:1,label:'.5'}];
+    const yT=[
+      {t:0,label:'0'},
+      {t:0.5,label:(yMax/2).toFixed(1)},
+      {t:1,label:yMax.toFixed(1)}
+    ];
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'f/f_s', 'τ_g');
+    for (const a of ARCHS){
+      if (!gdData[a]) continue;
+      const pts=[];
+      for (let i=1; i<NP-1; i++){
+        const g=gdData[a][i];
+        if (!isFinite(g)) continue;
+        pts.push([ox+i*pw/(NP-1), oy+ph-((g-yMin)/(yMax-yMin))*ph]);
+      }
+      drawLine(ctx, pts, ARCH_COL[a], 1.4);
+    }
+  }
+
+  /* Step response */
+  {
+    const { ctx, w, h } = setupCanvas(document.getElementById('arch-step'));
+    const ox=40, oy=10, pw=w-ox-10, ph=h-oy-28;
+    const NN = Math.min(500, Math.max(80, Math.round(6/fc)));
+    const u = new Array(NN).fill(1);
+    let yLo=0, yHi=1.2;
+    const resp={};
+    for (const a of ARCHS){
+      if (!designs[a]) continue;
+      try {
+        const y = simulateBiquads(designs[a].sections, u);
+        let ok = true;
+        for (const v of y) if (!isFinite(v) || Math.abs(v) > 1e6){ ok=false; break; }
+        if (ok){
+          resp[a]=y;
+          for (const v of y){ yLo=Math.min(yLo,v); yHi=Math.max(yHi,v); }
+        }
+      } catch(e){}
+    }
+    yLo = Math.max(-2, yLo-0.1);
+    yHi = Math.min(4, yHi+0.1);
+    const xT=[{t:0,label:'0'},{t:0.25,label:(NN/4).toFixed(0)},{t:0.5,label:(NN/2).toFixed(0)},{t:0.75,label:(3*NN/4).toFixed(0)},{t:1,label:NN.toFixed(0)}];
+    const yT=[
+      {t:(0-yLo)/(yHi-yLo), label:'0'},
+      {t:(1-yLo)/(yHi-yLo), label:'1'}
+    ];
+    if (yHi > 1.3) yT.push({t:(yHi-yLo-0.01)/(yHi-yLo), label:yHi.toFixed(1)});
+    drawAxes(ctx, ox, oy, pw, ph, xT, yT, 'n', 'y[n]');
+    const tTgt=(1-yLo)/(yHi-yLo);
+    ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='#3e4450';
+    ctx.beginPath(); ctx.moveTo(ox, oy+ph-tTgt*ph); ctx.lineTo(ox+pw, oy+ph-tTgt*ph); ctx.stroke();
+    ctx.restore();
+    for (const a of ARCHS){
+      if (!resp[a]) continue;
+      const pts=[];
+      for (let i=0; i<NN; i++){
+        pts.push([ox+i*pw/(NN-1), oy+ph-((resp[a][i]-yLo)/(yHi-yLo))*ph]);
+      }
+      drawLine(ctx, pts, ARCH_COL[a], 1.4);
+    }
+  }
+}
+
+/* ================================================================
+   § WIRING
+   ================================================================ */
+function bindRange(id, handler){
+  document.getElementById(id).addEventListener('input', handler);
+}
+
+function bindSeg(id, onChange){
+  const el = document.getElementById(id);
+  el.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset.v);
+    });
+  });
+}
+
+function init(){
+  ['rc-lpf-r', 'rc-lpf-c'].forEach(id => bindRange(id, () => plotRC('lpf')));
+  plotRC('lpf');
+
+  ['rc-hpf-r', 'rc-hpf-c'].forEach(id => bindRange(id, () => plotRC('hpf')));
+  plotRC('hpf');
+
+  ['rlc-f0', 'rlc-q'].forEach(id => bindRange(id, plotRLC));
+  plotRLC();
+
+  ['dig-fs', 'dig-fc'].forEach(id => bindRange(id, plotDigital));
+  bindSeg('dig-type', v => { digType = v; plotDigital(); });
+  plotDigital();
+
+  ['arch-n', 'arch-rp', 'arch-rs', 'arch-fc'].forEach(id => bindRange(id, plotArchetypes));
+  bindSeg('arch-type', v => { archType = v; plotArchetypes(); });
+  plotArchetypes();
+
+  let rTO;
+  window.addEventListener('resize', () => {
+    clearTimeout(rTO);
+    rTO = setTimeout(() => {
+      plotRC('lpf'); plotRC('hpf'); plotRLC(); plotDigital(); plotArchetypes();
+    }, 150);
+  });
+}
+
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+</script>
+
+</body>
+</html>
