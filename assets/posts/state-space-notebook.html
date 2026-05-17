@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>State-Space Notebook — Controllability, Observability, Observers & Kalman Filters</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Geist:wght@300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+:root {
+  --ink: #1a1510;
+  --ink-soft: #4a4338;
+  --ink-dim: #857a6a;
+  --paper: #f4ede0;
+  --paper-warm: #eee5d3;
+  --panel: #fbf6eb;
+  --line: #d8ccb4;
+  --line-soft: #e3d9c4;
+  --rust: #b84a2e;
+  --rust-deep: #8b3620;
+  --teal: #2c5754;
+  --teal-soft: #4a807c;
+  --gold: #b8892b;
+  --ochre: #d4a347;
+  --sage: #6b7f5c;
+  --plum: #6b3654;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Geist', -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.6;
+  font-size: 16px;
+  background-image:
+    linear-gradient(rgba(26,21,16,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,21,16,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+.noise {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+/* ─────────── HEADER ─────────── */
+header.masthead {
+  position: relative;
+  padding: 80px 6vw 60px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--paper-warm) 0%, var(--paper) 100%);
+  z-index: 2;
+}
+
+.masthead .back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rust);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin-bottom: 28px;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.masthead .back-to-blog:hover {
+  border-bottom-color: var(--rust);
+}
+.masthead .author-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  margin-top: 24px;
+}
+.masthead .author-line strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.masthead-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 48px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+
+.masthead-top .vol { color: var(--rust); font-weight: 600; }
+
+.masthead h1 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-weight: 300;
+  font-size: clamp(42px, 7vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+  max-width: 18ch;
+}
+
+.masthead h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rust);
+  font-variation-settings: 'opsz' 144, 'SOFT' 100;
+}
+
+.masthead .lede {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: 'opsz' 24, 'SOFT' 50;
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin-top: 8px;
+}
+
+.masthead-meta {
+  display: flex;
+  gap: 40px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.masthead-meta strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  font-family: 'Geist', sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* ─────────── LAYOUT ─────────── */
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 60px;
+  padding: 60px 6vw 120px;
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 920px) {
+  .shell { grid-template-columns: 1fr; padding: 40px 5vw; gap: 0; }
+  nav.toc { position: static !important; margin-bottom: 40px; }
+}
+
+/* ─────────── TABLE OF CONTENTS ─────────── */
+nav.toc {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+nav.toc .toc-label {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 10px;
+  color: var(--ink-dim);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+nav.toc ol {
+  list-style: none;
+  counter-reset: section;
+}
+
+nav.toc li {
+  counter-increment: section;
+  margin-bottom: 2px;
+}
+
+nav.toc a {
+  display: flex;
+  gap: 14px;
+  padding: 10px 4px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  margin-left: -14px;
+  transition: all 0.2s;
+  line-height: 1.35;
+}
+
+nav.toc a::before {
+  content: counter(section, decimal-leading-zero);
+  color: var(--ink-dim);
+  font-size: 10px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+nav.toc a:hover, nav.toc a.active {
+  color: var(--rust);
+  border-left-color: var(--rust);
+  background: rgba(184,74,46,0.04);
+}
+
+/* ─────────── SECTIONS ─────────── */
+main.content { min-width: 0; }
+
+section.concept {
+  padding: 60px 0 80px;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 20px;
+}
+
+section.concept:last-child { border-bottom: none; }
+
+.section-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--rust);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.section-num::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+  max-width: 60px;
+}
+
+section.concept h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: 'opsz' 96, 'SOFT' 30;
+  font-weight: 400;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+
+section.concept h2 em {
+  font-style: italic;
+  color: var(--teal);
+  font-variation-settings: 'opsz' 96, 'SOFT' 100;
+}
+
+section.concept > .tagline {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: 'opsz' 18;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 18px;
+  color: var(--ink-soft);
+  margin-bottom: 40px;
+  max-width: 60ch;
+  line-height: 1.45;
+}
+
+section.concept h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 22px;
+  margin: 36px 0 14px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+section.concept p {
+  max-width: 68ch;
+  margin-bottom: 16px;
+  color: var(--ink-soft);
+}
+
+section.concept p.lead {
+  font-size: 17px;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.callout {
+  border-left: 3px solid var(--rust);
+  padding: 16px 20px;
+  margin: 24px 0;
+  background: rgba(184,74,46,0.05);
+  font-family: 'Fraunces', serif;
+  font-variation-settings: 'opsz' 18;
+  font-size: 17px;
+  color: var(--ink);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.callout::before {
+  content: '§';
+  font-size: 24px;
+  color: var(--rust);
+  margin-right: 10px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92em;
+}
+
+kbd {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+  color: var(--ink);
+}
+
+/* ─────────── LAB (interactive) ─────────── */
+.lab {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 24px;
+  margin: 32px 0;
+  box-shadow:
+    0 1px 0 var(--paper-warm),
+    0 20px 40px -20px rgba(26,21,16,0.08);
+  position: relative;
+}
+
+.lab::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -9px;
+  left: 20px;
+  background: var(--panel);
+  padding: 0 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rust);
+  font-weight: 600;
+}
+
+.lab-grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+.lab-grid.g-2 { grid-template-columns: 1fr 1fr; }
+.lab-grid.g-3 { grid-template-columns: 1fr 1.6fr 1fr; }
+.lab-grid.g-21 { grid-template-columns: 2fr 1fr; }
+
+@media (max-width: 780px) {
+  .lab-grid.g-2, .lab-grid.g-3, .lab-grid.g-21 { grid-template-columns: 1fr; }
+}
+
+.lab h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--line);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fdfaf2;
+  border-radius: 2px;
+  cursor: crosshair;
+}
+
+/* ─────────── MATRIX INPUTS ─────────── */
+.matrix-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 18px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.matrix-block .name {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.matrix-block .eq { color: var(--ink-dim); font-size: 18px; }
+
+.matrix {
+  display: inline-grid;
+  gap: 4px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
+  position: relative;
+}
+
+.matrix input {
+  width: 54px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  text-align: center;
+  border-radius: 2px;
+  color: var(--ink);
+  transition: border-color 0.15s;
+}
+
+.matrix input:focus {
+  outline: none;
+  border-color: var(--rust);
+  background: #fffef9;
+}
+
+.matrix-display {
+  display: inline-grid;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: #fff;
+  min-width: fit-content;
+}
+
+.matrix-display .cell {
+  text-align: right;
+  min-width: 42px;
+  padding: 2px 4px;
+  color: var(--ink);
+}
+
+/* ─────────── CONTROLS ─────────── */
+.control {
+  margin: 14px 0;
+}
+
+.control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.control-header .label {
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+}
+
+.control-header .value {
+  color: var(--rust);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--rust);
+  border: 2px solid var(--paper);
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--rust); border: 2px solid var(--paper); cursor: grab;
+}
+
+button.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+button.btn:hover { background: var(--rust); border-color: var(--rust); }
+button.btn.ghost { background: transparent; color: var(--ink); }
+button.btn.ghost:hover { background: var(--ink); color: var(--paper); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* ─────────── BADGES / STATUS ─────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.badge.ok { background: rgba(107,127,92,0.15); color: var(--sage); border: 1px solid var(--sage); }
+.badge.fail { background: rgba(184,74,46,0.12); color: var(--rust-deep); border: 1px solid var(--rust); }
+.badge.neutral { background: var(--paper-warm); color: var(--ink-soft); border: 1px solid var(--line); }
+
+.badge::before {
+  content: '●';
+  font-size: 8px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.stat {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  min-width: 90px;
+}
+
+.stat .k {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 2px;
+}
+
+.stat .v {
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stat .v.rust { color: var(--rust); }
+.stat .v.teal { color: var(--teal); }
+.stat .v.sage { color: var(--sage); }
+
+/* ─────────── FOOTNOTE / REF ─────────── */
+.ref {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+
+.dropcap::first-letter {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 0.85;
+  float: left;
+  padding: 4px 10px 0 0;
+  color: var(--rust);
+}
+
+/* footer */
+footer {
+  padding: 60px 6vw 40px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-warm);
+  position: relative;
+  z-index: 2;
+}
+
+footer .cols {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 780px) {
+  footer .cols { grid-template-columns: 1fr; }
+}
+
+footer h5 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 12px;
+}
+
+footer p, footer li {
+  font-size: 13px;
+  color: var(--ink-soft);
+  list-style: none;
+  line-height: 1.6;
+}
+
+footer .colophon {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+  max-width: 50ch;
+  line-height: 1.5;
+}
+
+/* tag colors for sliders */
+.tag-x { color: var(--rust); }
+.tag-xhat { color: var(--teal); }
+.tag-meas { color: var(--gold); }
+.tag-err { color: var(--plum); }
+
+/* animations */
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+section.concept { animation: fadein 0.6s ease-out; }
+
+</style>
+</head>
+<body>
+
+<div class="noise"></div>
+
+<header class="masthead">
+  <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+  <div class="masthead-top">
+    <span>The State-Space Notebook</span>
+    <span><span class="vol">Vol. I</span> · Linear Systems · an interactive field guide</span>
+  </div>
+
+  <h1>On <em>Controllability</em>, <em>Observability</em>,<br>and the Art of Estimating What You Cannot See.</h1>
+
+  <p class="lede">
+    Five short chapters on the structural properties of linear dynamical systems —
+    from the algebraic tests that determine whether a state can be reached or inferred,
+    through to the stochastic machinery that Rudolf Kálmán gave us in 1960.
+    Each chapter is a working simulator. Turn the knobs. Watch the trajectories bend.
+  </p>
+
+  <div class="masthead-meta">
+    <div>Author
+      <strong>Majid Mazouchi</strong>
+    </div>
+    <div>Form
+      <strong>5 interactive chapters</strong>
+    </div>
+    <div>Math
+      <strong>Live-rendered LaTeX</strong>
+    </div>
+    <div>Notation
+      <strong>$\dot{x}=Ax+Bu,\ y=Cx$</strong>
+    </div>
+    <div>Prerequisite
+      <strong>Linear algebra, some ODEs</strong>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- ─────────── TOC ─────────── -->
+  <nav class="toc">
+    <div class="toc-label">Contents</div>
+    <ol>
+      <li><a href="#controllability" class="active">Controllability</a></li>
+      <li><a href="#observability">Observability</a></li>
+      <li><a href="#partial">Partial Observability &<br>Kalman Decomposition</a></li>
+      <li><a href="#observer">The Luenberger Observer</a></li>
+      <li><a href="#kalman">The Kalman Filter</a></li>
+    </ol>
+  </nav>
+
+  <!-- ─────────── CONTENT ─────────── -->
+  <main class="content">
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 1 — CONTROLLABILITY                             -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <section class="concept" id="controllability">
+      <div class="section-num">Chapter One</div>
+      <h2>Controllability — <em>can you get there from here?</em></h2>
+      <p class="tagline">
+        A system is controllable when any initial state can be steered to any desired final state in finite time using an admissible input. If not, some directions in state-space are forever beyond the reach of your actuators.
+      </p>
+
+      <p class="lead dropcap">
+        Consider the linear time-invariant system $\dot{x} = A x + B u$, with $x \in \mathbb{R}^n$ and $u \in \mathbb{R}^m$. The question "where can we drive $x$?" turns out to have a purely algebraic answer. The <em>controllability matrix</em> collects the directions we can excite, directly and through repeated application of the dynamics:
+      </p>
+
+      <p>
+        $$ \mathcal{C} = \begin{bmatrix} B & AB & A^2B & \cdots & A^{n-1}B \end{bmatrix} \in \mathbb{R}^{n \times nm}. $$
+      </p>
+
+      <p>
+        The pair $(A, B)$ is controllable if and only if $\mathrm{rank}(\mathcal{C}) = n$. The Cayley–Hamilton theorem guarantees we need no more than $n-1$ powers of $A$ — anything further is linearly dependent on what we already have.
+      </p>
+
+      <div class="callout">
+        Controllability is a property of the pair $(A, B)$ alone. It does not depend on any particular input, the cost of control, or how fast we need to get there — only whether, in principle, the reachable subspace spans the entire state-space.
+      </div>
+
+      <h3>An equivalent view — the PBH test</h3>
+      <p>
+        The Popov–Belevitch–Hautus test reformulates controllability mode-by-mode: $(A,B)$ is controllable iff
+        $\mathrm{rank}\!\begin{bmatrix}\lambda I - A & B\end{bmatrix} = n$ for every eigenvalue $\lambda$ of $A$. A mode is uncontrollable precisely when the left eigenvector $w^\top$ satisfies $w^\top B = 0$ — the input channel cannot "see" that direction.
+      </p>
+
+      <!-- Interactive: Controllability lab -->
+      <div class="lab" data-label="Lab 01 · Reachable Subspace">
+        <div class="lab-grid g-21">
+          <div>
+            <h4>Planar system · $n=2$</h4>
+            <canvas id="ctrbCanvas" height="340"></canvas>
+            <p style="font-size:13px; margin-top:10px; color:var(--ink-dim);">
+              <span style="color:var(--rust);">━━</span> span of $B$ &nbsp;&nbsp;
+              <span style="color:var(--teal);">━━</span> span of $AB$ &nbsp;&nbsp;
+              <span style="color:var(--ink-dim);">shaded</span> reachable set
+            </p>
+          </div>
+          <div>
+            <div class="matrix-block">
+              <span class="name">A</span><span class="eq">=</span>
+              <div class="matrix" style="grid-template-columns: 1fr 1fr;" id="ctrbA-grid">
+                <input type="number" step="0.1" value="0" data-m="A" data-i="0" data-j="0">
+                <input type="number" step="0.1" value="1" data-m="A" data-i="0" data-j="1">
+                <input type="number" step="0.1" value="-2" data-m="A" data-i="1" data-j="0">
+                <input type="number" step="0.1" value="-0.5" data-m="A" data-i="1" data-j="1">
+              </div>
+            </div>
+            <div class="matrix-block">
+              <span class="name">B</span><span class="eq">=</span>
+              <div class="matrix" style="grid-template-columns: 1fr;" id="ctrbB-grid">
+                <input type="number" step="0.1" value="0" data-m="B" data-i="0" data-j="0">
+                <input type="number" step="0.1" value="1" data-m="B" data-i="1" data-j="0">
+              </div>
+            </div>
+
+            <h4 style="margin-top:20px;">Controllability matrix</h4>
+            <div id="ctrbMat"></div>
+
+            <div class="stat-row">
+              <div class="stat"><div class="k">rank 𝒞</div><div class="v rust" id="ctrbRank">—</div></div>
+              <div class="stat"><div class="k">det 𝒞</div><div class="v teal" id="ctrbDet">—</div></div>
+              <div class="stat" style="flex:1;min-width:130px;"><div class="k">status</div><div class="v" id="ctrbStatus">—</div></div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn" data-preset="doubleint">Double integrator</button>
+              <button class="btn ghost" data-preset="uncontrollable">Uncontrollable</button>
+              <button class="btn ghost" data-preset="oscillator">Harmonic osc.</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Try the "Uncontrollable" preset.</strong> The matrix $A$ is diagonal, meaning the two state variables evolve independently, and $B$ only pokes at the first one. The second mode is structurally deaf to every input you could apply — the controllability matrix drops rank, and the reachable set collapses to a one-dimensional line.
+      </p>
+
+      <h3>Stabilizability — a weaker cousin</h3>
+      <p>
+        If every <em>unstable</em> mode is controllable, we can still stabilize the system even if some stable modes are uncontrollable. That looser condition is called <em>stabilizability</em>. In practice this is often all we need: we don't mind that some benign, already-stable dynamics are out of our reach.
+      </p>
+
+      <div class="ref">
+        REF · Kalman, R.E. (1960). "On the general theory of control systems." <em>IFAC World Congress.</em> — the paper that introduced controllability as a fundamental structural property.
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 2 — OBSERVABILITY                               -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <section class="concept" id="observability">
+      <div class="section-num">Chapter Two</div>
+      <h2>Observability — <em>what can you infer from what you measure?</em></h2>
+      <p class="tagline">
+        A system is observable when the entire internal state can be reconstructed from a finite record of inputs and outputs. Otherwise, distinct initial conditions produce identical measurements, and no amount of cleverness will tell them apart.
+      </p>
+
+      <p class="lead dropcap">
+        Add an output equation: $y = C x$. Given the input $u(t)$ and the measurement $y(t)$ over a window, can we recover the state $x(t)$? The question is, remarkably, the precise mathematical <em>dual</em> of controllability — a correspondence first noticed by Kalman, and one of the most elegant in engineering.
+      </p>
+
+      <p>
+        $$ \mathcal{O} = \begin{bmatrix} C \\ CA \\ CA^2 \\ \vdots \\ CA^{n-1} \end{bmatrix} \in \mathbb{R}^{np \times n}. $$
+      </p>
+
+      <p>
+        The pair $(A, C)$ is observable iff $\mathrm{rank}(\mathcal{O}) = n$. The null space of $\mathcal{O}$ — the <em>unobservable subspace</em> — is the set of initial conditions that produce zero output for all time. Two states that differ only in the unobservable subspace are indistinguishable from any finite record of $y$.
+      </p>
+
+      <div class="callout">
+        Duality: $(A, C)$ is observable iff $(A^\top, C^\top)$ is controllable. Every theorem about one concept has an exact mirror image for the other. Design a controller, you've implicitly designed an observer. It is a deep, useful symmetry.
+      </div>
+
+      <!-- Interactive: Observability lab -->
+      <div class="lab" data-label="Lab 02 · The Unobservable Subspace">
+        <div class="lab-grid g-21">
+          <div>
+            <h4>Planar system · two trajectories, one measurement</h4>
+            <canvas id="obsvCanvas" height="340"></canvas>
+            <p style="font-size:13px; margin-top:10px; color:var(--ink-dim);">
+              <span style="color:var(--rust);">━━</span> trajectory from $x_0^{(1)}$ &nbsp;&nbsp;
+              <span style="color:var(--teal);">━━</span> trajectory from $x_0^{(2)} = x_0^{(1)} + v_\mathrm{unobs}$ &nbsp;&nbsp;
+              <span style="color:var(--gold);">┅┅</span> $y(t)$
+            </p>
+          </div>
+          <div>
+            <div class="matrix-block">
+              <span class="name">A</span><span class="eq">=</span>
+              <div class="matrix" style="grid-template-columns: 1fr 1fr;" id="obsvA-grid">
+                <input type="number" step="0.1" value="-0.3" data-m="A" data-i="0" data-j="0">
+                <input type="number" step="0.1" value="0" data-m="A" data-i="0" data-j="1">
+                <input type="number" step="0.1" value="0" data-m="A" data-i="1" data-j="0">
+                <input type="number" step="0.1" value="-0.8" data-m="A" data-i="1" data-j="1">
+              </div>
+            </div>
+            <div class="matrix-block">
+              <span class="name">C</span><span class="eq">=</span>
+              <div class="matrix" style="grid-template-columns: 1fr 1fr;" id="obsvC-grid">
+                <input type="number" step="0.1" value="1" data-m="C" data-i="0" data-j="0">
+                <input type="number" step="0.1" value="0" data-m="C" data-i="0" data-j="1">
+              </div>
+            </div>
+
+            <h4 style="margin-top:20px;">Observability matrix</h4>
+            <div id="obsvMat"></div>
+
+            <div class="stat-row">
+              <div class="stat"><div class="k">rank 𝒪</div><div class="v rust" id="obsvRank">—</div></div>
+              <div class="stat"><div class="k">det 𝒪</div><div class="v teal" id="obsvDet">—</div></div>
+              <div class="stat" style="flex:1;min-width:130px;"><div class="k">status</div><div class="v" id="obsvStatus">—</div></div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn" data-preset-obsv="fully">Fully observable</button>
+              <button class="btn ghost" data-preset-obsv="decoupled">Decoupled · unobservable</button>
+              <button class="btn ghost" data-preset-obsv="coupled">Coupled · observable</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Try "Decoupled · unobservable."</strong> $A$ is diagonal; $C$ only sees the first state. Two initial conditions that differ only in $x_2$ produce <em>identical</em> outputs forever — the two red and teal trajectories leave together by different paths and map to the same yellow measurement curve. No algorithm you can invent will separate them.
+      </p>
+
+      <h3>The observable canonical decomposition</h3>
+      <p>
+        If the system is not fully observable, a similarity transform splits the state into <em>observable</em> and <em>unobservable</em> parts. The unobservable part has no effect on $y$; it lives in a subspace that the measurement map is structurally blind to. The observable part is what a state estimator can actually reconstruct. We will visualize this decomposition next.
+      </p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 3 — PARTIAL OBSERVABILITY                       -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <section class="concept" id="partial">
+      <div class="section-num">Chapter Three</div>
+      <h2>Partial observability & the <em>Kalman decomposition</em></h2>
+      <p class="tagline">
+        Real systems are rarely cleanly controllable or observable end-to-end. Kalman's structure theorem splits the state into four independent parts — a map of exactly what you can see, what you can touch, and what lives outside both.
+      </p>
+
+      <p class="lead dropcap">
+        For any linear system, there exists a similarity transformation $T$ such that the state decomposes into four orthogonal pieces, each with a distinct relationship to the input and output. This is the <em>Kalman canonical decomposition</em>, and it is the clearest way to see why the transfer function alone — input to output — cannot tell you everything about a system.
+      </p>
+
+      <div class="lab" data-label="Lab 03 · Kalman Decomposition Map">
+        <div class="lab-grid g-21">
+          <div>
+            <h4>The four subspaces</h4>
+            <canvas id="kalDecomp" height="340"></canvas>
+            <p style="font-size:13px; margin-top:10px; color:var(--ink-dim);">
+              Only the <strong style="color:var(--rust);">controllable &amp; observable</strong> part appears in the transfer function $G(s) = C(sI-A)^{-1}B$. Everything else is hidden from the input–output map.
+            </p>
+          </div>
+          <div>
+            <h4>Legend &amp; meaning</h4>
+            <div style="display:grid; gap:10px; font-size:13px;">
+              <div style="border-left:3px solid var(--rust); padding:6px 10px; background:rgba(184,74,46,0.06);">
+                <strong style="color:var(--rust);">C &amp; O</strong> — controllable and observable. Visible in transfer function. This is the <em>minimal realization</em>.
+              </div>
+              <div style="border-left:3px solid var(--teal); padding:6px 10px; background:rgba(44,87,84,0.06);">
+                <strong style="color:var(--teal);">C &amp; Ō</strong> — controllable but unobservable. You can drive it; you cannot see where it goes. Internal dynamics hidden from $y$.
+              </div>
+              <div style="border-left:3px solid var(--gold); padding:6px 10px; background:rgba(184,137,43,0.08);">
+                <strong style="color:var(--gold);">C̄ &amp; O</strong> — uncontrollable but observable. You see it; you cannot steer it. Typically a disturbance mode.
+              </div>
+              <div style="border-left:3px solid var(--ink-dim); padding:6px 10px; background:rgba(133,122,106,0.08);">
+                <strong style="color:var(--ink-dim);">C̄ &amp; Ō</strong> — neither. Completely disconnected from the input–output map. Ghost dynamics.
+              </div>
+            </div>
+
+            <h4 style="margin-top:22px;">Canonical form</h4>
+            <p style="font-size:13px; color:var(--ink-soft); margin-top:4px;">
+              After the similarity transform:
+            </p>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; background:#fff; padding:10px; border:1px solid var(--line); border-radius:2px; overflow-x:auto;">
+              $$\tilde{A} = \begin{bmatrix} A_{co} & 0 & * & 0 \\ * & A_{c\bar{o}} & * & * \\ 0 & 0 & A_{\bar{c}o} & 0 \\ 0 & 0 & * & A_{\bar{c}\bar{o}} \end{bmatrix},\ \tilde{B} = \begin{bmatrix} B_{co} \\ B_{c\bar{o}} \\ 0 \\ 0 \end{bmatrix},\ \tilde{C} = \begin{bmatrix} C_{co} & 0 & C_{\bar{c}o} & 0 \end{bmatrix}$$
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Stabilizability &amp; detectability</h3>
+      <p>
+        For practical control design we ask less: every <em>unstable</em> uncontrollable mode must not exist (stabilizability), and every unstable unobservable mode must not exist (detectability). These two conditions, together with a state-feedback controller and a state estimator, are exactly what the <strong>Separation Principle</strong> requires. Stabilizability + detectability is the lightest pair of conditions under which a linear system admits a stabilizing output-feedback controller. Nothing is free, but this is as close as it gets.
+      </p>
+
+      <div class="callout">
+        A transfer function only reveals the controllable–and–observable part of a state-space model. Two very different plants — one with hidden instabilities, one without — can have the identical $G(s)$. This is why input-output models can be dangerously misleading for safety-critical systems.
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 4 — LUENBERGER OBSERVER                         -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <section class="concept" id="observer">
+      <div class="section-num">Chapter Four</div>
+      <h2>The <em>Luenberger observer</em> — or, how to guess the state correctly</h2>
+      <p class="tagline">
+        Given a model of the plant and a measurement of its output, a Luenberger observer synthesizes a clean estimate of the full state. The trick is to correct the model in real time by the measurement residual, weighted by a carefully chosen gain.
+      </p>
+
+      <p class="lead dropcap">
+        Suppose we want $\hat{x} \to x$. The most natural candidate is to integrate a copy of the plant: $\dot{\hat{x}} = A\hat{x} + Bu$. This is called the <em>open-loop observer</em>, and it works exactly when the model is perfect and the initial condition is known — which is to say, never. Any mismatch grows with the plant's dynamics, and for unstable systems the estimation error diverges.
+      </p>
+
+      <p>
+        Luenberger's 1964 insight was to feed back the output residual $y - C\hat{x}$ through an <em>observer gain</em> $L$:
+      </p>
+
+      <p>
+        $$ \dot{\hat{x}} = A\hat{x} + Bu + L\,(y - C\hat{x}). $$
+      </p>
+
+      <p>
+        Defining the estimation error $e = x - \hat{x}$, a quick subtraction gives the <em>error dynamics</em>:
+      </p>
+
+      <p>
+        $$ \dot{e} = (A - LC)\,e. $$
+      </p>
+
+      <p>
+        The error is an autonomous linear system with dynamics $A - LC$. If $(A, C)$ is observable, we can place the eigenvalues of $A - LC$ anywhere we like — typically a few times faster than the closed-loop poles of the controller, so estimation converges before feedback "notices." Pushing the observer poles deeper into the left half-plane gives faster convergence at the cost of sensitivity to measurement noise. This tradeoff is the beating heart of every observer design.
+      </p>
+
+      <div class="callout">
+        The <em>Separation Principle</em>: for a linear system, you can design a stabilizing state-feedback law $u = -K\hat{x}$ as if you had access to $x$, and you can design the observer gain $L$ independently. The closed-loop poles are the union of the controller poles (eigenvalues of $A-BK$) and the observer poles (eigenvalues of $A-LC$). They do not interact.
+      </div>
+
+      <!-- Interactive: Luenberger -->
+      <div class="lab" data-label="Lab 04 · Luenberger Observer">
+        <div class="lab-grid g-21">
+          <div>
+            <h4>Plant state vs. observer estimate · time response</h4>
+            <canvas id="luenCanvas" height="300"></canvas>
+            <p style="font-size:13px; margin-top:8px; color:var(--ink-dim);">
+              <span class="tag-x">━━ $x_1$ (true)</span> &nbsp;&nbsp;
+              <span class="tag-xhat">━━ $\hat{x}_1$ (estimate)</span> &nbsp;&nbsp;
+              <span style="color:var(--rust-deep)">┅┅ $x_2$ (true)</span> &nbsp;&nbsp;
+              <span style="color:var(--teal-soft)">┅┅ $\hat{x}_2$ (estimate)</span>
+            </p>
+            <canvas id="luenErrCanvas" height="140" style="margin-top:14px;"></canvas>
+            <p style="font-size:13px; margin-top:8px; color:var(--ink-dim);">
+              <span class="tag-err">━━ $\|e(t)\|$ — estimation error norm</span>
+            </p>
+          </div>
+          <div>
+            <h4>Plant (2nd-order oscillator)</h4>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:14px;">
+              A = [[0, 1], [-2, -0.4]]<br>
+              B = [[0], [1]], &nbsp; C = [1, 0]
+            </div>
+
+            <h4>Observer pole locations</h4>
+            <div class="control">
+              <div class="control-header">
+                <span class="label">pole 1 — $\lambda_1$</span>
+                <span class="value" id="luenP1val">-3.0</span>
+              </div>
+              <input type="range" min="-12" max="-0.5" step="0.1" value="-3.0" id="luenP1">
+            </div>
+            <div class="control">
+              <div class="control-header">
+                <span class="label">pole 2 — $\lambda_2$</span>
+                <span class="value" id="luenP2val">-4.0</span>
+              </div>
+              <input type="range" min="-12" max="-0.5" step="0.1" value="-4.0" id="luenP2">
+            </div>
+
+            <div class="control">
+              <div class="control-header">
+                <span class="label">initial estimate error</span>
+                <span class="value" id="luenE0val">2.0</span>
+              </div>
+              <input type="range" min="0" max="5" step="0.1" value="2.0" id="luenE0">
+            </div>
+
+            <div class="stat-row">
+              <div class="stat"><div class="k">L — gain</div><div class="v teal mono" id="luenLval">[—]</div></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat"><div class="k">settling · 2%</div><div class="v rust" id="luenTs">—</div></div>
+              <div class="stat"><div class="k">ratio ω<sub>obs</sub>/ω<sub>plant</sub></div><div class="v" id="luenRatio">—</div></div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn" id="luenRestart">Restart sim</button>
+              <button class="btn ghost" data-luenpreset="slow">Slow observer</button>
+              <button class="btn ghost" data-luenpreset="fast">Fast observer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Push the poles farther left</strong> (more negative) to make the error decay faster — notice the norm curve plunges to zero. Now imagine the output contains noise. Very fast observer poles mean high entries in $L$, which amplify any measurement noise into the estimate. There is no free lunch; fast estimators are loud estimators. This is exactly the tension that the Kalman filter resolves optimally.
+      </p>
+
+      <h3>Ackermann's formula, in one line</h3>
+      <p>
+        If the desired observer characteristic polynomial is $\alpha(s) = \prod_i (s - \lambda_i^{\mathrm{des}})$, then
+        $L = \alpha(A)\, \mathcal{O}^{-1} e_n$, where $e_n$ is the last standard basis vector of $\mathbb{R}^n$. It is the dual of the better-known state-feedback Ackermann formula. In practice we use <span class="mono">place()</span> in MATLAB or <span class="mono">scipy.signal.place_poles</span>, which handles numerical conditioning better.
+      </p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 5 — KALMAN FILTER                               -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <section class="concept" id="kalman">
+      <div class="section-num">Chapter Five</div>
+      <h2>The <em>Kalman filter</em> — optimality under Gaussian noise</h2>
+      <p class="tagline">
+        When the process and measurement noises are known (zero-mean, white, Gaussian), there is a unique observer gain $L$ that minimizes the steady-state error covariance. It is not a heuristic. It is <em>the</em> answer.
+      </p>
+
+      <p class="lead dropcap">
+        Luenberger's observer leaves open how to choose $L$. Make it fast and noise appears on the estimate. Make it slow and the estimate lags. The Kalman filter is the observer design that trades these two evils off in a provably optimal way, given statistical models of the disturbances.
+      </p>
+
+      <p>
+        Consider the discrete-time system with process noise $w_k \sim \mathcal{N}(0, Q)$ and measurement noise $v_k \sim \mathcal{N}(0, R)$:
+      </p>
+
+      <p>
+        $$ x_{k+1} = F x_k + G u_k + w_k, \quad y_k = H x_k + v_k. $$
+      </p>
+
+      <p>
+        The filter alternates a <em>prediction</em> (push the estimate through the model) and an <em>update</em> (correct using the measurement). The covariance $P_k$ tracks our uncertainty about $\hat{x}_k$:
+      </p>
+
+      <div style="background:#fff; padding:16px 20px; border:1px solid var(--line); border-radius:2px; margin:16px 0; font-size:15px;">
+        <strong style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--rust);">Prediction step</strong>
+        $$\hat{x}_{k+1|k} = F \hat{x}_{k|k} + G u_k, \qquad P_{k+1|k} = F P_{k|k} F^\top + Q.$$
+        <strong style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--teal); margin-top:12px; display:block;">Update step</strong>
+        $$K_{k+1} = P_{k+1|k} H^\top \big(H P_{k+1|k} H^\top + R\big)^{-1},$$
+        $$\hat{x}_{k+1|k+1} = \hat{x}_{k+1|k} + K_{k+1}\big(y_{k+1} - H\hat{x}_{k+1|k}\big),$$
+        $$P_{k+1|k+1} = (I - K_{k+1} H)\, P_{k+1|k}.$$
+      </div>
+
+      <p>
+        The <em>Kalman gain</em> $K_{k+1}$ is the optimal weighting between trusting the model and trusting the measurement. When $R \ll H P H^\top$ (measurement is precise), $K \to H^{-1}$ and the update snaps to the measurement. When $R \gg H P H^\top$ (measurement is noisy), $K \to 0$ and the filter trusts the model. The filter performs this tradeoff automatically, per sample, per state.
+      </p>
+
+      <div class="callout">
+        If the system is linear, the noises are Gaussian and independent, and the models $(F,G,H,Q,R)$ are known, the Kalman filter is the minimum mean-square error estimator — <em>over all estimators</em>, not just linear ones. Its elegance is that this sweeping optimality result is implemented by a handful of matrix operations per sample.
+      </div>
+
+      <!-- Interactive: Kalman filter -->
+      <div class="lab" data-label="Lab 05 · 1-D Position Tracking">
+        <div class="lab-grid g-21">
+          <div>
+            <h4>Tracking a noisy 1-D object · position vs. time</h4>
+            <canvas id="kalCanvas" height="300"></canvas>
+            <p style="font-size:13px; margin-top:8px; color:var(--ink-dim);">
+              <span class="tag-x">━━ $x_1$ (true position)</span> &nbsp;&nbsp;
+              <span class="tag-meas">• $y_k$ (noisy measurement)</span> &nbsp;&nbsp;
+              <span class="tag-xhat">━━ $\hat{x}_1$ (KF estimate)</span> &nbsp;&nbsp;
+              <span style="color:var(--ink-dim)">░░ $\pm 2\sigma$ confidence</span>
+            </p>
+            <canvas id="kalGainCanvas" height="120" style="margin-top:14px;"></canvas>
+            <p style="font-size:13px; margin-top:8px; color:var(--ink-dim);">
+              <span style="color:var(--gold);">━━</span> $K_{k,1}$ (position-gain) &nbsp;&nbsp;
+              <span style="color:var(--plum);">━━</span> $K_{k,2}$ (velocity-gain) — converging toward steady-state values.
+            </p>
+          </div>
+          <div>
+            <h4>Model · constant velocity</h4>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:16px; line-height:1.7;">
+              x = [pos, vel]ᵀ<br>
+              F = [[1, Δt], [0, 1]]<br>
+              H = [1, 0], &nbsp; Δt = 0.1 s
+            </div>
+
+            <h4>Process noise · $q$</h4>
+            <div class="control">
+              <div class="control-header">
+                <span class="label">σ<sub>process</sub> (how much the model drifts)</span>
+                <span class="value" id="kalQval">0.20</span>
+              </div>
+              <input type="range" min="0.01" max="2" step="0.01" value="0.20" id="kalQ">
+            </div>
+
+            <h4>Measurement noise · $r$</h4>
+            <div class="control">
+              <div class="control-header">
+                <span class="label">σ<sub>meas</sub> (sensor stdev)</span>
+                <span class="value" id="kalRval">1.00</span>
+              </div>
+              <input type="range" min="0.1" max="5" step="0.05" value="1.00" id="kalR">
+            </div>
+
+            <div class="stat-row">
+              <div class="stat"><div class="k">K<sub>∞</sub></div><div class="v teal mono" id="kalKss">—</div></div>
+              <div class="stat"><div class="k">RMS error</div><div class="v rust" id="kalRMS">—</div></div>
+              <div class="stat"><div class="k">RMS meas</div><div class="v" id="kalRMSmeas">—</div></div>
+            </div>
+
+            <p style="font-size:12px; color:var(--ink-dim); margin-top:8px;">
+              Notice: The filter's RMS error is typically a fraction of the raw measurement RMS — this is the filter's "free" information gain from fusing measurements over time through the model.
+            </p>
+
+            <div class="btn-row">
+              <button class="btn" id="kalRestart">New realization</button>
+              <button class="btn ghost" data-kalpreset="noisy">High noise</button>
+              <button class="btn ghost" data-kalpreset="clean">Low noise</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>The steady-state / Riccati view</h3>
+      <p>
+        As $k \to \infty$, $P_k$ converges (for detectable $(F,H)$ and stabilizable $(F, Q^{1/2})$) to the unique positive-definite solution of the <em>discrete algebraic Riccati equation</em>:
+      </p>
+
+      <p>
+        $$ P_\infty = F P_\infty F^\top + Q - F P_\infty H^\top (H P_\infty H^\top + R)^{-1} H P_\infty F^\top. $$
+      </p>
+
+      <p>
+        The Kalman gain converges to $K_\infty = P_\infty H^\top (H P_\infty H^\top + R)^{-1}$, and the filter becomes — structurally — a Luenberger observer with an optimally chosen $L = F K_\infty$. In practice, many production filters run at steady-state gains computed offline: lower CPU, identical asymptotic performance, much simpler ASIL-relevant code.
+      </p>
+
+      <h3>What the filter is and is not</h3>
+      <p>
+        The Kalman filter assumes a linear model with known, Gaussian, white noise covariances. Real systems usually break at least one of these: model nonlinearity (handled by the EKF or UKF), non-Gaussian noise (handled by particle filters or robust estimators), and coloured or correlated noise (handled by state augmentation). But start here — the linear, Gaussian Kalman filter remains the beginning of every serious estimation architecture, and an astonishing number of production systems never need more.
+      </p>
+
+      <div class="ref">
+        REF · Kalman, R.E. (1960). "A new approach to linear filtering and prediction problems." <em>Journal of Basic Engineering.</em> · Anderson &amp; Moore, <em>Optimal Filtering</em> (1979) · Simon, <em>Optimal State Estimation</em> (2006).
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="cols">
+    <div>
+      <h5>Colophon</h5>
+      <p class="colophon">
+        Set in <em>Fraunces</em> (variable serif, by Undercase Type) for display and <em>Geist</em> (Vercel) for text, with <em>JetBrains Mono</em> for code and matrices. Mathematics rendered by MathJax. Plots drawn with the Canvas 2D API, integrated with classical 4th-order Runge–Kutta.
+      </p>
+    </div>
+    <div>
+      <h5>Where next</h5>
+      <ul>
+        <li>— Nonlinear: EKF, UKF, particle filters</li>
+        <li>— Robust: $H_\infty$ estimation</li>
+        <li>— Constrained: moving-horizon estimation</li>
+        <li>— Distributed: consensus-based KF</li>
+      </ul>
+    </div>
+    <div>
+      <h5>A recommendation</h5>
+      <ul>
+        <li>Wonham, <em>Linear Multivariable Control</em></li>
+        <li>Kailath, <em>Linear Systems</em></li>
+        <li>Anderson &amp; Moore, <em>Optimal Filtering</em></li>
+        <li>Simon, <em>Optimal State Estimation</em></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SMALL MATRIX UTILITIES (up to 3×3 for our needs)
+   ═══════════════════════════════════════════════════════════════ */
+const M = {
+  zeros: (r,c) => Array.from({length:r}, () => Array(c).fill(0)),
+  id: n => { const I=M.zeros(n,n); for(let i=0;i<n;i++) I[i][i]=1; return I; },
+  clone: A => A.map(r=>r.slice()),
+  mul: (A,B) => {
+    const r=A.length, k=B.length, c=B[0].length;
+    const C=M.zeros(r,c);
+    for(let i=0;i<r;i++) for(let j=0;j<c;j++) for(let p=0;p<k;p++) C[i][j]+=A[i][p]*B[p][j];
+    return C;
+  },
+  mulVec: (A,x) => A.map(row => row.reduce((s,v,j)=>s+v*x[j],0)),
+  add: (A,B) => A.map((r,i)=>r.map((v,j)=>v+B[i][j])),
+  sub: (A,B) => A.map((r,i)=>r.map((v,j)=>v-B[i][j])),
+  scale: (A,s) => A.map(r=>r.map(v=>v*s)),
+  transpose: A => A[0].map((_,j) => A.map(r => r[j])),
+  det2: A => A[0][0]*A[1][1] - A[0][1]*A[1][0],
+  inv2: A => {
+    const d = M.det2(A);
+    if (Math.abs(d) < 1e-12) return null;
+    return [[A[1][1]/d, -A[0][1]/d], [-A[1][0]/d, A[0][0]/d]];
+  },
+  // rank via Gaussian elimination (tolerant)
+  rank: (Ain, tol=1e-9) => {
+    const A = M.clone(Ain);
+    const m = A.length, n = A[0].length;
+    let row = 0, rank = 0;
+    for (let col = 0; col < n && row < m; col++) {
+      let piv = row;
+      for (let i = row+1; i < m; i++) if (Math.abs(A[i][col]) > Math.abs(A[piv][col])) piv = i;
+      if (Math.abs(A[piv][col]) < tol) continue;
+      [A[row], A[piv]] = [A[piv], A[row]];
+      for (let i = row+1; i < m; i++) {
+        const f = A[i][col] / A[row][col];
+        for (let j = col; j < n; j++) A[i][j] -= f * A[row][j];
+      }
+      row++; rank++;
+    }
+    return rank;
+  }
+};
+
+/* Read matrix from input grid */
+function readMatrix(sel, rows, cols) {
+  const inputs = document.querySelectorAll(sel + ' input');
+  const m = M.zeros(rows, cols);
+  inputs.forEach(inp => {
+    const i = +inp.dataset.i, j = +inp.dataset.j;
+    m[i][j] = parseFloat(inp.value) || 0;
+  });
+  return m;
+}
+function setMatrix(sel, mat, name) {
+  const inputs = document.querySelectorAll(sel + ' input[data-m="' + name + '"]');
+  inputs.forEach(inp => {
+    const i = +inp.dataset.i, j = +inp.dataset.j;
+    inp.value = mat[i][j].toFixed(1);
+  });
+}
+
+/* Render a matrix into a display div */
+function renderMat(target, mat, label) {
+  const r = mat.length, c = mat[0].length;
+  let html = '<div style="display:flex;align-items:center;gap:8px;">';
+  if (label) html += `<span style="font-family:'Fraunces',serif;font-style:italic;font-size:18px;">${label}</span><span style="color:var(--ink-dim);">=</span>`;
+  html += `<div class="matrix-display" style="grid-template-columns:repeat(${c}, 1fr);">`;
+  for (let i=0;i<r;i++) for (let j=0;j<c;j++) {
+    html += `<span class="cell">${mat[i][j].toFixed(2)}</span>`;
+  }
+  html += '</div></div>';
+  document.querySelector(target).innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS PLOT HELPERS
+   ═══════════════════════════════════════════════════════════════ */
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const rect = c.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  c.width = rect.width * dpr;
+  c.height = c.clientHeight * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: c.clientHeight, canvas: c };
+}
+
+function drawAxes(ctx, w, h, {xmin, xmax, ymin, ymax, xlabel, ylabel, title}) {
+  const pad = { l: 44, r: 14, t: 18, b: 28 };
+  const px = x => pad.l + (x - xmin) / (xmax - xmin) * (w - pad.l - pad.r);
+  const py = y => h - pad.b - (y - ymin) / (ymax - ymin) * (h - pad.t - pad.b);
+
+  // background grid
+  ctx.strokeStyle = '#e7dcc3';
+  ctx.lineWidth = 0.5;
+  const xTicks = 8, yTicks = 5;
+  for (let i = 0; i <= xTicks; i++) {
+    const x = xmin + (xmax - xmin) * i / xTicks;
+    ctx.beginPath(); ctx.moveTo(px(x), pad.t); ctx.lineTo(px(x), h-pad.b); ctx.stroke();
+  }
+  for (let i = 0; i <= yTicks; i++) {
+    const y = ymin + (ymax - ymin) * i / yTicks;
+    ctx.beginPath(); ctx.moveTo(pad.l, py(y)); ctx.lineTo(w-pad.r, py(y)); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = '#8a7d63';
+  ctx.lineWidth = 1;
+  // zero-crossings
+  if (ymin <= 0 && ymax >= 0) {
+    ctx.beginPath(); ctx.moveTo(pad.l, py(0)); ctx.lineTo(w-pad.r, py(0)); ctx.stroke();
+  }
+  if (xmin <= 0 && xmax >= 0) {
+    ctx.beginPath(); ctx.moveTo(px(0), pad.t); ctx.lineTo(px(0), h-pad.b); ctx.stroke();
+  }
+
+  // frame
+  ctx.strokeStyle = '#4a4338';
+  ctx.strokeRect(pad.l, pad.t, w-pad.l-pad.r, h-pad.t-pad.b);
+
+  // labels
+  ctx.fillStyle = '#6a5d43';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= xTicks; i++) {
+    const x = xmin + (xmax - xmin) * i / xTicks;
+    ctx.fillText(x.toFixed(Math.abs(x) < 10 && (xmax-xmin) < 20 ? 1 : 0), px(x), h-pad.b+14);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= yTicks; i++) {
+    const y = ymin + (ymax - ymin) * i / yTicks;
+    ctx.fillText(y.toFixed(Math.abs(ymax-ymin) < 10 ? 1 : 0), pad.l-6, py(y)+3);
+  }
+
+  // titles
+  if (xlabel) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4a4338';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText(xlabel, (pad.l + w - pad.r) / 2, h - 6);
+  }
+  if (ylabel) {
+    ctx.save();
+    ctx.translate(12, (pad.t + h - pad.b) / 2);
+    ctx.rotate(-Math.PI/2);
+    ctx.textAlign = 'center';
+    ctx.fillText(ylabel, 0, 0);
+    ctx.restore();
+  }
+  if (title) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#6a5d43';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText(title.toUpperCase(), pad.l, 12);
+  }
+
+  return { px, py, pad };
+}
+
+function plotLine(ctx, pts, {color, width=1.5, dash=[]}) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAPTER 1 — CONTROLLABILITY
+   ═══════════════════════════════════════════════════════════════ */
+function updateControllability() {
+  const A = readMatrix('#ctrbA-grid', 2, 2);
+  const B = readMatrix('#ctrbB-grid', 2, 1);
+
+  // C = [B, AB]
+  const AB = M.mulVec(A, B.map(r=>r[0]));
+  const Cm = [[B[0][0], AB[0]], [B[1][0], AB[1]]];
+
+  renderMat('#ctrbMat', Cm, '\\mathcal{C}');
+
+  const r = M.rank(Cm);
+  const d = M.det2(Cm);
+  document.getElementById('ctrbRank').textContent = r;
+  document.getElementById('ctrbDet').textContent = d.toFixed(3);
+  const statusEl = document.getElementById('ctrbStatus');
+  if (r === 2) {
+    statusEl.innerHTML = '<span class="badge ok">controllable</span>';
+  } else {
+    statusEl.innerHTML = '<span class="badge fail">NOT controllable</span>';
+  }
+
+  drawCtrb(A, B, Cm, r);
+}
+
+function drawCtrb(A, B, Cm, rank) {
+  const { ctx, w, h } = setupCanvas('ctrbCanvas');
+  const ax = drawAxes(ctx, w, h, {
+    xmin: -3, xmax: 3, ymin: -3, ymax: 3,
+    xlabel: 'x₁', ylabel: 'x₂',
+    title: 'reachable subspace'
+  });
+
+  // draw reachable subspace (shaded)
+  if (rank === 2) {
+    // full plane — soft fill of whole plot area (skip, grid shows enough)
+    ctx.fillStyle = 'rgba(184,74,46,0.07)';
+    ctx.fillRect(ax.pad.l, ax.pad.t, w - ax.pad.l - 14, h - ax.pad.t - 28);
+  } else if (rank === 1) {
+    // line through origin along direction of B (or AB if B is zero)
+    let dir = [B[0][0], B[1][0]];
+    const norm = Math.hypot(dir[0], dir[1]);
+    if (norm > 1e-9) { dir = [dir[0]/norm, dir[1]/norm]; }
+    else { dir = [1, 0]; }
+    // thick shaded band along direction
+    ctx.save();
+    ctx.translate(ax.px(0), ax.py(0));
+    const angle = Math.atan2(-dir[1], dir[0]); // canvas y flipped
+    ctx.rotate(angle);
+    ctx.fillStyle = 'rgba(184,74,46,0.15)';
+    ctx.fillRect(-300, -6, 600, 12);
+    ctx.restore();
+  }
+
+  // vector B
+  ctx.strokeStyle = 'rgb(184,74,46)';
+  ctx.fillStyle = 'rgb(184,74,46)';
+  ctx.lineWidth = 2.2;
+  drawArrow(ctx, ax.px(0), ax.py(0), ax.px(B[0][0]), ax.py(B[1][0]));
+  ctx.font = 'italic 13px Fraunces, serif';
+  ctx.fillText('B', ax.px(B[0][0]) + 8, ax.py(B[1][0]) - 4);
+
+  // vector AB
+  const AB = M.mulVec(A, [B[0][0], B[1][0]]);
+  ctx.strokeStyle = 'rgb(44,87,84)';
+  ctx.fillStyle = 'rgb(44,87,84)';
+  drawArrow(ctx, ax.px(0), ax.py(0), ax.px(AB[0]), ax.py(AB[1]));
+  ctx.fillText('AB', ax.px(AB[0]) + 8, ax.py(AB[1]) - 4);
+
+  // label
+  ctx.fillStyle = '#4a4338';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`rank 𝒞 = ${rank}  ·  ${rank===2 ? 'reachable = ℝ²' : rank===1 ? 'reachable = line' : 'reachable = {0}'}`, ax.pad.l + 6, h - 34);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  const a = Math.atan2(y2-y1, x2-x1);
+  const sz = 7;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - sz*Math.cos(a - Math.PI/7), y2 - sz*Math.sin(a - Math.PI/7));
+  ctx.lineTo(x2 - sz*Math.cos(a + Math.PI/7), y2 - sz*Math.sin(a + Math.PI/7));
+  ctx.closePath();
+  ctx.fill();
+}
+
+document.querySelectorAll('#ctrbA-grid input, #ctrbB-grid input').forEach(inp => {
+  inp.addEventListener('input', updateControllability);
+});
+
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.preset;
+    if (p === 'doubleint') {
+      setMatrix('#ctrbA-grid', [[0,1],[0,0]], 'A');
+      setMatrix('#ctrbB-grid', [[0],[1]], 'B');
+    } else if (p === 'uncontrollable') {
+      setMatrix('#ctrbA-grid', [[-1,0],[0,-2]], 'A');
+      setMatrix('#ctrbB-grid', [[1],[0]], 'B');
+    } else if (p === 'oscillator') {
+      setMatrix('#ctrbA-grid', [[0,1],[-4,-0.5]], 'A');
+      setMatrix('#ctrbB-grid', [[0],[1]], 'B');
+    }
+    updateControllability();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAPTER 2 — OBSERVABILITY
+   ═══════════════════════════════════════════════════════════════ */
+function updateObservability() {
+  const A = readMatrix('#obsvA-grid', 2, 2);
+  const C = readMatrix('#obsvC-grid', 1, 2);
+
+  // O = [C; CA]
+  const CA = M.mul(C, A);
+  const Om = [[C[0][0], C[0][1]], [CA[0][0], CA[0][1]]];
+
+  renderMat('#obsvMat', Om, '\\mathcal{O}');
+
+  const r = M.rank(Om);
+  const d = M.det2(Om);
+  document.getElementById('obsvRank').textContent = r;
+  document.getElementById('obsvDet').textContent = d.toFixed(3);
+  const el = document.getElementById('obsvStatus');
+  if (r === 2) el.innerHTML = '<span class="badge ok">observable</span>';
+  else el.innerHTML = '<span class="badge fail">NOT observable</span>';
+
+  drawObsv(A, C, Om, r);
+}
+
+function drawObsv(A, C, Om, rank) {
+  const { ctx, w, h } = setupCanvas('obsvCanvas');
+
+  // split view — left: state trajectories, right: output
+  const leftW = w * 0.48, rightX = w * 0.52;
+  const leftAx = drawAxesRegion(ctx, 0, 0, leftW, h, {
+    xmin:-2, xmax:2, ymin:-2, ymax:2, xlabel:'x₁', ylabel:'x₂', title:'state trajectory'
+  });
+  const rightAx = drawAxesRegion(ctx, rightX, 0, w-rightX, h, {
+    xmin:0, xmax:5, ymin:-2.2, ymax:2.2, xlabel:'t', ylabel:'y(t)', title:'measurement'
+  });
+
+  // Simulate with two initial conditions: one along an observable direction, one with added unobservable component (if rank < 2)
+  const T = 5, N = 250, dt = T/N;
+  const x0a = [1.2, 0.6];
+
+  // if rank < 2, find null space of O
+  let v = [0, 1];
+  if (rank === 2) v = [0.5, -0.5]; // arbitrary offset for the second trajectory
+  else {
+    // find non-trivial vector in null space of Om
+    // Om * v = 0; for 2x2 rank 1, rows are proportional => v perpendicular to first non-zero row
+    const a = Om[0][0], b = Om[0][1], c = Om[1][0], d = Om[1][1];
+    if (Math.abs(a)+Math.abs(b) > 1e-9) v = [-b, a];
+    else v = [-d, c];
+    const n = Math.hypot(v[0], v[1]);
+    if (n > 1e-9) v = [v[0]/n * 0.9, v[1]/n * 0.9];
+  }
+  const x0b = [x0a[0] + v[0], x0a[1] + v[1]];
+
+  function rk4(x, A) {
+    const f = s => [A[0][0]*s[0] + A[0][1]*s[1], A[1][0]*s[0] + A[1][1]*s[1]];
+    const k1 = f(x);
+    const k2 = f([x[0]+0.5*dt*k1[0], x[1]+0.5*dt*k1[1]]);
+    const k3 = f([x[0]+0.5*dt*k2[0], x[1]+0.5*dt*k2[1]]);
+    const k4 = f([x[0]+dt*k3[0], x[1]+dt*k3[1]]);
+    return [x[0]+dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]), x[1]+dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1])];
+  }
+
+  const traj1 = [x0a.slice()], traj2 = [x0b.slice()];
+  const y1 = [C[0][0]*x0a[0]+C[0][1]*x0a[1]];
+  const y2 = [C[0][0]*x0b[0]+C[0][1]*x0b[1]];
+  let s1 = x0a.slice(), s2 = x0b.slice();
+  for (let k = 1; k <= N; k++) {
+    s1 = rk4(s1, A); s2 = rk4(s2, A);
+    traj1.push(s1.slice()); traj2.push(s2.slice());
+    y1.push(C[0][0]*s1[0]+C[0][1]*s1[1]);
+    y2.push(C[0][0]*s2[0]+C[0][1]*s2[1]);
+  }
+
+  // plot trajectories on left
+  const pts1 = traj1.map(p => ({x: leftAx.px(p[0]), y: leftAx.py(p[1])}));
+  const pts2 = traj2.map(p => ({x: leftAx.px(p[0]), y: leftAx.py(p[1])}));
+  plotLine(ctx, pts1, {color:'rgb(184,74,46)', width:1.8});
+  plotLine(ctx, pts2, {color:'rgb(44,87,84)', width:1.8});
+
+  // mark initial conditions
+  ctx.fillStyle = 'rgb(184,74,46)';
+  ctx.beginPath(); ctx.arc(pts1[0].x, pts1[0].y, 4, 0, 2*Math.PI); ctx.fill();
+  ctx.fillStyle = 'rgb(44,87,84)';
+  ctx.beginPath(); ctx.arc(pts2[0].x, pts2[0].y, 4, 0, 2*Math.PI); ctx.fill();
+
+  // if unobservable direction, draw it
+  if (rank < 2) {
+    ctx.strokeStyle = 'rgba(133,122,106,0.5)';
+    ctx.setLineDash([4,4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(leftAx.px(-3*v[0]), leftAx.py(-3*v[1]));
+    ctx.lineTo(leftAx.px(3*v[0]), leftAx.py(3*v[1]));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(133,122,106,0.9)';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText('unobservable', leftAx.px(2*v[0])+2, leftAx.py(2*v[1])-4);
+  }
+
+  // plot measurements on right
+  const yPts1 = y1.map((y,i) => ({x: rightAx.px(i*dt), y: rightAx.py(y)}));
+  const yPts2 = y2.map((y,i) => ({x: rightAx.px(i*dt), y: rightAx.py(y)}));
+  plotLine(ctx, yPts1, {color:'rgb(184,74,46)', width:1.8});
+  plotLine(ctx, yPts2, {color:'rgb(44,87,84)', width:1.8, dash:[4,3]});
+
+  ctx.fillStyle = '#4a4338';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'right';
+  if (rank < 2) {
+    ctx.fillStyle = '#b84a2e';
+    ctx.fillText('IDENTICAL OUTPUTS', w-16, 30);
+  } else {
+    ctx.fillText('distinguishable', w-16, 30);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawAxesRegion(ctx, x, y, w, h, opts) {
+  ctx.save();
+  ctx.translate(x, y);
+  const ax = drawAxes(ctx, w, h, opts);
+  const px = ax.px, py = ax.py, pad = ax.pad;
+  ctx.restore();
+  return {
+    px: xx => x + px(xx),
+    py: yy => y + py(yy),
+    pad
+  };
+}
+
+document.querySelectorAll('#obsvA-grid input, #obsvC-grid input').forEach(inp => {
+  inp.addEventListener('input', updateObservability);
+});
+
+document.querySelectorAll('[data-preset-obsv]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.presetObsv;
+    if (p === 'fully') {
+      setMatrix('#obsvA-grid', [[0,1],[-2,-0.4]], 'A');
+      setMatrix('#obsvC-grid', [[1,0]], 'C');
+    } else if (p === 'decoupled') {
+      setMatrix('#obsvA-grid', [[-0.3,0],[0,-0.8]], 'A');
+      setMatrix('#obsvC-grid', [[1,0]], 'C');
+    } else if (p === 'coupled') {
+      setMatrix('#obsvA-grid', [[-0.3,0.4],[0.4,-0.8]], 'A');
+      setMatrix('#obsvC-grid', [[1,0]], 'C');
+    }
+    updateObservability();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAPTER 3 — KALMAN DECOMPOSITION VIZ
+   ═══════════════════════════════════════════════════════════════ */
+function drawKalmanDecomp() {
+  const { ctx, w, h } = setupCanvas('kalDecomp');
+  ctx.fillStyle = '#fdfaf2';
+  ctx.fillRect(0,0,w,h);
+
+  const pad = 30;
+  const boxW = (w - 3*pad) / 2;
+  const boxH = (h - 3*pad) / 2;
+
+  const boxes = [
+    {x: pad, y: pad, label: 'C & O', desc: 'controllable\nobservable', color: 'rgba(184,74,46,0.15)', stroke: 'rgb(184,74,46)', inHash: true, outHash: true},
+    {x: pad*2 + boxW, y: pad, label: 'C & Ō', desc: 'controllable\nunobservable', color: 'rgba(44,87,84,0.12)', stroke: 'rgb(44,87,84)', inHash: true, outHash: false},
+    {x: pad, y: pad*2 + boxH, label: 'C̄ & O', desc: 'uncontrollable\nobservable', color: 'rgba(184,137,43,0.15)', stroke: 'rgb(184,137,43)', inHash: false, outHash: true},
+    {x: pad*2 + boxW, y: pad*2 + boxH, label: 'C̄ & Ō', desc: 'uncontrollable\nunobservable', color: 'rgba(133,122,106,0.12)', stroke: '#857a6a', inHash: false, outHash: false}
+  ];
+
+  // input arrow (left)
+  ctx.strokeStyle = '#1a1510';
+  ctx.fillStyle = '#1a1510';
+  ctx.lineWidth = 1.8;
+  const inY1 = pad + boxH/2;
+  const inY2 = pad*2 + boxH + boxH/2;
+  // label "u"
+  ctx.font = 'italic 18px Fraunces, serif';
+  ctx.fillText('u', 4, (inY1+inY2)/2 - 12);
+  // lines to top-left and... top-right? actually u goes to controllable boxes
+  boxes.forEach(b => {
+    if (b.inHash) {
+      drawArrow(ctx, 18, b.y + boxH/2, b.x - 4, b.y + boxH/2);
+    }
+  });
+
+  // output arrow (right)
+  const outX = w - 16;
+  ctx.font = 'italic 18px Fraunces, serif';
+  ctx.fillText('y', outX + 2, (inY1+inY2)/2 - 12);
+  boxes.forEach(b => {
+    if (b.outHash) {
+      drawArrow(ctx, b.x + boxW + 4, b.y + boxH/2, outX - 4, b.y + boxH/2);
+    }
+  });
+
+  // boxes
+  boxes.forEach(b => {
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x, b.y, boxW, boxH);
+    ctx.strokeStyle = b.stroke;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(b.x, b.y, boxW, boxH);
+
+    ctx.fillStyle = b.stroke;
+    ctx.font = 'bold 20px Fraunces, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.label, b.x + boxW/2, b.y + boxH/2 - 8);
+
+    ctx.fillStyle = '#4a4338';
+    ctx.font = '11px JetBrains Mono, monospace';
+    const lines = b.desc.split('\n');
+    lines.forEach((ln, i) => {
+      ctx.fillText(ln, b.x + boxW/2, b.y + boxH/2 + 10 + i*14);
+    });
+  });
+
+  // annotation
+  ctx.fillStyle = '#4a4338';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('only C & O is visible in G(s) = C(sI−A)⁻¹B', pad, h - 6);
+  ctx.textAlign = 'right';
+  ctx.fillText('minimal realization', w - pad, h - 6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAPTER 4 — LUENBERGER OBSERVER
+   ═══════════════════════════════════════════════════════════════ */
+// Plant (fixed): 2nd-order oscillator
+const luenPlant = {
+  A: [[0, 1], [-2, -0.4]],
+  B: [[0], [1]],
+  C: [[1, 0]]
+};
+
+function luenbergerL(A, C, p1, p2) {
+  // desired char poly: (s - p1)(s - p2) = s² - (p1+p2)s + p1*p2
+  // For 2x2 system, using Ackermann's dual:
+  // alpha(A) = A² - (p1+p2)A + p1*p2*I
+  const a = p1 + p2, b = p1*p2;
+  const A2 = M.mul(A, A);
+  const alphaA = [
+    [A2[0][0] - a*A[0][0] + b, A2[0][1] - a*A[0][1]],
+    [A2[1][0] - a*A[1][0],     A2[1][1] - a*A[1][1] + b]
+  ];
+  // O = [C; CA]
+  const CA = M.mul(C, A);
+  const O = [[C[0][0], C[0][1]], [CA[0][0], CA[0][1]]];
+  const Oinv = M.inv2(O);
+  if (!Oinv) return [[0],[0]];
+  // L = alpha(A) * O^-1 * e_n   (e_n = [0; 1] for n=2)
+  // so it's the last column of alpha(A) * O^-1
+  const AO = M.mul(alphaA, Oinv);
+  return [[AO[0][1]], [AO[1][1]]];
+}
+
+let luenState = null;
+function luenReset() {
+  const e0 = parseFloat(document.getElementById('luenE0').value);
+  luenState = {
+    x: [1.0, 0.0],
+    xhat: [1.0 - e0, 0.0 - e0*0.5],
+    history: [],
+    t: 0,
+    running: true
+  };
+}
+
+function luenStep() {
+  if (!luenState) return;
+  const p1 = parseFloat(document.getElementById('luenP1').value);
+  const p2 = parseFloat(document.getElementById('luenP2').value);
+  const L = luenbergerL(luenPlant.A, luenPlant.C, p1, p2);
+  const dt = 0.015;
+  const { A, C } = luenPlant;
+
+  const f = (x) => [A[0][0]*x[0]+A[0][1]*x[1], A[1][0]*x[0]+A[1][1]*x[1]];
+  // RK4 for plant
+  const k1 = f(luenState.x);
+  const k2 = f([luenState.x[0]+0.5*dt*k1[0], luenState.x[1]+0.5*dt*k1[1]]);
+  const k3 = f([luenState.x[0]+0.5*dt*k2[0], luenState.x[1]+0.5*dt*k2[1]]);
+  const k4 = f([luenState.x[0]+dt*k3[0], luenState.x[1]+dt*k3[1]]);
+  luenState.x = [
+    luenState.x[0] + dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]),
+    luenState.x[1] + dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1])
+  ];
+
+  // observer: dxhat/dt = A xhat + L(y - C xhat)
+  const y = C[0][0]*luenState.x[0] + C[0][1]*luenState.x[1];
+  const fhat = (x) => {
+    const yhat = C[0][0]*x[0] + C[0][1]*x[1];
+    const innov = y - yhat;
+    return [A[0][0]*x[0]+A[0][1]*x[1] + L[0][0]*innov,
+            A[1][0]*x[0]+A[1][1]*x[1] + L[1][0]*innov];
+  };
+  const h1 = fhat(luenState.xhat);
+  const h2 = fhat([luenState.xhat[0]+0.5*dt*h1[0], luenState.xhat[1]+0.5*dt*h1[1]]);
+  const h3 = fhat([luenState.xhat[0]+0.5*dt*h2[0], luenState.xhat[1]+0.5*dt*h2[1]]);
+  const h4 = fhat([luenState.xhat[0]+dt*h3[0], luenState.xhat[1]+dt*h3[1]]);
+  luenState.xhat = [
+    luenState.xhat[0] + dt/6*(h1[0]+2*h2[0]+2*h3[0]+h4[0]),
+    luenState.xhat[1] + dt/6*(h1[1]+2*h2[1]+2*h3[1]+h4[1])
+  ];
+
+  luenState.t += dt;
+  luenState.history.push({
+    t: luenState.t,
+    x1: luenState.x[0], x2: luenState.x[1],
+    xhat1: luenState.xhat[0], xhat2: luenState.xhat[1],
+    err: Math.hypot(luenState.x[0]-luenState.xhat[0], luenState.x[1]-luenState.xhat[1])
+  });
+  if (luenState.history.length > 800) luenState.history.shift();
+
+  // update sidebar
+  document.getElementById('luenLval').textContent = `[${L[0][0].toFixed(2)}, ${L[1][0].toFixed(2)}]ᵀ`;
+  document.getElementById('luenP1val').textContent = p1.toFixed(1);
+  document.getElementById('luenP2val').textContent = p2.toFixed(1);
+  document.getElementById('luenE0val').textContent = parseFloat(document.getElementById('luenE0').value).toFixed(1);
+
+  // settling time estimate (2% of initial error norm)
+  const fastest = Math.max(Math.abs(p1), Math.abs(p2));
+  const slowest = Math.min(Math.abs(p1), Math.abs(p2));
+  const ts = 4 / slowest;
+  document.getElementById('luenTs').textContent = ts.toFixed(2) + ' s';
+
+  // ratio to plant bandwidth (natural freq ~ sqrt(2) = 1.41)
+  const plantOmega = Math.sqrt(2);
+  document.getElementById('luenRatio').textContent = (slowest / plantOmega).toFixed(2) + '×';
+
+  drawLuenberger();
+}
+
+function drawLuenberger() {
+  const { ctx: ctx1, w: w1, h: h1 } = setupCanvas('luenCanvas');
+  const hist = luenState.history;
+  if (hist.length === 0) return;
+
+  const tmin = hist[0].t;
+  const tmax = Math.max(tmin + 8, hist[hist.length-1].t);
+  const all = hist.flatMap(p => [p.x1, p.x2, p.xhat1, p.xhat2]);
+  const ymin = Math.min(-1, Math.min(...all) * 1.1);
+  const ymax = Math.max(1, Math.max(...all) * 1.1);
+
+  const ax = drawAxes(ctx1, w1, h1, {
+    xmin: tmin, xmax: tmax, ymin, ymax,
+    xlabel: 't [s]', ylabel: 'state',
+    title: 'plant state vs observer estimate'
+  });
+
+  const p1x = hist.map(p => ({x: ax.px(p.t), y: ax.py(p.x1)}));
+  const p2x = hist.map(p => ({x: ax.px(p.t), y: ax.py(p.x2)}));
+  const p1h = hist.map(p => ({x: ax.px(p.t), y: ax.py(p.xhat1)}));
+  const p2h = hist.map(p => ({x: ax.px(p.t), y: ax.py(p.xhat2)}));
+
+  plotLine(ctx1, p2x, {color:'rgb(139,54,32)', width:1.2, dash:[3,3]});
+  plotLine(ctx1, p2h, {color:'rgb(74,128,124)', width:1.2, dash:[3,3]});
+  plotLine(ctx1, p1x, {color:'rgb(184,74,46)', width:2});
+  plotLine(ctx1, p1h, {color:'rgb(44,87,84)', width:2});
+
+  // error plot
+  const { ctx: ctx2, w: w2, h: h2 } = setupCanvas('luenErrCanvas');
+  const errs = hist.map(p => p.err);
+  const emax = Math.max(0.1, Math.max(...errs) * 1.1);
+  const ax2 = drawAxes(ctx2, w2, h2, {
+    xmin: tmin, xmax: tmax, ymin: 0, ymax: emax,
+    xlabel: 't [s]', ylabel: '‖e‖', title: 'error norm'
+  });
+  const ep = hist.map(p => ({x: ax2.px(p.t), y: ax2.py(p.err)}));
+  plotLine(ctx2, ep, {color:'rgb(107,54,84)', width:2});
+}
+
+function luenAnimate() {
+  if (luenState && luenState.running) luenStep();
+  requestAnimationFrame(luenAnimate);
+}
+
+document.getElementById('luenRestart').addEventListener('click', luenReset);
+['luenP1','luenP2','luenE0'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'luenE0') luenReset();
+  });
+});
+document.querySelectorAll('[data-luenpreset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.luenpreset;
+    if (p === 'slow') { document.getElementById('luenP1').value = -1.5; document.getElementById('luenP2').value = -2.0; }
+    else { document.getElementById('luenP1').value = -8; document.getElementById('luenP2').value = -10; }
+    luenReset();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAPTER 5 — KALMAN FILTER
+   ═══════════════════════════════════════════════════════════════ */
+const kalModel = {
+  dt: 0.1,
+  F: [[1, 0.1], [0, 1]],    // x_{k+1} = F x_k + w
+  H: [[1, 0]],               // y_k = H x_k + v
+};
+
+let kalState = null;
+function kalReset() {
+  // deterministic "truth" is a sinusoid-ish position
+  kalState = {
+    t: 0,
+    k: 0,
+    xtrue: [0, 1],
+    xhat: [0, 0],
+    P: [[10, 0],[0, 10]],
+    history: [],
+    measHistory: [],
+    gainHistory: [],
+    errSum: 0, errCount: 0,
+    measSum: 0
+  };
+}
+
+function randn() {
+  // Box-Muller
+  const u = Math.random(), v = Math.random();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+function kalStep() {
+  if (!kalState) return;
+  const q = parseFloat(document.getElementById('kalQ').value);
+  const r = parseFloat(document.getElementById('kalR').value);
+  const Q = [[q*q*kalModel.dt, 0], [0, q*q*kalModel.dt*0.5]];
+  const R = [[r*r]];
+  const { F, H, dt } = kalModel;
+
+  // truth propagation with sinusoidal acceleration
+  const a = 2 * Math.sin(0.3 * kalState.t);
+  // true dynamics: x1_{k+1} = x1 + dt*x2; x2_{k+1} = x2 + dt*a + process_noise
+  kalState.xtrue[0] += dt * kalState.xtrue[1];
+  kalState.xtrue[1] += dt * a + q * Math.sqrt(dt) * randn();
+
+  // measurement
+  const yk = kalState.xtrue[0] + r * randn();
+
+  // prediction
+  let xpred = [F[0][0]*kalState.xhat[0]+F[0][1]*kalState.xhat[1],
+               F[1][0]*kalState.xhat[0]+F[1][1]*kalState.xhat[1]];
+  let Ppred = M.add(M.mul(M.mul(F, kalState.P), M.transpose(F)), Q);
+
+  // update
+  const HP = M.mul(H, Ppred);
+  const S = HP[0][0]*H[0][0] + HP[0][1]*H[0][1] + R[0][0];
+  const K = [[Ppred[0][0]*H[0][0] + Ppred[0][1]*H[0][1]], [Ppred[1][0]*H[0][0] + Ppred[1][1]*H[0][1]]];
+  K[0][0] /= S; K[1][0] /= S;
+
+  const innov = yk - (H[0][0]*xpred[0] + H[0][1]*xpred[1]);
+  kalState.xhat = [xpred[0] + K[0][0]*innov, xpred[1] + K[1][0]*innov];
+
+  // P = (I - K H) Ppred
+  const KH = [[K[0][0]*H[0][0], K[0][0]*H[0][1]], [K[1][0]*H[0][0], K[1][0]*H[0][1]]];
+  const IKH = [[1 - KH[0][0], -KH[0][1]], [-KH[1][0], 1 - KH[1][1]]];
+  kalState.P = M.mul(IKH, Ppred);
+
+  // record
+  kalState.history.push({
+    t: kalState.t,
+    xtrue: kalState.xtrue[0],
+    xhat: kalState.xhat[0],
+    sigma: Math.sqrt(Math.max(kalState.P[0][0], 1e-9)),
+    y: yk
+  });
+  kalState.gainHistory.push({t: kalState.t, k1: K[0][0], k2: K[1][0]});
+  if (kalState.history.length > 300) { kalState.history.shift(); kalState.gainHistory.shift(); }
+
+  const err = kalState.xtrue[0] - kalState.xhat[0];
+  kalState.errSum += err*err;
+  kalState.measSum += (yk - kalState.xtrue[0])**2;
+  kalState.errCount++;
+
+  kalState.t += dt;
+  kalState.k++;
+
+  // update UI
+  document.getElementById('kalKss').textContent = `[${K[0][0].toFixed(2)}, ${K[1][0].toFixed(2)}]ᵀ`;
+  document.getElementById('kalQval').textContent = q.toFixed(2);
+  document.getElementById('kalRval').textContent = r.toFixed(2);
+  if (kalState.errCount > 5) {
+    document.getElementById('kalRMS').textContent = Math.sqrt(kalState.errSum / kalState.errCount).toFixed(3);
+    document.getElementById('kalRMSmeas').textContent = Math.sqrt(kalState.measSum / kalState.errCount).toFixed(3);
+  }
+
+  drawKalman();
+}
+
+function drawKalman() {
+  const hist = kalState.history;
+  if (hist.length < 2) return;
+
+  const { ctx: ctx1, w: w1, h: h1 } = setupCanvas('kalCanvas');
+  const tmin = hist[0].t, tmax = Math.max(tmin + 20, hist[hist.length-1].t);
+  const all = hist.flatMap(p => [p.xtrue, p.xhat, p.y]);
+  const ymin = Math.min(...all) * 1.15 - 1;
+  const ymax = Math.max(...all) * 1.15 + 1;
+
+  const ax = drawAxes(ctx1, w1, h1, {
+    xmin: tmin, xmax: tmax, ymin, ymax,
+    xlabel: 't [s]', ylabel: 'position',
+    title: 'tracking result'
+  });
+
+  // confidence band
+  ctx1.fillStyle = 'rgba(44,87,84,0.12)';
+  ctx1.beginPath();
+  hist.forEach((p, i) => {
+    const x = ax.px(p.t), y = ax.py(p.xhat + 2*p.sigma);
+    i === 0 ? ctx1.moveTo(x, y) : ctx1.lineTo(x, y);
+  });
+  for (let i = hist.length-1; i >= 0; i--) {
+    const p = hist[i];
+    ctx1.lineTo(ax.px(p.t), ax.py(p.xhat - 2*p.sigma));
+  }
+  ctx1.closePath();
+  ctx1.fill();
+
+  // measurements (dots)
+  ctx1.fillStyle = 'rgba(184,137,43,0.7)';
+  hist.forEach(p => {
+    ctx1.beginPath();
+    ctx1.arc(ax.px(p.t), ax.py(p.y), 1.8, 0, 2*Math.PI);
+    ctx1.fill();
+  });
+
+  // truth
+  plotLine(ctx1, hist.map(p => ({x: ax.px(p.t), y: ax.py(p.xtrue)})),
+    {color:'rgb(184,74,46)', width:2.2});
+  // estimate
+  plotLine(ctx1, hist.map(p => ({x: ax.px(p.t), y: ax.py(p.xhat)})),
+    {color:'rgb(44,87,84)', width:1.8});
+
+  // gain plot
+  const { ctx: ctx2, w: w2, h: h2 } = setupCanvas('kalGainCanvas');
+  const gh = kalState.gainHistory;
+  if (gh.length < 2) return;
+  const gmax = Math.max(0.5, Math.max(...gh.map(p => Math.max(Math.abs(p.k1), Math.abs(p.k2)))) * 1.1);
+  const gmin = Math.min(0, Math.min(...gh.map(p => Math.min(p.k1, p.k2))) * 1.1);
+  const ax2 = drawAxes(ctx2, w2, h2, {
+    xmin: tmin, xmax: tmax, ymin: gmin, ymax: gmax,
+    xlabel: 't [s]', ylabel: 'K', title: 'Kalman gain'
+  });
+  plotLine(ctx2, gh.map(p => ({x: ax2.px(p.t), y: ax2.py(p.k1)})), {color:'rgb(184,137,43)', width:1.8});
+  plotLine(ctx2, gh.map(p => ({x: ax2.px(p.t), y: ax2.py(p.k2)})), {color:'rgb(107,54,84)', width:1.8});
+}
+
+function kalAnimate() {
+  if (kalState) {
+    // step multiple times per frame for faster apparent sim
+    for (let i = 0; i < 2; i++) kalStep();
+  }
+  requestAnimationFrame(kalAnimate);
+}
+
+document.getElementById('kalRestart').addEventListener('click', kalReset);
+document.querySelectorAll('[data-kalpreset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.kalpreset;
+    if (p === 'noisy') { document.getElementById('kalQ').value = 0.5; document.getElementById('kalR').value = 3.0; }
+    else { document.getElementById('kalQ').value = 0.1; document.getElementById('kalR').value = 0.3; }
+    kalReset();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   TOC SCROLL SPY
+   ═══════════════════════════════════════════════════════════════ */
+const tocLinks = document.querySelectorAll('nav.toc a');
+const sections = document.querySelectorAll('section.concept');
+window.addEventListener('scroll', () => {
+  let cur = sections[0].id;
+  sections.forEach(s => {
+    const r = s.getBoundingClientRect();
+    if (r.top < window.innerHeight * 0.35) cur = s.id;
+  });
+  tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  updateControllability();
+  updateObservability();
+  drawKalmanDecomp();
+  luenReset();
+  kalReset();
+  luenAnimate();
+  kalAnimate();
+});
+
+window.addEventListener('resize', () => {
+  updateControllability();
+  updateObservability();
+  drawKalmanDecomp();
+  drawLuenberger();
+  drawKalman();
+});
+</script>
+
+</body>
+</html>
