@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listening to the Vehicle — UDS, DTC & the EV Diagnostic Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3ece0;
+  --paper-2:#ece4d4;
+  --ink:#1a1b22;
+  --ink-2:#3a3c48;
+  --rule:#c8bda5;
+  --rule-soft:#dccfb3;
+  --red:#b22222;
+  --red-deep:#7a1313;
+  --orange:#c46a26;
+  --amber:#c8a02a;
+  --green:#3f6b3a;
+  --teal:#1f6a6a;
+  --blue:#23457a;
+  --violet:#5a3a8a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Newsreader", "Iowan Old Style", Georgia, serif;
+  background:
+    radial-gradient(1200px 600px at 80% -100px, rgba(196,106,38,.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(35,69,122,.07), transparent 60%),
+    var(--paper);
+  color:var(--ink);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+/* paper grain */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(26,27,34,.018) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(26,27,34,.012) 0 1px, transparent 1px 3px);
+  pointer-events:none;
+  mix-blend-mode:multiply;
+  z-index:0;
+}
+.wrap{max-width:980px; margin:0 auto; padding:64px 32px 120px; position:relative; z-index:1}
+
+/* ------- header ------- */
+.hd{border-bottom:1px solid var(--rule); padding-bottom:28px; margin-bottom:48px}
+.hd .back-to-blog{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--red);
+  text-decoration:none;
+  border-bottom:1px solid transparent;
+  margin:0 0 24px;
+  padding-bottom:2px;
+  transition:border-color 0.15s ease;
+}
+.hd .back-to-blog:hover{
+  border-bottom-color:var(--red);
+}
+.kicker{
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--red-deep);
+  display:flex; gap:18px; align-items:center;
+}
+.kicker .dot{width:6px;height:6px;background:var(--red);border-radius:50%}
+h1{
+  font-family:"Fraunces", "Times New Roman", serif;
+  font-weight:900;
+  font-size:64px;
+  line-height:1;
+  letter-spacing:-.02em;
+  margin:18px 0 12px;
+  font-variation-settings:"opsz" 144, "SOFT" 0;
+}
+h1 em{font-style:italic; font-weight:500; color:var(--ink-2)}
+.deck{
+  font-size:21px; font-style:italic; max-width:720px;
+  color:var(--ink-2);
+  font-family:"Newsreader", serif;
+}
+.byline{
+  margin-top:22px;
+  font-family:"JetBrains Mono", monospace; font-size:11px;
+  letter-spacing:.18em; text-transform:uppercase;
+  color:var(--ink-2);
+  display:flex; gap:24px; flex-wrap:wrap;
+}
+.byline span b{color:var(--ink); font-weight:700}
+
+/* ------- structure ------- */
+h2{
+  font-family:"Fraunces", serif;
+  font-size:32px; font-weight:700; letter-spacing:-.01em;
+  margin:72px 0 8px;
+  font-variation-settings:"opsz" 96;
+}
+h2 .num{
+  font-family:"JetBrains Mono", monospace; font-weight:500;
+  font-size:13px; letter-spacing:.2em; color:var(--red-deep);
+  display:block; margin-bottom:6px;
+}
+h3{
+  font-family:"Fraunces", serif;
+  font-size:21px; font-weight:600; letter-spacing:-.005em;
+  margin:36px 0 6px;
+}
+p{margin:10px 0 14px}
+p.lede::first-letter{
+  font-family:"Fraunces", serif;
+  font-weight:900;
+  font-size:64px;
+  float:left;
+  line-height:.85;
+  padding:6px 10px 0 0;
+  color:var(--red-deep);
+}
+.rule{
+  border:0; border-top:1px solid var(--rule-soft);
+  margin:42px 0; height:0;
+}
+.callout{
+  border-left:3px solid var(--orange);
+  background:rgba(196,106,38,.06);
+  padding:14px 18px;
+  margin:18px 0;
+  font-size:16px;
+}
+.callout b{font-variant:small-caps; letter-spacing:.06em; color:var(--orange)}
+.note{
+  border-left:3px solid var(--blue);
+  background:rgba(35,69,122,.05);
+  padding:14px 18px; margin:18px 0; font-size:16px;
+}
+.note b{font-variant:small-caps; letter-spacing:.06em; color:var(--blue)}
+.warn{
+  border-left:3px solid var(--red);
+  background:rgba(178,34,34,.06);
+  padding:14px 18px; margin:18px 0; font-size:16px;
+}
+.warn b{font-variant:small-caps; letter-spacing:.06em; color:var(--red-deep)}
+
+code, .mono{font-family:"JetBrains Mono", monospace; font-size:.92em; background:rgba(26,27,34,.05); padding:1px 5px; border-radius:3px}
+
+.figure{
+  margin:28px 0;
+  border:1px solid var(--rule);
+  background:linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+  border-radius:2px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.5) inset,
+    0 18px 40px -28px rgba(26,27,34,.35);
+}
+.figure .cap{
+  border-top:1px solid var(--rule-soft);
+  padding:10px 18px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-2);
+  background:rgba(220,207,179,.25);
+}
+.figure .body{padding:22px}
+
+/* ------- interactive bits ------- */
+button.btn, .btn{
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  background:var(--ink); color:var(--paper);
+  border:0; padding:9px 14px; border-radius:2px;
+  cursor:pointer;
+}
+button.btn:hover{background:var(--red-deep)}
+button.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--rule)}
+button.btn.ghost:hover{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+input.txt, select.txt{
+  font-family:"JetBrains Mono", monospace;
+  font-size:14px;
+  background:var(--paper);
+  border:1px solid var(--rule);
+  padding:8px 10px;
+  border-radius:2px; color:var(--ink);
+}
+
+.byteseq{
+  font-family:"JetBrains Mono", monospace;
+  font-size:13px;
+  display:flex; flex-wrap:wrap; gap:6px;
+}
+.byteseq .b{
+  background:var(--paper);
+  border:1px solid var(--rule);
+  padding:8px 10px; min-width:42px; text-align:center; border-radius:2px;
+  position:relative;
+}
+.byteseq .b .lbl{
+  position:absolute; bottom:-22px; left:50%; transform:translateX(-50%);
+  font-size:9px; letter-spacing:.1em; color:var(--ink-2); white-space:nowrap;
+  text-transform:uppercase;
+}
+.byteseq.req .b.sid{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.byteseq.resp .b.sid{background:var(--green); color:var(--paper); border-color:var(--green)}
+.byteseq.neg .b.sid{background:var(--red); color:var(--paper); border-color:var(--red)}
+
+.row{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+.col{display:flex; flex-direction:column; gap:6px}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+@media (max-width:760px){ .grid2{grid-template-columns:1fr} h1{font-size:44px} }
+
+/* Service grid */
+.svc-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:14px}
+@media (max-width:760px){.svc-grid{grid-template-columns:repeat(2,1fr)}}
+.svc{
+  border:1px solid var(--rule);
+  background:var(--paper);
+  padding:10px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all .12s;
+  font-size:13px;
+}
+.svc:hover{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.svc.active{background:var(--red-deep); color:var(--paper); border-color:var(--red-deep)}
+.svc .sid{font-family:"JetBrains Mono", monospace; font-weight:700; font-size:11px; letter-spacing:.1em}
+.svc .nm{font-family:"Fraunces", serif; font-size:15px; line-height:1.2; margin-top:4px}
+
+.svc-detail{
+  margin-top:18px;
+  padding:16px;
+  background:rgba(26,27,34,.04);
+  border-radius:2px;
+}
+.svc-detail h4{
+  font-family:"Fraunces", serif; font-size:18px; margin:0 0 8px;
+}
+
+/* Bit visualizer */
+.bits{display:flex; gap:6px; margin:8px 0 26px}
+.bits .bit{
+  flex:1; min-width:46px;
+  border:1px solid var(--rule);
+  background:var(--paper);
+  padding:8px 4px; text-align:center;
+  font-family:"JetBrains Mono", monospace;
+  cursor:pointer;
+  position:relative;
+  border-radius:2px;
+  user-select:none;
+}
+.bits .bit.on{background:var(--red); color:var(--paper); border-color:var(--red)}
+.bits .bit .n{font-size:18px; font-weight:700; display:block}
+.bits .bit .nm{font-size:9px; letter-spacing:.08em; color:var(--ink-2); display:block; margin-top:4px; text-transform:uppercase; line-height:1.1; min-height:22px}
+.bits .bit.on .nm{color:rgba(255,255,255,.85)}
+.bits .bit .idx{
+  position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+  font-size:9px; color:var(--ink-2); letter-spacing:.08em;
+}
+
+/* DTC decoder */
+.dtc-out{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;
+  margin-top:14px;
+}
+@media (max-width:760px){.dtc-out{grid-template-columns:repeat(2,1fr)}}
+.dtc-out .cell{
+  border:1px solid var(--rule); background:var(--paper); padding:12px;
+}
+.dtc-out .cell .lbl{
+  font-family:"JetBrains Mono", monospace; font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+.dtc-out .cell .val{
+  font-family:"Fraunces", serif; font-size:18px; margin-top:4px;
+}
+.dtc-out .cell .val small{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-2); display:block; margin-top:2px}
+
+/* Session machine */
+canvas.session{width:100%; height:280px; display:block}
+canvas.flash{width:100%; height:220px; display:block}
+
+/* EV subsystem */
+.ev-tabs{display:flex; gap:0; border-bottom:1px solid var(--rule); flex-wrap:wrap; margin-top:8px}
+.ev-tab{
+  font-family:"JetBrains Mono", monospace; font-size:11px;
+  letter-spacing:.14em; text-transform:uppercase;
+  padding:10px 14px; cursor:pointer;
+  border-bottom:2px solid transparent;
+  color:var(--ink-2);
+}
+.ev-tab.active{border-bottom-color:var(--red-deep); color:var(--ink)}
+.ev-body{padding:16px 4px}
+.ev-body h4{font-family:"Fraunces", serif; font-size:18px; margin:0 0 6px}
+.dtc-table{
+  width:100%; border-collapse:collapse; margin-top:10px;
+  font-size:14px;
+}
+.dtc-table th, .dtc-table td{
+  text-align:left; padding:8px 10px; border-bottom:1px solid var(--rule-soft);
+  vertical-align:top;
+}
+.dtc-table th{
+  font-family:"JetBrains Mono", monospace; font-size:10px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2);
+  font-weight:500;
+}
+.dtc-table td code{font-size:.9em}
+.dtc-table tr:hover td{background:rgba(26,27,34,.03)}
+
+/* Stack figure */
+.stack{display:flex; flex-direction:column; gap:4px}
+.stack .layer{
+  border:1px solid var(--rule);
+  padding:12px 16px;
+  background:var(--paper);
+  display:grid; grid-template-columns:120px 1fr 1fr; gap:14px;
+  align-items:center;
+  font-size:14px;
+}
+.stack .layer .nm{font-family:"Fraunces", serif; font-size:17px; font-weight:600}
+.stack .layer .desc{color:var(--ink-2)}
+.stack .layer .ex{font-family:"JetBrains Mono", monospace; font-size:11px; color:var(--blue)}
+.stack .layer.app{background:rgba(178,34,34,.07)}
+.stack .layer.tp{background:rgba(196,106,38,.06)}
+.stack .layer.net{background:rgba(35,69,122,.05)}
+.stack .layer.phy{background:rgba(63,107,58,.06)}
+
+/* Flash steps */
+.flash-steps{list-style:none; padding:0; counter-reset:fs; margin:0}
+.flash-steps li{
+  counter-increment:fs;
+  padding:10px 0 10px 44px;
+  border-bottom:1px dashed var(--rule-soft);
+  position:relative;
+  font-size:15px;
+}
+.flash-steps li:last-child{border-bottom:0}
+.flash-steps li::before{
+  content:counter(fs);
+  position:absolute; left:0; top:10px;
+  width:30px; height:30px;
+  background:var(--ink); color:var(--paper);
+  font-family:"JetBrains Mono", monospace;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; border-radius:50%;
+}
+.flash-steps li b{font-family:"Fraunces", serif; font-size:16px; color:var(--red-deep); font-weight:600}
+.flash-steps li code{display:inline-block; margin-top:2px}
+
+/* References */
+.refs{font-size:14px; columns:2; column-gap:36px}
+@media (max-width:760px){ .refs{columns:1} }
+.refs p{break-inside:avoid; margin:0 0 10px}
+.refs b{color:var(--red-deep); font-variant:small-caps; letter-spacing:.04em}
+
+/* Footer */
+.foot{
+  margin-top:80px;
+  border-top:1px solid var(--rule);
+  padding-top:24px;
+  font-family:"JetBrains Mono", monospace; font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2);
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;
+}
+.foot .ornament{color:var(--red-deep)}
+
+/* TOC */
+.toc{
+  margin:20px 0 0;
+  padding:18px 22px;
+  border:1px solid var(--rule);
+  background:rgba(220,207,179,.18);
+  font-size:14px;
+  columns:2; column-gap:32px;
+}
+@media (max-width:760px){ .toc{columns:1} }
+.toc a{
+  display:block; padding:4px 0; color:var(--ink); text-decoration:none;
+  border-bottom:1px dotted transparent;
+}
+.toc a:hover{border-bottom-color:var(--red-deep); color:var(--red-deep)}
+.toc a .n{
+  font-family:"JetBrains Mono", monospace; font-size:11px;
+  color:var(--ink-2); margin-right:8px;
+}
+
+/* helper */
+.k{font-family:"JetBrains Mono", monospace; font-weight:700; color:var(--red-deep)}
+.tag{
+  display:inline-block; padding:1px 7px; border-radius:2px;
+  font-family:"JetBrains Mono", monospace; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase;
+  background:var(--ink); color:var(--paper); vertical-align:middle;
+}
+.tag.ev{background:var(--green)}
+.tag.bms{background:var(--blue)}
+.tag.inv{background:var(--red-deep)}
+.tag.hv{background:var(--orange)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hd">
+  <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+  <div class="kicker">
+    <span class="dot"></span>
+    <span>An interactive primer · Vol. I</span>
+    <span style="opacity:.6">Diagnostics for the Electrified Vehicle</span>
+  </div>
+  <h1>Listening to <em>the Vehicle</em>:<br>UDS, DTC &amp; the EV diagnostic stack.</h1>
+  <p class="deck">A modern car is a parliament of fifty-odd computers, each with its own grievances. This primer is the protocol they answer to — what UDS asks, how a DTC is shaped, and what changes when the powertrain runs on electrons instead of gasoline.</p>
+  <div class="byline">
+    <span><b>Author</b> &nbsp;Majid Mazouchi</span>
+    <span><b>Format</b> &nbsp;Interactive monograph</span>
+    <span><b>Audience</b> &nbsp;Embedded / control engineers</span>
+    <span><b>Pre&shy;reqs</b> &nbsp;CAN, basic ECU concepts</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#s1"><span class="n">§I</span>Why diagnostics exist</a>
+  <a href="#s2"><span class="n">§II</span>The diagnostic stack</a>
+  <a href="#s3"><span class="n">§III</span>UDS in one breath</a>
+  <a href="#s4"><span class="n">§IV</span>OBD — the regulated subset</a>
+  <a href="#s5"><span class="n">§V</span>The service catalog</a>
+  <a href="#s6"><span class="n">§VI</span>Sessions &amp; security</a>
+  <a href="#s7"><span class="n">§VII</span>The shape of a DTC</a>
+  <a href="#s8"><span class="n">§VIII</span>The status byte</a>
+  <a href="#s9"><span class="n">§IX</span>EV subsystem fault atlas</a>
+  <a href="#s10"><span class="n">§X</span>Flashing an ECU</a>
+  <a href="#s11"><span class="n">§XI</span>Tools, files &amp; field notes</a>
+  <a href="#s12"><span class="n">§XII</span>References</a>
+</nav>
+
+<!-- =============== §I =============== -->
+<section id="s1">
+<h2><span class="num">§ I</span>Why diagnostics exist at all</h2>
+
+<p class="lede">Imagine a doctor with a stethoscope. Now imagine fifty patients in one room, each with its own heartbeat, each capable of failing silently. That is, more or less, the situation inside a modern car. The <i>diagnostic</i> system is the stethoscope — and more importantly, the language each patient agrees to answer in.</p>
+
+<p>A modern vehicle contains anywhere from 30 to 150 <b>ECUs</b> (Electronic Control Units) — each a small computer with its own firmware, memory, sensors and faults. When something goes wrong, the technician needs to ask, in a uniform way:</p>
+
+<ul>
+  <li>Who are you? What software version?</li>
+  <li>What faults have you seen? When? Under what conditions?</li>
+  <li>What does your world look like right now — temperatures, voltages, currents?</li>
+  <li>Can I reflash you? Reset you? Run a routine on you?</li>
+</ul>
+
+<p>To make this possible, the industry standardized one common diagnostic protocol that runs on top of whatever bus the ECU happens to be on. That protocol is <b>UDS — Unified Diagnostic Services</b>, defined in <span class="k">ISO 14229</span>. <span class="tag">core idea</span> One language, fifty ECUs, every workshop on Earth.</p>
+
+<div class="callout">
+  <b>EV twist.</b> An electrified powertrain adds new patients to the room: a high-voltage battery, an inverter driving a permanent-magnet machine, a DC/DC converter, an on-board charger, an insulation monitor, contactors, a thermal loop. Each speaks UDS too — but with a fault vocabulary your gasoline-era tester never had to learn.
+</div>
+</section>
+
+<!-- =============== §II =============== -->
+<section id="s2">
+<h2><span class="num">§ II</span>The diagnostic stack</h2>
+
+<p>UDS doesn't run alone. It sits on top of a transport, which sits on a network, which sits on a wire. Think of it as a letter: UDS is the language inside the envelope, the transport is how the envelope is sealed and segmented, the network decides how envelopes get routed.</p>
+
+<div class="figure">
+  <div class="body">
+    <div class="stack">
+      <div class="layer app">
+        <div class="nm">UDS</div>
+        <div class="desc">The request/response language. Services like "read this DID", "clear DTCs", "run routine 0x0203".</div>
+        <div class="ex">ISO 14229-1</div>
+      </div>
+      <div class="layer tp">
+        <div class="nm">Transport</div>
+        <div class="desc">Cuts long UDS messages into bus-sized frames and reassembles them. Adds flow control.</div>
+        <div class="ex">ISO-TP (15765-2)<br>DoIP (13400-2)</div>
+      </div>
+      <div class="layer net">
+        <div class="nm">Network</div>
+        <div class="desc">The data-link layer — addressing, arbitration, error detection.</div>
+        <div class="ex">CAN, CAN-FD<br>Automotive Ethernet</div>
+      </div>
+      <div class="layer phy">
+        <div class="nm">Physical</div>
+        <div class="desc">The actual differential pair on copper.</div>
+        <div class="ex">ISO 11898 (CAN)<br>100/1000BASE-T1</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Fig. 1 — The four-layer envelope. UDS is identical regardless of what carries it.</div>
+</div>
+
+<p>For most of the last twenty years, the wire was a classical <b>CAN</b> bus at 500 kbps, the transport was <b>ISO-TP</b>, and CAN identifiers were assigned in pairs (one for request, one for response) per ECU. EVs and modern domain controllers increasingly use <b>CAN-FD</b> (up to 8 Mbps payload) and, for high-bandwidth or zonal architectures, <b>DoIP</b> (Diagnostics over IP) — the same UDS payload, just inside Ethernet/TCP frames.</p>
+
+<div class="note">
+  <b>Practical.</b> The <i>application</i> layer is identical across all of these. A request like <code>22 F1 90</code> ("read the VIN") looks the same whether it travels on CAN, CAN-FD or DoIP. Only the envelope changes. This is what makes UDS such a durable standard.
+</div>
+</section>
+
+<!-- =============== §III =============== -->
+<section id="s3">
+<h2><span class="num">§ III</span>UDS in one breath</h2>
+
+<p>Every UDS conversation has the same skeleton: tester sends a <b>request</b>, ECU sends back either a <b>positive response</b> or a <b>negative response</b>. That's it. The shape is brutally simple:</p>
+
+<div class="figure">
+  <div class="body">
+    <div style="font-family:Fraunces,serif; font-size:18px; margin-bottom:14px">Request</div>
+    <div class="byteseq req" style="margin-bottom:30px">
+      <div class="b sid">22<span class="lbl">SID</span></div>
+      <div class="b">F1<span class="lbl">DID<sub>hi</sub></span></div>
+      <div class="b">90<span class="lbl">DID<sub>lo</sub></span></div>
+    </div>
+
+    <div style="font-family:Fraunces,serif; font-size:18px; margin-bottom:14px; color:var(--green)">Positive response (SID + 0x40)</div>
+    <div class="byteseq resp" style="margin-bottom:30px">
+      <div class="b sid">62<span class="lbl">SID+40</span></div>
+      <div class="b">F1<span class="lbl">DID<sub>hi</sub></span></div>
+      <div class="b">90<span class="lbl">DID<sub>lo</sub></span></div>
+      <div class="b">57<span class="lbl">'W'</span></div>
+      <div class="b">44<span class="lbl">'D'</span></div>
+      <div class="b">42<span class="lbl">'B'</span></div>
+      <div class="b">…<span class="lbl">VIN</span></div>
+    </div>
+
+    <div style="font-family:Fraunces,serif; font-size:18px; margin-bottom:14px; color:var(--red)">Negative response</div>
+    <div class="byteseq neg">
+      <div class="b sid">7F<span class="lbl">NRC marker</span></div>
+      <div class="b">22<span class="lbl">orig SID</span></div>
+      <div class="b">31<span class="lbl">NRC = 0x31</span></div>
+    </div>
+    <p style="margin-top:12px; font-size:14px; color:var(--ink-2)"><i>NRC 0x31 = requestOutOfRange. The ECU is saying "I understood you, but that DID is not one I serve."</i></p>
+  </div>
+  <div class="cap">Fig. 2 — Anatomy of a UDS exchange (here: read DID 0xF1 90, the VIN).</div>
+</div>
+
+<p>Three patterns to memorize and you can read most UDS traces:</p>
+<ul>
+  <li><b>SID</b> (Service Identifier): one byte, says <i>what</i> the tester wants. <code>0x22</code> = read, <code>0x2E</code> = write, <code>0x19</code> = read DTCs, <code>0x31</code> = run a routine.</li>
+  <li><b>Positive response</b>: ECU echoes the request, but with SID + 0x40. So <code>0x22</code> becomes <code>0x62</code>, <code>0x10</code> becomes <code>0x50</code>, etc.</li>
+  <li><b>Negative response</b>: always starts with <code>0x7F</code>, then the original SID, then a one-byte <b>NRC</b> (Negative Response Code) explaining why.</li>
+</ul>
+
+<p>Common NRCs you'll see in the wild: <code>0x11</code> service not supported, <code>0x12</code> sub-function not supported, <code>0x13</code> incorrect message length, <code>0x22</code> conditions not correct (often: ECU is not in the right session or the high-voltage system is interlocked), <code>0x31</code> request out of range, <code>0x33</code> security access denied, <code>0x7E</code> sub-function not supported in active session, <code>0x7F</code> service not supported in active session, and the famous <code>0x78</code> — "requestCorrectlyReceived, responsePending" — the ECU's way of saying <i>hold on, I'm working on it</i>.</p>
+</section>
+
+<!-- =============== §IV =============== -->
+<section id="s4">
+<h2><span class="num">§ IV</span>OBD — the regulated subset</h2>
+
+<p class="lede">If UDS is a private conversation between the OEM and its workshop, <b>OBD</b> is a public broadcast in a language every emissions inspector on Earth has to speak. It predates UDS by a decade — but today it's best understood as a <i>fixed, legally-mandated subset</i> of UDS, exposing only what the regulator needs to see.</p>
+
+<p>OBD stands for <b>On-Board Diagnostics</b>. It is the part of a vehicle's diagnostic system that is <i>required by law</i> to be present, accessible without special tools, and answer in a standardized way regardless of manufacturer. The 16-pin connector under your dashboard is its physical face. Every $20 scanner from a hardware store talks to it. So does your state's emissions inspection station.</p>
+
+<h3>A two-minute history</h3>
+<ul>
+  <li><b>OBD-I</b> (1988–1995) — California Air Resources Board. Manufacturer-specific connectors, codes, and protocols. The "check engine light" exists but technicians need a brand-specific tool.</li>
+  <li><b>OBD-II</b> (1996+ US, 2001+ EU as <b>EOBD</b>, 2008+ Japan as <b>JOBD</b>) — universal 16-pin connector, standardized DTC format, standardized PIDs and modes. A consumer with a $20 scanner can read codes from any car.</li>
+  <li><b>CAN-only mandate</b> (2008+ US model year) — the legacy protocols are phased out; <span class="k">ISO 15765-4</span> (CAN-based OBD) becomes the only permitted physical layer.</li>
+  <li><b>WWH-OBD</b> (<span class="k">ISO 27145</span>, "World-Wide Harmonized OBD") — the modern unification. Built on top of UDS rather than alongside it. Mandated for heavy-duty diesels in the EU and increasingly extending to light-duty and BEVs.</li>
+</ul>
+
+<h3>OBD vs UDS in one table</h3>
+<div class="figure">
+  <div class="body">
+    <table class="dtc-table">
+      <thead><tr><th></th><th>OBD-II</th><th>UDS</th></tr></thead>
+      <tbody>
+        <tr><td><b>Standard</b></td><td>SAE J1979, ISO 15031</td><td>ISO 14229</td></tr>
+        <tr><td><b>Purpose</b></td><td>Emissions compliance, mandated by regulators</td><td>OEM service, calibration, flashing — anything the OEM wants</td></tr>
+        <tr><td><b>Service IDs used</b></td><td>0x01 – 0x0A (called "Modes")</td><td>0x10 – 0x3E, 0x80+ (called "Services")</td></tr>
+        <tr><td><b>Parameter space</b></td><td>1-byte <b>PIDs</b> (≈256 values, SAE-managed)</td><td>2-byte <b>DIDs</b> (≈65,536 values, OEM-managed)</td></tr>
+        <tr><td><b>Connector access</b></td><td>Mandated, tool-free, near steering wheel</td><td>Same connector physically, but session-locked</td></tr>
+        <tr><td><b>Security</b></td><td>None — public</td><td>Seed/key (0x27), session-gated</td></tr>
+        <tr><td><b>DTC scope</b></td><td>Emissions-related only</td><td>Everything (powertrain, chassis, body, network)</td></tr>
+        <tr><td><b>Read by a $20 dongle?</b></td><td>Yes</td><td>Generally no (needs OEM tester or known DIDs)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cap">Fig. 3 — OBD-II is a small, public subset of the same diagnostic ecosystem.</div>
+</div>
+
+<div class="note">
+  <b>Mental model.</b> On a modern CAN-bus car, when you send the byte <code>0x01</code> the ECU recognizes it as "OBD-II Mode 01". When you send <code>0x22</code> the ECU recognizes it as "UDS Read Data By Identifier". They share the same physical wires and the same response patterns — the OBD modes are simply a reserved low-numbered slice of the service ID space.
+</div>
+
+<h3>The ten modes of OBD-II (SAE J1979)</h3>
+<div class="figure">
+  <div class="body">
+    <table class="dtc-table">
+      <thead><tr><th>Mode</th><th>Name</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x01</code></td><td>Show current data</td><td>Real-time sensor values via PIDs (RPM, speed, coolant temp, MAF, O2 voltage, …). The mode most consumer scanners spend 95% of their time in.</td></tr>
+        <tr><td><code>0x02</code></td><td>Show freeze-frame data</td><td>Snapshot of the PIDs at the moment the most recent emissions DTC was set.</td></tr>
+        <tr><td><code>0x03</code></td><td>Show stored DTCs</td><td>List of confirmed emissions-related fault codes.</td></tr>
+        <tr><td><code>0x04</code></td><td>Clear DTCs &amp; stored data</td><td>Wipes the emissions DTC list, freeze frames, and resets readiness monitors.</td></tr>
+        <tr><td><code>0x05</code></td><td>O2 sensor test results</td><td>Legacy — non-CAN only. Replaced by Mode 06 on CAN-based OBD-II.</td></tr>
+        <tr><td><code>0x06</code></td><td>On-board test results</td><td>Non-continuous monitor test results, indexed by TID (Test ID) and CID (Component ID).</td></tr>
+        <tr><td><code>0x07</code></td><td>Show pending DTCs</td><td>Faults seen once but not yet confirmed across cycles.</td></tr>
+        <tr><td><code>0x08</code></td><td>Control on-board systems</td><td>Bidirectional control — rare on light-duty, used in heavy-duty/EOBD for component activation.</td></tr>
+        <tr><td><code>0x09</code></td><td>Vehicle info</td><td>VIN, calibration IDs, calibration verification numbers, ECU name.</td></tr>
+        <tr><td><code>0x0A</code></td><td>Permanent DTCs</td><td>"Sticky" DTCs that <b>cannot</b> be cleared by Mode 04. Only erased when the ECU itself confirms the fault is gone over several drive cycles. Defeats the "clear codes before inspection" trick.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cap">Fig. 4 — The ten OBD-II modes. Service IDs 0x01–0x0A; positive response = mode + 0x40.</div>
+</div>
+
+<p>So a complete OBD-II read of engine RPM looks like this on the wire:</p>
+
+<div class="figure">
+  <div class="body">
+    <div style="font-family:Fraunces,serif; font-size:16px; margin-bottom:10px">Request (Mode 01, PID 0x0C — engine RPM)</div>
+    <div class="byteseq req" style="margin-bottom:30px">
+      <div class="b sid">01<span class="lbl">Mode</span></div>
+      <div class="b">0C<span class="lbl">PID</span></div>
+    </div>
+    <div style="font-family:Fraunces,serif; font-size:16px; margin-bottom:10px; color:var(--green)">Response (Mode + 0x40)</div>
+    <div class="byteseq resp">
+      <div class="b sid">41<span class="lbl">Mode+40</span></div>
+      <div class="b">0C<span class="lbl">PID</span></div>
+      <div class="b">1A<span class="lbl">A</span></div>
+      <div class="b">F8<span class="lbl">B</span></div>
+    </div>
+    <p style="margin-top:14px; font-size:14px; color:var(--ink-2)"><i>Engine RPM is encoded as <code>(256·A + B) / 4</code>. So <code>1A F8</code> = 6904/4 = <b>1726 RPM</b>. Every PID has its own encoding formula in the J1979 spec — most are simple linear scales.</i></p>
+  </div>
+  <div class="cap">Fig. 5 — Anatomy of an OBD-II PID read.</div>
+</div>
+
+<h3>Mode 01 PID 01 — the "MIL byte" (interactive)</h3>
+
+<p>The single most-read piece of OBD-II data is <b>PID 0x01</b>: a 4-byte status word that tells you whether the Check Engine Light is on, how many emissions DTCs are stored, and how many readiness monitors have run. The very first byte ("Byte A") is the part everyone cares about.</p>
+
+<div class="figure">
+  <div class="body">
+    <div class="row" style="align-items:flex-start; gap:32px">
+      <div style="flex:1; min-width:240px">
+        <div style="font-family:JetBrains Mono,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); margin-bottom:8px">Configure the byte</div>
+        <label style="display:flex; gap:10px; align-items:center; cursor:pointer; padding:8px 0">
+          <input type="checkbox" id="milToggle" style="width:18px; height:18px; cursor:pointer">
+          <span style="font-family:Fraunces,serif; font-size:17px">MIL illuminated</span>
+        </label>
+        <div style="margin-top:14px">
+          <div style="font-family:JetBrains Mono,monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2)">Number of emissions DTCs</div>
+          <input type="range" id="dtcCount" min="0" max="127" value="0" style="width:100%; margin-top:6px">
+          <div style="text-align:center; font-family:JetBrains Mono,monospace; font-size:18px; font-weight:700" id="dtcCountLbl">0</div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:240px">
+        <div style="font-family:JetBrains Mono,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); margin-bottom:8px">Byte A on the wire</div>
+        <div style="font-family:JetBrains Mono,monospace; font-size:40px; font-weight:700; color:var(--red-deep)" id="milByteHex">0x00</div>
+        <div style="font-family:JetBrains Mono,monospace; font-size:14px; color:var(--ink-2); margin-top:4px" id="milByteBin">0000 0000</div>
+        <div style="margin-top:14px; font-family:Fraunces,serif; font-size:15px; line-height:1.4; font-style:italic" id="milByteMeaning">Bit 7 = MIL (off). Bits 6–0 = DTC count (0).</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Fig. 6 — Mode 01 PID 01, Byte A. The "is your check engine light on" byte.</div>
+</div>
+
+<p>Bytes B, C, D of the PID 01 response encode <b>readiness monitor status</b> — 11 emissions monitors that must each run to completion before an emissions inspection station will pass the vehicle. The monitors split into:</p>
+
+<ul>
+  <li><b>Continuous</b> (3): Misfire detection, Fuel system, Comprehensive components — these run every drive.</li>
+  <li><b>Non-continuous</b> (8): Catalyst, Heated catalyst, Evaporative system, Secondary air, A/C refrigerant, Oxygen sensor, Oxygen sensor heater, EGR/VVT — each only runs when conditions are favorable.</li>
+</ul>
+
+<div class="callout">
+  <b>EV note.</b> For a battery-electric vehicle, <i>almost every readiness monitor is N/A</i>. There is no catalyst, no evap system, no O2 sensor. The vehicle reports those monitors as "not supported" in PID 01. This is also why most BEVs sail through US emissions inspection in seconds — there is no monitor state to evaluate, and the MIL byte is almost always <code>0x00</code>.
+</div>
+
+<h3>OBD-II on EVs — what's actually required</h3>
+
+<p>Until very recently, "OBD for BEVs" was almost a contradiction. With no engine, no catalyst, no evaporative emissions, the entire J1979 framework barely applied. The regulatory situation is changing fast:</p>
+
+<ul>
+  <li><b>CARB OBD-II battery durability (effective 2026 MY)</b> — California requires BEVs to monitor and report <b>State-of-Health (SOH)</b> via standardized OBD-II PIDs. Excessive capacity loss must illuminate an MIL-equivalent indicator. This brings high-voltage battery diagnostics into the public OBD layer for the first time.</li>
+  <li><b>EU type-approval (Regulation 2018/858 + UNECE R-100/R-154)</b> — standardized OBD data access for EVs, including battery degradation reporting and high-voltage system diagnostics.</li>
+  <li><b>ISO 27145 (WWH-OBD)</b> — the long-term destination. WWH-OBD is essentially UDS-with-a-mandatory-emissions-profile. Service IDs are the UDS ones (0x22 to read, 0x19 to read DTCs, etc.) and the "OBD subset" is just an agreed list of which DIDs and DTCs an inspector is entitled to read. This collapses the OBD/UDS split.</li>
+</ul>
+
+<p>EV-relevant PIDs added to SAE J1979 (and J1979-DA / J1979-2 amendments) include:</p>
+
+<ul>
+  <li><code>0x5B</code> — Hybrid/EV battery pack remaining life (a single-byte percentage)</li>
+  <li><code>0x8E</code> — engine-friction-percentage (irrelevant for BEV but reported as "not supported")</li>
+  <li>The <b>0x9X</b> block — block of multi-byte PIDs for hybrid/EV system data, including HV bus voltage and current</li>
+  <li>WWH-OBD adds extensive battery telemetry through DIDs in the F4xx and F5xx range</li>
+</ul>
+
+<h3>Practical &amp; reverse-engineering notes for EVs</h3>
+
+<ul>
+  <li><b>The MIL is not the warning system you care about on an EV.</b> A traction battery isolation fault, an inverter overcurrent, a contactor weld — none of these are <i>emissions</i> DTCs. They are powertrain/HV DTCs in OEM-specific DID space. The cluster warning that the driver sees comes from a separate body-controller logic path, not from Mode 01 PID 01.</li>
+  <li><b>Cheap dongles only speak CAN OBD-II.</b> ELM327-based scanners ($10–$30) implement ISO 15765-4 only and access the public OBD-II subset. For richer telemetry — cell voltages, motor temperatures, inverter junction temps — apps like LeafSpy, Torque Pro EV plugins, Car Scanner, and EV Notify send <code>0x22 &lt;DID&gt;</code> requests to OEM-specific DIDs reverse-engineered by the community.</li>
+  <li><b>Newer EV architectures may not be OBD-CAN at all.</b> A vehicle with a fully Ethernet/DoIP-based diagnostic backbone exposes OBD through a gateway: the OBD-II port still has CAN-H/CAN-L pins, but only the gateway is on that bus, and it translates Mode 01/03/etc. requests into DoIP UDS requests to the actual ECUs. From the scanner's side it looks identical; internally it's a translation layer.</li>
+  <li><b>"Permanent DTCs" (Mode 0x0A) close the obvious loophole.</b> Pre-emissions-inspection "clear codes" with Mode 04 won't help — Mode 0A holds a separate, ECU-controlled DTC list that only clears when the ECU has independently verified the underlying fault is gone (typically 3 consecutive monitor cycles without recurrence).</li>
+</ul>
+
+<div class="warn">
+  <b>Don't confuse OBD with ISO 15118.</b> OBD-II is diagnostic communication between a tester and the vehicle, on the 16-pin DLC, over CAN/DoIP. <b>ISO 15118</b> is communication between the vehicle and an EVSE (charging station) for smart charging, plug-and-charge authentication, and V2G — entirely different physical interface (CP-line PLC or WLAN), entirely different message set. Both are vehicle communication standards, but they speak in different rooms.
+</div>
+</section>
+
+<!-- =============== §V =============== -->
+<section id="s5">
+<h2><span class="num">§ V</span>The service catalog (interactive)</h2>
+
+<p>UDS defines ~25 services, but in practice you'll touch maybe a dozen. Click any tile to see its request shape, an example, and where it shows up in EV work.</p>
+
+<div class="figure">
+  <div class="body">
+    <div class="svc-grid" id="svcGrid"></div>
+    <div class="svc-detail" id="svcDetail">
+      <h4>Select a service above</h4>
+      <p style="color:var(--ink-2); margin:0">The catalog covers the services you'll actually wire up in CDD/ODX files.</p>
+    </div>
+  </div>
+  <div class="cap">Fig. 7 — Interactive service catalog. Click a tile.</div>
+</div>
+</section>
+
+<!-- =============== §VI =============== -->
+<section id="s6">
+<h2><span class="num">§ VI</span>Sessions &amp; the seed/key dance</h2>
+
+<p>An ECU is not a single piece of cooperative software — it has <i>modes</i>. By default, in <b>defaultSession</b>, it will answer basic identification questions and report DTCs but refuse to change anything important. To unlock dangerous operations, the tester escalates the ECU into a different session, and for the truly dangerous ones, also passes a security check.</p>
+
+<h3>The three sessions every ECU has</h3>
+
+<div class="figure">
+  <div class="body">
+    <canvas class="session" id="sessionCanvas" width="900" height="280"></canvas>
+    <div style="text-align:center; margin-top:8px">
+      <button class="btn ghost" onclick="setSession('default')">Default</button>
+      <button class="btn ghost" onclick="setSession('extended')">Extended (0x10 03)</button>
+      <button class="btn ghost" onclick="setSession('programming')">Programming (0x10 02)</button>
+    </div>
+  </div>
+  <div class="cap">Fig. 8 — Session state machine. Click a button to transition.</div>
+</div>
+
+<p>Sessions matter because UDS services are session-gated. You can't write a DID in default session. You can't erase flash unless you're in programming session. The ECU will return NRC <code>0x7F</code> if you try.</p>
+
+<h3>Security access — the seed and the key</h3>
+
+<p>For services that touch real state (writing calibration DIDs, erasing flash, unlocking developer routines), UDS layers in <b>service 0x27</b>: a challenge-response handshake.</p>
+
+<ol>
+  <li>Tester asks for a <i>seed</i>: <code>27 01</code> → ECU replies <code>67 01 &lt;seed&gt;</code>.</li>
+  <li>Tester computes a <i>key</i> by running the seed through a secret algorithm (a polynomial, a CMAC, a HSM-backed signature — depends on the OEM and the ECU's ASIL/SecOC level).</li>
+  <li>Tester sends <code>27 02 &lt;key&gt;</code>. If the key matches what the ECU computed independently, it replies <code>67 02</code> and you're unlocked.</li>
+</ol>
+
+<div class="warn">
+  <b>Reality check.</b> In modern EV ECUs the seed/key algorithm is usually held in an OEM-controlled HSM and delivered over signed certificates — not a static XOR mask like in early-2000s diagnostics. The protocol shape is the same; the cryptography behind it is much more serious.
+</div>
+</section>
+
+<!-- =============== §VII =============== -->
+<section id="s7">
+<h2><span class="num">§ VII</span>The shape of a DTC</h2>
+
+<p>A <b>DTC</b> — Diagnostic Trouble Code — is the receipt the ECU prints when a monitored condition fails. The familiar form <code>P0420</code> on a scanner screen is a human gloss; on the wire it is three bytes.</p>
+
+<h3>Decode any DTC</h3>
+
+<div class="figure">
+  <div class="body">
+    <div class="row">
+      <input class="txt" id="dtcIn" value="P0AA6" style="font-size:18px; letter-spacing:.1em; width:140px">
+      <button class="btn" onclick="decodeDTC()">Decode</button>
+      <span style="font-size:13px; color:var(--ink-2)">Try: <code style="cursor:pointer" onclick="document.getElementById('dtcIn').value='P0AA6'; decodeDTC()">P0AA6</code> · <code style="cursor:pointer" onclick="document.getElementById('dtcIn').value='P0D2A'; decodeDTC()">P0D2A</code> · <code style="cursor:pointer" onclick="document.getElementById('dtcIn').value='U1A14'; decodeDTC()">U1A14</code> · <code style="cursor:pointer" onclick="document.getElementById('dtcIn').value='C0561'; decodeDTC()">C0561</code></span>
+    </div>
+    <div class="dtc-out" id="dtcOut"></div>
+    <p id="dtcMeaning" style="margin-top:14px; font-size:15px; color:var(--ink-2); font-style:italic"></p>
+  </div>
+  <div class="cap">Fig. 9 — DTC decoder. Five-character codes map onto three bytes.</div>
+</div>
+
+<p>Every five-character DTC encodes into <b>two bytes</b> (plus a third byte for the <i>failure type byte</i>, see below). The mapping:</p>
+
+<ul>
+  <li><b>Character 1</b> — system letter: <code>P</code> powertrain, <code>C</code> chassis, <code>B</code> body, <code>U</code> network/communication. (Bits 15..14 of the 2-byte code.)</li>
+  <li><b>Character 2</b> — <code>0</code> = generic / SAE-defined, <code>1</code> = manufacturer-specific, <code>2/3</code> = reserved or generic depending on system. (Bits 13..12.)</li>
+  <li><b>Characters 3–5</b> — the actual fault number, hex.</li>
+</ul>
+
+<p>On the bus, a DTC is always reported as <b>3 bytes</b>: the 2-byte code above, then a <b>failure type byte (FTB)</b> — an SAE J2012 sub-classification telling you <i>what kind of</i> fault it was (open circuit, short to ground, signal out of range high, signal stuck, performance, etc.). So a complete DTC reference is e.g. <code>C0 5C 12</code> = "C05C-12" = "HV Battery Cell 12 Voltage — circuit short to battery".</p>
+
+<div class="callout">
+  <b>EV note.</b> The SAE J2012 dictionary added a large block of P0Axx–P0Dxx codes specifically for hybrids and EVs: motor/generator faults, inverter faults, traction battery cell faults, charger faults. If a DTC starts with <code>P0A</code>, <code>P0B</code>, <code>P0C</code>, <code>P0D</code> — it almost certainly belongs to your high-voltage or e-machine domain.
+</div>
+</section>
+
+<!-- =============== §VIII =============== -->
+<section id="s8">
+<h2><span class="num">§ VIII</span>The DTC status byte — a one-byte history</h2>
+
+<p>A DTC alone is not very informative — has it just happened? Is it confirmed? Is it intermittent? UDS attaches an 8-bit <b>status byte</b> to every DTC report, where each bit is a flag from <span class="k">ISO 14229-1 Annex D</span>. The status byte is how an ECU compresses an entire diagnostic history into 8 bits.</p>
+
+<div class="figure">
+  <div class="body">
+    <p style="margin-top:0; font-size:14px; color:var(--ink-2)">Click bits to toggle. Bit 0 is rightmost.</p>
+    <div class="bits" id="bitRow"></div>
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <div style="font-family:JetBrains Mono,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2)">Status byte</div>
+        <div style="font-family:JetBrains Mono,monospace; font-size:28px; font-weight:700" id="bitHex">0x00</div>
+      </div>
+      <div class="col" style="flex:1; min-width:260px">
+        <div style="font-family:JetBrains Mono,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2)">In plain English</div>
+        <div id="bitMeaning" style="font-family:Fraunces,serif; font-size:17px; line-height:1.4">No bits set — the ECU has never seen this fault.</div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn ghost" onclick="setBits(0x09)">Active confirmed (0x09)</button>
+      <button class="btn ghost" onclick="setBits(0x2F)">Just failed, this cycle (0x2F)</button>
+      <button class="btn ghost" onclick="setBits(0x50)">Intermittent (0x50)</button>
+      <button class="btn ghost" onclick="setBits(0x00)">Clear</button>
+    </div>
+  </div>
+  <div class="cap">Fig. 10 — Interactive status byte. The same eight bits every ECU on Earth has to set correctly.</div>
+</div>
+
+<h3>Reading DTCs with 0x19</h3>
+<p>Service <code>0x19</code> has many sub-functions — they all ask "tell me about your DTCs" but slice the set differently. The five you'll use most:</p>
+
+<ul>
+  <li><code>19 01 &lt;mask&gt;</code> — <b>reportNumberOfDTCByStatusMask</b>. "How many DTCs match this status pattern?" Mask <code>0x09</code> = "test failed + confirmed".</li>
+  <li><code>19 02 &lt;mask&gt;</code> — <b>reportDTCByStatusMask</b>. The same, but actually list them.</li>
+  <li><code>19 04 &lt;dtc&gt; &lt;snapshot#&gt;</code> — <b>reportDTCSnapshotRecordByDTCNumber</b>. Returns the <i>freeze frame</i>: the snapshot of operating conditions when the fault first occurred.</li>
+  <li><code>19 06 &lt;dtc&gt; &lt;ext#&gt;</code> — <b>reportDTCExtDataRecordByDTCNumber</b>. Aging counter, occurrence counter, fault detection counter.</li>
+  <li><code>19 0A</code> — <b>reportSupportedDTC</b>. "What DTCs do you support?" — useful to validate a CDD file against the actual ECU.</li>
+</ul>
+
+<p>And of course <code>14 FF FF FF</code> — <b>clearDiagnosticInformation</b> with the wildcard group "everything". After a fault is repaired, this is how you reset the DTC memory.</p>
+</section>
+
+<!-- =============== §IX =============== -->
+<section id="s9">
+<h2><span class="num">§ IX</span>EV subsystem fault atlas</h2>
+
+<p>This is where EVs diverge from ICE diagnostics. Click each subsystem to see what kinds of faults it reports — and what's actually happening physically when those DTCs fire.</p>
+
+<div class="figure">
+  <div class="body">
+    <div class="ev-tabs" id="evTabs"></div>
+    <div class="ev-body" id="evBody"></div>
+  </div>
+  <div class="cap">Fig. 11 — EV subsystem DTC atlas. Generic / illustrative codes — actual codes vary by OEM.</div>
+</div>
+
+<div class="note">
+  <b>Cross-cutting EV practical.</b> Many EV ECUs implement a <i>derate</i> ladder before they raise a hard fault. A cell that drifts 80 mV from its neighbors won't immediately throw a DTC — it will first reduce charge power, then reduce discharge power, then warn the driver, and only finally latch a DTC and open contactors. When debugging a "vehicle felt slow" complaint, always read the <b>extended data records</b> (sub-function 0x06), not just the active DTC list: the derate counters and fault occurrence counters tell the real story.
+</div>
+</section>
+
+<!-- =============== §X =============== -->
+<section id="s10">
+<h2><span class="num">§ X</span>Flashing an ECU — the bootloader handshake</h2>
+
+<p>Software updates over UDS are not a single command — they are a choreographed sequence. The basic shape, used by virtually every OEM (with variations), is:</p>
+
+<ol class="flash-steps">
+  <li><b>Enter extended session.</b> <code>10 03</code> — needed before you can elevate further.</li>
+  <li><b>Disable communication.</b> <code>28 03 01</code> — stop non-diagnostic CAN traffic so the ECU isn't getting hammered with periodic messages during the flash.</li>
+  <li><b>Disable DTC setting.</b> <code>85 02</code> — flashing causes legitimate DTCs to fire all over the network; suppress them.</li>
+  <li><b>Enter programming session.</b> <code>10 02</code> — this typically reboots the ECU into the bootloader. You'll lose the link briefly.</li>
+  <li><b>Security access.</b> <code>27 01</code> → seed; <code>27 02 &lt;key&gt;</code> → key. Bootloader has its own seed/key, often stronger than the application's.</li>
+  <li><b>Write the fingerprint.</b> <code>2E F1 5A &lt;tester ID, date&gt;</code> — leaves a forensic record of who flashed this part.</li>
+  <li><b>Erase memory.</b> <code>31 01 FF 00 &lt;addr&gt; &lt;len&gt;</code> — routine 0xFF00, eraseMemory. The ECU returns <code>0x78</code> (pending) for several seconds while it actually erases the flash sectors.</li>
+  <li><b>Request download.</b> <code>34 &lt;format&gt; &lt;addr&gt; &lt;len&gt;</code> — ECU answers with the max block size it can accept.</li>
+  <li><b>Transfer data.</b> Repeated <code>36 &lt;blockSeq&gt; &lt;data…&gt;</code> until the whole image is sent. The block sequence counter wraps 01→FF→00→01…</li>
+  <li><b>Exit transfer.</b> <code>37</code> — "I'm done sending."</li>
+  <li><b>Check programming dependencies.</b> <code>31 01 FF 01</code> — routine 0xFF01, checkProgrammingDependencies. The ECU verifies the new image's CRC/signature.</li>
+  <li><b>ECU reset.</b> <code>11 01</code> — hardReset. The ECU reboots into the new application.</li>
+  <li><b>Re-enable everything.</b> <code>85 01</code> to allow DTCs again, <code>28 00 01</code> to re-enable communication.</li>
+</ol>
+
+<div class="warn">
+  <b>Field reality.</b> Steps 7 and 8 are where most flash failures happen. If the tester's block size assumption disagrees with what the ECU advertised in step 8, the ECU will NRC every <code>0x36</code> with <code>0x73</code> (wrongBlockSequenceCounter) or <code>0x71</code> (transferDataSuspended). Always parse the response to 0x34 before sending the first 0x36.
+</div>
+</section>
+
+<!-- =============== §XI =============== -->
+<section id="s11">
+<h2><span class="num">§ XI</span>Tools, files &amp; field notes</h2>
+
+<h3>The file formats you'll meet</h3>
+<ul>
+  <li><b>CDD</b> (CANdela Diagnostic Description) — Vector's authoring format. What most OEMs hand to suppliers. Defines DIDs, DTCs, services, sessions, security levels for a given ECU.</li>
+  <li><b>ODX</b> / <b>PDX</b> — ASAM open standard. ODX-D for diagnostics, ODX-F for flash. PDX is just a zipped package of ODX files. Used by the tester at the dealer.</li>
+  <li><b>OTX</b> — ISO 13209 sequence/test language. Describes diagnostic <i>sequences</i> (e.g. an end-of-line test, a guided fault tree).</li>
+  <li><b>A2L</b> — measurement &amp; calibration metadata. Not strictly UDS, but you'll see it next to it in any ECU's deliverables (used by XCP/CCP and Vector CANape, ETAS INCA).</li>
+</ul>
+
+<h3>The benches you'll see</h3>
+<ul>
+  <li><b>Vector CANoe / CANalyzer</b> — the workhorse. With the Diagnostic Feature Set + a CDD, you have a UDS tester.</li>
+  <li><b>ETAS INCA</b> — calibration-focused but speaks UDS.</li>
+  <li><b>VCI hardware</b>: Vector VN1640/VN5640, Intrepid neoVI, ETAS ES59x, PEAK PCAN, plus J2534 pass-thru devices for compliance with US EPA OBD regulations.</li>
+  <li><b>Open source</b>: <code>python-udsoncan</code>, <code>can-isotp</code>, <code>scapy-automotive</code>, <code>CaringCaribou</code> — perfectly capable for prototyping and fuzzing.</li>
+</ul>
+
+<h3>EV field notes</h3>
+<ul>
+  <li><b>HV interlock matters.</b> Many EV diagnostic services that look ordinary (e.g. running an inverter self-test routine) will be NRC'd with <code>0x22</code> (conditions not correct) unless the HV system is in a permitted state — typically HV+ contactor open, vehicle stationary, ignition in a specific mode. The CDD will list these as preconditions per service.</li>
+  <li><b>Phantom DTCs at boot.</b> During power-on, the BMS may report communication-lost DTCs against the inverter for the few hundred milliseconds before all ECUs have completed their wakeup. Modern stacks suppress these via the "operation cycle" concept (ISO 14229-1 §10.2), but legacy stacks didn't, and the result was customer-facing fault counts that were really just startup race conditions. Always check that an active DTC has its <i>confirmedDTC</i> bit (bit 3) set before treating it as real.</li>
+  <li><b>Snapshot data is sacred.</b> For an EV, a useful snapshot includes: vehicle speed, motor electrical speed (ωₑ), id/iq commands and measurements, DC-link voltage, inverter and motor temperatures, pack SOC, contactor states. If you're spec'ing a new DTC, ask: <i>could a field engineer reconstruct the failure from this freeze frame?</i> If not, expand the snapshot.</li>
+  <li><b>Aging counters lie if you let them.</b> A DTC's "aging counter" decrements every driving cycle the fault doesn't recur, eventually clearing the DTC automatically. For an EV, the relevant cycle isn't "engine start" — it's "key-on with HV up", or sometimes "complete charge session". Pick the wrong cycle definition in the CDD and DTCs will either never age out or age out after one trip to the grocery store.</li>
+  <li><b>UDS over DoIP at the workshop.</b> If the vehicle is Ethernet-zonal, the tester is talking <code>UDS over DoIP over Activation Line over BroadR-Reach</code>. The application payload is identical; what changes is that the gateway routes the message to the right zonal controller using the <i>logical address</i> in the DoIP header. Each ECU still has an address; it's just no longer a CAN ID.</li>
+</ul>
+</section>
+
+<!-- =============== §XII =============== -->
+<section id="s12">
+<h2><span class="num">§ XII</span>References &amp; further reading</h2>
+
+<div class="refs">
+  <p><b>ISO 14229-1</b> — Unified Diagnostic Services (UDS) — specification and requirements. The canonical UDS document. Annex D defines the status byte bits. Annex A enumerates NRCs.</p>
+  <p><b>ISO 14229-3</b> — UDS on CAN (UDSonCAN). Application-layer specifics for CAN-bound implementations.</p>
+  <p><b>ISO 15765-2</b> — Network &amp; transport layer for CAN (ISO-TP). Defines how UDS messages longer than 7 bytes are segmented across CAN frames with flow control.</p>
+  <p><b>ISO 15765-4</b> — Requirements for emissions-related systems (the CAN-based OBD-II profile). What an ELM327 dongle actually speaks. Constrains baud rate, message format, and ECU response timing.</p>
+  <p><b>ISO 15031 (parts 1–7)</b> — Communication between vehicle and external test equipment for emissions-related diagnostics. The umbrella ISO framework that wraps J1979/J2012/J1962 into a single normative reference.</p>
+  <p><b>ISO 13400-2</b> — Diagnostics over Internet Protocol (DoIP). The Ethernet/TCP transport for UDS.</p>
+  <p><b>ISO 27145 (parts 1–6)</b> — World-wide Harmonized On-Board Diagnostics (WWH-OBD). The modern UDS-based replacement for the J1979 "modes" framework, mandated for heavy-duty and increasingly extending to light-duty &amp; BEVs.</p>
+  <p><b>SAE J1979 / J1979-DA / J1979-2</b> — E/E Diagnostic Test Modes. The OBD-II PIDs and modes (01–0A). The "-2" amendment adds extensive hybrid and EV PIDs.</p>
+  <p><b>SAE J1962</b> — Diagnostic connector. Defines the 16-pin DLC, pinout, mounting location and accessibility requirements.</p>
+  <p><b>SAE J1850</b> / <b>ISO 9141-2</b> / <b>ISO 14230-4 (KWP2000)</b> — Legacy pre-CAN OBD-II physical/transport protocols. Phased out for new US vehicles after model year 2008.</p>
+  <p><b>SAE J2012</b> — Diagnostic Trouble Code Definitions. The official DTC dictionary including the P0Axx–P0Dxx hybrid/EV expansion.</p>
+  <p><b>SAE J2534</b> — Pass-thru programming. The US EPA-mandated interface that lets independent shops reflash emissions-related ECUs.</p>
+  <p><b>CARB Title 13 CCR §1968.2 &amp; §1962.5</b> — California OBD-II regulation and the new BEV battery durability monitoring rule (effective 2026 MY).</p>
+  <p><b>ISO 15118 (parts 1–20)</b> — Vehicle-to-grid (V2G) communication interface. <i>Not</i> diagnostics — it covers charging-station handshake, plug-and-charge, smart charging. Listed here to disambiguate; OBD and 15118 are often conflated.</p>
+  <p><b>ISO 26262</b> — Road vehicles — Functional safety. Not a diagnostic standard per se, but it's why your fault detection has confirmation counters and why some DTCs are tagged ASIL-relevant.</p>
+  <p><b>AUTOSAR Dem &amp; Dcm SWS</b> — Diagnostic Event Manager &amp; Diagnostic Communication Manager software specifications. If your ECU runs AUTOSAR Classic, these two modules <i>are</i> your UDS stack.</p>
+  <p><b>ASAM MCD-2 D / ODX</b> — open data format for diagnostic descriptions.</p>
+  <p><b>ASAM MCD-2 NET / FIBEX</b> — network description format, often paired with ODX for the dealer tooling chain.</p>
+</div>
+
+</section>
+
+<footer class="foot">
+  <div><span class="ornament">❦</span> &nbsp; End of Volume I &nbsp; <span class="ornament">❦</span></div>
+  <div>An interactive monograph · For EV diagnostics study &amp; reference</div>
+</footer>
+
+</div>
+
+<script>
+/* =========================================================
+   §IV — Service catalog
+   ========================================================= */
+const services = [
+  {sid:"0x10", nm:"Diagnostic Session Control", req:[0x10, 0x03], ex:"10 03 → enter extendedSession", desc:"Switches the ECU into a session (default/programming/extended) that gates which other services are allowed. On EVs, extended is required to read most freeze-frame data."},
+  {sid:"0x11", nm:"ECU Reset", req:[0x11, 0x01], ex:"11 01 → hardReset", desc:"Restart the ECU. After a flash, hardReset (01) reboots into the new application. softReset (03) and keyOffOnReset (02) also defined."},
+  {sid:"0x14", nm:"Clear Diagnostic Information", req:[0x14, 0xFF, 0xFF, 0xFF], ex:"14 FF FF FF → clear all DTCs", desc:"Erase DTCs from non-volatile memory. The 3-byte argument is a DTC group; FFFFFF is the wildcard 'all groups'."},
+  {sid:"0x19", nm:"Read DTC Information", req:[0x19, 0x02, 0x09], ex:"19 02 09 → list confirmed faults", desc:"Read DTCs and related snapshot/extended data. The most-used sub-functions are 0x02 (by status mask), 0x04 (snapshot/freeze frame), 0x06 (extended data, aging/occurrence counters)."},
+  {sid:"0x22", nm:"Read Data By Identifier", req:[0x22, 0xF1, 0x90], ex:"22 F1 90 → read VIN", desc:"Read a 2-byte Data IDentifier (DID). F1xx range is standardized; everything else is OEM-specific. EV DIDs cover: pack SOC, cell voltages, motor temperatures, inverter telemetry."},
+  {sid:"0x23", nm:"Read Memory By Address", req:[0x23, 0x14, 0x00, 0x80, 0x00, 0x10], ex:"23 14 0080 00 10 → read 16 bytes", desc:"Read raw memory at an address. Almost always security-gated. Used in factory and bench debug, rarely in service tooling."},
+  {sid:"0x27", nm:"Security Access", req:[0x27, 0x01], ex:"27 01 → request seed", desc:"Challenge-response unlock. Odd sub-functions request a seed, even sub-functions deliver the key. Different security levels protect different services (writing calibration vs. erasing flash)."},
+  {sid:"0x28", nm:"Communication Control", req:[0x28, 0x03, 0x01], ex:"28 03 01 → disable Rx/Tx", desc:"Tells the ECU to stop sending or receiving non-diagnostic messages. Used during flashing so the ECU isn't drowned in periodic CAN traffic."},
+  {sid:"0x2E", nm:"Write Data By Identifier", req:[0x2E, 0xF1, 0x5A], ex:"2E F1 5A …fingerprint…", desc:"Write a DID — calibration values, programming fingerprint, configuration. Almost always security-gated. F1 5A is the standard 'programming date / tester ID' DID."},
+  {sid:"0x2F", nm:"Input/Output Control", req:[0x2F, 0xA0, 0x01, 0x03], ex:"2F A001 03 → short-term adjustment", desc:"Override an actuator or sensor reading temporarily — actuator tests. EV use: drive a contactor open/closed on bench, command the cooling pump, etc. Heavily session- and HV-state-gated."},
+  {sid:"0x31", nm:"Routine Control", req:[0x31, 0x01, 0x02, 0x03], ex:"31 01 02 03 → start routine 0x0203", desc:"Start (01) / stop (02) / get-results (03) of a named routine on the ECU. EV routines: resolver offset learning, inverter self-test, insulation test, contactor cycling, end-of-line tests."},
+  {sid:"0x34", nm:"Request Download", req:[0x34, 0x00, 0x44, 0x00, 0x80, 0x00, 0x00, 0x00, 0x20, 0x00], ex:"34 00 44 …addr…len…", desc:"Start a flash download. ECU responds with the maximum block size it can accept. First step in the data-transfer triplet (34/36/37)."},
+  {sid:"0x36", nm:"Transfer Data", req:[0x36, 0x01], ex:"36 01 …data…", desc:"Send one block of flash data. The single-byte block sequence counter wraps 01→FF→00→01… ECU NRCs with 0x73 if the counter is wrong."},
+  {sid:"0x37", nm:"Request Transfer Exit", req:[0x37], ex:"37 → end of transfer", desc:"Signal the end of a download. After this, a checkProgrammingDependencies routine usually verifies the image's CRC/signature."},
+  {sid:"0x3D", nm:"Write Memory By Address", req:[0x3D, 0x14, 0x00, 0x80, 0x00, 0x10], ex:"3D 14 0080 00 10 …data…", desc:"Write raw memory. Like 0x23, rarely seen outside factory/bench tooling. Heavily security-gated."},
+  {sid:"0x3E", nm:"Tester Present", req:[0x3E, 0x00], ex:"3E 00 → keep session alive", desc:"The heartbeat. The ECU drops back to default session after ~5 s of silence; the tester sends 3E 00 every ~2 s to hold the session open during long operations like flashing."},
+  {sid:"0x85", nm:"Control DTC Setting", req:[0x85, 0x02], ex:"85 02 → DTCs off", desc:"Suppress new DTC entries (02) or re-enable them (01). Used during flashing or actuator tests to prevent legitimate-but-uninteresting faults from latching."},
+];
+
+const grid = document.getElementById('svcGrid');
+services.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'svc';
+  el.innerHTML = `<div class="sid">${s.sid}</div><div class="nm">${s.nm}</div>`;
+  el.onclick = () => showSvc(i);
+  grid.appendChild(el);
+});
+
+function showSvc(i){
+  document.querySelectorAll('.svc').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.svc')[i].classList.add('active');
+  const s = services[i];
+  const bytes = s.req.map(b => b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
+  const respBytes = (s.req[0] + 0x40).toString(16).toUpperCase().padStart(2,'0') + (s.req.length > 1 ? ' ' + s.req.slice(1).map(b => b.toString(16).toUpperCase().padStart(2,'0')).join(' ') + ' …' : ' …');
+  document.getElementById('svcDetail').innerHTML = `
+    <h4>${s.sid} &nbsp;·&nbsp; ${s.nm}</h4>
+    <p>${s.desc}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div>
+        <div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px">Example request</div>
+        <code style="font-size:14px">${bytes}</code>
+        <div style="font-size:13px;color:var(--ink-2);margin-top:6px">${s.ex}</div>
+      </div>
+      <div>
+        <div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px">Positive response</div>
+        <code style="font-size:14px;color:var(--green)">${respBytes}</code>
+      </div>
+    </div>
+  `;
+}
+showSvc(4); // start on 0x22 — most familiar
+
+/* =========================================================
+   §V — Session state machine
+   ========================================================= */
+const sessionCv = document.getElementById('sessionCanvas');
+const sessionCtx = sessionCv.getContext('2d');
+let currentSession = 'default';
+
+function drawSessionStateMachine(){
+  const W = sessionCv.width = sessionCv.clientWidth * devicePixelRatio;
+  const H = sessionCv.height = 280 * devicePixelRatio;
+  sessionCv.style.height = '280px';
+  sessionCtx.scale(devicePixelRatio, devicePixelRatio);
+  const w = sessionCv.clientWidth, h = 280;
+  sessionCtx.clearRect(0,0,w,h);
+  sessionCtx.fillStyle = '#f3ece0';
+  sessionCtx.fillRect(0,0,w,h);
+
+  const states = [
+    {id:'default',     x:w*0.18, y:h*0.5,  r:54, lbl:'default',     sid:'0x01', col:'#3f6b3a'},
+    {id:'extended',    x:w*0.5,  y:h*0.25, r:54, lbl:'extended',    sid:'0x03', col:'#c46a26'},
+    {id:'programming', x:w*0.82, y:h*0.5,  r:54, lbl:'programming', sid:'0x02', col:'#b22222'},
+  ];
+
+  // Edges
+  const edges = [
+    {from:'default', to:'extended', lbl:'10 03'},
+    {from:'extended', to:'default', lbl:'10 01 / timeout'},
+    {from:'extended', to:'programming', lbl:'10 02'},
+    {from:'programming', to:'default', lbl:'10 01 / reset'},
+    {from:'default', to:'programming', lbl:'10 02'},
+  ];
+  sessionCtx.strokeStyle = '#c8bda5';
+  sessionCtx.lineWidth = 1.5;
+  sessionCtx.font = '11px "JetBrains Mono", monospace';
+  sessionCtx.fillStyle = '#3a3c48';
+
+  function findState(id){return states.find(s=>s.id===id)}
+  function curve(a, b, lbl, offset){
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    const ux = dx/len, uy = dy/len;
+    const px = -uy, py = ux;
+    const ctrlX = (a.x + b.x)/2 + px * offset;
+    const ctrlY = (a.y + b.y)/2 + py * offset;
+    const sx = a.x + ux*a.r;
+    const sy = a.y + uy*a.r;
+    const ex = b.x - ux*b.r;
+    const ey = b.y - uy*b.r;
+    sessionCtx.beginPath();
+    sessionCtx.moveTo(sx, sy);
+    sessionCtx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
+    sessionCtx.stroke();
+    // arrow
+    const ang = Math.atan2(ey - ctrlY, ex - ctrlX);
+    sessionCtx.beginPath();
+    sessionCtx.moveTo(ex, ey);
+    sessionCtx.lineTo(ex - 8*Math.cos(ang - 0.4), ey - 8*Math.sin(ang - 0.4));
+    sessionCtx.lineTo(ex - 8*Math.cos(ang + 0.4), ey - 8*Math.sin(ang + 0.4));
+    sessionCtx.closePath();
+    sessionCtx.fillStyle = '#c8bda5';
+    sessionCtx.fill();
+    // label
+    sessionCtx.fillStyle = '#3a3c48';
+    sessionCtx.textAlign = 'center';
+    sessionCtx.fillText(lbl, ctrlX, ctrlY);
+  }
+
+  edges.forEach((e, i) => {
+    const a = findState(e.from), b = findState(e.to);
+    // alternate offsets
+    const off = (i % 2 === 0) ? -36 : 36;
+    curve(a, b, e.lbl, off);
+  });
+
+  // Nodes
+  states.forEach(s => {
+    const active = (s.id === currentSession);
+    sessionCtx.beginPath();
+    sessionCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    sessionCtx.fillStyle = active ? s.col : '#f3ece0';
+    sessionCtx.fill();
+    sessionCtx.lineWidth = active ? 2.5 : 1.2;
+    sessionCtx.strokeStyle = s.col;
+    sessionCtx.stroke();
+    sessionCtx.textAlign = 'center';
+    sessionCtx.font = 'bold 15px "Fraunces", serif';
+    sessionCtx.fillStyle = active ? '#f3ece0' : '#1a1b22';
+    sessionCtx.fillText(s.lbl, s.x, s.y - 2);
+    sessionCtx.font = '11px "JetBrains Mono", monospace';
+    sessionCtx.fillStyle = active ? 'rgba(243,236,224,.85)' : '#3a3c48';
+    sessionCtx.fillText(s.sid, s.x, s.y + 16);
+  });
+}
+function setSession(s){ currentSession = s; drawSessionStateMachine(); }
+window.addEventListener('resize', drawSessionStateMachine);
+setTimeout(drawSessionStateMachine, 50);
+
+/* =========================================================
+   §VI — DTC decoder
+   ========================================================= */
+function decodeDTC(){
+  let v = document.getElementById('dtcIn').value.trim().toUpperCase();
+  if (v.length !== 5) {
+    document.getElementById('dtcOut').innerHTML = '<div class="cell" style="grid-column:span 4;color:var(--red-deep)">DTC must be 5 chars (e.g. P0AA6)</div>';
+    document.getElementById('dtcMeaning').textContent = '';
+    return;
+  }
+  const sysChar = v[0];
+  const sysMap = {P:'Powertrain', C:'Chassis', B:'Body', U:'Network / Comm'};
+  const sysBits = {P:0b00, C:0b01, B:0b10, U:0b11};
+  if (!(sysChar in sysMap)) {
+    document.getElementById('dtcOut').innerHTML = '<div class="cell" style="grid-column:span 4;color:var(--red-deep)">First char must be P / C / B / U</div>';
+    return;
+  }
+  const codingChar = v[1];
+  const codingMap = {
+    P:{'0':'Generic (SAE)','1':'Manufacturer-specific','2':'Generic (powertrain)','3':'Reserved'},
+    C:{'0':'Generic (SAE)','1':'Manufacturer-specific','2':'Manufacturer','3':'Reserved'},
+    B:{'0':'Generic (SAE)','1':'Manufacturer-specific','2':'Manufacturer','3':'Reserved'},
+    U:{'0':'Generic (SAE)','1':'Manufacturer-specific','2':'Manufacturer','3':'Reserved'},
+  };
+  const coding = (codingMap[sysChar] && codingMap[sysChar][codingChar]) || 'Unknown';
+  const codingBits = parseInt(codingChar,16) & 0x3;
+  const faultHex = v.slice(2);
+  if (!/^[0-9A-F]{3}$/.test(faultHex)) {
+    document.getElementById('dtcOut').innerHTML = '<div class="cell" style="grid-column:span 4;color:var(--red-deep)">Last 3 chars must be hex digits</div>';
+    return;
+  }
+  // Build the 2-byte code
+  const hi = (sysBits[sysChar] << 6) | (codingBits << 4) | parseInt(faultHex[0], 16);
+  const lo = (parseInt(faultHex[1],16) << 4) | parseInt(faultHex[2],16);
+  const hex2 = hi.toString(16).toUpperCase().padStart(2,'0') + ' ' + lo.toString(16).toUpperCase().padStart(2,'0');
+
+  // Known EV-relevant codes
+  const meaningDB = {
+    'P0A00':'Motor Electronics Coolant Temperature Sensor Circuit',
+    'P0A1F':'Drive Motor "A" Performance',
+    'P0A2A':'Drive Motor "A" Temperature Sensor Circuit',
+    'P0A3F':'Drive Motor "A" Position Sensor Circuit (resolver/encoder fault on the e-machine).',
+    'P0A40':'Drive Motor "A" Position Sensor Circuit Range/Performance',
+    'P0A78':'Drive Motor "A" Inverter Performance',
+    'P0A80':'Replace Hybrid/EV Battery Pack',
+    'P0A9D':'Hybrid Battery Temperature Sensor "A" Circuit',
+    'P0AA6':'Hybrid/EV Battery Voltage System Isolation Fault — the IMD has detected reduced isolation resistance between the HV bus and chassis ground. This is the classic "you have an HV leak" code.',
+    'P0AFA':'Hybrid Battery System Voltage Low',
+    'P0C00':'Drive Motor "B" Inverter Performance',
+    'P0D2A':'Hybrid/EV Battery Charging System Voltage High — typically the OBC or DC charger is pushing more voltage than the pack can accept.',
+    'P0D7E':'DC/DC Converter Status Circuit',
+    'U1A14':'Network communication fault with a battery-pack-related ECU (manufacturer-specific UDS network DTC).',
+    'C0561':'System Configuration / ESC indicator request from a related controller.',
+  };
+  const m = meaningDB[v] || null;
+
+  document.getElementById('dtcOut').innerHTML = `
+    <div class="cell"><div class="lbl">System</div><div class="val">${sysMap[sysChar]}<small>char "${sysChar}" → bits ${sysBits[sysChar].toString(2).padStart(2,'0')}</small></div></div>
+    <div class="cell"><div class="lbl">Code source</div><div class="val">${coding}<small>char "${codingChar}" → bits ${codingBits.toString(2).padStart(2,'0')}</small></div></div>
+    <div class="cell"><div class="lbl">Fault number</div><div class="val">${faultHex}<small>3 hex digits</small></div></div>
+    <div class="cell"><div class="lbl">On the wire</div><div class="val" style="font-family:'JetBrains Mono',monospace; font-size:20px; color:var(--red-deep)">${hex2}<small>2 bytes + FTB</small></div></div>
+  `;
+  document.getElementById('dtcMeaning').textContent = m ? `“${v}” — ${m}` : `(SAE J2012 doesn't have a specific entry for ${v} in this primer's small lookup table. The structural decode above is still valid.)`;
+}
+decodeDTC();
+
+/* =========================================================
+   §VII — Status byte bits
+   ========================================================= */
+const bitDefs = [
+  {n:'testFailed',                       full:'testFailed — the fault test condition is failing right now (this monitoring cycle).'},
+  {n:'testFailed thisOpCycle',           full:'testFailedThisOperationCycle — the test has failed at least once during the current ignition/operation cycle.'},
+  {n:'pendingDTC',                       full:'pendingDTC — the test has failed but not yet enough times to be "confirmed" (typical: needs to fail on a 2nd consecutive cycle).'},
+  {n:'confirmedDTC',                     full:'confirmedDTC — the fault has met its confirmation criteria and is "real". MIL-relevant codes will illuminate the warning lamp at this bit.'},
+  {n:'testNotCompleted sinceLastClear',  full:'testNotCompletedSinceLastClear — since the last "Clear DTCs" (service 0x14), the monitoring test for this DTC has not yet had a chance to run to completion.'},
+  {n:'testFailed sinceLastClear',        full:'testFailedSinceLastClear — the test has failed at least once since the last clear command.'},
+  {n:'testNotCompleted thisOpCycle',     full:'testNotCompletedThisOperationCycle — same as bit 4, but scoped to the current operation cycle. Resets at every key-on.'},
+  {n:'warningIndicator Requested',       full:'warningIndicatorRequested — the ECU is currently requesting the cluster to light an indicator for this DTC.'},
+];
+let statusByte = 0x00;
+const bitRow = document.getElementById('bitRow');
+function renderBits(){
+  bitRow.innerHTML = '';
+  for (let i = 7; i >= 0; i--) {
+    const on = (statusByte >> i) & 1;
+    const d = document.createElement('div');
+    d.className = 'bit' + (on ? ' on' : '');
+    d.innerHTML = `<span class="idx">bit ${i}</span><span class="n">${on}</span><span class="nm">${bitDefs[i].n}</span>`;
+    d.onclick = () => { statusByte ^= (1<<i); renderBits(); };
+    bitRow.appendChild(d);
+  }
+  document.getElementById('bitHex').textContent = '0x' + statusByte.toString(16).toUpperCase().padStart(2,'0');
+  // Build a plain-English description
+  const setBits = [];
+  for (let i = 0; i < 8; i++) if ((statusByte >> i) & 1) setBits.push(bitDefs[i].full);
+  const mEl = document.getElementById('bitMeaning');
+  if (setBits.length === 0) {
+    mEl.textContent = 'No bits set — the ECU has never seen this fault.';
+  } else if (statusByte === 0x09) {
+    mEl.innerHTML = '<b>Confirmed, currently failing.</b> The test is failing right now <i>and</i> has been confirmed in a previous cycle. This is the canonical "active fault" the tester wants to highlight to a technician.';
+  } else if (statusByte === 0x2F) {
+    mEl.innerHTML = '<b>Brand new, this cycle.</b> Failing now, failed this cycle, failed since last clear, but not yet confirmed across cycles. Often shown as "pending" by the tester.';
+  } else if (statusByte === 0x50) {
+    mEl.innerHTML = '<b>Intermittent / historical.</b> Not currently failing, but has failed since the last clear and was confirmed. The classic "it failed before and might fail again" — preserved across cycles so the technician sees it.';
+  } else {
+    mEl.innerHTML = setBits.map(b => '· ' + b).join('<br>');
+  }
+}
+function setBits(v){ statusByte = v & 0xFF; renderBits(); }
+renderBits();
+
+/* =========================================================
+   §VIII — EV subsystem fault atlas
+   ========================================================= */
+const evSystems = [
+  {
+    key:'bms', name:'HV Battery (BMS)',
+    intro:'The Battery Management System monitors every cell, contactor and current path. Faults here are usually the most safety-critical in the vehicle.',
+    rows:[
+      ['P0A80','HEV Battery Pack Replacement Required','Pack SoH has dropped below the manufacturer threshold — typically integrated capacity, internal resistance, or cell-imbalance triggers.'],
+      ['P0A1A','Generator Control Module','Bus comms or control loop to a generator-functioned inverter.'],
+      ['P0A7A','Hybrid Battery Pack Deterioration','One or more modules has drifted out of spec relative to the rest of the pack.'],
+      ['P0AA6','HEV Battery Isolation Fault','The Insulation Monitoring Device (IMD) sees R_iso below threshold. Often a coolant leak, a damaged cable jacket, or a sensor harness short.'],
+      ['P0AFA','Hybrid Battery System Voltage Low','Pack voltage below the operating envelope — can be charge depletion, contactor fault, or a fuse blown.'],
+      ['P0AC4','HV Pre-charge Circuit Performance','The pre-charge resistor circuit failed to bring the inverter DC link up to within ~95% of pack voltage before the main contactor closed.'],
+      ['P0AFD','HEV Battery System Over Temperature','At least one module exceeded the upper thermal limit — often masked by aggressive cooling but signals a real thermal-management problem.'],
+    ]
+  },
+  {
+    key:'inv', name:'Inverter / E-Machine',
+    intro:'The traction inverter and the permanent-magnet motor it drives. Faults span position sensing, current loops, DC link, and thermal limits. (BR590-style axial-flux IPM machines add resolver and HCI considerations on top.)',
+    rows:[
+      ['P0A3F','Drive Motor Position Sensor Circuit','Resolver or encoder feedback invalid — excitation amplitude, sin/cos quadrature, or signal-to-noise has gone out of tolerance.'],
+      ['P0A40','Drive Motor Position Sensor Range/Performance','Position derivative implausible vs. measured currents — e.g. the rotor "jumped" 30° in one sample.'],
+      ['P0A78','Drive Motor Inverter Performance','Generic inverter performance — current loop tracking error, voltage-saturation duration, or modulation-index excursion exceeded threshold.'],
+      ['P0A93','Drive Motor "A" Inverter Cooling System Performance','Coolant flow/temperature delta out of range. On a permanent-magnet machine, losing inverter cooling is faster-acting than losing motor cooling.'],
+      ['P0A2A','Drive Motor "A" Temperature Sensor','Motor winding/stator temperature sensor open/short — derate logic loses its primary thermal input.'],
+      ['P0A94','DC/DC Converter Performance','Often raised by the inverter ECU when its 12 V auxiliary supply (from the DC/DC) dips during transients.'],
+      ['P0C73','Drive Motor "A" Calibration','Resolver offset or current-sensor offset learning failed — EMOL routine did not converge.'],
+    ]
+  },
+  {
+    key:'dcdc', name:'DC/DC Converter',
+    intro:'Steps the HV bus down to 12 V (or 48 V on some platforms) to feed the LV electrical system. Failure modes are usually thermal or input-voltage related.',
+    rows:[
+      ['P0D7E','DC/DC Converter Status','Internal status flag set by the converter\u2019s own MCU — generic catch-all.'],
+      ['P0DA0','DC/DC Converter Voltage','Output voltage outside the tolerance band — typically ±5% of 13.8 V nominal.'],
+      ['P0DA5','DC/DC Converter Temperature High','Heatsink or junction temp exceeded derate threshold; output current capability degraded.'],
+      ['P1A0F','DC/DC HV Input Performance','Input voltage from HV bus outside operating window — usually flags during pre-charge or shutdown sequencing.'],
+    ]
+  },
+  {
+    key:'obc', name:'On-Board Charger (OBC)',
+    intro:'Converts AC from the grid (level 1/2) into DC for the pack. Mixes power electronics with communication to EVSEs over CP/PP signals (or ISO 15118 for smart charging).',
+    rows:[
+      ['P0D2A','Charging Voltage High','OBC or DC charger pushing higher voltage than pack/BMS will accept.'],
+      ['P0DCA','Charger Coupler Lock Actuator','The mechanical latch keeping the connector seated in the inlet failed to engage or release.'],
+      ['P0DD8','Charging System Disabled','BMS commanded charging stopped — often a downstream cause: HV interlock, contactor health, isolation.'],
+      ['U18A1','Lost Comm with EVSE Communication Controller','Control-pilot duty cycle invalid or PLC handshake failed for ISO 15118 sessions.'],
+    ]
+  },
+  {
+    key:'hvil', name:'HV Interlock & Isolation',
+    intro:'The safety scaffolding that ensures HV connections cannot be live while service is in progress. Any break in the HVIL loop opens contactors immediately.',
+    rows:[
+      ['P1A09','HV Interlock Loop Open','One of the HV connector interlocks (e.g. inverter, OBC, charge port) is not closed. The vehicle will refuse to enable HV.'],
+      ['P0AA6','Battery Isolation Resistance Low','See BMS section — listed here because it\u2019s typically classified as an HV-safety DTC across multiple ECUs.'],
+      ['P1A1B','HVIL Diagnostic Fault','The interlock circuit itself is fault-monitored; this is a fault of the monitoring rather than of the loop.'],
+    ]
+  },
+  {
+    key:'thermal', name:'Thermal Loop',
+    intro:'Coolant pumps, valves, chiller, and heater. On an EV these are diagnostic citizens too — and they are highly coupled to battery and inverter derate logic.',
+    rows:[
+      ['P0480','Cooling Fan 1 Control','Generic cooling-fan circuit fault. On an EV, the fan often serves both pack and inverter radiators.'],
+      ['P0EB1','Hybrid Battery Coolant Pump','BMS-commanded coolant pump did not respond, or speed feedback out of range.'],
+      ['P0EE2','Coolant Valve Position','Multi-way coolant valve (combining cabin / battery / drive unit loops) is not at its commanded position.'],
+      ['P0EAA','Battery Chiller Performance','Heat exchanger between the AC loop and pack coolant is not cooling at the expected rate — often a refrigerant-charge or expansion-valve issue.'],
+    ]
+  },
+  {
+    key:'net', name:'Network / Comm (U-codes)',
+    intro:'The vehicle is a network of networks. U-codes capture lost or invalid communication between ECUs. EVs add several new ECUs (BMS, MCU, OBC, DC/DC) — and thus many new "lost-comm" relationships.',
+    rows:[
+      ['U0100','Lost Comm with ECM/PCM','Generic comm-lost — on an EV, often raised against the vehicle control unit or motor control unit playing the role of "PCM".'],
+      ['U0293','Lost Comm with Hybrid Powertrain Control','Gateway or cluster lost the BMS/MCU bus.'],
+      ['U029A','Lost Comm with Hybrid Battery Energy Control Module','Pack lost contact with the rest of the powertrain — contactors will typically open as a precaution.'],
+      ['U02A1','Lost Comm with Charger','OBC stopped responding — often during a charge session if the OBC overheats and resets.'],
+      ['U1A14','OEM-specific battery-network fault','Manufacturer-specific U-code, common in mature EV platforms with internal sub-buses inside the pack.'],
+    ]
+  },
+];
+const evTabs = document.getElementById('evTabs');
+const evBody = document.getElementById('evBody');
+evSystems.forEach((s, i) => {
+  const t = document.createElement('div');
+  t.className = 'ev-tab';
+  t.textContent = s.name;
+  t.onclick = () => showEv(i);
+  evTabs.appendChild(t);
+});
+function showEv(i){
+  document.querySelectorAll('.ev-tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.ev-tab')[i].classList.add('active');
+  const s = evSystems[i];
+  evBody.innerHTML = `
+    <h4>${s.name}</h4>
+    <p style="color:var(--ink-2)">${s.intro}</p>
+    <table class="dtc-table">
+      <thead><tr><th>DTC</th><th>Common name</th><th>What's actually happening</th></tr></thead>
+      <tbody>
+        ${s.rows.map(r => `<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td style="color:var(--ink-2)">${r[2]}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+showEv(0);
+
+/* =========================================================
+   §IV — OBD-II MIL byte (Mode 01 PID 01, Byte A)
+   ========================================================= */
+const milToggle = document.getElementById('milToggle');
+const dtcCount  = document.getElementById('dtcCount');
+const dtcCountLbl = document.getElementById('dtcCountLbl');
+const milByteHex = document.getElementById('milByteHex');
+const milByteBin = document.getElementById('milByteBin');
+const milByteMeaning = document.getElementById('milByteMeaning');
+
+function updateMilByte(){
+  const mil = milToggle.checked ? 1 : 0;
+  const count = parseInt(dtcCount.value, 10);
+  const byteA = (mil << 7) | (count & 0x7F);
+  dtcCountLbl.textContent = count;
+  milByteHex.textContent = '0x' + byteA.toString(16).toUpperCase().padStart(2, '0');
+  milByteBin.textContent = byteA.toString(2).padStart(8, '0').replace(/(.{4})/, '$1 ');
+
+  let m;
+  if (mil === 0 && count === 0) {
+    m = 'Bit 7 = MIL <b>off</b>. Bits 6–0 = <b>0 emissions DTCs</b>. The vehicle is clean from an emissions-inspection point of view.';
+  } else if (mil === 1 && count > 0) {
+    m = `Bit 7 = MIL <b>on</b>. Bits 6–0 = <b>${count} emissions DTC${count===1?'':'s'}</b> confirmed. The Check Engine Light is illuminated; the scanner expects to retrieve ${count} code${count===1?'':'s'} via Mode 03.`;
+  } else if (mil === 1 && count === 0) {
+    m = 'Bit 7 = MIL <b>on</b>, but bits 6–0 report <b>zero DTCs</b>. This is an unusual state — typically transient, just after a Mode 04 clear while the MIL latch is still set.';
+  } else {
+    m = `Bit 7 = MIL <b>off</b>, but bits 6–0 report <b>${count} stored DTC${count===1?'':'s'}</b>. These are likely <i>pending</i> faults — seen once but not yet confirmed across the requisite cycles. Mode 07 would list them.`;
+  }
+  milByteMeaning.innerHTML = m;
+}
+if (milToggle) {
+  milToggle.addEventListener('change', updateMilByte);
+  dtcCount.addEventListener('input', updateMilByte);
+  updateMilByte();
+}
+</script>
+</body>
+</html>
