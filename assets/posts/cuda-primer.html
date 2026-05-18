@@ -1,0 +1,2589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Primer on CUDA — Parallel Computing on the GPU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f3ecd9;
+  --paper-2: #ebe2c8;
+  --paper-3: #e2d7b8;
+  --ink: #1c1814;
+  --ink-soft: #3a3127;
+  --ink-mute: #6e604c;
+  --rule: #cdbf9e;
+  --accent: #4a6e2a;        /* CUDA-green, desaturated, sage-forest */
+  --accent-deep: #355019;
+  --accent-soft: #c8d8a7;
+  --rust: #a83e1c;           /* terracotta */
+  --rust-soft: #e9c4b3;
+  --teal: #245766;           /* deep teal */
+  --teal-soft: #b5cdd2;
+  --ochre: #b6862c;
+  --ochre-soft: #ead9a4;
+  --shadow: 0 1px 0 rgba(28,24,20,0.04), 0 4px 18px rgba(28,24,20,0.06);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "EB Garamond", "Cormorant Garamond", Georgia, serif;
+  font-size: 19px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(110,96,76,0.06) 1px, transparent 1px),
+    radial-gradient(rgba(110,96,76,0.04) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+  z-index: 1;
+}
+
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 80px 56px 120px;
+}
+
+/* —— masthead —— */
+.masthead {
+  border-top: 4px double var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 22px 0 18px;
+  margin-bottom: 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: "Cormorant Garamond", serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.masthead .vol { font-style: italic; letter-spacing: 0.04em; text-transform: none; }
+
+.back-to-blog {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', 'Menlo', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 32px 0 0;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--accent);
+}
+.author-line {
+  font-family: 'IBM Plex Mono', 'Menlo', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin: 18px 0 24px;
+}
+.author-line strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+h1.title {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  margin: 24px 0 10px;
+  text-align: center;
+}
+h1.title em { font-style: italic; color: var(--accent-deep); font-weight: 400; }
+
+.subtitle {
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+.byline {
+  text-align: center;
+  font-family: "Cormorant Garamond", serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-top: 28px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* —— abstract —— */
+.abstract {
+  margin: 56px auto 72px;
+  max-width: 680px;
+  padding: 0 24px;
+  border-left: 2px solid var(--accent);
+  padding-left: 28px;
+  color: var(--ink-soft);
+  font-size: 18px;
+}
+.abstract::before {
+  content: "Abstract.";
+  font-weight: 600;
+  font-style: italic;
+  margin-right: 8px;
+}
+
+/* —— TOC —— */
+.toc {
+  margin: 56px auto 88px;
+  padding: 28px 36px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+.toc h3 {
+  margin: 0 0 18px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 500;
+  text-align: center;
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  column-gap: 36px;
+}
+.toc li {
+  padding: 4px 0;
+  font-size: 17px;
+  break-inside: avoid;
+}
+.toc a {
+  color: var(--ink);
+  text-decoration: none;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dotted var(--rule);
+  padding-bottom: 2px;
+}
+.toc a:hover { color: var(--accent-deep); }
+.toc .num { color: var(--ink-mute); font-style: italic; margin-right: 10px; min-width: 40px; }
+.toc .title-text { flex: 1; }
+
+/* —— sections —— */
+section {
+  margin: 88px 0;
+  scroll-margin-top: 40px;
+}
+h2 {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  font-size: 36px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+h2 .sec-num {
+  font-style: italic;
+  color: var(--accent-deep);
+  font-size: 28px;
+}
+h3 {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  font-size: 24px;
+  margin: 36px 0 8px;
+  color: var(--ink);
+}
+h4 {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 24px 0 6px;
+}
+
+p { margin: 0 0 14px; }
+p + p { text-indent: 1.4em; margin-top: 0; }
+p.lead { font-size: 21px; color: var(--ink-soft); text-indent: 0; margin-bottom: 22px; }
+
+.dropcap::first-letter {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 4.4em;
+  font-weight: 500;
+  float: left;
+  line-height: 0.86;
+  margin: 0.04em 0.08em -0.05em 0;
+  color: var(--accent-deep);
+}
+
+em { color: var(--ink); }
+strong { font-weight: 600; }
+a { color: var(--accent-deep); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--rust); }
+
+/* code */
+code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.86em;
+  background: var(--paper-2);
+  padding: 1px 6px;
+  border-radius: 2px;
+  color: var(--ink);
+}
+pre {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.55;
+  background: #1c1814;
+  color: #ebe2c8;
+  padding: 22px 26px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 22px 0;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+pre::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(235,226,200,0.5);
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.k { color: #c8d8a7; }    /* keyword */
+.kw { color: #c8d8a7; font-weight: 500; }
+.t { color: #ead9a4; }    /* type */
+.s { color: #e9c4b3; }    /* string */
+.n { color: #b5cdd2; }    /* number */
+.c { color: #6e604c; font-style: italic; } /* comment */
+.f { color: #ead9a4; }    /* function */
+
+/* asides / margin notes */
+.aside {
+  background: var(--paper-2);
+  border-left: 3px solid var(--ochre);
+  padding: 14px 20px;
+  margin: 22px 0;
+  font-size: 16.5px;
+  color: var(--ink-soft);
+}
+.aside .label {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--ochre);
+  margin-right: 8px;
+}
+.aside.warn { border-left-color: var(--rust); }
+.aside.warn .label { color: var(--rust); }
+.aside.tip { border-left-color: var(--accent); }
+.aside.tip .label { color: var(--accent-deep); }
+
+/* figures and demos */
+figure {
+  margin: 36px 0;
+  padding: 0;
+}
+figure.demo {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+figcaption {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 15.5px;
+  color: var(--ink-mute);
+  margin-top: 12px;
+  text-align: center;
+  padding: 0 24px;
+}
+figcaption .fignum {
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-style: normal;
+  color: var(--accent-deep);
+  margin-right: 6px;
+}
+
+/* canvas */
+.canvas-wrap {
+  width: 100%;
+  background: var(--paper);
+  border-radius: 2px;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+canvas { display: block; width: 100%; }
+
+/* controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 10px 4px 0;
+  border-top: 1px dashed var(--rule);
+  font-size: 14.5px;
+  font-family: "Cormorant Garamond", serif;
+}
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+.controls input[type=range] {
+  width: 130px;
+  accent-color: var(--accent);
+}
+.controls .val {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  color: var(--accent-deep);
+  min-width: 42px;
+  text-align: right;
+}
+.controls button {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 6px 16px;
+  border-radius: 2px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.controls button:hover { background: var(--accent-deep); }
+.controls button.alt { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.controls button.alt:hover { background: var(--ink); color: var(--paper); }
+.readout {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--paper);
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+/* tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 16px;
+}
+th, td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--ink);
+}
+td code { font-size: 0.95em; }
+
+/* refs */
+.refs ol { padding-left: 24px; }
+.refs li {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+.refs li .auth { font-style: italic; }
+
+hr.fleuron {
+  border: none;
+  text-align: center;
+  margin: 56px 0;
+  color: var(--ink-mute);
+  font-size: 22px;
+}
+hr.fleuron::before { content: "❦"; }
+
+footer {
+  margin-top: 96px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: 14px;
+}
+footer .colophon { margin-top: 8px; font-size: 13px; letter-spacing: 0.05em; }
+
+@media (max-width: 720px) {
+  main { padding: 56px 26px 80px; }
+  h1.title { font-size: 44px; }
+  .toc ol { columns: 1; }
+  pre { font-size: 12.5px; padding: 16px 18px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+
+<div class="masthead">
+  <span class="vol">Volume IV · Folio 11</span>
+  <span>A Primer of the Parallel Arts</span>
+  <span>MMXXVI</span>
+</div>
+
+<h1 class="title">A Primer on <em>CUDA</em></h1>
+<p class="subtitle">Being an Introduction to Parallel Computing on the Graphics Processor</p>
+<p class="byline">Threads · Blocks · Memory · Warps · The Toolkit</p>
+<p class="author-line">By <strong>Majid Mazouchi</strong></p>
+
+<p class="abstract">
+This monograph introduces CUDA — NVIDIA's platform for general-purpose computation on the graphics processor — to the engineer already comfortable with C and the conceptual idea of parallelism, but new to writing code that runs on a GPU. We progress from the architectural distinction between CPU and GPU, through the thread hierarchy and memory model, to practical concerns of warp execution, memory coalescing, and the toolkit. Twelve interactive demonstrations are provided. The treatment is deliberately operational rather than encyclopaedic: where a choice arose between completeness and intuition, intuition was preferred.
+</p>
+
+<div class="toc">
+<h3>Contents</h3>
+<ol>
+  <li><a href="#s1"><span class="num">§ I.</span><span class="title-text">Why a GPU at All</span></a></li>
+  <li><a href="#s2"><span class="num">§ II.</span><span class="title-text">The Mental Model</span></a></li>
+  <li><a href="#s3"><span class="num">§ III.</span><span class="title-text">The Thread Hierarchy</span></a></li>
+  <li><a href="#s4"><span class="num">§ IV.</span><span class="title-text">A First Kernel</span></a></li>
+  <li><a href="#s5"><span class="num">§ V.</span><span class="title-text">The Memory Hierarchy</span></a></li>
+  <li><a href="#s6"><span class="num">§ VI.</span><span class="title-text">Warps & SIMT Execution</span></a></li>
+  <li><a href="#s7"><span class="num">§ VII.</span><span class="title-text">Memory Coalescing</span></a></li>
+  <li><a href="#s8"><span class="num">§ VIII.</span><span class="title-text">Shared Memory & Tiling</span></a></li>
+  <li><a href="#s9"><span class="num">§ IX.</span><span class="title-text">Toolkit & Ecosystem</span></a></li>
+  <li><a href="#s10"><span class="num">§ X.</span><span class="title-text">From Datacenter to Dashboard</span></a></li>
+  <li><a href="#s11"><span class="num">§ XI.</span><span class="title-text">Robotics on the GPU</span></a></li>
+  <li><a href="#s12"><span class="num">§ XII.</span><span class="title-text">The Inference Pipeline</span></a></li>
+  <li><a href="#s13"><span class="num">§ XIII.</span><span class="title-text">Real-Time & the Automotive Split</span></a></li>
+  <li><a href="#s14"><span class="num">§ XIV.</span><span class="title-text">Practice & Further Reading</span></a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<section id="s1">
+<h2><span class="sec-num">§ I.</span> Why a GPU at All</h2>
+
+<p class="lead dropcap">Before we write a line of CUDA, it pays to be honest about the question CUDA answers: <em>why bother</em>? A modern CPU is an extraordinary device — branch predictors, out-of-order execution, deep caches, megabytes of silicon devoted to making a single thread of instructions run as fast as physics allows. For most code most of the time, that is exactly what you want. CUDA is for when it is not.</p>
+
+<p>The argument is one of arithmetic. A workstation CPU offers, generously, a few dozen cores. A contemporary GPU offers <em>thousands</em> of arithmetic units, each individually slower and far less clever, but available simultaneously. If your problem decomposes into many independent pieces of similar work — pixels in an image, elements of a matrix, samples in a batch, particles in a simulation — the GPU is asking the right question.</p>
+
+<h3>An architectural sketch</h3>
+<p>The CPU is built around a small number of <em>latency-optimized</em> cores. Each core has substantial private cache, complex control logic, and is designed to make any one instruction stream finish as quickly as possible. The GPU inverts this priority. It is built from many small <em>throughput-optimized</em> cores, organized into clusters NVIDIA calls <em>Streaming Multiprocessors</em> (SMs). Each SM holds dozens of arithmetic units that share fetch and decode logic, share an L1 cache and a small high-speed scratchpad, and execute instructions in lockstep over groups of threads.</p>
+
+<p>The trade is explicit. CPU silicon is mostly cache and control; GPU silicon is mostly arithmetic. The CPU asks: <em>how can I run this single thread fast?</em> The GPU asks: <em>how can I keep ten thousand threads busy at once?</em></p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo1" height="320"></canvas></div>
+<div class="controls">
+  <label>workload <input type="range" id="d1-work" min="32" max="512" step="32" value="256"><span class="val" id="d1-work-v">256</span></label>
+  <button id="d1-run">▶ Run</button>
+  <button id="d1-reset" class="alt">reset</button>
+  <span class="readout" id="d1-readout">idle</span>
+</div>
+<figcaption><span class="fignum">Fig. 1.</span> Eight latency-optimized CPU cores versus a swarm of GPU lanes processing the same total work. Press <em>run</em> to dispatch; each tile darkens as it completes.</figcaption>
+</figure>
+
+<div class="aside">
+<span class="label">Aside.</span> The watt-per-flop story matters too: a GPU achieves higher arithmetic throughput per unit of power, which is why training a modern neural network on CPUs is not merely slow but uneconomic. The same physics that makes GPUs fast at graphics also makes them fast at any embarrassingly parallel numerical work.
+</div>
+
+<h3>What problems suit the GPU</h3>
+<p>The GPU is happiest when three conditions hold: (i) the work decomposes into many independent pieces, (ii) those pieces perform similar arithmetic — ideally the same operations on different data, what Flynn called <em>SIMD</em> and what NVIDIA calls <em>SIMT</em>, and (iii) the ratio of computation to memory traffic is high enough that the device is not starved waiting on data. Dense linear algebra, image processing, neural network forward and backward passes, finite-difference solvers, ray tracing, Monte Carlo simulation, and most of computer graphics fit comfortably. Problems with deep sequential dependencies or pervasive branching fit poorly.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s2">
+<h2><span class="sec-num">§ II.</span> The Mental Model</h2>
+
+<p class="lead">CUDA programs run on two devices at once. Your <em>host</em> is the CPU; the <em>device</em> is the GPU. The two have separate memory spaces, separate execution streams, and communicate over a bus — historically PCIe, increasingly NVLink on server-class systems.</p>
+
+<h3>The host–device dance</h3>
+<p>A typical CUDA program follows a recognizable rhythm. The host allocates memory on the device. The host copies input data over. The host launches a <em>kernel</em> — a function that will run on the GPU, executed by many threads in parallel. The host waits for, or asynchronously checks on, completion. The host copies results back. The device-side memory is freed.</p>
+
+<pre data-lang="cuda"><span class="c">// classic pattern</span>
+<span class="t">cudaMalloc</span>(&amp;d_x, N * <span class="kw">sizeof</span>(<span class="t">float</span>));         <span class="c">// 1. allocate on device</span>
+<span class="t">cudaMemcpy</span>(d_x, h_x, N * <span class="kw">sizeof</span>(<span class="t">float</span>),
+           cudaMemcpyHostToDevice);                <span class="c">// 2. ship inputs</span>
+my_kernel&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;(d_x, d_y, N);     <span class="c">// 3. launch (asynchronous)</span>
+<span class="t">cudaMemcpy</span>(h_y, d_y, N * <span class="kw">sizeof</span>(<span class="t">float</span>),
+           cudaMemcpyDeviceToHost);                <span class="c">// 4. blocks until done</span>
+<span class="t">cudaFree</span>(d_x);                                  <span class="c">// 5. release</span>
+</pre>
+
+<p>The triple-angle bracket syntax <code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code> is a CUDA extension to C++. It is the device-launch operator. The compiler — NVIDIA's <code>nvcc</code>, a wrapper around the host compiler that splits source into host and device portions — turns it into the appropriate runtime call.</p>
+
+<h3>Kernels, in one sentence</h3>
+<p>A kernel is a function annotated <code>__global__</code> that runs on the device, is invoked from the host, returns <code>void</code>, and is executed not once but by every thread in the launched grid. Each thread sees the same code; what differs is its identity — its position in the thread hierarchy, which it uses to compute <em>which slice of the data it owns</em>.</p>
+
+<pre data-lang="cuda"><span class="kw">__global__</span> <span class="t">void</span> <span class="f">add_vectors</span>(<span class="kw">const</span> <span class="t">float</span>* a, <span class="kw">const</span> <span class="t">float</span>* b,
+                            <span class="t">float</span>* c, <span class="t">int</span> n) {
+    <span class="t">int</span> i = blockIdx.x * blockDim.x + threadIdx.x;   <span class="c">// my global index</span>
+    <span class="kw">if</span> (i &lt; n) c[i] = a[i] + b[i];                   <span class="c">// guard the tail</span>
+}
+</pre>
+
+<div class="aside tip">
+<span class="label">Note.</span> Three function-attribute qualifiers matter: <code>__global__</code> is a kernel (callable from host, runs on device); <code>__device__</code> is a device-only helper (callable from other device code); <code>__host__</code> is plain CPU code, the default. A function may be both <code>__host__</code> <code>__device__</code>, in which case <code>nvcc</code> emits two versions.
+</div>
+
+<h3>Memory spaces</h3>
+<p>Host memory and device memory are physically distinct. Pointers are not interchangeable: a pointer obtained from <code>malloc</code> cannot be dereferenced inside a kernel, and a pointer from <code>cudaMalloc</code> is meaningless on the host. CUDA does offer <em>unified memory</em> via <code>cudaMallocManaged</code>, where the runtime migrates pages between host and device on demand — convenient for prototyping, sometimes a performance trap. We will return to memory in §V.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s3">
+<h2><span class="sec-num">§ III.</span> The Thread Hierarchy</h2>
+
+<p class="lead">CUDA threads are not flat. They are organized into a three-tiered hierarchy — <em>thread</em>, <em>block</em>, <em>grid</em> — and a great deal of CUDA's character flows from this structure.</p>
+
+<h3>The three tiers</h3>
+<p>The smallest unit is a <em>thread</em>. Threads are grouped into <em>blocks</em>. Blocks are grouped into a <em>grid</em>. A kernel launch creates one grid; the grid contains some number of blocks; each block contains some number of threads. Both blocks and grids may be one-, two-, or three-dimensional, an indulgence that mostly serves problems with natural 2D or 3D structure (images, volumes).</p>
+
+<table>
+<tr><th>Tier</th><th>What it is</th><th>What it shares</th><th>Identifier</th></tr>
+<tr><td>Thread</td><td>One execution context</td><td>Registers (private)</td><td><code>threadIdx</code></td></tr>
+<tr><td>Block</td><td>A group of co-resident threads</td><td>Shared memory, can synchronize</td><td><code>blockIdx</code>, <code>blockDim</code></td></tr>
+<tr><td>Grid</td><td>All blocks in one launch</td><td>Global memory only</td><td><code>gridDim</code></td></tr>
+</table>
+
+<p>Two facts about blocks deserve emphasis. First, threads <em>within a block</em> can cooperate: they can synchronize at a barrier (<code>__syncthreads()</code>) and exchange data through fast on-chip shared memory. Second, threads <em>between blocks</em> cannot — at least not cheaply, not without atomics or a kernel boundary. The block is therefore the natural unit of cooperation; the grid is the natural unit of independent work.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo2" height="380"></canvas></div>
+<div class="controls">
+  <label>grid X <input type="range" id="d2-gx" min="1" max="6" value="3"><span class="val" id="d2-gx-v">3</span></label>
+  <label>grid Y <input type="range" id="d2-gy" min="1" max="6" value="3"><span class="val" id="d2-gy-v">3</span></label>
+  <label>block X <input type="range" id="d2-bx" min="1" max="8" value="4"><span class="val" id="d2-bx-v">4</span></label>
+  <label>block Y <input type="range" id="d2-by" min="1" max="8" value="4"><span class="val" id="d2-by-v">4</span></label>
+  <span class="readout" id="d2-readout">click any thread</span>
+</div>
+<figcaption><span class="fignum">Fig. 2.</span> The thread hierarchy made tactile. The grid (outer) holds <code>gridDim.x × gridDim.y</code> blocks; each block holds <code>blockDim.x × blockDim.y</code> threads. Click any thread to see its identifiers and computed global index.</figcaption>
+</figure>
+
+<h3>Why two tiers?</h3>
+<p>One could ask: why not a single flat array of threads? The answer is hardware. Each block is scheduled to a single SM and resides there until completion; threads in a block can therefore share fast on-chip resources. The grid, by contrast, can contain far more blocks than the device has SMs — the runtime schedules blocks onto SMs as they become free, much as an operating system schedules processes. This two-level design is what lets the same source code run on a small mobile GPU and a server GPU without modification: only the number of blocks running concurrently changes.</p>
+
+<div class="aside">
+<span class="label">Convention.</span> A block size of <strong>128, 256, or 512 threads</strong> is typical and a good starting point. The hardware constraint is 1024 threads per block on contemporary architectures. Multiples of 32 are mandatory in spirit, because 32 is the warp size — see §VI.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s4">
+<h2><span class="sec-num">§ IV.</span> A First Kernel</h2>
+
+<p class="lead">We now write CUDA's "hello world": adding two vectors. The example is small but every essential idea — index computation, bounds guarding, host-device dance — is present.</p>
+
+<pre data-lang="cuda"><span class="c">// vector_add.cu</span>
+<span class="kw">#include</span> <span class="s">&lt;cstdio&gt;</span>
+<span class="kw">#include</span> <span class="s">&lt;cuda_runtime.h&gt;</span>
+
+<span class="kw">__global__</span> <span class="t">void</span> <span class="f">add</span>(<span class="kw">const</span> <span class="t">float</span>* a, <span class="kw">const</span> <span class="t">float</span>* b, <span class="t">float</span>* c, <span class="t">int</span> n) {
+    <span class="t">int</span> i = blockIdx.x * blockDim.x + threadIdx.x;
+    <span class="kw">if</span> (i &lt; n) c[i] = a[i] + b[i];
+}
+
+<span class="t">int</span> <span class="f">main</span>() {
+    <span class="kw">const</span> <span class="t">int</span> N = <span class="n">1</span> &lt;&lt; <span class="n">20</span>;                       <span class="c">// one million elements</span>
+    <span class="kw">const</span> <span class="t">size_t</span> bytes = N * <span class="kw">sizeof</span>(<span class="t">float</span>);
+
+    <span class="t">float</span> *h_a = (<span class="t">float</span>*)<span class="f">malloc</span>(bytes);
+    <span class="t">float</span> *h_b = (<span class="t">float</span>*)<span class="f">malloc</span>(bytes);
+    <span class="t">float</span> *h_c = (<span class="t">float</span>*)<span class="f">malloc</span>(bytes);
+    <span class="kw">for</span> (<span class="t">int</span> i = <span class="n">0</span>; i &lt; N; ++i) { h_a[i] = i; h_b[i] = <span class="n">2</span>*i; }
+
+    <span class="t">float</span> *d_a, *d_b, *d_c;
+    <span class="t">cudaMalloc</span>(&amp;d_a, bytes);
+    <span class="t">cudaMalloc</span>(&amp;d_b, bytes);
+    <span class="t">cudaMalloc</span>(&amp;d_c, bytes);
+
+    <span class="t">cudaMemcpy</span>(d_a, h_a, bytes, cudaMemcpyHostToDevice);
+    <span class="t">cudaMemcpy</span>(d_b, h_b, bytes, cudaMemcpyHostToDevice);
+
+    <span class="t">int</span> threads = <span class="n">256</span>;
+    <span class="t">int</span> blocks  = (N + threads - <span class="n">1</span>) / threads;     <span class="c">// ceiling division</span>
+    add&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;(d_a, d_b, d_c, N);
+
+    <span class="t">cudaMemcpy</span>(h_c, d_c, bytes, cudaMemcpyDeviceToHost);
+
+    <span class="f">printf</span>(<span class="s">"c[42] = %f\n"</span>, h_c[<span class="n">42</span>]);          <span class="c">// expected: 126.0</span>
+
+    <span class="t">cudaFree</span>(d_a); <span class="t">cudaFree</span>(d_b); <span class="t">cudaFree</span>(d_c);
+    <span class="f">free</span>(h_a); <span class="f">free</span>(h_b); <span class="f">free</span>(h_c);
+    <span class="kw">return</span> <span class="n">0</span>;
+}
+</pre>
+
+<p>Three details deserve unpacking. The expression <code>blockIdx.x * blockDim.x + threadIdx.x</code> is the universal idiom for converting a thread's three-part identity into a flat global index — every CUDA programmer writes it ten thousand times. The bounds check <code>if (i &lt; n)</code> is necessary because the launch configuration almost always over-provisions threads, since <code>blocks × threads</code> is rounded up to cover <code>N</code>. And the kernel call is <em>asynchronous</em>: the next host instruction executes immediately. We get away with omitting an explicit synchronization here only because <code>cudaMemcpy</code> implicitly waits.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo3" height="320"></canvas></div>
+<div class="controls">
+  <label>N <input type="range" id="d3-n" min="16" max="64" step="8" value="32"><span class="val" id="d3-n-v">32</span></label>
+  <label>block size <input type="range" id="d3-b" min="4" max="16" step="4" value="8"><span class="val" id="d3-b-v">8</span></label>
+  <button id="d3-step">step ▸</button>
+  <button id="d3-play">▶ play</button>
+  <button id="d3-reset" class="alt">reset</button>
+</div>
+<figcaption><span class="fignum">Fig. 3.</span> Vector addition unrolled. Each block dispatches its threads to compute one slice of <code>c = a + b</code>. Step through one block at a time, or play the whole grid. Note the tail block, which over-provisions and relies on the bounds check.</figcaption>
+</figure>
+
+<h3>Compiling and running</h3>
+<pre data-lang="bash">$ nvcc -O3 -arch=sm_80 vector_add.cu -o vector_add
+$ ./vector_add
+c[42] = 126.000000
+</pre>
+<p>The <code>-arch=sm_80</code> flag targets compute capability 8.0 (Ampere; A100, RTX 30-series). Use <code>sm_75</code> for Turing (RTX 20-series), <code>sm_86</code> for consumer Ampere, <code>sm_89</code> for Ada (RTX 40-series), <code>sm_90</code> for Hopper (H100), <code>sm_120</code> for Blackwell (RTX 50-series, B100/B200). Without an arch flag <code>nvcc</code> picks a default that may not match your hardware.</p>
+
+<div class="aside warn">
+<span class="label">Caveat.</span> CUDA error checking has a deserved reputation for being verbose and easy to forget. The runtime returns error codes from every <code>cuda*</code> call; kernel launches do not return errors directly — you check with <code>cudaGetLastError()</code> after launch and <code>cudaDeviceSynchronize()</code> for asynchronous errors. In any code you intend to keep, wrap calls in a checking macro from day one.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s5">
+<h2><span class="sec-num">§ V.</span> The Memory Hierarchy</h2>
+
+<p class="lead">If a single sentence captures GPU performance engineering, it is this: <em>compute is cheap, memory is expensive</em>. Reading from the slowest memory takes hundreds of cycles in which the SM could have been doing arithmetic. Knowing the hierarchy is therefore not optional.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo4" height="420"></canvas></div>
+<div class="controls">
+  <span class="readout" id="d4-readout">click a tier</span>
+</div>
+<figcaption><span class="fignum">Fig. 4.</span> The on-device memory hierarchy. Higher tiers are faster and smaller; lower tiers are slower and larger. Click any tier for its rough latency, scope, and lifetime.</figcaption>
+</figure>
+
+<h3>The tiers, from fast to slow</h3>
+
+<h4>Registers</h4>
+<p>Per-thread, on-chip, single-cycle latency. A thread's local variables live here when the compiler can place them. Registers are not declared explicitly; you write ordinary C, the compiler allocates. The SM has a fixed register file split among resident threads — typical limits are 65,536 32-bit registers per SM, with up to 255 per thread. A kernel that uses too many registers per thread reduces the number of threads that can co-reside, hurting <em>occupancy</em> (§IX).</p>
+
+<h4>Shared memory</h4>
+<p>Per-block, on-chip, roughly an order of magnitude slower than registers, two orders faster than global memory. Declared with <code>__shared__</code>. The natural place to stage data that all threads in a block will reuse — the canonical example is a tile of a matrix during multiplication (§VIII). Shared memory and L1 cache typically partition the same physical SRAM; the split is configurable on most architectures.</p>
+
+<pre data-lang="cuda"><span class="kw">__global__</span> <span class="t">void</span> <span class="f">use_shared</span>() {
+    <span class="kw">__shared__</span> <span class="t">float</span> tile[<span class="n">32</span>][<span class="n">32</span>];   <span class="c">// 4 KB per block</span>
+    <span class="t">int</span> tx = threadIdx.x, ty = threadIdx.y;
+    tile[ty][tx] = <span class="c">/* load from global */</span> <span class="n">0.0f</span>;
+    <span class="f">__syncthreads</span>();                <span class="c">// barrier: wait for all threads</span>
+    <span class="c">// now every thread can read every element of tile</span>
+}
+</pre>
+
+<h4>Constant and texture memory</h4>
+<p>Read-only views into device memory with their own caching paths. Constant memory (<code>__constant__</code>) is small (64 KB) and broadcasts efficiently when all threads in a warp read the same address — useful for kernel parameters and lookup tables. Texture memory adds spatial-locality caching and hardware interpolation, useful in image processing.</p>
+
+<h4>Global memory</h4>
+<p>The big pool — gigabytes of off-chip DRAM. Visible to every thread and persistent across kernel launches within a program. High-bandwidth (terabytes per second on modern hardware) but high-latency (300–600 cycles unloaded). Anything <code>cudaMalloc</code> returned is global memory. Reaching it well — especially via <em>coalesced</em> access patterns — is the single largest performance lever in most kernels.</p>
+
+<h4>Local memory (a misleading name)</h4>
+<p>Despite "local," this lives in global memory. The compiler spills to local memory when registers run out or when arrays are indexed dynamically and cannot be kept in registers. You cannot declare it directly; you avoid it by keeping per-thread state small and statically indexed.</p>
+
+<h4>Host memory</h4>
+<p>System RAM. Reachable from the device only through PCIe / NVLink, with bandwidth one to two orders of magnitude below device DRAM. Pageable host memory must first be staged through pinned buffers; using <code>cudaMallocHost</code> (pinned memory) directly lets transfers overlap with kernels.</p>
+
+<table>
+<tr><th>Tier</th><th>Where</th><th>Scope</th><th>Approx. latency</th></tr>
+<tr><td>Register</td><td>SM</td><td>Thread</td><td>~1 cycle</td></tr>
+<tr><td>Shared</td><td>SM (SRAM)</td><td>Block</td><td>~20–30 cycles</td></tr>
+<tr><td>L1 cache</td><td>SM (SRAM)</td><td>SM</td><td>~30 cycles</td></tr>
+<tr><td>L2 cache</td><td>Chip</td><td>Device</td><td>~200 cycles</td></tr>
+<tr><td>Global / DRAM</td><td>Off-chip</td><td>Device</td><td>~400–800 cycles</td></tr>
+<tr><td>Host</td><td>System</td><td>Host</td><td>~10,000+ cycles via PCIe</td></tr>
+</table>
+</section>
+
+<!-- ============================================ -->
+<section id="s6">
+<h2><span class="sec-num">§ VI.</span> Warps & SIMT Execution</h2>
+
+<p class="lead">A block looks, in source, like an arbitrary collection of threads. In hardware, each block is sliced into groups of 32 called <em>warps</em>, and the warp — not the thread — is the actual unit of execution.</p>
+
+<p>A warp's 32 threads share a single instruction fetch. They execute the same instruction, in lockstep, on different registers. NVIDIA calls this <em>SIMT</em> — Single Instruction, Multiple Threads — to distinguish it from the more rigid SIMD of CPU vector units. The distinction matters because SIMT permits each thread to take its own control-flow path, at a cost.</p>
+
+<h3>Branch divergence</h3>
+<p>When threads in a warp disagree on a branch — some take the <code>if</code>, others take the <code>else</code> — the warp serializes. The hardware executes the <code>if</code> path with the dissenting threads <em>masked off</em> (their results discarded), then the <code>else</code> path with the original dissenters masked off. The two halves cannot run simultaneously. A warp that fully agrees runs at full speed; a warp that splits fifty-fifty pays roughly double.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo5" height="320"></canvas></div>
+<div class="controls">
+  <label>divergence <input type="range" id="d5-d" min="0" max="100" step="5" value="40"><span class="val" id="d5-d-v">40%</span></label>
+  <button id="d5-run">▶ execute</button>
+  <button id="d5-reset" class="alt">reset</button>
+  <span class="readout" id="d5-readout">cost: —</span>
+</div>
+<figcaption><span class="fignum">Fig. 5.</span> A warp executing <code>if (cond) A; else B;</code>. Threads taking the true path execute first with the false-takers idle, then the false-takers execute. Adjust how many threads diverge.</figcaption>
+</figure>
+
+<h3>What costs warp efficiency</h3>
+<p>Three patterns are common offenders. <em>Data-dependent branching</em> on per-thread values, especially when neighbours in a warp see different data. <em>Loop bounds that vary per thread</em> — the warp runs at the speed of its slowest member. <em>Predicated arithmetic</em> on rare conditions handled with <code>if</code>; sometimes computing both branches unconditionally and selecting the result is faster than diverging.</p>
+
+<div class="aside tip">
+<span class="label">Practical note.</span> A small amount of divergence is usually fine — the bounds-check tail in our vector-add example diverges in exactly one warp at the boundary. The pattern to avoid is divergence in the <em>hot loop</em> of a kernel, where every iteration pays.
+</div>
+
+<h3>Warp-level primitives</h3>
+<p>Modern CUDA exposes <em>warp-shuffle</em> intrinsics — <code>__shfl_sync</code>, <code>__shfl_down_sync</code>, and friends — that exchange data directly between threads of a warp without going through shared memory. They are fast and useful for reductions, scans, and broadcast patterns. The <code>_sync</code> suffix and explicit thread mask are mandatory since CUDA 9; older formless variants are deprecated.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s7">
+<h2><span class="sec-num">§ VII.</span> Memory Coalescing</h2>
+
+<p class="lead">When a warp issues a global memory load, the hardware does not service 32 individual requests. It tries to coalesce them into the smallest number of memory <em>transactions</em> — ideally one. Whether it succeeds depends entirely on the access pattern.</p>
+
+<p>The rule, in essence: if the 32 threads of a warp access 32 consecutive 4-byte words — that is, a contiguous 128-byte segment, properly aligned — the hardware satisfies the warp with one 128-byte transaction. If they access scattered locations, the hardware issues a separate transaction for each distinct cache line, and bandwidth collapses proportionally.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo6" height="320"></canvas></div>
+<div class="controls">
+  <label>pattern
+    <select id="d6-pat" style="font-family:inherit; font-size:14px; padding: 2px 6px;">
+      <option value="coalesced">coalesced (stride 1)</option>
+      <option value="strided2">strided (stride 2)</option>
+      <option value="strided8">strided (stride 8)</option>
+      <option value="random">random</option>
+    </select>
+  </label>
+  <span class="readout" id="d6-readout">transactions: 1</span>
+</div>
+<figcaption><span class="fignum">Fig. 6.</span> Sixteen threads of a half-warp accessing global memory under four patterns. Each colored band marks one memory transaction served by hardware; fewer is faster.</figcaption>
+</figure>
+
+<h3>What this implies for code</h3>
+<p>Two practical consequences. First, lay out data so that <em>thread <code>i</code></em> reads element <em>i</em>: array-of-structures (AoS) is usually worse than structure-of-arrays (SoA), because AoS makes neighbouring threads reach for non-adjacent memory. Second, when iterating a 2D array, the natural pairing is <em>x</em>-thread to <em>x</em>-column, not <em>x</em>-thread to <em>x</em>-row, since C row-major storage places column neighbours adjacent in memory.</p>
+
+<pre data-lang="cuda"><span class="c">// good: thread i reads element i</span>
+<span class="t">int</span> i = blockIdx.x * blockDim.x + threadIdx.x;
+<span class="t">float</span> v = data[i];                       <span class="c">// coalesced</span>
+
+<span class="c">// bad: stride pulls each thread far from its neighbour</span>
+<span class="t">int</span> i = blockIdx.x * blockDim.x + threadIdx.x;
+<span class="t">float</span> v = data[i * <span class="n">8</span>];                   <span class="c">// 8 transactions, not 1</span>
+</pre>
+
+<div class="aside">
+<span class="label">Aside.</span> Modern GPUs cache global accesses through L1 and L2, which softens the worst pathologies — repeated access to a strided pattern often hits cache after the first warp. But the upper bound on bandwidth is still set by the first read, and engineering for coalescing remains the cheapest performance win.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s8">
+<h2><span class="sec-num">§ VIII.</span> Shared Memory & Tiling</h2>
+
+<p class="lead">Shared memory is the lever that turns a memory-bound kernel into a compute-bound one. The pattern is universal enough to deserve its own name: <em>tiling</em>.</p>
+
+<p>The idea: partition the output into tiles, each computed by one block. For each tile, cooperatively load the input data the block needs into shared memory. Then perform the actual arithmetic out of shared memory, which is roughly a hundred times faster than global. Each input element is loaded from global memory once but read from shared memory many times — the arithmetic intensity rises by exactly that ratio.</p>
+
+<h3>Tiled matrix multiplication</h3>
+<p>The textbook example is C = A · B for square matrices. The naive kernel reads each element of A once per output column and each element of B once per output row — much more global traffic than necessary. The tiled version is dramatically better:</p>
+
+<pre data-lang="cuda"><span class="kw">#define</span> TILE <span class="n">16</span>
+
+<span class="kw">__global__</span> <span class="t">void</span> <span class="f">matmul_tiled</span>(<span class="kw">const</span> <span class="t">float</span>* A, <span class="kw">const</span> <span class="t">float</span>* B,
+                              <span class="t">float</span>* C, <span class="t">int</span> N) {
+    <span class="kw">__shared__</span> <span class="t">float</span> As[TILE][TILE];
+    <span class="kw">__shared__</span> <span class="t">float</span> Bs[TILE][TILE];
+
+    <span class="t">int</span> tx = threadIdx.x, ty = threadIdx.y;
+    <span class="t">int</span> row = blockIdx.y * TILE + ty;
+    <span class="t">int</span> col = blockIdx.x * TILE + tx;
+
+    <span class="t">float</span> acc = <span class="n">0.0f</span>;
+    <span class="kw">for</span> (<span class="t">int</span> t = <span class="n">0</span>; t &lt; N / TILE; ++t) {
+        <span class="c">// cooperative load: each thread brings one element of each tile</span>
+        As[ty][tx] = A[row * N + (t * TILE + tx)];
+        Bs[ty][tx] = B[(t * TILE + ty) * N + col];
+        <span class="f">__syncthreads</span>();                      <span class="c">// wait for all loads</span>
+
+        <span class="kw">for</span> (<span class="t">int</span> k = <span class="n">0</span>; k &lt; TILE; ++k)        <span class="c">// dot product over tile</span>
+            acc += As[ty][k] * Bs[k][tx];
+        <span class="f">__syncthreads</span>();                      <span class="c">// before next overwrite</span>
+    }
+    C[row * N + col] = acc;
+}
+</pre>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo7" height="380"></canvas></div>
+<div class="controls">
+  <button id="d7-step">step ▸</button>
+  <button id="d7-play">▶ play</button>
+  <button id="d7-reset" class="alt">reset</button>
+  <span class="readout" id="d7-readout">phase 0 of —</span>
+</div>
+<figcaption><span class="fignum">Fig. 7.</span> Tiled matrix multiply. The block's threads cooperatively load one tile from A (left) and one tile from B (top) into shared memory, then accumulate the partial product into C (centre). This repeats across the K dimension.</figcaption>
+</figure>
+
+<h3>Two barriers, both essential</h3>
+<p>The first <code>__syncthreads()</code> ensures every thread has loaded its assigned shared-memory element before any thread reads from the tile. Skip it and you get garbage from threads that race ahead. The second prevents one warp from overwriting <code>As</code>/<code>Bs</code> for the next tile while another warp still reads the previous one. Both barriers must be reached by <em>every</em> thread in the block — putting <code>__syncthreads()</code> inside a divergent branch is undefined behaviour.</p>
+
+<div class="aside tip">
+<span class="label">Performance.</span> The tiled kernel is roughly an order of magnitude faster than the naive version at <code>N=2048</code>. To go further you reach for register-blocking, double-buffering, vectorized loads, and eventually the Tensor Cores via <code>wmma</code> or — sensibly — the <code>cuBLAS</code> library, which has done all this for you.
+</div>
+
+<h3>Bank conflicts</h3>
+<p>Shared memory is divided into 32 <em>banks</em>; concurrent accesses by a warp to different banks are serviced in parallel, while accesses by multiple threads to the same bank are serialized. The classical fix for column-wise access patterns is to pad the array width by one (<code>__shared__ float tile[TILE][TILE+1]</code>) — wasted space, but the access stride no longer aliases. Bank conflicts are second-order; do not optimize them before measuring.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s9">
+<h2><span class="sec-num">§ IX.</span> Toolkit & Ecosystem</h2>
+
+<p class="lead">CUDA is a platform, not just a language. What you actually use day to day is the toolkit: a compiler, a debugger, a profiler, and a constellation of libraries that already implement the hard kernels well.</p>
+
+<h3>The compiler</h3>
+<p><code>nvcc</code> is NVIDIA's CUDA C++ compiler driver. It splits source files into host and device portions, hands the host portion to your system compiler (gcc, clang, MSVC), compiles the device portion to PTX (NVIDIA's virtual ISA) and then to SASS (the actual machine code for a target architecture), and links the two into one executable. <code>--ptx</code> emits the intermediate PTX; <code>--cubin</code> emits the binary; <code>-Xptxas -v</code> reports register and shared-memory usage per kernel — invaluable for diagnosing occupancy.</p>
+
+<h3>Profiling: the only honest source of truth</h3>
+<p>You cannot guess at GPU performance. Two tools matter. <strong>Nsight Systems</strong> profiles the whole timeline — kernel launches, memcpys, host code, CUDA streams — and tells you whether you are bound on launch overhead, transfer time, or kernel time. <strong>Nsight Compute</strong> drills into a single kernel and reports occupancy, achieved bandwidth, instruction mix, stall reasons, and dozens of other metrics. The phrase <em>compute-bound versus memory-bound</em>, often used loosely, has a precise meaning these tools will give you.</p>
+
+<pre data-lang="bash">$ nsys profile --stats=true ./my_program
+$ ncu --set full -o report ./my_program          <span class="c"># detailed kernel analysis</span>
+</pre>
+
+<h3>Occupancy</h3>
+<p><em>Occupancy</em> is the ratio of active warps on an SM to the maximum possible. It is not the goal in itself — kernels can be excellent at low occupancy — but low occupancy can starve the SM of work to hide memory latency. Three resources cap it: registers per thread, shared memory per block, and threads per block. Use <code>cudaOccupancyMaxPotentialBlockSize</code> or the Nsight Compute occupancy section.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo8" height="320"></canvas></div>
+<div class="controls">
+  <label>threads/block <input type="range" id="d8-t" min="32" max="1024" step="32" value="256"><span class="val" id="d8-t-v">256</span></label>
+  <label>regs/thread <input type="range" id="d8-r" min="16" max="128" step="4" value="32"><span class="val" id="d8-r-v">32</span></label>
+  <label>shared/block (KB) <input type="range" id="d8-s" min="0" max="48" step="2" value="8"><span class="val" id="d8-s-v">8</span></label>
+  <span class="readout" id="d8-readout">occupancy: —</span>
+</div>
+<figcaption><span class="fignum">Fig. 8.</span> Occupancy as a function of per-block resource budgets. Limits assumed: 65,536 registers, 96 KB shared memory, 64 warps (2,048 threads), 32 blocks per SM — broadly Ampere/Hopper-class.</figcaption>
+</figure>
+
+<h3>Libraries: don't write what NVIDIA already wrote</h3>
+<table>
+<tr><th>Library</th><th>What it gives you</th></tr>
+<tr><td><code>cuBLAS</code></td><td>Dense linear algebra (BLAS); the right way to do matmul</td></tr>
+<tr><td><code>cuDNN</code></td><td>Deep-learning primitives: convolutions, RNNs, attention</td></tr>
+<tr><td><code>cuFFT</code></td><td>Fast Fourier transforms</td></tr>
+<tr><td><code>cuSPARSE</code> / <code>cuSOLVER</code></td><td>Sparse linear algebra and direct solvers</td></tr>
+<tr><td><code>Thrust</code></td><td>STL-like parallel algorithms (sort, scan, reduce) on the device</td></tr>
+<tr><td><code>CUB</code></td><td>Lower-level building blocks Thrust is built on</td></tr>
+<tr><td><code>NCCL</code></td><td>Multi-GPU and multi-node collectives</td></tr>
+<tr><td><code>TensorRT</code></td><td>Optimized inference for trained neural networks</td></tr>
+<tr><td><code>CUTLASS</code></td><td>Templates for writing your own GEMM-class kernels</td></tr>
+</table>
+
+<h3>Languages other than C++</h3>
+<p>You do not need to write CUDA C++ to use CUDA. <strong>PyTorch</strong>, <strong>TensorFlow</strong>, and <strong>JAX</strong> are CUDA programs by composition. <strong>CuPy</strong> is NumPy with a CUDA backend. <strong>Numba</strong> compiles a subset of Python to CUDA kernels with a decorator. <strong>Triton</strong> (from OpenAI) offers a Python DSL specifically for writing custom kernels with less ceremony than CUDA C++. For most engineers, the right strategy is: stay high level until profiling shows you cannot, then write CUDA C++ for the hot kernel.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s10">
+<h2><span class="sec-num">§ X.</span> From Datacenter to Dashboard</h2>
+
+<p class="lead dropcap">Most of CUDA was conceived for a card the size of a brick, drawing several hundred watts in a server rack. The same architecture, scaled down and rearranged, now lives in robots, drones, surgical instruments, and the perception domain controllers of contemporary vehicles. Understanding what changes — and what doesn't — between the two settings is essential for anyone shipping CUDA code to an embedded target.</p>
+
+<h3>The Jetson family, in lineage</h3>
+<p>NVIDIA's edge GPU line is the Jetson series. Each generation pairs a CUDA-capable GPU with an Arm CPU complex on a single SoC, with unified memory shared between them. The progression from the original Nano to the current Thor spans roughly four orders of magnitude in compute capacity and three in price, but the programming model is unchanged: you write the same CUDA C++ that runs on an H100, and <code>nvcc</code> targets the appropriate compute capability.</p>
+
+<table>
+<tr><th>Module</th><th>Approx. perf</th><th>Power envelope</th><th>Memory</th><th>Typical use</th></tr>
+<tr><td>Jetson Nano</td><td>~0.5 TFLOPS FP16</td><td>5–10 W</td><td>4 GB LPDDR4</td><td>hobby, light vision</td></tr>
+<tr><td>Orin Nano (8 GB)</td><td>~40 TOPS</td><td>7–15 W</td><td>8 GB LPDDR5</td><td>compact robotics</td></tr>
+<tr><td>Orin NX (16 GB)</td><td>~100 TOPS</td><td>10–25 W</td><td>16 GB LPDDR5</td><td>industrial, drones</td></tr>
+<tr><td>AGX Orin (64 GB)</td><td>~275 TOPS</td><td>15–60 W</td><td>64 GB LPDDR5</td><td>autonomy dev kits</td></tr>
+<tr><td>AGX Thor</td><td>~2,000 TOPS (FP4)</td><td>~130 W</td><td>128 GB LPDDR5X</td><td>next-gen autonomy, humanoids</td></tr>
+<tr><td>DRIVE Orin / Thor</td><td>same silicon, automotive</td><td>same envelope</td><td>same</td><td>production vehicles</td></tr>
+</table>
+
+<p>The DRIVE platform is, broadly, the same silicon as Jetson hardened and certified for automotive use — with ASIL-rated lockstep cores, automotive-grade quality processes, and a software stack (DriveOS, DriveWorks) targeting production vehicle programs rather than research kits. The CUDA portions of your code port between Jetson and DRIVE without modification.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo9" height="400"></canvas></div>
+<div class="controls">
+  <span class="readout" id="d9-readout">click any chip</span>
+</div>
+<figcaption><span class="fignum">Fig. 9.</span> The CUDA hardware spectrum on log–log axes. Edge modules in the lower-left corner; datacenter accelerators in the upper-right. Click any point for specifications. Numbers are approximate; consult the current datasheet for production decisions.</figcaption>
+</figure>
+
+<h3>What changes at the edge</h3>
+<p>Three architectural facts dominate. First, the CPU and GPU share <em>physical memory</em>. There is no PCIe, no <code>cudaMemcpy</code> over a slow bus — instead, both processors address the same DRAM. CUDA still distinguishes host and device pointers conceptually, but with <em>zero-copy</em> or unified-memory allocation the same buffer can be touched by both without a transfer. This changes which optimizations matter: you stop worrying about transfer overhead and start worrying about memory contention between CPU and GPU.</p>
+
+<p>Second, the <em>power envelope</em> is the binding constraint, not silicon area. The Orin Nano can be configured to run at 7 W or 15 W; the same chip delivers very different sustained throughput at each. Profiling on the edge means profiling under the production power mode, not the developer-kit default. <code>nvpmodel</code> on Jetson sets the operating point; <code>tegrastats</code> shows live power, frequency, and utilization.</p>
+
+<p>Third, <em>thermal throttling</em> is real. A kernel that runs in 8 ms on a cool device may run in 14 ms after a minute of sustained load. Production validation must include thermal-soak testing. The corollary is that average-case benchmarks lie; characterize worst-case latency under enclosure-level thermal conditions.</p>
+
+<div class="aside tip">
+<span class="label">Note.</span> The shared-memory architecture also explains why Jetson modules typically ship with relatively modest DRAM — what the GPU has, the CPU has, and 8 GB shared between perception, planning, control, the OS, and ROS nodes is tighter than 8 GB of pure GPU memory on a discrete card. Memory pressure is the most common cause of mysterious slowdowns on these devices.
+</div>
+
+<h3>What stays the same</h3>
+<p>The kernel you wrote in §IV still launches with the same syntax, computes the same result, and uses the same warps, shared memory, and coalescing rules. The libraries — cuBLAS, cuDNN, TensorRT — are present, sometimes in slightly trimmed editions. The toolchain, debugger, and Nsight profilers all run on Jetson. From the source code's point of view, you are writing CUDA; the device's badge is a footnote.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="s11">
+<h2><span class="sec-num">§ XI.</span> Robotics on the GPU</h2>
+
+<p class="lead">Robotics is a stack: sensors, perception, state estimation, planning, control, actuation. CUDA touches each layer differently. Some are obvious GPU work; others are surprising.</p>
+
+<h3>Perception</h3>
+<p>The clearest fit. Cameras produce dense pixel arrays at high frame rate; LiDAR produces hundreds of thousands of points per scan; radar produces range-Doppler tensors. All of these are SIMD problems by construction. Image preprocessing (debayer, undistort, resize, normalize), neural inference (object detection, segmentation, depth estimation), point cloud operations (voxelization, downsampling, ICP) — every step maps cleanly onto the architecture in §I.</p>
+
+<p>The libraries you will actually call: <code>cuDNN</code> for the convolution primitives, <code>TensorRT</code> for whole-network inference, <code>NPP</code> (NVIDIA Performance Primitives) for classical image operations, <code>VPI</code> (Vision Programming Interface) for hardware-accelerated pipelines that mix GPU, ISP, and dedicated vision accelerators on Jetson, and the Isaac ROS GEMs for ROS 2 nodes that wrap CUDA underneath.</p>
+
+<h3>Planning</h3>
+<p>Less obvious but compelling. Sampling-based planners — RRT, RRT*, PRM — are embarrassingly parallel in their candidate generation phase. Modern motion planners (<code>cuRobo</code> from NVIDIA, the Isaac Manipulator stack) batch thousands of candidate trajectories, evaluate them against signed-distance fields stored in GPU memory, and return a feasible plan in single-digit milliseconds. The same strategy underlies <em>MPPI</em> (Model Predictive Path Integral) — sample <em>N</em> control sequences in parallel, simulate them through a dynamics model in parallel, weight by cost, and combine. With <em>N</em> = 1024 or 2048, GPU MPPI runs orders of magnitude faster than a sequential CPU implementation.</p>
+
+<h3>Control</h3>
+<p>Traditionally CPU territory: control loops are sequential by nature, and the data per step is tiny. But two trends bring CUDA in. First, MPC variants with batched rollouts (your active-suspension work, the GP-MPC literature) genuinely benefit from GPU parallelism — the rollout is the cost. Second, neural controllers and learned residuals run as inference workloads even when their outputs feed a classical control loop. The hybrid pattern — classical safety-critical low-level control on a deterministic CPU, with a GPU-resident learned policy contributing setpoints or residuals — is increasingly standard.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo10" height="280"></canvas></div>
+<div class="controls">
+  <label>precision
+    <select id="d10-prec" style="font-family:inherit; font-size:14px; padding: 2px 6px;">
+      <option value="fp32">FP32</option>
+      <option value="fp16" selected>FP16</option>
+      <option value="int8">INT8</option>
+    </select>
+  </label>
+  <label>target rate
+    <select id="d10-rate" style="font-family:inherit; font-size:14px; padding: 2px 6px;">
+      <option value="30">30 Hz (33 ms)</option>
+      <option value="60">60 Hz (16.7 ms)</option>
+      <option value="100">100 Hz (10 ms)</option>
+    </select>
+  </label>
+  <span class="readout" id="d10-readout">total: —</span>
+</div>
+<figcaption><span class="fignum">Fig. 10.</span> A perception-to-decision pipeline budgeted across stages, with the deadline marked. Swap the precision used for inference and watch the bars resize. Lower precision shrinks the inference stage but the fixed I/O stages remain.</figcaption>
+</figure>
+
+<h3>Simulation</h3>
+<p>Worth a separate mention. <em>Isaac Sim</em> and the underlying <em>PhysX</em> physics engine are GPU-accelerated, allowing thousands of robot instances to be simulated in parallel — the foundation of modern reinforcement-learning pipelines for manipulation and locomotion. The same CUDA card that runs your inference at deployment runs your training simulator.</p>
+
+<div class="aside">
+<span class="label">Aside.</span> The split between Isaac (research-facing) and DRIVE (production-vehicle) is partly organizational and partly real: Isaac stresses iteration speed and breadth; DRIVE stresses certifiability and longevity. The CUDA layer beneath both is the same.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s12">
+<h2><span class="sec-num">§ XII.</span> The Inference Pipeline</h2>
+
+<p class="lead">Training a neural network and deploying one are different engineering problems. Training maximizes throughput on huge batches with backpropagation; deployment minimizes latency on a single sample, with no gradients in sight. The deployment side is what most edge engineers actually ship, and it has its own toolchain.</p>
+
+<h3>The road from PyTorch to Orin</h3>
+<p>The standard path has four steps. Train in PyTorch, JAX, or TensorFlow. Export to ONNX, an open intermediate representation. Compile the ONNX graph with <em>TensorRT</em> targeting the deployment GPU's compute capability, producing a serialized <em>engine</em> file. Load the engine at runtime and feed it samples.</p>
+
+<pre data-lang="bash"><span class="c"># 1. train, then export</span>
+$ python export.py --model resnet50.pth --out resnet50.onnx
+
+<span class="c"># 2. build engine for the target device (run ON the device, or with cross-compile)</span>
+$ trtexec --onnx=resnet50.onnx --saveEngine=resnet50.trt --fp16
+
+<span class="c"># 3. INT8 with calibration data</span>
+$ trtexec --onnx=resnet50.onnx --saveEngine=resnet50_int8.trt \
+          --int8 --calib=calib_cache.bin
+</pre>
+
+<h3>What TensorRT actually does</h3>
+<p>The phrase "compiles the graph" understates it. TensorRT performs <em>layer fusion</em> — merging consecutive operations into single kernels (Conv + BN + ReLU becomes one kernel call) — which eliminates the global-memory round trip between layers. It performs <em>kernel auto-tuning</em>: for each layer, it benchmarks several candidate CUDA implementations on the actual target hardware and picks the fastest. It performs <em>precision calibration</em>: given representative input data, it determines per-tensor scaling factors that let INT8 arithmetic approximate the FP32 reference within an acceptable accuracy bound. The output is a binary specific to one GPU architecture; an engine built for Orin will not load on Thor and vice versa.</p>
+
+<h3>Numerical formats</h3>
+<table>
+<tr><th>Format</th><th>Bits</th><th>Use</th><th>Tensor Core support</th></tr>
+<tr><td>FP32</td><td>32</td><td>Training, reference inference</td><td>Limited (Ampere+)</td></tr>
+<tr><td>TF32</td><td>19 effective</td><td>Training (Ampere innovation)</td><td>Native</td></tr>
+<tr><td>BF16</td><td>16</td><td>Training, robust inference</td><td>Native (Ampere+)</td></tr>
+<tr><td>FP16</td><td>16</td><td>Mixed-precision training, inference</td><td>Native (Volta+)</td></tr>
+<tr><td>INT8</td><td>8</td><td>Inference (calibrated)</td><td>Native (Turing+)</td></tr>
+<tr><td>FP8 (E4M3 / E5M2)</td><td>8</td><td>Training and inference (Hopper+)</td><td>Native (Hopper+)</td></tr>
+<tr><td>FP4 / INT4</td><td>4</td><td>Inference (Blackwell+)</td><td>Native (Blackwell)</td></tr>
+</table>
+
+<p>The trade is straightforward: fewer bits means smaller weights, lower memory bandwidth pressure, and higher throughput on Tensor Cores that natively support the format — at some cost in numerical accuracy. The art is finding the precision where accuracy is acceptable and throughput is maximized. For most CNN inference, INT8 is the sweet spot; for transformer inference, FP16 or BF16 remains common, with INT8 and FP8 increasingly used.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo11" height="380"></canvas></div>
+<div class="controls">
+  <label>precision <input type="range" id="d11-bits" min="0" max="3" step="1" value="0"><span class="val" id="d11-bits-v">FP32</span></label>
+  <span class="readout" id="d11-readout">model size: 1.0× · throughput: 1.0× · accuracy: ref</span>
+</div>
+<figcaption><span class="fignum">Fig. 11.</span> Weight distribution under quantization. The continuous FP32 distribution is bucketed into progressively coarser representations. Below: relative model size, throughput, and accuracy delta — typical for a calibrated CNN on Tensor Core hardware.</figcaption>
+</figure>
+
+<h3>PTQ versus QAT</h3>
+<p>Two paths to quantization. <em>Post-Training Quantization</em> (PTQ) takes a trained FP32 model, shows it a few hundred representative inputs, computes activation ranges, and converts to INT8 — minutes of work, accuracy drop usually under 1 % for standard CNNs, occasionally larger for sensitive architectures. <em>Quantization-Aware Training</em> (QAT) inserts fake-quantization nodes during training so the network learns to be robust to the eventual precision loss — more expensive, smaller accuracy drop, often essential for transformers and quantized-from-scratch deployments. Start with PTQ; reach for QAT when accuracy budget demands it.</p>
+
+<div class="aside warn">
+<span class="label">Caveat.</span> The INT8 quantization story on the GPU is closely related but not identical to the INT8 quantized-C export path you have on TriCore. Both rely on per-tensor or per-channel scale factors and zero-points. The GPU side leans on Tensor Core <code>IMMA</code> instructions for the actual INT8 matrix-multiply-accumulate; the embedded side does the multiplication in scalar integer ALUs. Calibration philosophy transfers; kernel implementation does not.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s13">
+<h2><span class="sec-num">§ XIII.</span> Real-Time & the Automotive Split</h2>
+
+<p class="lead">A GPU is fundamentally a throughput device. It maximizes work-per-second by overlapping many concurrent operations, hiding memory latency behind useful arithmetic. This is not naturally compatible with hard real-time deadlines, where the question is not <em>how much</em> work fits in a second but <em>can this exact thing finish before time t</em>.</p>
+
+<h3>Latency versus throughput</h3>
+<p>Throughput-optimized hardware achieves its numbers by deep pipelining and high in-flight work. The cost is variance: any single operation may take longer than the steady-state average, because it might land behind queued work, miss in cache, contend for memory, or trigger driver-side bookkeeping. CPU-side guarantees common in real-time operating systems — bounded interrupt latency, priority inheritance, deterministic context switch — translate poorly to the GPU programming model.</p>
+
+<p>The mitigations CUDA provides are real but partial. <em>Streams</em> let independent work overlap; <em>events</em> let you synchronize between streams without blocking the host; <em>graph capture</em> (<code>cudaGraph</code>) records a complex sequence of kernel launches and replays it as a single submission, eliminating per-launch overhead and making the schedule more predictable. <em>Persistent kernels</em> — kernels that loop indefinitely on the device, polling for work — eliminate launch latency entirely at the cost of an SM permanently committed.</p>
+
+<h3>The architectural split in modern vehicles</h3>
+<p>The pattern that emerged in the production vehicles of the last five years separates concerns by safety integrity. Roughly:</p>
+
+<table>
+<tr><th>Layer</th><th>Hardware</th><th>Workload</th><th>Safety class</th></tr>
+<tr><td>Actuation, motor control</td><td>AURIX TriCore (or similar)</td><td>FOC, torque limiting, brake/steer firmware</td><td>ASIL-D</td></tr>
+<tr><td>Vehicle dynamics, fusion</td><td>Mid-range MCU + dedicated SoC</td><td>State estimation, low-level supervisory</td><td>ASIL-C/D</td></tr>
+<tr><td>Perception, planning</td><td>NVIDIA DRIVE Orin / Thor (or competitor)</td><td>Cameras, LiDAR, NN inference, behaviour</td><td>ASIL-B/C</td></tr>
+<tr><td>Infotainment, in-cabin</td><td>Android-class SoC</td><td>UI, voice, OTA management</td><td>QM (no ASIL)</td></tr>
+</table>
+
+<p>The split is functional, not arbitrary. Hard-deterministic cyclic control — the kind of code you write — stays on processors with deterministic timing, lockstep cores, and certifiable toolchains. Probabilistic perception, where a 99.9th-percentile latency in the tens of milliseconds is acceptable and where compute requirements far exceed what an MCU can supply, moves to GPU-class silicon. Communication between the two travels over deterministic buses (CAN, automotive Ethernet with TSN) with carefully bounded payloads. The GPU is not <em>making</em> the safety decision; it is informing one.</p>
+
+<figure class="demo">
+<div class="canvas-wrap"><canvas id="demo12" height="380"></canvas></div>
+<div class="controls">
+  <label>loop rate
+    <select id="d12-rate" style="font-family:inherit; font-size:14px; padding: 2px 6px;">
+      <option value="100">100 Hz (10.0 ms)</option>
+      <option value="200">200 Hz (5.0 ms)</option>
+      <option value="500" selected>500 Hz (2.0 ms)</option>
+      <option value="1000">1 kHz (1.0 ms)</option>
+      <option value="10000">10 kHz (100 µs)</option>
+    </select>
+  </label>
+  <span class="readout" id="d12-readout">budget: 2.0 ms</span>
+</div>
+<figcaption><span class="fignum">Fig. 12.</span> A control-loop budget. Set the target rate and toggle operations into the loop; the bar fills against the deadline. Green = comfortable margin, amber = tight, red = misses deadline. Costs are illustrative for an Orin-class SoC.</figcaption>
+</figure>
+
+<h3>Alternative edge accelerators</h3>
+<p>CUDA dominates because its software stack — toolkit, libraries, frameworks, training pipeline — is unmatched, not because the underlying hardware is uniquely capable. The competitive landscape:</p>
+
+<p><strong>Hailo</strong> (Hailo-8, Hailo-15) — pure inference accelerators, very high TOPS-per-watt, no general-purpose programmability, framework integration via their own SDK and ONNX. Excellent fit when the workload is fixed inference of standard architectures.</p>
+
+<p><strong>Qualcomm</strong> — the Snapdragon Ride and Snapdragon Cockpit families ship with dedicated NPUs alongside Adreno GPUs, primarily targeting the same automotive niches as DRIVE.</p>
+
+<p><strong>AMD / Xilinx Versal</strong> — adaptive SoCs combining Arm cores, FPGA fabric, and AI engines. The flexibility cuts both ways: extraordinary at custom dataflows, harder to program than CUDA.</p>
+
+<p><strong>Intel Movidius / Habana</strong> — Movidius chips at the milliwatt edge, Gaudi at the datacenter side; the middle is thin.</p>
+
+<p><strong>Google Edge TPU</strong> — small, cheap, INT8-only, locked to TensorFlow Lite. Fine for fixed pipelines, restrictive for research.</p>
+
+<p><strong>Apple Neural Engine, ARM Ethos</strong> — embedded NPUs increasingly standard in consumer SoCs; relevant if your robot ships on a phone-class platform.</p>
+
+<div class="aside tip">
+<span class="label">Engineering choice.</span> Pick the accelerator that matches your software trajectory, not the one with the highest spec-sheet TOPS. A 50 TOPS device with a mature compiler and the libraries you need beats a 200 TOPS device whose toolchain you will spend a year fighting.
+</div>
+</section>
+
+<!-- ============================================ -->
+<section id="s14">
+<h2><span class="sec-num">§ XIV.</span> Practice & Further Reading</h2>
+
+<p class="lead">A short discipline of habits will save you weeks of confusion. Adopt them early.</p>
+
+<h3>Habits worth forming</h3>
+<p><em>Always check return codes</em>. A macro <code>CUDA_CHECK(call)</code> that wraps every runtime call and aborts with file/line on error is non-negotiable in real code. Kernel launches are checked with <code>cudaGetLastError()</code> immediately after the launch and <code>cudaDeviceSynchronize()</code> if you want to surface asynchronous failures.</p>
+
+<p><em>Profile before optimizing</em>. Every CUDA programmer's first instinct on a slow kernel is wrong. Run Nsight Compute. Read the occupancy section, the memory section, and the stall reasons. Optimize what the profiler says is the bottleneck, not what your intuition fingers.</p>
+
+<p><em>Validate against a CPU reference</em>. The best CUDA kernel is the one whose output matches a slow, correct CPU implementation to within floating-point tolerance. Write that CPU version and keep it as a test.</p>
+
+<p><em>Build small, then scale</em>. Get the kernel correct on N=64 with one block of 32 threads. Then scale the data, then the launch configuration. Bugs in CUDA at full scale are excruciating to localize.</p>
+
+<p><em>Keep launch parameters configurable</em>. Block size and grid size should be variables, not magic numbers. The optimum varies by GPU; let your code adapt.</p>
+
+<div class="aside warn">
+<span class="label">Common pitfalls.</span> Forgetting to check kernel launch errors and chasing a phantom data bug. Mixing host and device pointers. Using <code>printf</code> from a kernel without flushing or running fewer threads than expected — printf works on device, but is rate-limited. Calling <code>cudaDeviceSynchronize()</code> in a tight loop and wondering why nothing overlaps. Allocating in <code>cudaMallocManaged</code> for benchmarking and reporting "fast" numbers that are really first-touch page migrations.
+</div>
+
+<h3>A learning path</h3>
+<p>For the engineer with C and parallelism background, a workable order: write vector-add until launch configuration and indexing feel automatic; write a reduction (sum of N floats) and learn warp shuffles; write the tiled matmul above and compare against <code>cuBLAS</code>; profile something realistic with Nsight Compute and read every metric until you understand it; pick a real project — a finite-difference solver, a small inference engine, an image filter — and ship it.</p>
+
+<hr class="fleuron">
+
+<h3 class="refs-title">References</h3>
+<div class="refs">
+<ol>
+<li><span class="auth">NVIDIA Corporation.</span> <em>CUDA C++ Programming Guide</em>. The canonical reference, updated per CUDA release. <a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">docs.nvidia.com/cuda/cuda-c-programming-guide</a>.</li>
+<li><span class="auth">NVIDIA Corporation.</span> <em>CUDA C++ Best Practices Guide</em>. The companion volume to the Programming Guide, focused on performance. <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/">docs.nvidia.com/cuda/cuda-c-best-practices-guide</a>.</li>
+<li><span class="auth">Kirk, D. B., and Hwu, W. W.</span> <em>Programming Massively Parallel Processors: A Hands-On Approach</em>, 4th ed., Morgan Kaufmann, 2022. The standard textbook; chapters on tiling and reduction repay rereading.</li>
+<li><span class="auth">Sanders, J., and Kandrot, E.</span> <em>CUDA by Example: An Introduction to General-Purpose GPU Programming</em>, Addison-Wesley, 2010. Older but still the gentlest starting point.</li>
+<li><span class="auth">Cheng, J., Grossman, M., and McKercher, T.</span> <em>Professional CUDA C Programming</em>, Wrox, 2014. Strong on the runtime, streams, and multi-GPU.</li>
+<li><span class="auth">NVIDIA Developer Blog.</span> <em>An Even Easier Introduction to CUDA</em>, by Mark Harris. <a href="https://developer.nvidia.com/blog/even-easier-introduction-cuda/">developer.nvidia.com/blog/even-easier-introduction-cuda</a>.</li>
+<li><span class="auth">NVIDIA.</span> <em>Nsight Systems</em> and <em>Nsight Compute</em> documentation and training videos. <a href="https://developer.nvidia.com/nsight-compute">developer.nvidia.com/nsight-compute</a>.</li>
+<li><span class="auth">Tillet, P., Kung, H. T., Cox, D.</span> <em>Triton: An Intermediate Language and Compiler for Tiled Neural Network Computations</em>. MAPL 2019. The motivation behind Triton, useful context if you intend to escape CUDA C++.</li>
+<li><span class="auth">Volkov, V.</span> <em>Better Performance at Lower Occupancy</em>, GTC 2010. The classic counter-argument to the occupancy-as-goal mindset.</li>
+<li><span class="auth">Harris, M.</span> <em>Optimizing Parallel Reduction in CUDA</em>, NVIDIA technical report. The seven-version tour through reduction optimization is required reading.</li>
+<li><span class="auth">NVIDIA Corporation.</span> <em>Jetson Developer Documentation</em> and <em>NVIDIA DRIVE Documentation</em>. Hardware datasheets, power-mode references, JetPack release notes. <a href="https://developer.nvidia.com/embedded/develop/hardware">developer.nvidia.com/embedded</a>.</li>
+<li><span class="auth">NVIDIA Corporation.</span> <em>TensorRT Developer Guide</em>. The deployment-side companion to the Programming Guide; covers engine building, calibration, layer fusion, and the Python/C++ APIs. <a href="https://docs.nvidia.com/deeplearning/tensorrt/">docs.nvidia.com/deeplearning/tensorrt</a>.</li>
+<li><span class="auth">NVIDIA Corporation.</span> <em>Isaac ROS Documentation</em> and <em>cuRobo: CUDA-Accelerated Robot Library</em>. Reference implementations for GPU-accelerated perception and manipulation. <a href="https://nvidia-isaac-ros.github.io/">nvidia-isaac-ros.github.io</a>.</li>
+<li><span class="auth">Williams, G., Drews, P., Goldfain, B., Rehg, J. M., Theodorou, E. A.</span> <em>Aggressive Driving with Model Predictive Path Integral Control</em>, ICRA 2016. The reference application of GPU-batched MPPI to vehicle control.</li>
+<li><span class="auth">Jacob, B., et al.</span> <em>Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference</em>, CVPR 2018. The PTQ formulation underlying TensorRT INT8 calibration.</li>
+<li><span class="auth">Krishnamoorthi, R.</span> <em>Quantizing deep convolutional networks for efficient inference: A whitepaper</em>, 2018. Practical PTQ vs QAT guidance.</li>
+<li><span class="auth">ISO.</span> <em>ISO 26262: Road vehicles — Functional safety</em>. The ASIL framework referenced in §XIII; required reading for any production automotive software role.</li>
+</ol>
+</div>
+
+</section>
+
+<footer>
+A primer in the parallel arts.<br>
+<span class="colophon">Set in EB Garamond &amp; Cormorant Garamond · Code in JetBrains Mono</span>
+</footer>
+
+</main>
+
+<script>
+//==================================================
+//  Demo 1: CPU vs GPU parallel execution
+//==================================================
+(function(){
+  const c = document.getElementById('demo1');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+  fit(); window.addEventListener('resize', () => { fit(); draw(); });
+
+  const W = () => c.clientWidth, H = () => c.clientHeight;
+  const CPU_CORES = 8;
+  const GPU_LANES = 64;     // visible lanes; "morally" hundreds
+  let work = 256;
+  let running = false;
+  let cpuDone = 0, gpuDone = 0;
+  let cpuT = 0, gpuT = 0;
+  let cpuFinished = null, gpuFinished = null;
+  let cpuCells = [], gpuCells = [];
+  let lastTs = 0;
+
+  function init(){
+    cpuDone = 0; gpuDone = 0; cpuT = 0; gpuT = 0;
+    cpuFinished = gpuFinished = null;
+    cpuCells = Array.from({length: work}, () => 0);
+    gpuCells = Array.from({length: work}, () => 0);
+    draw();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    // panels
+    const panelW = (W() - 60) / 2;
+    drawPanel(20, 20, panelW, H()-40, 'CPU · 8 cores', cpuCells, CPU_CORES, '#a83e1c', cpuT);
+    drawPanel(40 + panelW, 20, panelW, H()-40, 'GPU · ' + GPU_LANES + ' lanes', gpuCells, GPU_LANES, '#4a6e2a', gpuT);
+  }
+
+  function drawPanel(x,y,w,h,label,cells,cores,color,t){
+    // border
+    ctx.strokeStyle = '#cdbf9e';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+0.5, y+0.5, w, h);
+
+    ctx.font = '600 13px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText(label.toUpperCase(), x+12, y+22);
+    ctx.font = 'italic 11px "Cormorant Garamond"';
+    ctx.fillStyle = '#6e604c';
+    ctx.fillText('time: ' + t.toFixed(1) + ' u', x+w - 90, y+22);
+
+    // cells grid
+    const padX = 12, padY = 36, padB = 10;
+    const gx = x + padX, gy = y + padY;
+    const gw = w - 2*padX, gh = h - padY - padB;
+    const n = cells.length;
+    const cols = Math.ceil(Math.sqrt(n * gw/gh));
+    const rows = Math.ceil(n / cols);
+    const cw = gw / cols, ch = gh / rows;
+
+    for (let i = 0; i < n; i++){
+      const r = Math.floor(i/cols), col = i % cols;
+      const cx = gx + col*cw, cy = gy + r*ch;
+      const v = cells[i];
+      // base
+      ctx.fillStyle = '#ebe2c8';
+      ctx.fillRect(cx+0.5, cy+0.5, cw-1.5, ch-1.5);
+      if (v > 0){
+        ctx.fillStyle = color;
+        ctx.globalAlpha = Math.min(1, v);
+        ctx.fillRect(cx+0.5, cy+0.5, cw-1.5, ch-1.5);
+        ctx.globalAlpha = 1;
+      }
+    }
+    // active cores indicator at bottom
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillStyle = '#6e604c';
+    const done = cells.filter(v => v >= 1).length;
+    ctx.fillText(done + ' / ' + n + ' done', x+12, y+h-12);
+  }
+
+  function step(dt){
+    if (!running) return;
+    // CPU: 8 cells advance per "second"
+    if (cpuDone < work){
+      cpuT += dt;
+      const speed = 0.8;  // each cell takes 1.25s/8core = ~0.156s, slow
+      const advance = CPU_CORES * speed * dt;
+      let pending = advance;
+      for (let i = 0; i < work && pending > 0; i++){
+        if (cpuCells[i] < 1){
+          const give = Math.min(1 - cpuCells[i], pending);
+          cpuCells[i] += give;
+          pending -= give;
+        }
+      }
+      cpuDone = cpuCells.filter(v => v >= 1).length;
+      if (cpuDone >= work) { cpuFinished = cpuT; }
+    }
+    // GPU: 64 cells advance per second, each lane slower per-cell but many at once
+    if (gpuDone < work){
+      gpuT += dt;
+      const speed = 0.45; // each lane slower than a CPU core
+      const advance = GPU_LANES * speed * dt;
+      let pending = advance;
+      for (let i = 0; i < work && pending > 0; i++){
+        if (gpuCells[i] < 1){
+          const give = Math.min(1 - gpuCells[i], pending);
+          gpuCells[i] += give;
+          pending -= give;
+        }
+      }
+      gpuDone = gpuCells.filter(v => v >= 1).length;
+      if (gpuDone >= work) { gpuFinished = gpuT; }
+    }
+    if (cpuDone >= work && gpuDone >= work){
+      running = false;
+      const ratio = (cpuFinished / gpuFinished).toFixed(1);
+      readout.textContent = 'CPU ' + cpuFinished.toFixed(1) + 'u · GPU ' + gpuFinished.toFixed(1) + 'u · ' + ratio + '× faster';
+    } else {
+      readout.textContent = 'CPU ' + cpuDone + '/' + work + ' · GPU ' + gpuDone + '/' + work;
+    }
+    draw();
+  }
+
+  function loop(ts){
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min(0.06, (ts - lastTs)/1000);
+    lastTs = ts;
+    step(dt);
+    if (running) requestAnimationFrame(loop);
+  }
+
+  const readout = document.getElementById('d1-readout');
+  document.getElementById('d1-work').addEventListener('input', e => {
+    work = +e.target.value;
+    document.getElementById('d1-work-v').textContent = work;
+    init();
+  });
+  document.getElementById('d1-run').addEventListener('click', () => {
+    if (running) return;
+    init();
+    running = true;
+    lastTs = 0;
+    requestAnimationFrame(loop);
+  });
+  document.getElementById('d1-reset').addEventListener('click', () => {
+    running = false; init(); readout.textContent = 'idle';
+  });
+  init();
+})();
+
+//==================================================
+//  Demo 2: Thread hierarchy explorer
+//==================================================
+(function(){
+  const c = document.getElementById('demo2');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  let gx=3, gy=3, bx=4, by=4;
+  let sel = {bx: 1, by: 1, tx: 2, ty: 1};
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const gridW = W() - pad*2;
+    const gridH = H() - pad*2;
+    const blockW = gridW / gx;
+    const blockH = gridH / gy;
+
+    for (let by_ = 0; by_ < gy; by_++){
+      for (let bx_ = 0; bx_ < gx; bx_++){
+        const x0 = pad + bx_*blockW;
+        const y0 = pad + by_*blockH;
+        // block bg
+        ctx.fillStyle = '#ebe2c8';
+        ctx.fillRect(x0+2, y0+2, blockW-4, blockH-4);
+        // threads inside block
+        const tw = (blockW-8) / bx;
+        const th = (blockH-8) / by;
+        for (let ty_ = 0; ty_ < by; ty_++){
+          for (let tx_ = 0; tx_ < bx; tx_++){
+            const tx0 = x0+4 + tx_*tw;
+            const ty0 = y0+4 + ty_*th;
+            const isSel = (bx_===sel.bx && by_===sel.by && tx_===sel.tx && ty_===sel.ty);
+            if (isSel){
+              ctx.fillStyle = '#a83e1c';
+            } else {
+              // gentle gradient by block
+              const hue = (bx_*7 + by_*13) % 60;
+              ctx.fillStyle = 'hsl(' + (90 + hue) + ', 28%, 62%)';
+            }
+            ctx.fillRect(tx0+1, ty0+1, tw-2, th-2);
+          }
+        }
+        // block outline
+        ctx.strokeStyle = '#3a3127';
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(x0+1.5, y0+1.5, blockW-3, blockH-3);
+      }
+    }
+    // grid outline
+    ctx.strokeStyle = '#1c1814';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pad-1, pad-1, gridW+2, gridH+2);
+
+    // labels for selected
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('grid: ' + gx + '×' + gy + ' blocks · block: ' + bx + '×' + by + ' threads', pad, 14);
+  }
+
+  c.addEventListener('click', (e) => {
+    const rect = c.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    const pad = 24;
+    const blockW = (W()-pad*2)/gx, blockH = (H()-pad*2)/gy;
+    const bx_ = Math.floor((cx-pad)/blockW);
+    const by_ = Math.floor((cy-pad)/blockH);
+    if (bx_ < 0 || bx_ >= gx || by_ < 0 || by_ >= gy) return;
+    const tw = (blockW-8)/bx, th = (blockH-8)/by;
+    const localX = cx - (pad + bx_*blockW + 4);
+    const localY = cy - (pad + by_*blockH + 4);
+    const tx_ = Math.max(0, Math.min(bx-1, Math.floor(localX/tw)));
+    const ty_ = Math.max(0, Math.min(by-1, Math.floor(localY/th)));
+    sel = {bx: bx_, by: by_, tx: tx_, ty: ty_};
+    draw();
+    updateReadout();
+  });
+
+  function updateReadout(){
+    const globalX = sel.bx * bx + sel.tx;
+    const globalY = sel.by * by + sel.ty;
+    const flatIdx = globalY * (gx*bx) + globalX;
+    document.getElementById('d2-readout').innerHTML =
+      'blockIdx=(' + sel.bx + ',' + sel.by + ') · threadIdx=(' + sel.tx + ',' + sel.ty + ') · ' +
+      'global=(' + globalX + ',' + globalY + ') · flat=' + flatIdx;
+  }
+
+  ['gx','gy','bx','by'].forEach(k => {
+    const el = document.getElementById('d2-'+k);
+    const val = document.getElementById('d2-'+k+'-v');
+    el.addEventListener('input', e => {
+      const v = +e.target.value;
+      if (k==='gx') gx=v; if (k==='gy') gy=v;
+      if (k==='bx') bx=v; if (k==='by') by=v;
+      val.textContent = v;
+      sel.bx = Math.min(sel.bx, gx-1);
+      sel.by = Math.min(sel.by, gy-1);
+      sel.tx = Math.min(sel.tx, bx-1);
+      sel.ty = Math.min(sel.ty, by-1);
+      draw(); updateReadout();
+    });
+  });
+  fit();
+  window.addEventListener('resize', fit);
+  updateReadout();
+})();
+
+//==================================================
+//  Demo 3: Vector add walkthrough
+//==================================================
+(function(){
+  const c = document.getElementById('demo3');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  let N = 32, B = 8;
+  let A = [], Bv = [], C = [];
+  let activeBlock = -1;
+  let playing = false;
+  function init(){
+    A = Array.from({length: N}, (_,i) => i+1);
+    Bv = Array.from({length: N}, (_,i) => (i+1)*2);
+    C  = Array.from({length: N}, () => null);
+    activeBlock = -1;
+    draw();
+  }
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 18;
+    const cellW = (W() - pad*2) / N;
+    const rowH = 50;
+    const labelW = 60;
+    const startX = pad;
+    const yA = 20, yB = yA + rowH, yC = yB + rowH;
+
+    // labels
+    ctx.font = 'italic 14px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('A', 4, yA + 28);
+    ctx.fillText('B', 4, yB + 28);
+    ctx.fillText('C', 4, yC + 28);
+
+    // block boundaries (highlight active block)
+    const numBlocks = Math.ceil(N/B);
+    for (let b = 0; b < numBlocks; b++){
+      const x0 = startX + b*B*cellW;
+      const w = Math.min(B*cellW, (N - b*B)*cellW);
+      if (b === activeBlock){
+        ctx.fillStyle = 'rgba(74,110,42,0.15)';
+        ctx.fillRect(x0, yA-6, w, rowH*3+12);
+      }
+      // block border
+      ctx.strokeStyle = (b === activeBlock) ? '#4a6e2a' : '#cdbf9e';
+      ctx.lineWidth = (b === activeBlock) ? 2 : 1;
+      ctx.strokeRect(x0+0.5, yA-6.5, w, rowH*3+12);
+      // block label
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.fillStyle = (b === activeBlock) ? '#355019' : '#6e604c';
+      ctx.fillText('block ' + b, x0+4, yA-10);
+    }
+
+    // cells
+    function drawRow(arr, y, color){
+      for (let i = 0; i < N; i++){
+        const x = startX + i*cellW;
+        ctx.fillStyle = '#ebe2c8';
+        ctx.fillRect(x+1, y+1, cellW-2, rowH-8);
+        if (arr[i] !== null){
+          ctx.fillStyle = color;
+          ctx.fillRect(x+1, y+1, cellW-2, rowH-8);
+        }
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.fillStyle = arr[i] !== null ? '#f3ecd9' : '#6e604c';
+        const v = arr[i] === null ? '·' : arr[i];
+        ctx.fillText(String(v), x+cellW/2 - 4, y + rowH/2 + 2);
+        ctx.strokeStyle = '#cdbf9e';
+        ctx.strokeRect(x+0.5, y+0.5, cellW-1, rowH-9);
+      }
+    }
+    drawRow(A, yA, '#245766');
+    drawRow(Bv, yB, '#b6862c');
+    drawRow(C, yC, '#4a6e2a');
+  }
+
+  function step(){
+    if (activeBlock < Math.ceil(N/B) - 1){
+      activeBlock++;
+      const start = activeBlock * B;
+      const end = Math.min(start + B, N);
+      for (let i = start; i < end; i++) C[i] = A[i] + Bv[i];
+      draw();
+    }
+  }
+
+  document.getElementById('d3-step').addEventListener('click', () => { playing = false; step(); });
+  document.getElementById('d3-reset').addEventListener('click', () => { playing = false; init(); });
+  document.getElementById('d3-play').addEventListener('click', () => {
+    playing = true;
+    const tick = () => {
+      if (!playing) return;
+      if (activeBlock >= Math.ceil(N/B)-1){ playing = false; return; }
+      step();
+      setTimeout(tick, 600);
+    };
+    tick();
+  });
+  document.getElementById('d3-n').addEventListener('input', e => {
+    N = +e.target.value;
+    document.getElementById('d3-n-v').textContent = N;
+    init();
+  });
+  document.getElementById('d3-b').addEventListener('input', e => {
+    B = +e.target.value;
+    document.getElementById('d3-b-v').textContent = B;
+    init();
+  });
+  fit();
+  window.addEventListener('resize', fit);
+  init();
+})();
+
+//==================================================
+//  Demo 4: Memory hierarchy
+//==================================================
+(function(){
+  const c = document.getElementById('demo4');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  const tiers = [
+    {name:'Register', cycles:'~1', size:'≤255 / thread', scope:'thread', color:'#4a6e2a',
+     desc:'Private to one thread. Holds local variables. Fastest, smallest, anonymous — the compiler decides.'},
+    {name:'Shared memory', cycles:'~20–30', size:'48–96 KB / block', scope:'block', color:'#5a8c4a',
+     desc:'On-chip SRAM, declared __shared__. The basis of tiling. Threads in a block can synchronize and exchange data.'},
+    {name:'L1 / Texture cache', cycles:'~30', size:'128 KB / SM', scope:'SM', color:'#7aa05f',
+     desc:'Hardware-managed cache for global loads. Often shares the same SRAM as shared memory.'},
+    {name:'L2 cache', cycles:'~200', size:'4–60 MB / device', scope:'device', color:'#b6862c',
+     desc:'On-chip device-wide cache between SMs and DRAM. Helps when warps re-read recently-touched data.'},
+    {name:'Global / DRAM', cycles:'~400–800', size:'8–80 GB', scope:'device', color:'#a83e1c',
+     desc:'Off-chip device DRAM. The cudaMalloc pool. High bandwidth, high latency. Coalescing matters here.'},
+    {name:'Host (system RAM)', cycles:'~10,000+', size:'system', scope:'host', color:'#6e604c',
+     desc:'CPU memory. Reachable only via PCIe / NVLink. Use cudaMallocHost for pinned, faster transfers.'},
+  ];
+  let sel = 1;
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 20;
+    const top = 30, bot = H() - 130;
+    const totalH = bot - top;
+    const n = tiers.length;
+    const baseW = W() - pad*2;
+
+    for (let i = 0; i < n; i++){
+      const w = 80 + (baseW - 80) * (i/(n-1));
+      const x = (W() - w) / 2;
+      const y = top + (totalH/n) * i;
+      const h = totalH/n - 4;
+      ctx.fillStyle = tiers[i].color;
+      ctx.globalAlpha = (i === sel) ? 1 : 0.55;
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+      // label
+      ctx.font = (i===sel ? '600 ' : '') + '13px "Cormorant Garamond"';
+      ctx.fillStyle = '#f3ecd9';
+      ctx.fillText(tiers[i].name + '  ·  ' + tiers[i].cycles + ' cycles', x+10, y+h/2+4);
+      // outline if selected
+      if (i === sel){
+        ctx.strokeStyle = '#1c1814';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x-1, y-1, w+2, h+2);
+      }
+    }
+
+    // arrows
+    ctx.font = 'italic 12px "Cormorant Garamond"';
+    ctx.fillStyle = '#6e604c';
+    ctx.fillText('faster, smaller', pad, 20);
+    ctx.fillText('slower, larger', pad, bot+18);
+
+    // detail panel
+    const t = tiers[sel];
+    const panelY = bot + 26;
+    ctx.fillStyle = '#ebe2c8';
+    ctx.fillRect(pad, panelY, W()-pad*2, 90);
+    ctx.strokeStyle = t.color; ctx.lineWidth = 2;
+    ctx.strokeRect(pad+0.5, panelY+0.5, W()-pad*2, 90);
+    ctx.font = '600 14px "Cormorant Garamond"';
+    ctx.fillStyle = '#1c1814';
+    ctx.fillText(t.name + ' — ' + t.size + ' · scope: ' + t.scope, pad+12, panelY+22);
+    ctx.font = '13px "EB Garamond"';
+    ctx.fillStyle = '#3a3127';
+    wrapText(ctx, t.desc, pad+12, panelY+44, W()-pad*2 - 24, 17);
+  }
+
+  function wrapText(ctx, text, x, y, maxW, lineH){
+    const words = text.split(' ');
+    let line = '', cy = y;
+    for (let w of words){
+      const test = line + (line?' ':'') + w;
+      if (ctx.measureText(test).width > maxW){
+        ctx.fillText(line, x, cy);
+        line = w; cy += lineH;
+      } else line = test;
+    }
+    if (line) ctx.fillText(line, x, cy);
+  }
+
+  c.addEventListener('click', e => {
+    const rect = c.getBoundingClientRect();
+    const cy = e.clientY - rect.top;
+    const pad = 20;
+    const top = 30, bot = H() - 130;
+    const totalH = bot - top;
+    const n = tiers.length;
+    if (cy >= top && cy <= bot){
+      sel = Math.min(n-1, Math.max(0, Math.floor((cy - top) / (totalH/n))));
+      draw();
+    }
+  });
+  fit(); window.addEventListener('resize', fit);
+})();
+
+//==================================================
+//  Demo 5: Warp divergence
+//==================================================
+(function(){
+  const c = document.getElementById('demo5');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  const W_SIZE = 32;
+  let mask = []; // 1 = takes if-path, 0 = takes else
+  let phase = 0; // 0 idle, 1 running if, 2 running else, 3 done
+  let progress = 0;
+  let divPct = 40;
+  function rebuildMask(){
+    mask = Array.from({length: W_SIZE}, () => Math.random()*100 < divPct ? 1 : 0);
+  }
+  rebuildMask();
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const cellW = (W() - pad*2) / W_SIZE;
+    const yT = 60, h = 38;
+    // 32 thread cells
+    for (let i = 0; i < W_SIZE; i++){
+      const x = pad + i*cellW;
+      // base
+      ctx.fillStyle = '#ebe2c8';
+      ctx.fillRect(x+1, yT, cellW-2, h);
+      let active = false, color = null;
+      if (phase === 1 && mask[i] === 1) { active = true; color = '#4a6e2a'; }
+      if (phase === 2 && mask[i] === 0) { active = true; color = '#a83e1c'; }
+      if (phase === 3) { active = true; color = mask[i] === 1 ? '#4a6e2a' : '#a83e1c'; }
+      if (active){
+        ctx.fillStyle = color;
+        ctx.fillRect(x+1, yT, cellW-2, h);
+      }
+      ctx.strokeStyle = '#cdbf9e';
+      ctx.strokeRect(x+0.5, yT-0.5, cellW-1, h+1);
+      // thread number
+      ctx.font = '9px "JetBrains Mono"';
+      ctx.fillStyle = active ? '#f3ecd9' : '#6e604c';
+      ctx.fillText(String(i), x + cellW/2 - 4, yT + h/2 + 3);
+    }
+    // labels
+    ctx.font = 'italic 13px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('warp of 32 threads', pad, 28);
+    let ph = 'idle';
+    if (phase === 1) ph = 'executing IF path · ELSE-takers idle';
+    if (phase === 2) ph = 'executing ELSE path · IF-takers idle';
+    if (phase === 3) ph = 'complete';
+    ctx.font = '14px "Cormorant Garamond"';
+    ctx.fillStyle = '#1c1814';
+    ctx.fillText(ph, pad, 50);
+
+    // timeline below
+    const tlY = yT + h + 30;
+    const tlH = 26;
+    ctx.font = '12px "Cormorant Garamond"';
+    ctx.fillStyle = '#6e604c';
+    ctx.fillText('execution timeline', pad, tlY-8);
+
+    const tlW = W() - pad*2;
+    const ifTakers = mask.filter(v => v).length;
+    const elseTakers = W_SIZE - ifTakers;
+    // serial timeline: full warp time for if path, then full warp time for else path
+    const halfW = tlW/2;
+    // IF segment
+    ctx.fillStyle = ifTakers > 0 ? '#4a6e2a' : '#cdbf9e';
+    ctx.fillRect(pad, tlY, halfW-2, tlH);
+    ctx.fillStyle = '#f3ecd9';
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillText('IF · ' + ifTakers + ' active / ' + elseTakers + ' idle', pad+8, tlY+17);
+    // ELSE segment
+    ctx.fillStyle = elseTakers > 0 ? '#a83e1c' : '#cdbf9e';
+    ctx.fillRect(pad+halfW+2, tlY, halfW-2, tlH);
+    ctx.fillStyle = '#f3ecd9';
+    ctx.fillText('ELSE · ' + elseTakers + ' active / ' + ifTakers + ' idle', pad+halfW+10, tlY+17);
+
+    // cost: 2x if any divergence
+    const cost = (ifTakers === 0 || elseTakers === 0) ? 1 : 2;
+    document.getElementById('d5-readout').textContent = 'cost: ' + cost + '× baseline';
+  }
+
+  document.getElementById('d5-d').addEventListener('input', e => {
+    divPct = +e.target.value;
+    document.getElementById('d5-d-v').textContent = divPct + '%';
+    phase = 0;
+    rebuildMask();
+    draw();
+  });
+  document.getElementById('d5-run').addEventListener('click', () => {
+    phase = 1; draw();
+    setTimeout(() => { phase = 2; draw(); }, 900);
+    setTimeout(() => { phase = 3; draw(); }, 1800);
+  });
+  document.getElementById('d5-reset').addEventListener('click', () => {
+    phase = 0; rebuildMask(); draw();
+  });
+  fit(); window.addEventListener('resize', fit);
+  draw();
+})();
+
+//==================================================
+//  Demo 6: Memory coalescing
+//==================================================
+(function(){
+  const c = document.getElementById('demo6');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+  const NTHREADS = 16;
+  const NWORDS = 64;
+  const SEGSIZE = 8;     // words per memory transaction segment
+  let pat = 'coalesced';
+
+  function pattern(){
+    const addrs = [];
+    if (pat === 'coalesced') for (let i = 0; i < NTHREADS; i++) addrs.push(i);
+    else if (pat === 'strided2') for (let i = 0; i < NTHREADS; i++) addrs.push(i*2);
+    else if (pat === 'strided8') for (let i = 0; i < NTHREADS; i++) addrs.push(i*4 % NWORDS);
+    else if (pat === 'random') {
+      const seen = new Set();
+      while(addrs.length < NTHREADS){
+        const v = Math.floor(Math.random()*NWORDS);
+        addrs.push(v);
+      }
+    }
+    return addrs;
+  }
+  let addrs = pattern();
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 22;
+    const wordW = (W() - pad*2)/NWORDS;
+    // memory bar
+    const memY = 60, memH = 38;
+    // segment shading
+    const segs = new Set(addrs.map(a => Math.floor(a/SEGSIZE)));
+    const segColors = ['#4a6e2a','#b6862c','#245766','#a83e1c','#7aa05f','#5a4f3f','#c8d8a7','#e9c4b3'];
+    let scIdx = 0;
+    const segMap = {};
+    [...segs].sort((a,b)=>a-b).forEach(s => { segMap[s] = segColors[scIdx++ % segColors.length]; });
+    // draw words
+    for (let i = 0; i < NWORDS; i++){
+      const x = pad + i*wordW;
+      const seg = Math.floor(i/SEGSIZE);
+      const accessed = addrs.includes(i);
+      ctx.fillStyle = segs.has(seg) ? segMap[seg]+'40' : '#ebe2c8';
+      ctx.fillRect(x+0.5, memY, wordW-1, memH);
+      if (accessed){
+        ctx.fillStyle = segMap[seg];
+        ctx.fillRect(x+0.5, memY, wordW-1, memH);
+      }
+      ctx.strokeStyle = '#cdbf9e';
+      ctx.strokeRect(x+0.5, memY-0.5, wordW-1, memH+1);
+    }
+    // segment dividers
+    for (let s = 0; s <= NWORDS/SEGSIZE; s++){
+      const x = pad + s*SEGSIZE*wordW;
+      ctx.strokeStyle = '#3a3127';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x, memY-4);
+      ctx.lineTo(x, memY+memH+4);
+      ctx.stroke();
+    }
+    // labels
+    ctx.font = 'italic 13px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('global memory · 8-word transaction segments', pad, 28);
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillStyle = '#6e604c';
+    ctx.fillText('addr →', pad, memY+memH+20);
+
+    // 16 threads with arrows to their addresses
+    const threadY = H() - 50;
+    const threadW = (W() - pad*2)/NTHREADS;
+    for (let i = 0; i < NTHREADS; i++){
+      const tx = pad + i*threadW;
+      const addr = addrs[i];
+      const ax = pad + addr*wordW + wordW/2;
+      const seg = Math.floor(addr/SEGSIZE);
+      const color = segMap[seg];
+      // arrow line
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(tx + threadW/2, threadY - 4);
+      ctx.lineTo(ax, memY + memH + 6);
+      ctx.stroke();
+      // thread cell
+      ctx.fillStyle = color;
+      ctx.fillRect(tx+2, threadY-2, threadW-4, 18);
+      ctx.font = '9px "JetBrains Mono"';
+      ctx.fillStyle = '#f3ecd9';
+      ctx.fillText('t'+i, tx + threadW/2 - 6, threadY+10);
+    }
+    document.getElementById('d6-readout').textContent = 'transactions: ' + segs.size;
+  }
+  document.getElementById('d6-pat').addEventListener('change', e => {
+    pat = e.target.value;
+    addrs = pattern();
+    draw();
+  });
+  fit(); window.addEventListener('resize', fit); draw();
+})();
+
+//==================================================
+//  Demo 7: Tiled matmul
+//==================================================
+(function(){
+  const c = document.getElementById('demo7');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  const N = 8;
+  const TILE = 4;
+  const numTiles = N/TILE;
+  // we visualize one block computing one output tile
+  const outBlockX = 0, outBlockY = 0;
+  let phase = 0; // 0: load tile 0, 1: compute tile 0, 2: load tile 1, 3: compute tile 1
+  const totalPhases = numTiles * 2;
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const matSz = Math.min((W() - pad*4)/3, H() - 100);
+    const cellW = matSz / N;
+    const ay = 40, ax = pad;
+    const bx = pad*2 + matSz, by = ay;       // B above C ideally; here side-by-side
+    const cx = pad*3 + matSz*2, cy = ay;
+
+    function drawMat(mx, my, label, highlightTile, computedRows){
+      // border
+      ctx.strokeStyle = '#1c1814'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(mx-0.5, my-0.5, matSz+1, matSz+1);
+      // cells
+      for (let r = 0; r < N; r++){
+        for (let cc = 0; cc < N; cc++){
+          ctx.fillStyle = '#ebe2c8';
+          ctx.fillRect(mx + cc*cellW+0.5, my + r*cellW+0.5, cellW-1, cellW-1);
+        }
+      }
+      // highlight tile
+      if (highlightTile){
+        const [tx, ty, color] = highlightTile;
+        ctx.fillStyle = color + 'aa';
+        ctx.fillRect(mx + tx*TILE*cellW, my + ty*TILE*cellW, TILE*cellW, TILE*cellW);
+      }
+      // computedRows: list of [tx, ty, alpha]
+      if (computedRows){
+        for (const [tx, ty, alpha] of computedRows){
+          ctx.fillStyle = 'rgba(74,110,42,' + alpha + ')';
+          ctx.fillRect(mx + tx*TILE*cellW, my + ty*TILE*cellW, TILE*cellW, TILE*cellW);
+        }
+      }
+      // tile grid
+      ctx.strokeStyle = '#3a3127'; ctx.lineWidth = 0.8;
+      for (let i = 0; i <= N; i += TILE){
+        ctx.beginPath(); ctx.moveTo(mx + i*cellW, my); ctx.lineTo(mx + i*cellW, my + matSz); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mx, my + i*cellW); ctx.lineTo(mx + matSz, my + i*cellW); ctx.stroke();
+      }
+      // label
+      ctx.font = '600 italic 18px "Cormorant Garamond"';
+      ctx.fillStyle = '#1c1814';
+      ctx.fillText(label, mx + matSz/2 - 6, my - 10);
+    }
+
+    // current tile k along the K dimension
+    const k = Math.floor(phase / 2);
+    const isLoad = (phase % 2 === 0);
+    const isCompute = (phase % 2 === 1);
+
+    // A: highlight tile (outBlockY, k)
+    drawMat(ax, ay, 'A', isLoad ? [k, outBlockY, '#245766'] : [k, outBlockY, '#b5cdd2']);
+    // B: highlight tile (outBlockX, k)
+    drawMat(bx, by, 'B', isLoad ? [outBlockX, k, '#b6862c'] : [outBlockX, k, '#ead9a4']);
+    // C: progressively fill output tile during compute
+    const compRows = [];
+    let alpha = 0;
+    if (isCompute) alpha = (k+1) / numTiles;
+    else if (isLoad && k > 0) alpha = k / numTiles;
+    if (alpha > 0) compRows.push([outBlockX, outBlockY, alpha]);
+    drawMat(cx, cy, 'C', null, compRows);
+
+    // arrows
+    ctx.strokeStyle = '#a83e1c';
+    ctx.lineWidth = 1.5;
+    if (isLoad){
+      // arrow into shared memory representation under each
+      ctx.font = 'italic 12px "Cormorant Garamond"';
+      ctx.fillStyle = '#a83e1c';
+      ctx.fillText('→ shared', ax + matSz - 60, ay + matSz + 18);
+      ctx.fillText('→ shared', bx + matSz - 60, by + matSz + 18);
+    }
+
+    // status
+    ctx.font = '13px "Cormorant Garamond"';
+    ctx.fillStyle = '#1c1814';
+    const text = isLoad
+      ? 'Phase ' + phase + ': load A[*,' + k + '] and B[' + k + ',*] tiles into shared memory'
+      : 'Phase ' + phase + ': accumulate dot products from shared tiles into C';
+    ctx.fillText(text, pad, H() - 14);
+    document.getElementById('d7-readout').textContent = 'phase ' + phase + ' of ' + (totalPhases-1);
+  }
+  function step(){
+    phase = Math.min(phase+1, totalPhases-1);
+    draw();
+  }
+  let playing = false;
+  document.getElementById('d7-step').addEventListener('click', () => { playing = false; step(); });
+  document.getElementById('d7-reset').addEventListener('click', () => { playing = false; phase = 0; draw(); });
+  document.getElementById('d7-play').addEventListener('click', () => {
+    playing = true;
+    phase = 0;
+    draw();
+    const tick = () => {
+      if (!playing) return;
+      if (phase >= totalPhases-1){ playing = false; return; }
+      step();
+      setTimeout(tick, 700);
+    };
+    setTimeout(tick, 700);
+  });
+  fit(); window.addEventListener('resize', fit); draw();
+})();
+
+//==================================================
+//  Demo 8: Occupancy
+//==================================================
+(function(){
+  const c = document.getElementById('demo8');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  const SM = {
+    maxRegs: 65536,
+    maxShared: 96 * 1024,   // 96 KB
+    maxThreads: 2048,
+    maxBlocks: 32,
+    warpSize: 32,
+  };
+  let T = 256, R = 32, S = 8;
+  function compute(){
+    const threads = T, regs = R, shared = S * 1024;
+    const byRegs   = Math.floor(SM.maxRegs / (threads * regs));
+    const byShared = shared > 0 ? Math.floor(SM.maxShared / shared) : SM.maxBlocks;
+    const byThreads = Math.floor(SM.maxThreads / threads);
+    const blocksPerSM = Math.min(byRegs, byShared, byThreads, SM.maxBlocks);
+    const activeWarps = (blocksPerSM * threads) / SM.warpSize;
+    const maxWarps = SM.maxThreads / SM.warpSize;
+    const occupancy = activeWarps / maxWarps;
+    return {blocksPerSM, byRegs, byShared, byThreads, activeWarps, maxWarps, occupancy};
+  }
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    const r = compute();
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+
+    // Big bar: occupancy
+    const barX = pad, barY = 30, barW = W() - pad*2, barH = 36;
+    ctx.fillStyle = '#ebe2c8';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = '#4a6e2a';
+    ctx.fillRect(barX, barY, barW * r.occupancy, barH);
+    ctx.strokeStyle = '#1c1814'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(barX-0.5, barY-0.5, barW+1, barH+1);
+    ctx.font = '600 16px "Cormorant Garamond"';
+    ctx.fillStyle = '#1c1814';
+    ctx.fillText('occupancy: ' + (r.occupancy*100).toFixed(0) + '%   (' + r.activeWarps + ' / ' + r.maxWarps + ' warps)', barX+10, barY+24);
+
+    // Three constraint bars
+    const cons = [
+      {label: 'by registers (' + r.byRegs + ')', val: r.byRegs, color: '#a83e1c'},
+      {label: 'by shared memory (' + r.byShared + ')', val: r.byShared, color: '#b6862c'},
+      {label: 'by threads (' + r.byThreads + ')', val: r.byThreads, color: '#245766'},
+    ];
+    const bottleneck = r.blocksPerSM;
+    const sBarY = 100;
+    const sBarH = 28;
+    const maxBlocks = SM.maxBlocks;
+    for (let i = 0; i < cons.length; i++){
+      const y = sBarY + i*(sBarH + 14);
+      ctx.font = '13px "Cormorant Garamond"';
+      ctx.fillStyle = '#3a3127';
+      ctx.fillText(cons[i].label, barX, y - 4);
+      ctx.fillStyle = '#ebe2c8';
+      ctx.fillRect(barX, y, barW, sBarH);
+      const fill = Math.min(1, cons[i].val / maxBlocks);
+      ctx.fillStyle = (cons[i].val === bottleneck) ? cons[i].color : cons[i].color + '88';
+      ctx.fillRect(barX, y, barW * fill, sBarH);
+      ctx.strokeStyle = '#cdbf9e';
+      ctx.strokeRect(barX-0.5, y-0.5, barW+1, sBarH+1);
+      // label "limiting" if bottleneck
+      if (cons[i].val === bottleneck){
+        ctx.font = 'italic 11px "Cormorant Garamond"';
+        ctx.fillStyle = '#a83e1c';
+        ctx.fillText('← limiting', barX + barW * fill + 8, y + sBarH/2 + 4);
+      }
+    }
+    document.getElementById('d8-readout').textContent =
+      'blocks/SM: ' + r.blocksPerSM + ' · occupancy: ' + (r.occupancy*100).toFixed(0) + '%';
+  }
+  function bind(id, key){
+    const el = document.getElementById('d8-'+id);
+    const val = document.getElementById('d8-'+id+'-v');
+    el.addEventListener('input', e => {
+      const v = +e.target.value;
+      if (key==='T') T=v; if (key==='R') R=v; if (key==='S') S=v;
+      val.textContent = v;
+      draw();
+    });
+  }
+  bind('t','T'); bind('r','R'); bind('s','S');
+  fit(); window.addEventListener('resize', fit); draw();
+})();
+
+//==================================================
+//  Demo 9: Edge GPU explorer (TOPS vs watts scatter)
+//==================================================
+(function(){
+  const c = document.getElementById('demo9');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  // [name, watts, TOPS-equivalent (INT8 / FP16 mix), category, memGB, notes]
+  const chips = [
+    {name:'Jetson Nano', w:7, tops:0.5, cat:'edge', mem:'4 GB LPDDR4', note:'Maxwell GPU, 128 CUDA cores. Hobbyist / education.'},
+    {name:'Orin Nano 8GB', w:12, tops:40, cat:'edge', mem:'8 GB LPDDR5', note:'Ampere, 1024 CUDA cores + 32 Tensor Cores. Compact robotics.'},
+    {name:'Orin NX 16GB', w:20, tops:100, cat:'edge', mem:'16 GB LPDDR5', note:'Ampere, 1024 CUDA cores + 32 Tensor Cores at higher clocks. Drones, industrial.'},
+    {name:'AGX Orin 64GB', w:50, tops:275, cat:'edge', mem:'64 GB LPDDR5', note:'Ampere, 2048 CUDA cores + 64 Tensor Cores. Autonomy dev kit.'},
+    {name:'AGX Thor', w:130, tops:2000, cat:'edge', mem:'128 GB LPDDR5X', note:'Blackwell, FP4 native. Humanoid / next-gen autonomy. Approx.'},
+    {name:'DRIVE Orin', w:65, tops:254, cat:'auto', mem:'automotive', note:'Production automotive variant of AGX Orin. ASIL-rated.'},
+    {name:'DRIVE Thor', w:200, tops:1500, cat:'auto', mem:'automotive', note:'Production automotive Blackwell. Centralized vehicle compute.'},
+    {name:'RTX 4090', w:450, tops:660, cat:'consumer', mem:'24 GB GDDR6X', note:'Ada Lovelace consumer flagship. Common dev / research card.'},
+    {name:'A100', w:400, tops:624, cat:'dc', mem:'40/80 GB HBM2e', note:'Ampere datacenter. Workhorse of training infrastructure 2020-2024.'},
+    {name:'H100', w:700, tops:1979, cat:'dc', mem:'80 GB HBM3', note:'Hopper datacenter. FP8 native. LLM training standard.'},
+    {name:'B200', w:1000, tops:9000, cat:'dc', mem:'192 GB HBM3e', note:'Blackwell datacenter. FP4 native. Frontier-scale training.'},
+  ];
+  const colors = {edge:'#4a6e2a', auto:'#a83e1c', consumer:'#b6862c', dc:'#245766'};
+  const labels = {edge:'Jetson (edge)', auto:'DRIVE (automotive)', consumer:'consumer dGPU', dc:'datacenter'};
+  let sel = 3; // AGX Orin
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = {l: 60, r: 24, t: 36, b: 90};
+    const plotW = W() - pad.l - pad.r;
+    const plotH = H() - pad.t - pad.b;
+    // log scales
+    const wMin = Math.log10(5), wMax = Math.log10(1500);
+    const tMin = Math.log10(0.3), tMax = Math.log10(12000);
+    const xOf = w => pad.l + (Math.log10(w) - wMin)/(wMax-wMin) * plotW;
+    const yOf = t => pad.t + plotH - (Math.log10(t) - tMin)/(tMax-tMin) * plotH;
+
+    // grid
+    ctx.strokeStyle = '#cdbf9e';
+    ctx.lineWidth = 0.5;
+    ctx.font = '10px "JetBrains Mono"';
+    ctx.fillStyle = '#6e604c';
+    for (let p = 0; p <= 4; p++){
+      const w = Math.pow(10, p);
+      const x = xOf(w);
+      if (x >= pad.l && x <= W()-pad.r) {
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t+plotH); ctx.stroke();
+        ctx.fillText((w >= 1000 ? (w/1000)+'k' : w) + ' W', x-12, pad.t+plotH+14);
+      }
+    }
+    for (let p = 0; p <= 5; p++){
+      const t = Math.pow(10, p-1);
+      const y = yOf(t);
+      if (y >= pad.t && y <= pad.t+plotH){
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+plotW, y); ctx.stroke();
+        let label;
+        if (t >= 1000) label = (t/1000) + 'k';
+        else if (t >= 1) label = String(t);
+        else label = t.toFixed(1);
+        ctx.fillText(label + ' TOPS', 8, y+3);
+      }
+    }
+    // axis labels
+    ctx.font = 'italic 12px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('power envelope (W)', pad.l + plotW/2 - 50, H() - pad.b + 38);
+    ctx.save();
+    ctx.translate(16, pad.t + plotH/2 + 50);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('throughput (TOPS, mixed precision)', 0, 0);
+    ctx.restore();
+
+    // plot points
+    for (let i = 0; i < chips.length; i++){
+      const ch = chips[i];
+      const x = xOf(ch.w), y = yOf(ch.tops);
+      const r = (i === sel) ? 9 : 6;
+      ctx.fillStyle = colors[ch.cat];
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      if (i === sel){
+        ctx.strokeStyle = '#1c1814';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, r+2, 0, Math.PI*2); ctx.stroke();
+      }
+      // label
+      ctx.font = (i===sel ? '600 ' : '') + '11px "Cormorant Garamond"';
+      ctx.fillStyle = '#1c1814';
+      ctx.fillText(ch.name, x+10, y+3);
+    }
+
+    // legend
+    const lgY = H() - 36;
+    let lgX = pad.l;
+    ctx.font = '11px "Cormorant Garamond"';
+    for (const k of Object.keys(colors)){
+      ctx.fillStyle = colors[k];
+      ctx.beginPath(); ctx.arc(lgX+6, lgY, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3a3127';
+      ctx.fillText(labels[k], lgX+18, lgY+3);
+      lgX += ctx.measureText(labels[k]).width + 50;
+    }
+
+    // selected info
+    const sc = chips[sel];
+    document.getElementById('d9-readout').innerHTML =
+      '<strong>' + sc.name + '</strong> · ' + sc.tops + ' TOPS @ ' + sc.w + ' W · ' + sc.mem;
+  }
+
+  c.addEventListener('click', e => {
+    const rect = c.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    const pad = {l: 60, r: 24, t: 36, b: 90};
+    const plotW = W() - pad.l - pad.r;
+    const plotH = H() - pad.t - pad.b;
+    const wMin = Math.log10(5), wMax = Math.log10(1500);
+    const tMin = Math.log10(0.3), tMax = Math.log10(12000);
+    const xOf = w => pad.l + (Math.log10(w) - wMin)/(wMax-wMin) * plotW;
+    const yOf = t => pad.t + plotH - (Math.log10(t) - tMin)/(tMax-tMin) * plotH;
+    let bestI = -1, bestD = 1e9;
+    for (let i = 0; i < chips.length; i++){
+      const dx = xOf(chips[i].w) - cx, dy = yOf(chips[i].tops) - cy;
+      const d = Math.hypot(dx, dy);
+      if (d < bestD && d < 24) { bestD = d; bestI = i; }
+    }
+    if (bestI >= 0){ sel = bestI; draw(); }
+  });
+  fit(); window.addEventListener('resize', fit);
+})();
+
+//==================================================
+//  Demo 10: Inference pipeline timeline
+//==================================================
+(function(){
+  const c = document.getElementById('demo10');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  // stages with per-precision costs in ms (Orin-class, illustrative)
+  const stages = [
+    {name:'sensor capture / DMA', fp32:5.0, fp16:5.0, int8:5.0, color:'#245766'},
+    {name:'preprocess (resize, norm)', fp32:2.5, fp16:1.4, int8:0.9, color:'#7aa05f'},
+    {name:'NN inference (YOLO-M)', fp32:34.0, fp16:14.0, int8:7.5, color:'#4a6e2a'},
+    {name:'postprocess (NMS, decode)', fp32:3.5, fp16:2.4, int8:1.8, color:'#b6862c'},
+    {name:'CAN / output', fp32:0.5, fp16:0.5, int8:0.5, color:'#a83e1c'},
+  ];
+  let prec = 'fp16';
+  let target = 60;
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const total = stages.reduce((s, st) => s + st[prec], 0);
+    const deadline = 1000 / target;
+    const maxScale = Math.max(total, deadline) * 1.15;
+    const barX = pad, barY = 80, barW = W() - pad*2, barH = 50;
+
+    // axis labels
+    ctx.font = 'italic 12px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('time (ms) →', pad, 28);
+    // tick marks
+    ctx.font = '10px "JetBrains Mono"';
+    ctx.fillStyle = '#6e604c';
+    const tickStep = maxScale > 30 ? 10 : (maxScale > 10 ? 5 : 1);
+    for (let t = 0; t <= maxScale; t += tickStep){
+      const x = barX + (t/maxScale) * barW;
+      ctx.strokeStyle = '#cdbf9e';
+      ctx.beginPath(); ctx.moveTo(x, barY); ctx.lineTo(x, barY + barH + 10); ctx.stroke();
+      ctx.fillText(String(t), x-4, barY + barH + 22);
+    }
+
+    // pipeline bars
+    let acc = 0;
+    for (const st of stages){
+      const dur = st[prec];
+      const x = barX + (acc/maxScale) * barW;
+      const w = (dur/maxScale) * barW;
+      ctx.fillStyle = st.color;
+      ctx.fillRect(x, barY, w, barH);
+      // label inside if there's room
+      if (w > 60){
+        ctx.fillStyle = '#f3ecd9';
+        ctx.font = '11px "Cormorant Garamond"';
+        ctx.fillText(st.name, x+4, barY + 16);
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.fillText(dur.toFixed(1) + ' ms', x+4, barY + 30);
+      }
+      acc += dur;
+    }
+    // border
+    ctx.strokeStyle = '#1c1814'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(barX-0.5, barY-0.5, barW+1, barH+1);
+
+    // deadline marker
+    const dx = barX + (deadline/maxScale) * barW;
+    ctx.strokeStyle = '#a83e1c';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(dx, barY - 16); ctx.lineTo(dx, barY + barH + 16); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '600 11px "Cormorant Garamond"';
+    ctx.fillStyle = '#a83e1c';
+    ctx.fillText('deadline (' + deadline.toFixed(1) + ' ms)', dx + 6, barY - 4);
+
+    // status
+    const slack = deadline - total;
+    const fits = total <= deadline;
+    ctx.font = '600 13px "Cormorant Garamond"';
+    ctx.fillStyle = fits ? '#355019' : '#a83e1c';
+    const status = fits
+      ? '✓ fits with ' + slack.toFixed(1) + ' ms slack (' + ((slack/deadline)*100).toFixed(0) + '%)'
+      : '✗ overruns by ' + (-slack).toFixed(1) + ' ms';
+    ctx.fillText(status, pad, barY + barH + 56);
+
+    // legend
+    const lgY = barY + barH + 80;
+    let lgX = pad;
+    ctx.font = '11px "Cormorant Garamond"';
+    for (const st of stages){
+      ctx.fillStyle = st.color;
+      ctx.fillRect(lgX, lgY-7, 10, 10);
+      ctx.fillStyle = '#3a3127';
+      ctx.fillText(st.name, lgX+15, lgY+2);
+      lgX += ctx.measureText(st.name).width + 40;
+    }
+    document.getElementById('d10-readout').textContent =
+      'total: ' + total.toFixed(1) + ' ms · ' + (fits ? 'within' : 'over') + ' ' + deadline.toFixed(1) + ' ms';
+  }
+  document.getElementById('d10-prec').addEventListener('change', e => { prec = e.target.value; draw(); });
+  document.getElementById('d10-rate').addEventListener('change', e => { target = +e.target.value; draw(); });
+  fit(); window.addEventListener('resize', fit);
+})();
+
+//==================================================
+//  Demo 11: Quantization visualizer
+//==================================================
+(function(){
+  const c = document.getElementById('demo11');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  const formats = [
+    {label:'FP32', bits:32, buckets:512, sizeRel:1.0, throughputRel:1.0, accDelta:'reference', color:'#245766'},
+    {label:'FP16', bits:16, buckets:64, sizeRel:0.5, throughputRel:2.5, accDelta:'≈ 0%', color:'#4a6e2a'},
+    {label:'INT8', bits:8, buckets:24, sizeRel:0.25, throughputRel:5.0, accDelta:'−0.3 to −1.5%', color:'#b6862c'},
+    {label:'FP4 / INT4', bits:4, buckets:9, sizeRel:0.125, throughputRel:8.0, accDelta:'−1 to −5%', color:'#a83e1c'},
+  ];
+  let pick = 0;
+
+  // generate a fixed weight distribution: a smooth Gaussian
+  const samples = 600;
+  const weights = [];
+  function rng(seed){ return function(){ seed = (seed*9301 + 49297) % 233280; return seed/233280; }; }
+  const r = rng(42);
+  for (let i = 0; i < samples; i++){
+    // Box-Muller
+    const u1 = Math.max(1e-9, r());
+    const u2 = r();
+    const z = Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2);
+    weights.push(z * 0.6);
+  }
+  const wMin = -3, wMax = 3;
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const fmt = formats[pick];
+    // bucket the weights
+    const buckets = fmt.buckets;
+    const counts = new Array(buckets).fill(0);
+    for (const w of weights){
+      const t = Math.max(0, Math.min(buckets-1, Math.floor((w - wMin)/(wMax-wMin) * buckets)));
+      counts[t]++;
+    }
+    const maxCount = Math.max(...counts);
+
+    // histogram area
+    const histX = pad, histY = 36, histW = W() - pad*2, histH = 180;
+
+    // axis
+    ctx.strokeStyle = '#3a3127';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(histX, histY+histH); ctx.lineTo(histX+histW, histY+histH); ctx.stroke();
+    ctx.font = '10px "JetBrains Mono"';
+    ctx.fillStyle = '#6e604c';
+    for (let v = -3; v <= 3; v++){
+      const x = histX + ((v - wMin)/(wMax - wMin)) * histW;
+      ctx.beginPath(); ctx.moveTo(x, histY+histH); ctx.lineTo(x, histY+histH+4); ctx.stroke();
+      ctx.fillText(String(v), x-3, histY+histH+16);
+    }
+    ctx.font = 'italic 12px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('weight value', histX + histW/2 - 30, histY + histH + 32);
+    ctx.fillText('frequency', histX, histY - 12);
+
+    // bars
+    const bw = histW / buckets;
+    for (let i = 0; i < buckets; i++){
+      const h = (counts[i]/maxCount) * (histH - 8);
+      const x = histX + i*bw;
+      ctx.fillStyle = fmt.color;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x+0.4, histY + histH - h, Math.max(1, bw - 1), h);
+      ctx.globalAlpha = 1;
+    }
+
+    // tier label
+    ctx.font = '600 18px "Cormorant Garamond"';
+    ctx.fillStyle = fmt.color;
+    ctx.fillText(fmt.label + '  ·  ' + buckets + ' levels', histX + histW - 180, histY + 4);
+
+    // metric bars below
+    const metrics = [
+      {label: 'model size', val: fmt.sizeRel, max: 1.0, suffix: '×', invert: true},
+      {label: 'throughput on Tensor Cores', val: fmt.throughputRel, max: 8.0, suffix: '×', invert: false},
+    ];
+    let mY = histY + histH + 56;
+    for (const m of metrics){
+      ctx.font = '13px "Cormorant Garamond"';
+      ctx.fillStyle = '#3a3127';
+      ctx.fillText(m.label + ': ' + m.val.toFixed(2) + m.suffix, histX, mY);
+      ctx.fillStyle = '#ebe2c8';
+      ctx.fillRect(histX, mY+6, histW, 14);
+      ctx.fillStyle = m.invert ? '#a83e1c' : '#4a6e2a';
+      ctx.fillRect(histX, mY+6, histW * (m.val/m.max), 14);
+      ctx.strokeStyle = '#cdbf9e';
+      ctx.strokeRect(histX-0.5, mY+5.5, histW+1, 15);
+      mY += 36;
+    }
+    // accuracy label
+    ctx.font = '13px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('accuracy delta vs FP32 reference: ', histX, mY);
+    ctx.font = '600 13px "Cormorant Garamond"';
+    ctx.fillStyle = pick === 0 ? '#355019' : (pick < 3 ? '#b6862c' : '#a83e1c');
+    ctx.fillText(fmt.accDelta, histX + 240, mY);
+
+    document.getElementById('d11-readout').innerHTML =
+      'model size: ' + fmt.sizeRel.toFixed(2) + '× · throughput: ' + fmt.throughputRel.toFixed(1) + '× · accuracy: ' + fmt.accDelta;
+    document.getElementById('d11-bits-v').textContent = fmt.label;
+  }
+  document.getElementById('d11-bits').addEventListener('input', e => { pick = +e.target.value; draw(); });
+  fit(); window.addEventListener('resize', fit);
+})();
+
+//==================================================
+//  Demo 12: Control-loop budget allocator
+//==================================================
+(function(){
+  const c = document.getElementById('demo12');
+  const ctx = c.getContext('2d');
+  function fit(){ c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); draw(); }
+
+  // ops with cost in ms, location ('cpu'/'gpu'/'io'), and selectable
+  const ops = [
+    {id:'sensor', label:'sensor read (CAN frame)', cost:0.3, loc:'io', on:true},
+    {id:'state',  label:'state estimation (EKF, 12 states)', cost:0.4, loc:'cpu', on:true},
+    {id:'mpc_s',  label:'MPC small (N=10, dense)', cost:1.5, loc:'cpu', on:false},
+    {id:'mpc_l',  label:'MPC large (N=50, batched on GPU)', cost:3.5, loc:'gpu', on:false},
+    {id:'mppi',   label:'MPPI (1024 samples, GPU)', cost:2.8, loc:'gpu', on:false},
+    {id:'nn_s',   label:'small NN inference (residual policy, INT8)', cost:0.9, loc:'gpu', on:false},
+    {id:'nn_m',   label:'medium NN inference (perception, FP16)', cost:8.0, loc:'gpu', on:false},
+    {id:'cmd',    label:'command output (CAN frame)', cost:0.3, loc:'io', on:true},
+    {id:'safety', label:'safety supervisor checks', cost:0.2, loc:'cpu', on:true},
+  ];
+  const locColor = {cpu:'#245766', gpu:'#4a6e2a', io:'#b6862c'};
+  let rate = 500;
+
+  function W(){return c.clientWidth;} function H(){return c.clientHeight;}
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    const pad = 24;
+    const budget = 1000 / rate;
+    const total = ops.reduce((s, o) => s + (o.on ? o.cost : 0), 0);
+    const margin = budget - total;
+    const safetyFactor = total / budget;
+
+    // header bar
+    ctx.font = 'italic 13px "Cormorant Garamond"';
+    ctx.fillStyle = '#3a3127';
+    ctx.fillText('budget for ' + rate + ' Hz loop:', pad, 28);
+    ctx.font = '600 18px "Cormorant Garamond"';
+    ctx.fillStyle = '#1c1814';
+    ctx.fillText(budget.toFixed(2) + ' ms', pad + 200, 28);
+
+    // budget bar
+    const barX = pad, barY = 50, barW = W() - pad*2, barH = 32;
+    const maxScale = Math.max(budget, total) * 1.15;
+    ctx.fillStyle = '#ebe2c8';
+    ctx.fillRect(barX, barY, barW, barH);
+    // stack used ops
+    let acc = 0;
+    for (const o of ops){
+      if (!o.on) continue;
+      const x = barX + (acc/maxScale) * barW;
+      const w = (o.cost/maxScale) * barW;
+      ctx.fillStyle = locColor[o.loc];
+      ctx.fillRect(x, barY, w, barH);
+      acc += o.cost;
+    }
+    // deadline marker
+    const dx = barX + (budget/maxScale) * barW;
+    ctx.strokeStyle = '#a83e1c';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(dx, barY - 6); ctx.lineTo(dx, barY + barH + 6); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#1c1814'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(barX-0.5, barY-0.5, barW+1, barH+1);
+
+    // status
+    let statusColor, statusText;
+    if (total > budget){
+      statusColor = '#a83e1c';
+      statusText = '✗ misses deadline by ' + (total-budget).toFixed(2) + ' ms — drop ops or raise period';
+    } else if (safetyFactor > 0.85){
+      statusColor = '#b6862c';
+      statusText = '⚠ tight (' + ((safetyFactor)*100).toFixed(0) + '% used) — little margin for jitter';
+    } else if (safetyFactor > 0.5){
+      statusColor = '#4a6e2a';
+      statusText = '✓ comfortable (' + ((safetyFactor)*100).toFixed(0) + '% used)';
+    } else {
+      statusColor = '#355019';
+      statusText = '✓ ample headroom (' + ((safetyFactor)*100).toFixed(0) + '% used) — could add work';
+    }
+    ctx.font = '600 13px "Cormorant Garamond"';
+    ctx.fillStyle = statusColor;
+    ctx.fillText(statusText, pad, barY + barH + 22);
+
+    // ops list with toggleable checkboxes (drawn)
+    const listY = barY + barH + 44;
+    const rowH = 22;
+    ops.forEach((o, i) => {
+      const y = listY + i*rowH;
+      // checkbox
+      ctx.fillStyle = o.on ? locColor[o.loc] : '#ebe2c8';
+      ctx.fillRect(pad, y-12, 14, 14);
+      ctx.strokeStyle = '#3a3127';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pad-0.5, y-12.5, 15, 15);
+      if (o.on){
+        ctx.strokeStyle = '#f3ecd9';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(pad+3, y-5); ctx.lineTo(pad+6, y-2); ctx.lineTo(pad+12, y-9); ctx.stroke();
+      }
+      // label
+      ctx.font = (o.on ? '500 ' : '') + '12.5px "Cormorant Garamond"';
+      ctx.fillStyle = o.on ? '#1c1814' : '#6e604c';
+      ctx.fillText(o.label, pad + 24, y);
+      // location chip
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.fillStyle = locColor[o.loc];
+      ctx.fillText('[' + o.loc + ']', W() - pad - 90, y);
+      // cost
+      ctx.font = '11px "JetBrains Mono"';
+      ctx.fillStyle = o.on ? '#1c1814' : '#6e604c';
+      ctx.fillText(o.cost.toFixed(1) + ' ms', W() - pad - 50, y);
+    });
+
+    document.getElementById('d12-readout').textContent =
+      'budget: ' + budget.toFixed(2) + ' ms · used: ' + total.toFixed(2) + ' ms';
+  }
+
+  c.addEventListener('click', e => {
+    const rect = c.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    const pad = 24;
+    const barH = 32;
+    const listY = 50 + barH + 44;
+    const rowH = 22;
+    if (cx < pad - 4 || cx > W() - pad + 4) return;
+    for (let i = 0; i < ops.length; i++){
+      const y = listY + i*rowH;
+      if (cy >= y - 14 && cy <= y + 4){
+        ops[i].on = !ops[i].on;
+        draw();
+        break;
+      }
+    }
+  });
+
+  document.getElementById('d12-rate').addEventListener('change', e => { rate = +e.target.value; draw(); });
+  fit(); window.addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>
