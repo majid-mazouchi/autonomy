@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimal Control — An Interactive Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Manrope:wght@300..800&family=JetBrains+Mono:wght@300..700&display=swap" rel="stylesheet">
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+  svg: { fontCache: 'global' },
+  chtml: { scale: 1.0 }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+<style>
+:root{
+  --bg:#0c0c0f;
+  --bg-2:#121216;
+  --surface:#16161c;
+  --surface-2:#1b1b22;
+  --surface-3:#22222b;
+  --border:#2a2a34;
+  --border-2:#3a3a46;
+  --text:#ece7d9;
+  --text-2:#b6b0a3;
+  --muted:#827e74;
+  --accent:#e28f2a;
+  --accent-bright:#f4a94a;
+  --accent-dim:#8a5819;
+  --cyan:#5ec9e8;
+  --cyan-dim:#2a7a92;
+  --green:#7bc97a;
+  --red:#e26363;
+  --violet:#a78bfa;
+  --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 60px -20px rgba(0,0,0,0.6);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-weight:350;
+  line-height:1.65;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(226,143,42,0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(94,201,232,0.04), transparent 60%);
+  background-attachment:fixed;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+  z-index:0;
+}
+
+a{color:var(--accent-bright);text-decoration:none;border-bottom:1px dotted var(--accent-dim)}
+a:hover{color:var(--accent);border-bottom-style:solid}
+
+.serif{font-family:'Fraunces',serif;font-optical-sizing:auto;letter-spacing:-0.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ============ LAYOUT ============ */
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px;position:relative;z-index:1}
+
+.hero{
+  padding:110px 0 80px;
+  border-bottom:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+.hero-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.25em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:28px;
+  display:flex;align-items:center;gap:14px;
+}
+.hero-eyebrow::before{content:'';width:32px;height:1px;background:var(--accent)}
+.back-to-blog{
+  display:inline-block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  text-decoration:none;
+  border-bottom:1px solid transparent;
+  padding-bottom:2px;
+  margin-bottom:24px;
+  transition:border-color 0.15s;
+}
+.back-to-blog:hover{border-color:var(--accent)}
+.hero h1{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 144, 'SOFT' 30;
+  font-weight:360;
+  font-size:clamp(42px,7vw,88px);
+  line-height:0.98;
+  letter-spacing:-0.035em;
+  margin-bottom:28px;
+  max-width:14ch;
+}
+.hero h1 em{
+  font-style:italic;
+  color:var(--accent);
+  font-variation-settings:'opsz' 144, 'SOFT' 100;
+  font-weight:300;
+}
+.hero-lede{
+  font-size:19px;
+  color:var(--text-2);
+  max-width:62ch;
+  margin-bottom:56px;
+  line-height:1.55;
+}
+.hero-meta{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:28px;
+  padding-top:32px;
+  border-top:1px solid var(--border);
+  max-width:880px;
+}
+.hero-meta-item{font-size:13px}
+.hero-meta-item dt{
+  font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;
+  letter-spacing:0.18em;
+  color:var(--muted);
+  font-size:10px;
+  margin-bottom:10px;
+}
+.hero-meta-item dd{color:var(--text-2);font-size:14px;line-height:1.5}
+
+/* Table of contents */
+.toc{
+  padding:56px 0;
+  border-bottom:1px solid var(--border);
+}
+.toc h2{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.25em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:32px;
+}
+.toc-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:2px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:2px;
+  overflow:hidden;
+}
+.toc-link{
+  background:var(--bg);
+  padding:22px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transition:background 0.2s;
+  border-bottom:none;
+}
+.toc-link:hover{background:var(--surface-2);color:var(--text)}
+.toc-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:0.2em;
+}
+.toc-title{
+  font-family:'Fraunces',serif;
+  font-size:18px;
+  color:var(--text);
+  font-weight:400;
+  letter-spacing:-0.01em;
+}
+
+/* Section */
+section.chapter{padding:88px 0;border-bottom:1px solid var(--border);position:relative}
+.chapter-header{margin-bottom:48px;display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap}
+.chapter-num{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 144, 'SOFT' 100;
+  font-style:italic;
+  font-weight:300;
+  font-size:72px;
+  color:var(--accent);
+  line-height:0.9;
+  min-width:80px;
+}
+.chapter-title-block{flex:1;min-width:300px}
+.chapter-kicker{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+.chapter h2{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 144;
+  font-weight:380;
+  font-size:clamp(30px,4vw,46px);
+  line-height:1.05;
+  letter-spacing:-0.025em;
+  margin-bottom:16px;
+}
+.chapter-sub{color:var(--text-2);font-size:17px;max-width:60ch;line-height:1.55}
+
+.chapter h3{
+  font-family:'Fraunces',serif;
+  font-weight:420;
+  font-size:26px;
+  letter-spacing:-0.015em;
+  margin:56px 0 20px;
+  color:var(--text);
+}
+.chapter h4{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:36px 0 16px;
+}
+.chapter p{margin-bottom:18px;color:var(--text-2);max-width:72ch}
+.chapter p strong{color:var(--text);font-weight:600}
+
+.chapter ul, .chapter ol{margin:16px 0 20px 0;padding-left:24px;color:var(--text-2);max-width:72ch}
+.chapter li{margin-bottom:10px;line-height:1.6}
+.chapter li::marker{color:var(--accent)}
+
+/* Math block */
+.mathblock{
+  background:var(--surface);
+  border-left:2px solid var(--accent);
+  padding:22px 28px;
+  margin:24px 0;
+  font-size:15px;
+  overflow-x:auto;
+  border-radius:0 4px 4px 0;
+}
+.mathblock-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+/* Callout boxes */
+.callout{
+  padding:24px 28px;
+  margin:28px 0;
+  border-radius:4px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  position:relative;
+}
+.callout-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.callout-label::before{
+  content:'';
+  width:6px;height:6px;border-radius:50%;
+  display:inline-block;
+}
+.callout.tip{border-left:2px solid var(--green)}
+.callout.tip .callout-label{color:var(--green)}
+.callout.tip .callout-label::before{background:var(--green)}
+.callout.warn{border-left:2px solid var(--red)}
+.callout.warn .callout-label{color:var(--red)}
+.callout.warn .callout-label::before{background:var(--red)}
+.callout.note{border-left:2px solid var(--cyan)}
+.callout.note .callout-label{color:var(--cyan)}
+.callout.note .callout-label::before{background:var(--cyan)}
+.callout.rule{border-left:2px solid var(--accent);background:linear-gradient(90deg, rgba(226,143,42,0.04), transparent 60%)}
+.callout.rule .callout-label{color:var(--accent)}
+.callout.rule .callout-label::before{background:var(--accent)}
+.callout p{color:var(--text);font-size:15px;max-width:none}
+.callout p:last-child{margin-bottom:0}
+
+/* Definition list */
+dl.defs{
+  display:grid;
+  grid-template-columns:minmax(180px, 260px) 1fr;
+  gap:0;
+  margin:24px 0;
+  border-top:1px solid var(--border);
+}
+dl.defs > div{
+  display:contents;
+}
+dl.defs dt{
+  padding:18px 20px 18px 0;
+  border-bottom:1px solid var(--border);
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-weight:380;
+  color:var(--accent);
+  font-size:17px;
+  letter-spacing:-0.01em;
+}
+dl.defs dd{
+  padding:18px 0 18px 20px;
+  border-bottom:1px solid var(--border);
+  border-left:1px solid var(--border);
+  color:var(--text-2);
+  font-size:15px;
+  line-height:1.6;
+}
+
+@media (max-width:760px){
+  dl.defs{grid-template-columns:1fr}
+  dl.defs dd{border-left:none;padding-left:0;padding-top:4px}
+  dl.defs dt{padding-bottom:4px;border-bottom:none}
+}
+
+/* Interactive panel */
+.lab{
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  margin:40px 0;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.lab-header{
+  padding:16px 24px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+}
+.lab-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--accent);
+  display:flex;align-items:center;gap:12px;
+}
+.lab-title::before{
+  content:'◆';
+  color:var(--accent);
+  font-size:10px;
+}
+.lab-subtitle{
+  font-size:13px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+.lab-body{
+  display:grid;
+  grid-template-columns:320px 1fr;
+  min-height:440px;
+}
+@media (max-width:820px){
+  .lab-body{grid-template-columns:1fr}
+}
+.lab-controls{
+  padding:24px;
+  border-right:1px solid var(--border);
+  background:var(--surface);
+  display:flex;flex-direction:column;gap:22px;
+}
+@media (max-width:820px){
+  .lab-controls{border-right:none;border-bottom:1px solid var(--border)}
+}
+.ctrl{display:flex;flex-direction:column;gap:8px}
+.ctrl-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.1em;
+  color:var(--text-2);
+  display:flex;justify-content:space-between;
+}
+.ctrl-label .val{color:var(--accent);font-weight:500}
+.ctrl input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:2px;
+  background:var(--border);
+  outline:none;
+  cursor:pointer;
+}
+.ctrl input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);
+  border:2px solid var(--bg);
+  box-shadow:0 0 0 1px var(--accent);
+  cursor:pointer;
+  transition:transform 0.15s;
+}
+.ctrl input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.ctrl input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);
+  border:2px solid var(--bg);
+  box-shadow:0 0 0 1px var(--accent);
+  cursor:pointer;
+}
+.ctrl-hint{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.4}
+.btn-preset{
+  padding:8px 12px;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  color:var(--text-2);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.08em;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all 0.15s;
+}
+.btn-preset:hover{background:var(--surface-3);border-color:var(--accent);color:var(--accent)}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap}
+
+.lab-view{padding:24px;display:flex;flex-direction:column;gap:16px}
+.lab-readout{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:14px;
+  padding:14px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:4px;
+}
+.readout-item{display:flex;flex-direction:column;gap:4px}
+.readout-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--muted);
+}
+.readout-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;
+  color:var(--accent);
+  font-weight:500;
+}
+
+canvas.plot{
+  width:100%;
+  height:340px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:3px;
+  display:block;
+}
+.plot-wrap{position:relative}
+.plot-legend{
+  display:flex;gap:20px;flex-wrap:wrap;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--text-2);
+  padding:8px 4px 0;
+}
+.lgd{display:inline-flex;align-items:center;gap:8px}
+.lgd::before{
+  content:'';width:14px;height:2px;background:currentColor;display:inline-block;
+}
+.lgd.l1{color:var(--accent)}
+.lgd.l2{color:var(--cyan)}
+.lgd.l3{color:var(--violet)}
+.lgd.l4{color:var(--green)}
+.lgd.l5{color:var(--red)}
+
+/* Tables for comparisons */
+table.cmp{
+  width:100%;
+  border-collapse:collapse;
+  margin:28px 0;
+  font-size:14px;
+}
+table.cmp th, table.cmp td{
+  padding:14px 18px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+}
+table.cmp thead{
+  background:var(--surface);
+}
+table.cmp th{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:500;
+}
+table.cmp td{color:var(--text-2)}
+table.cmp td:first-child{
+  font-family:'Fraunces',serif;
+  color:var(--text);
+  font-style:italic;
+  font-size:15px;
+}
+table.cmp tbody tr:hover{background:var(--surface)}
+
+/* Glossary */
+.glossary{
+  columns:2;
+  column-gap:48px;
+  margin:32px 0;
+}
+@media (max-width:760px){.glossary{columns:1}}
+.gloss-item{
+  break-inside:avoid;
+  margin-bottom:24px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--border);
+}
+.gloss-term{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-size:17px;
+  color:var(--accent);
+  margin-bottom:4px;
+  font-weight:420;
+}
+.gloss-sym{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  margin-left:10px;
+}
+.gloss-def{font-size:14px;color:var(--text-2);line-height:1.5}
+
+/* Code blocks */
+pre.code{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:2px solid var(--cyan);
+  border-radius:0 3px 3px 0;
+  padding:18px 22px;
+  margin:22px 0;
+  overflow-x:auto;
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  line-height:1.6;
+  color:var(--text-2);
+}
+pre.code .kw{color:var(--violet)}
+pre.code .str{color:var(--green)}
+pre.code .num{color:var(--accent)}
+pre.code .com{color:var(--muted);font-style:italic}
+pre.code .fn{color:var(--cyan)}
+
+/* Footer */
+footer{
+  padding:80px 0 60px;
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+footer .sig{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-size:15px;
+  margin-bottom:12px;
+  color:var(--text-2);
+}
+
+/* Highlight spans */
+.hl-a{color:var(--accent);font-weight:500}
+.hl-c{color:var(--cyan);font-weight:500}
+.hl-v{color:var(--violet);font-weight:500}
+.hl-g{color:var(--green);font-weight:500}
+
+/* Divider ornament */
+.ornament{
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 0;
+  gap:16px;
+  color:var(--border-2);
+  font-size:10px;
+  letter-spacing:0.4em;
+}
+.ornament::before, .ornament::after{
+  content:'';flex:1;height:1px;background:var(--border);max-width:120px;
+}
+
+/* Anchor offset for MathJax-aware scroll */
+.anchor{
+  display:block;
+  position:relative;
+  top:-40px;
+  visibility:hidden;
+}
+
+/* Pill tags */
+.pill{
+  display:inline-block;
+  padding:3px 10px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.1em;
+  color:var(--text-2);
+  margin-right:6px;
+  margin-bottom:6px;
+}
+.pill.accent{color:var(--accent);border-color:var(--accent-dim)}
+.pill.cyan{color:var(--cyan);border-color:var(--cyan-dim)}
+
+/* Two column layout for side-by-side content */
+.two-col{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:32px;
+  margin:32px 0;
+}
+@media (max-width:820px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+    <div class="hero-eyebrow">Interactive Field Guide · By Majid Mazouchi · Rev. 1.0</div>
+    <h1>Optimal <em>Control</em> — the theory, the practice, the rules of thumb.</h1>
+    <p class="hero-lede">
+      A working engineer's guide to optimal control: from the calculus of variations to Pontryagin's minimum principle, from LQR and Riccati equations to model predictive control and nonlinear trajectory optimization. Every section is paired with runnable simulations, practical implementation notes for embedded/real-time systems, and field-tested tuning heuristics.
+    </p>
+    <dl class="hero-meta">
+      <div class="hero-meta-item"><dt>Audience</dt><dd>Control engineers and graduate students who want intuition <em>and</em> numerical rigor.</dd></div>
+      <div class="hero-meta-item"><dt>Depth</dt><dd>Standard derivations, but the focus is on what's true, what breaks, and what to do about it.</dd></div>
+      <div class="hero-meta-item"><dt>Interactivity</dt><dd>Four live simulations: LQR tuning, Riccati convergence, MPC horizon, bang-bang control.</dd></div>
+      <div class="hero-meta-item"><dt>Practical slant</dt><dd>Embedded constraints, discretization, numerical conditioning, real-time solver notes.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ TOC ============ -->
+<section class="toc">
+  <div class="wrap">
+    <h2>Contents</h2>
+    <div class="toc-grid">
+      <a href="#c1" class="toc-link"><span class="toc-num">01 — FOUNDATIONS</span><span class="toc-title">Problem, cost, terminology</span></a>
+      <a href="#c2" class="toc-link"><span class="toc-num">02 — VARIATIONS</span><span class="toc-title">Euler–Lagrange and its kin</span></a>
+      <a href="#c3" class="toc-link"><span class="toc-num">03 — PONTRYAGIN</span><span class="toc-title">The minimum principle</span></a>
+      <a href="#c4" class="toc-link"><span class="toc-num">04 — BELLMAN / HJB</span><span class="toc-title">Dynamic programming</span></a>
+      <a href="#c5" class="toc-link"><span class="toc-num">05 — LQR</span><span class="toc-title">The workhorse, in full</span></a>
+      <a href="#c6" class="toc-link"><span class="toc-num">06 — RICCATI</span><span class="toc-title">Iteration, algebraic, numerical</span></a>
+      <a href="#c7" class="toc-link"><span class="toc-num">07 — LQG · KALMAN</span><span class="toc-title">Estimation + separation</span></a>
+      <a href="#c8" class="toc-link"><span class="toc-num">08 — MPC</span><span class="toc-title">Receding horizon in practice</span></a>
+      <a href="#c9" class="toc-link"><span class="toc-num">09 — NONLINEAR</span><span class="toc-title">iLQR, DDP, SQP</span></a>
+      <a href="#c10" class="toc-link"><span class="toc-num">10 — RL CONNECTION</span><span class="toc-title">ADP and learning-based control</span></a>
+      <a href="#c11" class="toc-link"><span class="toc-num">11 — RULES OF THUMB</span><span class="toc-title">Tuning and sanity checks</span></a>
+      <a href="#c12" class="toc-link"><span class="toc-num">12 — IMPLEMENTATION</span><span class="toc-title">Real-time, embedded, numerics</span></a>
+      <a href="#c13" class="toc-link"><span class="toc-num">13 — GLOSSARY</span><span class="toc-title">Every symbol, every word</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 01 FOUNDATIONS ============ -->
+<section class="chapter" id="c1"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">01</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Foundations</div>
+        <h2>What problem does "optimal control" actually solve?</h2>
+        <p class="chapter-sub">A dynamical system has states $x$ and inputs $u$. You choose $u(t)$ over time to minimize a cost — subject to physics. That's it. Everything else is mathematical machinery for doing it <em>well</em>.</p>
+      </div>
+    </div>
+
+    <h3>The canonical continuous-time problem</h3>
+    <p>Given dynamics $\dot{x} = f(x,u,t)$ with initial state $x(t_0) = x_0$, find the input trajectory $u(\cdot)$ on $[t_0, t_f]$ that minimizes the <strong>Bolza cost functional</strong>:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Bolza form</span>
+      $$J[u(\cdot)] = \underbrace{\phi(x(t_f), t_f)}_{\text{terminal / Mayer term}} + \int_{t_0}^{t_f} \underbrace{L(x(\tau), u(\tau), \tau)}_{\text{running / Lagrange term}} \, d\tau$$
+    </div>
+
+    <p>Subject to <strong>path constraints</strong>: $g(x,u,t) \le 0$, <strong>terminal constraints</strong>: $\psi(x(t_f), t_f) = 0$, and possibly <strong>state/control bounds</strong>: $u(t) \in \mathcal{U}$, $x(t) \in \mathcal{X}$.</p>
+
+    <p>Three common degenerate forms you'll see named in the wild:</p>
+
+    <dl class="defs">
+      <div><dt>Lagrange problem</dt><dd>Only the running term. $J = \int L\,d\tau$. Typical for tracking with control effort: $L = \|x - x_{\text{ref}}\|_Q^2 + \|u\|_R^2$.</dd></div>
+      <div><dt>Mayer problem</dt><dd>Only the terminal term. $J = \phi(x(t_f))$. Example: maximize final battery charge, final projectile range, or miss-distance.</dd></div>
+      <div><dt>Minimum-time problem</dt><dd>$L \equiv 1$, so $J = t_f - t_0$. The free terminal time makes this structurally different — the optimal control is almost always <strong>bang-bang</strong>.</dd></div>
+    </dl>
+
+    <h3>What "optimal" actually means</h3>
+    <p>You do not get a closed-form $u^\star(t)$ by magic. You get one of three things, depending on the approach:</p>
+    <ul>
+      <li><strong>An open-loop trajectory</strong> $u^\star(t)$ — a schedule. Calculus of variations and Pontryagin give you this. It is optimal <em>only</em> for the nominal model and the exact initial condition.</li>
+      <li><strong>A feedback policy</strong> $u^\star(x, t) = \pi(x,t)$ — a rule that maps state to input. Dynamic programming (HJB) gives you this. It's robust to disturbances insofar as the model is correct.</li>
+      <li><strong>A numerical approximation of either</strong>, computed once (offline) or re-computed at each control step (online, i.e. MPC).</li>
+    </ul>
+
+    <div class="callout tip">
+      <div class="callout-label">Mental model</div>
+      <p>Pontryagin tells you the <em>necessary conditions</em> that any optimal trajectory must satisfy. Bellman (HJB) tells you the <em>sufficient condition</em> via a value function. LQR is the one case where both collapse into a clean, computable answer. MPC is "solve a finite-horizon Pontryagin problem, apply the first step, repeat."</p>
+    </div>
+
+    <h3>Core objects you need to be fluent with</h3>
+    <dl class="defs">
+      <div><dt>State $x \in \mathbb{R}^n$</dt><dd>The minimal information required to predict future behavior given future inputs. Not outputs — measurements live elsewhere.</dd></div>
+      <div><dt>Control $u \in \mathbb{R}^m$</dt><dd>What you get to choose. Usually constrained (actuator limits, safety bounds).</dd></div>
+      <div><dt>Costate / Adjoint $\lambda \in \mathbb{R}^n$</dt><dd>Shadow price of the state. $\lambda_i(t)$ = marginal change in $J^\star$ per unit change in $x_i$ at time $t$. Central to Pontryagin; dual variable to the dynamics constraint.</dd></div>
+      <div><dt>Hamiltonian $H(x,u,\lambda,t)$</dt><dd>$H = L + \lambda^\top f$. Pontryagin's whole principle reduces to "minimize $H$ in $u$, pointwise in time."</dd></div>
+      <div><dt>Value function $V(x,t)$</dt><dd>The optimal cost-to-go from state $x$ at time $t$. Bellman's object. Satisfies the HJB PDE.</dd></div>
+      <div><dt>Policy $\pi(x,t)$</dt><dd>The feedback law. For LQR: $\pi(x) = -Kx$ with constant $K$ (infinite horizon).</dd></div>
+    </dl>
+
+    <div class="callout note">
+      <div class="callout-label">Notation convention</div>
+      <p>We use lower-case $x$ for state (not $\mathbf{x}$). Vectors are columns. Gradients $\nabla_x L$ are row or column per context (we'll be explicit when it matters). Time-argument dropped when clear from context: $f(x,u)$ means $f(x(t), u(t), t)$ for the time-varying case.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 CoV ============ -->
+<section class="chapter" id="c2"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">02</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Calculus of Variations</div>
+        <h2>The ancestor: Euler–Lagrange.</h2>
+        <p class="chapter-sub">Before optimal control was a field, there was the variational calculus. Most of the machinery — costate, Hamiltonian, transversality — is inherited directly from it.</p>
+      </div>
+    </div>
+
+    <p>Consider minimizing $J[x(\cdot)] = \int_{t_0}^{t_f} L(x(t), \dot x(t), t)\, dt$ over smooth trajectories $x(\cdot)$ with fixed endpoints. A necessary condition for a minimizer is the <strong>Euler–Lagrange equation</strong>:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Euler–Lagrange</span>
+      $$\frac{\partial L}{\partial x} - \frac{d}{dt}\!\left(\frac{\partial L}{\partial \dot x}\right) = 0$$
+    </div>
+
+    <p>Derivation sketch: perturb $x \to x + \epsilon \eta$ with $\eta$ vanishing at endpoints. Require $\left.\tfrac{d}{d\epsilon}\right|_{\epsilon=0} J = 0$. Integrate by parts. The "arbitrariness" of $\eta$ gives the equation pointwise.</p>
+
+    <h3>Transversality at free endpoints</h3>
+    <p>If $t_f$ or $x(t_f)$ is free, you get boundary conditions for free:</p>
+    <ul>
+      <li><strong>Free final state</strong> $x(t_f)$: $\left.\frac{\partial L}{\partial \dot x}\right|_{t=t_f} = 0$ (or $\lambda(t_f) = \nabla_x \phi$ in optimal-control form).</li>
+      <li><strong>Free final time</strong> $t_f$: $\left.\left(L - \dot x^\top \frac{\partial L}{\partial \dot x}\right)\right|_{t=t_f} = 0$ (the Hamiltonian vanishes at the free endpoint).</li>
+    </ul>
+
+    <h3>From variations to control</h3>
+    <p>Optimal control generalizes this by splitting $\dot x$ into "dynamics $f(x,u,t)$", introducing $u$ as a separate variable, and handling constraints explicitly. The costate $\lambda$ plays the role that $\partial L / \partial \dot x$ played in the classical problem.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Why this matters operationally</div>
+      <p>If you ever want to derive custom optimality conditions (e.g., minimum-energy trajectory on a manifold, optimal path through a vector field), the variational viewpoint is faster than grinding through the full PMP machinery. Just remember: for inequality constraints or non-smooth $L$, classical CoV breaks down — use Pontryagin.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 PONTRYAGIN ============ -->
+<section class="chapter" id="c3"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">03</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Pontryagin's Minimum Principle</div>
+        <h2>Necessary conditions, in seven lines.</h2>
+        <p class="chapter-sub">If $u^\star(\cdot)$ is optimal, there exist costates $\lambda^\star(\cdot)$ such that the state, costate, and input jointly satisfy a two-point boundary value problem with a pointwise minimization in $u$.</p>
+      </div>
+    </div>
+
+    <h3>Statement</h3>
+    <p>Define the Hamiltonian</p>
+    <div class="mathblock">
+      $$H(x, u, \lambda, t) = L(x,u,t) + \lambda^\top f(x,u,t).$$
+    </div>
+
+    <p>Then along the optimal trajectory:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Pontryagin's necessary conditions</span>
+      $$\begin{aligned}
+      \dot x^\star &= \phantom{-}\nabla_\lambda H = f(x^\star, u^\star, t) \quad &&\text{(state eqn, forward)} \\
+      \dot \lambda^\star &= -\nabla_x H = -\nabla_x L - (\nabla_x f)^\top \lambda^\star \quad &&\text{(costate eqn, backward)} \\
+      u^\star(t) &= \arg\min_{u \in \mathcal{U}} H(x^\star, u, \lambda^\star, t) \quad &&\text{(Hamiltonian minimization)} \\
+      \lambda^\star(t_f) &= \nabla_x \phi(x^\star(t_f)) \quad &&\text{(transversality)} \\
+      H|_{t=t_f} &= -\partial \phi / \partial t \quad &&\text{(only if $t_f$ free)}
+      \end{aligned}$$
+    </div>
+
+    <p>The first two give you a <strong>two-point boundary value problem</strong> (TPBVP): $x$ known at $t_0$, $\lambda$ known at $t_f$. The third is the point-wise optimality. The difficulty of the problem lives almost entirely in the TPBVP — it's forward-backward, which is why indirect methods are numerically tricky.</p>
+
+    <h3>Unconstrained $u$: the stationarity condition</h3>
+    <p>If $u$ is unconstrained and $H$ is differentiable in $u$, then "minimize in $u$" becomes $\nabla_u H = 0$. For $L = \tfrac{1}{2} u^\top R u + \cdots$ with $R \succ 0$ and $f$ control-affine ($f = a(x) + B(x) u$), this gives:</p>
+    <div class="mathblock">
+      $$u^\star = -R^{-1} B(x)^\top \lambda^\star.$$
+    </div>
+    <p>This is the <strong>control-affine shortcut</strong> that powers LQR, iLQR, and most of classical optimal control.</p>
+
+    <h3>Constrained $u$: bang-bang emerges</h3>
+    <p>If $u \in [u_{\min}, u_{\max}]$ and $H$ is linear in $u$ (which happens for $L$ independent of $u$, e.g. minimum-time), then minimizing $H$ picks $u$ at a corner of the constraint set whenever the "switching function" $\sigma(t) = \lambda^\top B$ is nonzero:</p>
+    <div class="mathblock">
+      $$u^\star(t) = \begin{cases} u_{\max} & \sigma(t) < 0 \\ u_{\min} & \sigma(t) > 0 \end{cases}$$
+    </div>
+    <p>When $\sigma(t) \equiv 0$ on an interval, you have a <strong>singular arc</strong>, and $u$ is determined by differentiating $\sigma$ until $u$ appears — a delicate case.</p>
+
+    <!-- Bang-bang interactive -->
+    <div class="lab">
+      <div class="lab-header">
+        <div class="lab-title">Lab 01 · Minimum-Time Double Integrator</div>
+        <div class="lab-subtitle">bang-bang control via PMP</div>
+      </div>
+      <div class="lab-body">
+        <div class="lab-controls">
+          <div class="ctrl">
+            <label class="ctrl-label">Initial position $x_0$ <span class="val" id="mt-x0v">-2.0</span></label>
+            <input type="range" id="mt-x0" min="-3" max="3" step="0.1" value="-2">
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">Initial velocity $v_0$ <span class="val" id="mt-v0v">1.0</span></label>
+            <input type="range" id="mt-v0" min="-3" max="3" step="0.1" value="1">
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">Control bound $u_{\max}$ <span class="val" id="mt-uv">1.00</span></label>
+            <input type="range" id="mt-u" min="0.3" max="2" step="0.05" value="1">
+          </div>
+          <div class="ctrl-hint">Problem: drive $\ddot x = u$, $|u|\le u_{\max}$, from $(x_0,v_0)$ to origin in minimum time. The switching curve is $\{(x,v): x = -\tfrac{1}{2u_{\max}}|v|v\}$.</div>
+          <div class="preset-row">
+            <button class="btn-preset" data-mt="-2,1">←↑</button>
+            <button class="btn-preset" data-mt="2,-1">→↓</button>
+            <button class="btn-preset" data-mt="-2,-2">←↓</button>
+            <button class="btn-preset" data-mt="2,2">→↑</button>
+          </div>
+        </div>
+        <div class="lab-view">
+          <div class="lab-readout">
+            <div class="readout-item"><span class="readout-label">min time $t_f^\star$</span><span class="readout-val" id="mt-tf">—</span></div>
+            <div class="readout-item"><span class="readout-label">switch at</span><span class="readout-val" id="mt-ts">—</span></div>
+            <div class="readout-item"><span class="readout-label">first action</span><span class="readout-val" id="mt-u0">—</span></div>
+          </div>
+          <div class="plot-wrap">
+            <canvas class="plot" id="mt-plot"></canvas>
+            <div class="plot-legend">
+              <span class="lgd l1">position $x(t)$</span>
+              <span class="lgd l2">velocity $v(t)$</span>
+              <span class="lgd l3">control $u(t)$</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-label">Rule of thumb — PMP in practice</div>
+      <p>For trajectory generation offline, <strong>direct methods</strong> (discretize then optimize via NLP, e.g. collocation) are almost always easier than <strong>indirect methods</strong> (shoot the TPBVP). The indirect approach gives higher accuracy <em>if</em> your initial guess for $\lambda(t_0)$ is decent — which it usually isn't. Use indirect when you need ultra-high precision (e.g. interplanetary trajectory design) or when the structure (singular arcs, bang-bang switches) is analytically known.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 BELLMAN / HJB ============ -->
+<section class="chapter" id="c4"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">04</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Dynamic Programming &amp; HJB</div>
+        <h2>Bellman's principle and the PDE you rarely solve.</h2>
+        <p class="chapter-sub">The value function $V(x,t)$ satisfies a partial differential equation. Solving it directly gives a feedback policy — no TPBVP, no initial costate guess. The catch is the curse of dimensionality.</p>
+      </div>
+    </div>
+
+    <h3>The principle of optimality</h3>
+    <p>Bellman's insight, crudely: whatever you did to get to state $x$ at time $t$, the optimal continuation from $(x,t)$ only depends on $(x,t)$. Formally:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Bellman's principle (continuous)</span>
+      $$V(x,t) = \min_{u(\cdot)}\! \left\{ \int_t^{t+\Delta t}\! L\, d\tau + V(x + \Delta x, t + \Delta t) \right\}$$
+    </div>
+
+    <p>Taking $\Delta t \to 0$ and expanding $V$:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Hamilton–Jacobi–Bellman PDE</span>
+      $$-\frac{\partial V}{\partial t} = \min_{u \in \mathcal{U}} \left\{ L(x,u,t) + (\nabla_x V)^\top f(x,u,t) \right\} = \min_u H(x,u,\nabla_x V, t)$$
+      $$V(x, t_f) = \phi(x)$$
+    </div>
+
+    <p>Notice the clean correspondence: $\lambda = \nabla_x V$. The costate is the gradient of the value function. This is exactly why PMP and HJB agree where both are applicable — they're two views of the same optimality.</p>
+
+    <h3>Discrete version (Bellman equation)</h3>
+    <div class="mathblock">
+      $$V_k(x_k) = \min_{u_k} \left\{ \ell_k(x_k, u_k) + V_{k+1}(f_k(x_k, u_k)) \right\}$$
+    </div>
+    <p>Solvable by <strong>backward recursion</strong> when the state/action spaces are finite and small. For continuous states, you must parametrize $V$ — linear combinations of basis functions, neural networks, tensor trains, etc. That's where Approximate Dynamic Programming lives.</p>
+
+    <h3>Curse of dimensionality</h3>
+    <p>A grid of $N$ points per dimension over $n$ state dimensions is $N^n$ cells. For $n=10$ and $N=100$ that's $10^{20}$ — hopeless. This is why HJB is rarely solved directly outside $n \le 4$ or so. The exceptions:</p>
+    <ul>
+      <li><strong>Linear-quadratic problems</strong>: $V$ is quadratic in $x$, so it's parametrized by a symmetric matrix $P$. The HJB collapses to a Riccati equation. See §5.</li>
+      <li><strong>Structured problems</strong>: hybrid systems, decomposable dynamics, reachability (HJI).</li>
+      <li><strong>Approximation</strong>: use a function approximator, iterate. This is value iteration / ADP / deep RL depending on which community you hang out with.</li>
+    </ul>
+
+    <div class="callout warn">
+      <div class="callout-label">Pitfall — viscosity solutions</div>
+      <p>$V$ is typically non-smooth (corners appear where bang-bang switches happen). Classical PDE solutions can be ambiguous. The correct notion is a <strong>viscosity solution</strong> (Crandall–Lions). If you're doing numerical HJB with upwind schemes, you're implicitly selecting the viscosity solution — good. If you're naively differentiating, you can be wrong — bad.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 LQR ============ -->
+<section class="chapter" id="c5"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">05</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Linear Quadratic Regulator</div>
+        <h2>The one problem you can solve exactly.</h2>
+        <p class="chapter-sub">Linear dynamics, quadratic cost. PMP and HJB agree, the value function is quadratic, the optimal controller is linear state feedback, and you can compute it in microseconds. LQR is the scaffolding on which MPC, LQG, and most practical controllers are built.</p>
+      </div>
+    </div>
+
+    <h3>Setup</h3>
+    <div class="mathblock">
+      $$\dot x = Ax + Bu, \qquad J = \tfrac{1}{2} x(t_f)^\top Q_f x(t_f) + \tfrac{1}{2}\int_0^{t_f} \left( x^\top Q x + u^\top R u \right) dt$$
+    </div>
+    <p>With $Q \succeq 0$, $Q_f \succeq 0$, $R \succ 0$. (Strict positive definiteness of $R$ is required — otherwise the minimization is ill-posed.)</p>
+
+    <h3>The finite-horizon solution</h3>
+    <p>Write $V(x,t) = \tfrac{1}{2} x^\top P(t) x$. Plug into HJB. Match quadratic coefficients. You get:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Differential Riccati equation (DRE)</span>
+      $$-\dot P = A^\top P + PA - PBR^{-1}B^\top P + Q, \qquad P(t_f) = Q_f$$
+    </div>
+    <p>Integrate backward in time from $t_f$ to $0$. Then the optimal controller is</p>
+    <div class="mathblock">
+      $$u^\star(t) = -R^{-1} B^\top P(t) \, x(t) = -K(t)\, x(t).$$
+    </div>
+    <p>Feedback gain $K(t) = R^{-1} B^\top P(t)$ is time-varying.</p>
+
+    <h3>Infinite horizon ($t_f \to \infty$)</h3>
+    <p>If $(A,B)$ is <em>stabilizable</em> and $(A, Q^{1/2})$ is <em>detectable</em>, $P(t)$ converges to a constant $P_\infty$ satisfying:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Continuous Algebraic Riccati Equation (CARE)</span>
+      $$A^\top P + P A - P B R^{-1} B^\top P + Q = 0$$
+    </div>
+    <p>with the stabilizing solution $P \succ 0$ (the unique one such that $A - BK$ is Hurwitz, $K = R^{-1}B^\top P$). That's your constant-gain feedback controller.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Why LQR is special</div>
+      <p>For any other dynamics or cost, $V$ is not quadratic, and you cannot parametrize it with a finite-dimensional matrix. LQR is the one case where the curse of dimensionality doesn't bite: $V$ has $n(n+1)/2$ parameters regardless of state dimension.</p>
+    </div>
+
+    <!-- LQR tuner interactive -->
+    <div class="lab">
+      <div class="lab-header">
+        <div class="lab-title">Lab 02 · LQR Tuner — Double Integrator</div>
+        <div class="lab-subtitle">$\ddot x = u$, infinite-horizon CARE</div>
+      </div>
+      <div class="lab-body">
+        <div class="lab-controls">
+          <div class="ctrl">
+            <label class="ctrl-label">$Q_{11}$ (position weight) <span class="val" id="lqr-q1v">1.0</span></label>
+            <input type="range" id="lqr-q1" min="-2" max="3" step="0.1" value="0">
+            <div class="ctrl-hint">slider: $10^x$, so weight = <span id="lqr-q1-raw">1</span></div>
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">$Q_{22}$ (velocity weight) <span class="val" id="lqr-q2v">1.0</span></label>
+            <input type="range" id="lqr-q2" min="-2" max="3" step="0.1" value="0">
+            <div class="ctrl-hint">weight = <span id="lqr-q2-raw">1</span></div>
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">$R$ (effort weight) <span class="val" id="lqr-rv">1.0</span></label>
+            <input type="range" id="lqr-r" min="-2" max="3" step="0.1" value="0">
+            <div class="ctrl-hint">weight = <span id="lqr-r-raw">1</span></div>
+          </div>
+          <div class="preset-row">
+            <button class="btn-preset" data-lqr="0,0,0">balanced</button>
+            <button class="btn-preset" data-lqr="2,0,-1">aggressive</button>
+            <button class="btn-preset" data-lqr="-1,-1,2">lazy</button>
+            <button class="btn-preset" data-lqr="2,-2,-2">stiff</button>
+          </div>
+        </div>
+        <div class="lab-view">
+          <div class="lab-readout">
+            <div class="readout-item"><span class="readout-label">$K = [k_1, k_2]$</span><span class="readout-val" id="lqr-K">—</span></div>
+            <div class="readout-item"><span class="readout-label">pole 1</span><span class="readout-val" id="lqr-p1">—</span></div>
+            <div class="readout-item"><span class="readout-label">pole 2</span><span class="readout-val" id="lqr-p2">—</span></div>
+            <div class="readout-item"><span class="readout-label">peak $|u|$</span><span class="readout-val" id="lqr-umax">—</span></div>
+          </div>
+          <div class="plot-wrap">
+            <canvas class="plot" id="lqr-plot"></canvas>
+            <div class="plot-legend">
+              <span class="lgd l1">position</span>
+              <span class="lgd l2">velocity</span>
+              <span class="lgd l3">control</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout rule">
+      <div class="callout-label">Rule — Bryson's rule for Q and R</div>
+      <p>When you have no better idea, set <code>Q = diag(1/x_{i,\max}^2)</code> and <code>R = diag(1/u_{j,\max}^2)</code> where $x_{i,\max}$ and $u_{j,\max}$ are the largest <em>acceptable</em> deviations for each state/input. This normalizes so that each term contributes roughly equally when states/inputs are at their tolerance limits. Adjust from there.</p>
+    </div>
+
+    <h3>Discrete-time LQR</h3>
+    <p>For $x_{k+1} = A_d x_k + B_d u_k$ and cost $\sum_{k=0}^{N-1}(x_k^\top Q x_k + u_k^\top R u_k) + x_N^\top Q_f x_N$:</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Discrete Riccati (backward)</span>
+      $$P_k = Q + A_d^\top P_{k+1} A_d - A_d^\top P_{k+1} B_d (R + B_d^\top P_{k+1} B_d)^{-1} B_d^\top P_{k+1} A_d$$
+      $$K_k = (R + B_d^\top P_{k+1} B_d)^{-1} B_d^\top P_{k+1} A_d, \qquad u_k^\star = -K_k x_k$$
+    </div>
+    <p>Infinite horizon: iterate until $P_k$ converges — that's the <strong>Discrete Algebraic Riccati Equation</strong> (DARE) solution.</p>
+
+    <h3>Gain margin and stability margins</h3>
+    <p>LQR has beautiful classical guarantees for the <em>full state feedback</em> case:</p>
+    <ul>
+      <li><strong>Infinite gain margin</strong> in the stable direction — you can multiply the gain by any number $\ge 1/2$ and still be stable.</li>
+      <li><strong>Gain margin of $\ge 6$ dB</strong> in reduction (i.e., down to $K/2$).</li>
+      <li><strong>Phase margin of $\ge 60°$</strong>.</li>
+    </ul>
+    <p>These are for SISO loop-at-a-time. MIMO has multivariable equivalents (e.g., return difference inequality: $|I + L(j\omega)| \ge I$).</p>
+
+    <div class="callout warn">
+      <div class="callout-label">Caveat — these margins evaporate with an observer</div>
+      <p>LQG (next chapter) uses a Kalman filter to estimate state. The classical LQR margins do <em>not</em> survive the addition of an observer — this is the famous Doyle 1978 counter-example. "LQG has no guaranteed stability margins." Hence Loop Transfer Recovery and, in modern practice, the shift toward MPC with direct robustness analysis.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 RICCATI ============ -->
+<section class="chapter" id="c6"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">06</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Riccati Equations</div>
+        <h2>Solving the CARE/DARE: you have options.</h2>
+        <p class="chapter-sub">Naive iteration of the Riccati recursion works but converges linearly. The real solvers use Schur/Hamiltonian-matrix decompositions and converge in one shot. For embedded systems, iteration can still be the right choice.</p>
+      </div>
+    </div>
+
+    <h3>Backward iteration (the textbook method)</h3>
+    <p>Just run the discrete Riccati backward from $P_N = Q_f$ until $\|P_{k+1} - P_k\|$ is below tolerance. Simple, robust, no linear algebra beyond matrix multiply and small inverse. Convergence is linear — doubling the precision takes a fixed number of iterations, typically 20–100 for well-conditioned problems.</p>
+
+    <h3>Hamiltonian matrix / Schur method</h3>
+    <p>Form the $2n \times 2n$ <strong>Hamiltonian matrix</strong>:</p>
+    <div class="mathblock">
+      $$\mathcal{H} = \begin{bmatrix} A & -BR^{-1}B^\top \\ -Q & -A^\top \end{bmatrix}$$
+    </div>
+    <p>It has $n$ stable and $n$ unstable eigenvalues (in mirror-image symmetry across the imaginary axis for CT, unit circle for DT). Compute the real Schur form, reorder so stable eigenvalues are in the top-left, extract the stable invariant subspace:</p>
+    <div class="mathblock">
+      $$\mathcal{H} \begin{bmatrix} X_1 \\ X_2 \end{bmatrix} = \begin{bmatrix} X_1 \\ X_2 \end{bmatrix} S, \quad S \text{ stable} \implies P = X_2 X_1^{-1}$$
+    </div>
+    <p>This is what MATLAB's <code>care</code>/<code>dare</code> actually does. Numerically stable, one-shot.</p>
+
+    <h3>Doubling algorithm (structured DARE)</h3>
+    <p>For DARE, the structured doubling algorithm (SDA) doubles the horizon per step: $P_k \to P_{2k}$ at each iteration. Quadratic convergence, very fast, preserves structure. Method of choice for large-scale DAREs.</p>
+
+    <!-- Riccati convergence interactive -->
+    <div class="lab">
+      <div class="lab-header">
+        <div class="lab-title">Lab 03 · Riccati Iteration Convergence</div>
+        <div class="lab-subtitle">backward recursion of discrete P</div>
+      </div>
+      <div class="lab-body">
+        <div class="lab-controls">
+          <div class="ctrl">
+            <label class="ctrl-label">sample time $T_s$ (ms) <span class="val" id="ric-ts">10</span></label>
+            <input type="range" id="ric-ts-sl" min="1" max="50" step="1" value="10">
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">state weight ratio $Q/R$ <span class="val" id="ric-qr">1.0</span></label>
+            <input type="range" id="ric-qr-sl" min="-2" max="3" step="0.1" value="0">
+          </div>
+          <div class="ctrl-hint">Watch P-matrix entries converge backward from $P_N = 0$ to $P_\infty$ (DARE solution). Convergence rate depends on plant eigenvalues and Q/R ratio.</div>
+          <div class="preset-row">
+            <button class="btn-preset" data-ric="10,0">defaults</button>
+            <button class="btn-preset" data-ric="1,2">fast</button>
+            <button class="btn-preset" data-ric="50,-2">slow</button>
+          </div>
+        </div>
+        <div class="lab-view">
+          <div class="lab-readout">
+            <div class="readout-item"><span class="readout-label">$P_\infty(1,1)$</span><span class="readout-val" id="ric-p11">—</span></div>
+            <div class="readout-item"><span class="readout-label">$P_\infty(2,2)$</span><span class="readout-val" id="ric-p22">—</span></div>
+            <div class="readout-item"><span class="readout-label">iter. to tol.</span><span class="readout-val" id="ric-it">—</span></div>
+          </div>
+          <div class="plot-wrap">
+            <canvas class="plot" id="ric-plot"></canvas>
+            <div class="plot-legend">
+              <span class="lgd l1">$P_k(1,1)$</span>
+              <span class="lgd l2">$P_k(1,2)$</span>
+              <span class="lgd l3">$P_k(2,2)$</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Numerical tips, the ones that matter</h3>
+    <ul>
+      <li><strong>Check the problem is well-posed</strong>: $(A,B)$ stabilizable, $(A, Q^{1/2})$ detectable. If detectability fails, the algebraic equation has <em>non-stabilizing</em> solutions too, and iteration can land on a wrong fixed point.</li>
+      <li><strong>Balance the system first</strong> for ill-conditioned $A$. <code>balreal</code> in MATLAB, or equivalent scaling in SciPy.</li>
+      <li><strong>Use the square-root form</strong> for ill-conditioned $P$: propagate $S$ with $P = S S^\top$ using QR updates. Avoids loss of symmetry/positive-definiteness.</li>
+      <li><strong>Don't compute $R^{-1}$ directly</strong>. Solve the linear system $(R + B^\top P B) X = B^\top P A$ for $X = K$ via Cholesky. Halves the cost and better conditioned.</li>
+      <li><strong>Offline is fine for LTI</strong>. For embedded real-time with an LTI plant, solve DARE offline once, hardcode $K$ as a constant. Spend zero cycles at runtime.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 07 LQG / Kalman ============ -->
+<section class="chapter" id="c7"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">07</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">LQG &amp; the Kalman Filter</div>
+        <h2>You can't measure the state. Estimate it.</h2>
+        <p class="chapter-sub">LQR assumes full state access. Real sensors measure outputs $y = Cx + v$. The optimal stochastic controller — under Gaussian noise and quadratic cost — is a Kalman filter cascaded with an LQR gain. The separation principle makes this decomposition exact.</p>
+      </div>
+    </div>
+
+    <h3>Stochastic problem setup</h3>
+    <div class="mathblock">
+      $$\dot x = Ax + Bu + w, \quad y = Cx + v, \quad w \sim \mathcal{N}(0, W), \; v \sim \mathcal{N}(0, V)$$
+    </div>
+    <p>Minimize $E\!\left[ \int_0^\infty (x^\top Q x + u^\top R u)\, dt \right]$.</p>
+
+    <h3>The separation principle</h3>
+    <p>The optimal controller is:</p>
+    <ol>
+      <li>Estimate $\hat x(t)$ via the Kalman filter (the optimal linear unbiased estimator under Gaussian noise).</li>
+      <li>Apply $u(t) = -K \hat x(t)$ where $K$ is the deterministic LQR gain from the CARE.</li>
+    </ol>
+    <p>The "filter Riccati" dual to the control Riccati gives the Kalman gain $L$:</p>
+    <div class="mathblock">
+      <span class="mathblock-label">Filter ARE (dual to CARE)</span>
+      $$A\Sigma + \Sigma A^\top - \Sigma C^\top V^{-1} C \Sigma + W = 0, \quad L = \Sigma C^\top V^{-1}$$
+    </div>
+    <p>Observer dynamics: $\dot{\hat x} = A\hat x + Bu + L(y - C\hat x)$.</p>
+
+    <div class="callout warn">
+      <div class="callout-label">Doyle's result — LQG has no guaranteed margins</div>
+      <p>Even though LQR has $\ge 60°$ phase margin, cascading it with a Kalman filter can destroy robustness entirely. This famous result motivated the development of <strong>Loop Transfer Recovery</strong> (LTR) in the 1980s and eventually $\mathcal{H}_\infty$ / robust control in the '90s. Practical takeaway: for real systems with model uncertainty, verify robustness of the LQG loop explicitly — don't trust the LQR guarantees to carry over.</p>
+    </div>
+
+    <h3>Discrete Kalman filter (the one you actually code)</h3>
+    <div class="mathblock">
+      <span class="mathblock-label">Predict</span>
+      $$\hat x_{k|k-1} = A_d \hat x_{k-1|k-1} + B_d u_{k-1}$$
+      $$\Sigma_{k|k-1} = A_d \Sigma_{k-1|k-1} A_d^\top + W_d$$
+    </div>
+    <div class="mathblock">
+      <span class="mathblock-label">Update</span>
+      $$L_k = \Sigma_{k|k-1} C^\top (C \Sigma_{k|k-1} C^\top + V)^{-1}$$
+      $$\hat x_{k|k} = \hat x_{k|k-1} + L_k (y_k - C \hat x_{k|k-1})$$
+      $$\Sigma_{k|k} = (I - L_k C)\Sigma_{k|k-1}(I - L_k C)^\top + L_k V L_k^\top$$
+    </div>
+    <p>Use the <strong>Joseph form</strong> for $\Sigma_{k|k}$ (shown above) — symmetric and positive semi-definite under roundoff. The textbook form $(I - L_k C)\Sigma_{k|k-1}$ is algebraically equivalent but loses symmetry.</p>
+
+    <h3>Extended and Unscented variants for nonlinear systems</h3>
+    <ul>
+      <li><strong>EKF</strong>: linearize $f$, $h$ around current estimate each step. Reuses the Kalman equations with $A_k = \partial f/\partial x|_{\hat x_k}$. Cheap. Can diverge if nonlinearity is severe or initial guess is poor.</li>
+      <li><strong>UKF</strong>: propagate sigma points through the nonlinear map, reconstruct mean/covariance. Better statistics for moderately nonlinear systems. ~$2n+1$ state propagations per step.</li>
+      <li><strong>Particle filter</strong>: for non-Gaussian, heavily multimodal, or highly nonlinear problems. Expensive, not typically real-time unless state dimension is tiny.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 08 MPC ============ -->
+<section class="chapter" id="c8"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">08</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Model Predictive Control</div>
+        <h2>Receding horizon: what changed the industry.</h2>
+        <p class="chapter-sub">At each control step: solve a finite-horizon optimal control problem online, apply only the first input, repeat at the next step. Handles constraints natively — which is why MPC ate the world in process control, automotive, robotics.</p>
+      </div>
+    </div>
+
+    <h3>The MPC loop</h3>
+    <p>At time $k$, given current state estimate $\hat x_k$, solve:</p>
+    <div class="mathblock">
+      <span class="mathblock-label">MPC subproblem at step $k$</span>
+      $$\min_{u_{0:N-1}} \; \sum_{i=0}^{N-1} \left(x_i^\top Q x_i + u_i^\top R u_i\right) + x_N^\top P x_N$$
+      $$\text{s.t.} \quad x_{i+1} = A_d x_i + B_d u_i, \; x_0 = \hat x_k, \; u_i \in \mathcal{U}, \; x_i \in \mathcal{X}$$
+    </div>
+    <p>Apply $u_k \leftarrow u_0^\star$. Discard the rest. Advance $k$. Repeat.</p>
+
+    <h3>Why receding horizon (not just open-loop)?</h3>
+    <ul>
+      <li><strong>Disturbance rejection</strong>: re-measuring the state and re-optimizing corrects for model mismatch and disturbances.</li>
+      <li><strong>Implicit feedback</strong>: the closed loop $k \mapsto u_k(\hat x_k)$ is a state-feedback policy, even though each instance is an open-loop optimization.</li>
+      <li><strong>Explicit constraints</strong>: $\mathcal{U}, \mathcal{X}$ enter the QP directly. No anti-windup hacks.</li>
+    </ul>
+
+    <!-- MPC horizon interactive -->
+    <div class="lab">
+      <div class="lab-header">
+        <div class="lab-title">Lab 04 · MPC Horizon Length vs. Closed-Loop Behavior</div>
+        <div class="lab-subtitle">unconstrained finite-horizon LQR with terminal cost</div>
+      </div>
+      <div class="lab-body">
+        <div class="lab-controls">
+          <div class="ctrl">
+            <label class="ctrl-label">Horizon $N$ <span class="val" id="mpc-N">10</span></label>
+            <input type="range" id="mpc-N-sl" min="1" max="40" step="1" value="10">
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">Terminal weight $P = \alpha \cdot P_\infty$ <span class="val" id="mpc-alpha">1.0</span></label>
+            <input type="range" id="mpc-alpha-sl" min="0" max="5" step="0.1" value="1">
+          </div>
+          <div class="ctrl">
+            <label class="ctrl-label">Input bound $|u|\le u_{\max}$ <span class="val" id="mpc-umax">2.00</span></label>
+            <input type="range" id="mpc-umax-sl" min="0.1" max="5" step="0.05" value="2">
+          </div>
+          <div class="ctrl-hint">The dashed line is the infinite-horizon LQR trajectory (the limit). Short $N$ with $\alpha=0$ is greedy; $\alpha=1$ recovers near-optimal behavior for any $N \ge 1$ (terminal cost effect). Use $\alpha > 1$ to see how over-weighting breaks things.</div>
+        </div>
+        <div class="lab-view">
+          <div class="lab-readout">
+            <div class="readout-item"><span class="readout-label">rel. cost vs $\infty$-LQR</span><span class="readout-val" id="mpc-cost">—</span></div>
+            <div class="readout-item"><span class="readout-label">first $u_0^\star$</span><span class="readout-val" id="mpc-u0">—</span></div>
+            <div class="readout-item"><span class="readout-label">terminal $\|x_N\|$</span><span class="readout-val" id="mpc-xN">—</span></div>
+          </div>
+          <div class="plot-wrap">
+            <canvas class="plot" id="mpc-plot"></canvas>
+            <div class="plot-legend">
+              <span class="lgd l1">MPC position</span>
+              <span class="lgd l2">MPC velocity</span>
+              <span class="lgd l3">MPC control</span>
+              <span class="lgd l4">$\infty$-LQR position</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Constraints and the QP</h3>
+    <p>For linear dynamics with polytopic constraints (box bounds on $u$ and $x$, linear inequalities), the MPC subproblem is a <strong>quadratic program</strong>:</p>
+    <div class="mathblock">
+      $$\min_z \tfrac{1}{2} z^\top H z + g^\top z \quad \text{s.t.} \quad A_c z \le b_c, \; A_{eq} z = b_{eq}$$
+    </div>
+    <p>where $z = (u_0, \ldots, u_{N-1})$ (condensed form) or $z = (x_0, u_0, x_1, u_1, \ldots)$ (sparse form). Sparse form has better asymptotic complexity for long horizons; condensed form is often faster for $N \lesssim 20$.</p>
+
+    <h3>Stability and recursive feasibility</h3>
+    <p>These are the two things you must verify — not just hope for.</p>
+    <dl class="defs">
+      <div><dt>Recursive feasibility</dt><dd>If the MPC QP is feasible at step $k$, will it still be feasible at $k+1$? Not automatic with state constraints. Guaranteed by terminal set + control-invariance of that set.</dd></div>
+      <div><dt>Closed-loop stability</dt><dd>Standard sufficient conditions: (a) terminal cost $P$ is a Lyapunov function on a terminal set $\mathcal{X}_f$, (b) $\mathcal{X}_f$ is positively invariant under the terminal controller, (c) running cost is positive definite. Take $P$ = DARE solution for the unconstrained terminal controller, $\mathcal{X}_f$ = maximal positively invariant set under the LQR law.</dd></div>
+      <div><dt>Warm-starting</dt><dd>At step $k+1$, use the shifted solution from step $k$ (drop $u_0^\star$, append a terminal input) as initial guess. Huge speedup for active-set and interior-point QP solvers.</dd></div>
+    </dl>
+
+    <h3>Solver landscape (what you'd actually use)</h3>
+    <table class="cmp">
+      <thead><tr><th>Solver</th><th>Method</th><th>Best for</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>OSQP</td><td>ADMM, first-order</td><td>medium problems, warm-starting</td><td>No library deps, code-gen, robust. Industry default for embedded MPC.</td></tr>
+        <tr><td>HPIPM</td><td>Interior-point, structured</td><td>long horizons, real-time</td><td>Riccati-based factorization exploits sparse MPC structure. Fastest for $N\ge 20$.</td></tr>
+        <tr><td>qpOASES</td><td>Active-set, online</td><td>small problems, smooth warm-starts</td><td>Excellent when active set changes slowly between steps.</td></tr>
+        <tr><td>GRAMPC</td><td>Gradient projection</td><td>nonlinear MPC, embedded</td><td>Handles NLP directly; no QP solve per step. Suboptimal, but fast.</td></tr>
+        <tr><td>acados</td><td>RTI / SQP framework</td><td>nonlinear, production use</td><td>Generates C code. Real-Time Iteration for NMPC.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout rule">
+      <div class="callout-label">Rule — choose $N$ rationally</div>
+      <p>For a controllable LTI system, $N$ should cover roughly 1–2 dominant time constants of the <em>closed-loop</em> response. Too short and terminal cost matters too much; too long and you pay solve time for no benefit. A common heuristic: pick the smallest $N$ such that doubling $N$ changes closed-loop cost by $< 1\%$. For motor-control-grade sampling at 10 kHz, typical $N = 10$–$20$.</p>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-label">Rule — Real-Time Iteration (Diehl)</div>
+      <p>For nonlinear MPC, don't converge the NLP at every step. Do <em>one</em> SQP iteration per control step (initialized by shifted previous solution). Under mild conditions, closed-loop stability is preserved and you get bounded suboptimality. This is what makes NMPC tractable at kHz rates in embedded systems — <code>acados</code> and <code>GRAMPC</code> both ride this idea.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 09 NONLINEAR ============ -->
+<section class="chapter" id="c9"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">09</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Nonlinear Optimal Control</div>
+        <h2>iLQR, DDP, and direct collocation.</h2>
+        <p class="chapter-sub">When the dynamics are nonlinear, you have two camps: linearize-and-iterate (iLQR, SQP) or discretize-and-optimize (collocation). Both work, both are used in production.</p>
+      </div>
+    </div>
+
+    <h3>iLQR — iterative LQR</h3>
+    <p>Given a nominal trajectory $(\bar x_k, \bar u_k)$, linearize the dynamics and quadratize the cost around it. The resulting time-varying LQR sub-problem has a closed-form solution via the discrete Riccati recursion. Apply the update, relinearize, repeat. Converges superlinearly near a local optimum.</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">iLQR skeleton</span>
+      <pre class="code" style="margin:8px 0 0 0"><span class="com"># Given nominal (x̄, ū), cost ℓ, dynamics f</span>
+<span class="kw">for</span> <span class="fn">iter</span> <span class="kw">in</span> <span class="fn">range</span>(max_iter):
+    <span class="com"># backward pass: build quadratic Q, solve Riccati</span>
+    V_x, V_xx = ∂ℓ_N/∂x, ∂²ℓ_N/∂x²
+    <span class="kw">for</span> k <span class="kw">in</span> <span class="fn">reversed</span>(<span class="fn">range</span>(N)):
+        <span class="com"># Q-function expansion around (x̄_k, ū_k)</span>
+        A_k, B_k = ∂f/∂x, ∂f/∂u
+        Q_x  = ℓ_x  + A_k.T @ V_x
+        Q_u  = ℓ_u  + B_k.T @ V_x
+        Q_xx = ℓ_xx + A_k.T @ V_xx @ A_k
+        Q_uu = ℓ_uu + B_k.T @ V_xx @ B_k
+        Q_ux = ℓ_ux + B_k.T @ V_xx @ A_k
+        <span class="com"># feedforward + feedback gains</span>
+        k_ff =  -Q_uu⁻¹ Q_u
+        K_fb =  -Q_uu⁻¹ Q_ux
+        <span class="com"># value update</span>
+        V_x  = Q_x  + K_fb.T @ Q_uu @ k_ff + K_fb.T @ Q_u  + Q_ux.T @ k_ff
+        V_xx = Q_xx + K_fb.T @ Q_uu @ K_fb + K_fb.T @ Q_ux + Q_ux.T @ K_fb
+    <span class="com"># forward pass with line search on α ∈ (0,1]</span>
+    <span class="kw">for</span> k <span class="kw">in</span> <span class="fn">range</span>(N):
+        u_k = ū_k + α·k_ff_k + K_fb_k @ (x_k - x̄_k)
+        x_{k+1} = f(x_k, u_k)
+    <span class="kw">if</span> converged: <span class="kw">break</span>
+    x̄, ū = x, u</pre>
+    </div>
+
+    <h3>DDP vs iLQR</h3>
+    <p>DDP (Differential Dynamic Programming) also includes <em>second-order</em> dynamics terms $f_{xx}, f_{uu}, f_{xu}$ in the backward pass. iLQR drops them (Gauss–Newton style). In practice:</p>
+    <ul>
+      <li>iLQR is far easier to implement, needs only first-order dynamics derivatives.</li>
+      <li>DDP converges faster near the optimum but is more sensitive to indefinite Hessians.</li>
+      <li>For 90% of robotics/aerospace use cases, iLQR is the right default.</li>
+    </ul>
+
+    <h3>Direct collocation and shooting</h3>
+    <p>Instead of solving the TPBVP, discretize $(x_0, u_0, \ldots, x_N, u_N)$ as NLP variables and impose dynamics as equality constraints between knots:</p>
+    <ul>
+      <li><strong>Multiple shooting</strong>: integrate dynamics within each interval, enforce matching at knots. Good for stiff ODEs, parallelizable.</li>
+      <li><strong>Trapezoidal collocation</strong>: approximate $\dot x$ on each segment with trapezoid rule, enforce as equality. Second-order accurate, very common.</li>
+      <li><strong>Hermite–Simpson</strong> or <strong>LGR pseudo-spectral</strong>: higher-order, sparser in time, great for long-horizon problems with smooth dynamics.</li>
+    </ul>
+    <p>Feed the NLP to IPOPT, SNOPT, or a custom SQP. This is the workhorse of trajectory optimization for aircraft, spacecraft, and robots.</p>
+
+    <div class="callout note">
+      <div class="callout-label">When to pick what</div>
+      <p><strong>iLQR/DDP</strong> for smooth, unconstrained or box-constrained problems, especially when you need real-time re-planning (trajectory MPC). <strong>Collocation + IPOPT</strong> when you have complex path constraints, need high accuracy, or the problem is offline. <strong>Direct shooting</strong> (single or multiple) when dynamics integration is expensive and you want fewer decision variables.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 RL CONNECTION ============ -->
+<section class="chapter" id="c10"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">10</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Connection to Reinforcement Learning</div>
+        <h2>Approximate dynamic programming, in one page.</h2>
+        <p class="chapter-sub">Reinforcement learning is what you get when you drop the "known model" assumption and try to solve HJB by sampling. Everything else — policy iteration, Q-learning, actor-critic, DDPG — is a variation on that theme.</p>
+      </div>
+    </div>
+
+    <h3>Policy iteration (the Rosetta stone)</h3>
+    <p>For a fixed policy $\pi$, the value function $V^\pi$ satisfies the <strong>policy evaluation equation</strong> (linear):</p>
+    <div class="mathblock">
+      $$V^\pi(x) = L(x, \pi(x)) + \gamma\, V^\pi(f(x, \pi(x)))$$
+    </div>
+    <p>Given $V^\pi$, improve the policy greedily:</p>
+    <div class="mathblock">
+      $$\pi^+(x) = \arg\min_u \{L(x,u) + \gamma V^\pi(f(x,u))\}$$
+    </div>
+    <p>Alternating these two steps converges to $\pi^\star$. In control: this is <strong>Howard's policy iteration</strong>. In RL: same thing, but with sampled trajectories replacing exact expectations and function approximation replacing exact $V$.</p>
+
+    <h3>The LQR–RL bridge</h3>
+    <p>For LQR problems, policy iteration on $V(x) = x^\top P x$ with $\pi(x) = -Kx$ converges to the CARE solution in closed form. Every iteration solves a <em>Lyapunov equation</em> (linear in $P$, given $K$), which is trivial. This is known as <strong>Kleinman's algorithm</strong> (1968) — the direct ancestor of modern actor-critic methods.</p>
+
+    <div class="mathblock">
+      <span class="mathblock-label">Kleinman iteration (continuous-time, deterministic)</span>
+      $$\text{given } K_i \text{ stabilizing:}$$
+      $$(A - BK_i)^\top P_i + P_i(A - BK_i) + Q + K_i^\top R K_i = 0 \quad \text{(Lyapunov)}$$
+      $$K_{i+1} = R^{-1} B^\top P_i$$
+    </div>
+    <p>Quadratic convergence to CARE solution. Each step is a Lyapunov equation. Foundational.</p>
+
+    <h3>Q-learning and the discrete-time dual</h3>
+    <p>Define the state-action value $Q^\pi(x,u) = L(x,u) + \gamma V^\pi(f(x,u))$. Then the optimal $Q^\star$ satisfies:</p>
+    <div class="mathblock">
+      $$Q^\star(x,u) = L(x,u) + \gamma \min_{u'} Q^\star(f(x,u), u')$$
+    </div>
+    <p>This is what Q-learning approximates. For LQR, $Q^\star(x,u) = [x;u]^\top H [x;u]$ is quadratic — and the greedy policy $u^\star = -H_{uu}^{-1} H_{ux}\,x$ is exactly the LQR gain. You can learn $H$ without knowing $(A,B)$ by solving least-squares on observed $(x,u,x')$ tuples. This is <strong>model-free</strong> LQR — a staple of adaptive dynamic programming.</p>
+
+    <div class="callout tip">
+      <div class="callout-label">Why this matters for the practitioner</div>
+      <p>If you know your plant, use the model: solve CARE/DARE, deploy. It's faster, more data-efficient, and has provable robustness bounds. Use RL/ADP when the model is unknown, time-varying, or when the state space is so large that parametric $V$/$Q$ approximation is necessary. For adaptive motor control, the Kleinman framework lets you update $K$ online using measured data without re-identifying $(A,B)$ — often the right tool.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 RULES OF THUMB ============ -->
+<section class="chapter" id="c11"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">11</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Rules of Thumb</div>
+        <h2>What twenty years of field deployment teaches you.</h2>
+        <p class="chapter-sub">Not theorems. Heuristics. The stuff that saves you a week when something isn't working.</p>
+      </div>
+    </div>
+
+    <h3>Tuning Q and R</h3>
+    <div class="callout rule">
+      <div class="callout-label">Bryson's rule (already mentioned, repeated for emphasis)</div>
+      <p>Start with $Q = \text{diag}(1/x_{i,\max}^2)$, $R = \text{diag}(1/u_{j,\max}^2)$ using "acceptable peak deviation" for each channel. Then scale $Q$ or $R$ uniformly to trade performance for effort.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">One knob is enough for many problems</div>
+      <p>Fix $Q = I$ and sweep a scalar $\rho$ in $R = \rho I$. As $\rho \to 0$, the controller becomes aggressive; as $\rho \to \infty$, lazy. The bandwidth of the closed loop scales roughly like $\rho^{-1/2}$ for the double integrator. Plot the Bode/root locus as $\rho$ varies. This is the "LQR design curve."</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Cross-terms $Q_{ij}$ are rarely needed</div>
+      <p>If you think you need $Q_{12} \ne 0$ to "penalize the product of error and velocity," you usually don't. Re-examine whether your cost has physical meaning or you're over-specifying. Diagonal $Q$, $R$ covers 90% of practical cases.</p>
+    </div>
+
+    <h3>Discretization</h3>
+    <div class="callout rule">
+      <div class="callout-label">Sample rate vs. bandwidth</div>
+      <p>Sample at $f_s \ge 10\text{–}20 \times$ the desired closed-loop bandwidth. $5\times$ is the absolute floor (Shannon minimum is much less, but the phase loss from ZOH kills you). For motor control: 10 kHz sampling is common for kHz-bandwidth current loops.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Use ZOH exact discretization for LTI</div>
+      <p>$A_d = e^{AT_s}$, $B_d = \int_0^{T_s} e^{A\tau}\, d\tau \cdot B$. Use matrix exponential (<code>expm</code> / <code>c2d</code>). Euler forward ($A_d = I + AT_s$) is fine for fast sampling but can destabilize if $\|A\|T_s \gtrsim 0.2$. Never Euler-discretize a fast mode you care about.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Bilinear (Tustin) for frequency-domain preservation</div>
+      <p>If you care about frequency response matching — not time-domain — Tustin $s = \tfrac{2}{T_s}\tfrac{z-1}{z+1}$ maps the $j\omega$ axis to the unit circle with warping. Use pre-warping at the crossover frequency.</p>
+    </div>
+
+    <h3>Sanity checks before deployment</h3>
+    <div class="callout rule">
+      <div class="callout-label">Check controllability / observability</div>
+      <p>Before tuning: verify $\text{rank}[B, AB, \ldots, A^{n-1}B] = n$ and dually for observability. If rank-deficient, LQR/Kalman won't be well-posed and you need to fix the structure (add a sensor, add an input, remove a state) — not tune harder.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Gramians for weak modes</div>
+      <p>Small eigenvalues of the controllability/observability Gramian indicate <em>weakly</em> controllable/observable modes. Technically you're controllable/observable, but in practice you need enormous gain or energy. Balanced truncation or re-design the plant.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Check $A - BK$ eigenvalues</div>
+      <p>For continuous LQR: eigenvalues should be in the open left half-plane. For discrete: inside unit circle. If you computed $K$ but the closed loop is unstable, your CARE solver returned the wrong fixed point (non-stabilizing solution). This happens with bad problem conditioning.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Singular values of $I + L$</div>
+      <p>For MIMO, plot $\sigma_{\min}(I + L(j\omega))$ where $L = K(sI-A)^{-1}B$. Classical LQR guarantees $\sigma_{\min} \ge 1$. This is stronger than SISO margins and is the MIMO analog of the return-difference condition.</p>
+    </div>
+
+    <h3>MPC-specific</h3>
+    <div class="callout rule">
+      <div class="callout-label">Terminal cost = DARE solution, always</div>
+      <p>Use $P$ = solution of the unconstrained DARE as the terminal weight. This makes finite-horizon MPC behave like infinite-horizon LQR deep in the feasible region, which is the desired behavior. It also gives you a Lyapunov function for stability proofs, free.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">If it doesn't behave like LQR deep inside, you have a bug</div>
+      <p>Inside the constraint set, unconstrained MPC with $P$ = DARE should produce exactly the LQR response. If it doesn't, check: wrong $P$, wrong discretization, horizon too short, solver not converged, cost function scaling off.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Soft constraints on states, hard on inputs</div>
+      <p>Actuator limits are physical and hard. State constraints (velocity limits, position bounds) often want slack — use $\ell_1$-penalized slack variables to preserve feasibility when a disturbance briefly pushes the state out of the safe set. Never soft-constraint a safety-critical bound, though.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Warm-start, always</div>
+      <p>Shift previous solution by one step as initial guess for the next QP. This is free and can reduce solve time by 3–10×. Every serious MPC solver supports it.</p>
+    </div>
+
+    <h3>Numerical hygiene</h3>
+    <div class="callout rule">
+      <div class="callout-label">Scale your states</div>
+      <p>If $x_1$ is in meters (O(1)) and $x_2$ is in rad/s (O(100)), condition numbers blow up. Scale to unit magnitude via a diagonal transformation $\tilde x = D^{-1} x$. Apply the inverse scaling to the resulting gain. This alone can fix half of "LQR weirdness" bug reports.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Symmetrize $P$ after every update</div>
+      <p>Floating-point roundoff breaks $P^\top = P$. After each Riccati iteration, replace $P \leftarrow (P + P^\top)/2$. Takes one line. Prevents drift toward indefiniteness.</p>
+    </div>
+    <div class="callout rule">
+      <div class="callout-label">Use Joseph form for the Kalman covariance update</div>
+      <p>Instead of $\Sigma^+ = (I - LC)\Sigma$, use $(I-LC)\Sigma(I-LC)^\top + LVL^\top$. Preserves symmetry and positive semi-definiteness exactly (in exact arithmetic) and robustly (in finite precision).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 IMPLEMENTATION ============ -->
+<section class="chapter" id="c12"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">12</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Implementation Notes</div>
+        <h2>Getting from paper to silicon.</h2>
+        <p class="chapter-sub">These are the issues that show up when your controller has to run in 100 μs on an automotive-grade MCU, not on a MATLAB desktop.</p>
+      </div>
+    </div>
+
+    <h3>Offline vs. online computation</h3>
+    <p>For LTI plants, push everything offline that possibly can be:</p>
+    <ul>
+      <li>Solve CARE/DARE at design time, hardcode $K$ as a constant matrix.</li>
+      <li>For time-varying $K(t)$ (gain scheduling, finite horizon), precompute a lookup table indexed by operating point or time, interpolate online.</li>
+      <li>For explicit MPC (small state/input dims, polytopic constraints): compute the explicit piecewise-affine solution offline via multi-parametric QP. Online cost: region lookup + affine eval. Microsecond execution.</li>
+    </ul>
+
+    <h3>Fixed-point vs. floating-point</h3>
+    <p>Automotive and aerospace platforms often mandate fixed-point to avoid floating-point exceptions and determinism issues (and because AUTOSAR-generated C from TargetLink frequently targets fixed-point integer types). Implications:</p>
+    <ul>
+      <li><strong>Scale state and control to fit in int16/int32</strong>. Pick scalings that leave headroom for $|Q_{\max}|$ dB of transient overshoot.</li>
+      <li><strong>Precompute $K$ in fixed-point</strong> with appropriate binary-point placement. Multiplying $K \cdot x$ produces a wider intermediate — manage overflow explicitly.</li>
+      <li><strong>Saturation vs. wrap</strong>: always saturate, never wrap. Unsigned wrap in a control signal has broken more vehicles than any other bug class.</li>
+      <li><strong>Avoid division in the loop</strong>: precompute $R^{-1}$ or its factorization. Divisions are slow and often non-constant-time on embedded ALUs.</li>
+    </ul>
+
+    <div class="callout warn">
+      <div class="callout-label">TargetLink / AUTOSAR specifics</div>
+      <p>The TargetLink data dictionary type resolution matters. If your LQR gain block outputs a <code>float32</code> but the consumer is a <code>uint16</code> interface, you'll get implicit casts that wrap negative values — this is the exact class of bug that kills HCI sine signal paths and similar. Always enforce type consistency at module boundaries and use Lib_* blocks with explicit type configuration. See also the discussion of <code>Lib_Switch</code> type promotion rules in the TL reference.</p>
+    </div>
+
+    <h3>MPC on a microcontroller</h3>
+    <p>Yes, it's feasible. Here's the reality:</p>
+    <ul>
+      <li><strong>100–1000 Hz rates are routine</strong> for $n \le 10$, $N \le 20$ on an Infineon TriCore or ARM Cortex-M7. <strong>10 kHz</strong> is achievable for condensed QPs with $\sim 50$ decision variables using OSQP code-gen or HPIPM with custom BLAS.</li>
+      <li><strong>Fixed number of solver iterations</strong>. Cap the solver at $k_{\max}$ iterations regardless of convergence. This bounds worst-case execution time (WCET) deterministically, at the cost of sub-optimal solutions occasionally. In practice, with warm-starting, the cap is almost never binding.</li>
+      <li><strong>Watch memory</strong>. Condensed QP Hessian for $N=20, m=2$ is $40 \times 40$ = 6.4 KB in float32. Fine. Sparse MPC at $N=50$, $n=10$ needs more care.</li>
+      <li><strong>WCET analysis is mandatory</strong>. If you can't certify a bound, you can't ship it on a safety-critical target (ASIL-B and above).</li>
+    </ul>
+
+    <h3>State estimator: covariance propagation tricks</h3>
+    <ul>
+      <li><strong>Square-root / UD forms</strong>: propagate factors of $\Sigma$, never $\Sigma$ itself. Bierman/Thornton UDU factorization is the classic, used by aerospace nav filters for decades. Halves dynamic range required, guarantees positive-definiteness.</li>
+      <li><strong>Stationary Kalman filter</strong>: if $A, W, C, V$ are time-invariant, $L$ converges to a constant. Precompute offline, deploy as a static gain. Same speed as Luenberger observer, optimal noise rejection.</li>
+      <li><strong>Delta updates for sparse $C$</strong>: when only one sensor arrives asynchronously, update one scalar at a time. Avoid the full matrix inversion.</li>
+    </ul>
+
+    <h3>Validation workflow</h3>
+    <ol>
+      <li><strong>Model-in-the-loop (MIL)</strong>: Simulink/numerical, bit-exact to design. Full coverage including corner cases.</li>
+      <li><strong>Software-in-the-loop (SIL)</strong>: generated C against plant simulation. Verifies code-gen hasn't introduced bugs.</li>
+      <li><strong>Processor-in-the-loop (PIL)</strong>: C running on target MCU, plant on host. Exposes timing and fixed-point effects.</li>
+      <li><strong>Hardware-in-the-loop (HIL)</strong>: full controller + real sensors/actuators against plant model. This is where you find integration bugs (message ordering, timer drift, CAN bus jitter).</li>
+      <li><strong>Bench test</strong> → <strong>rig test</strong> → <strong>vehicle test</strong>. Measure closed-loop frequency response. Compare to LTI model to catch unmodeled dynamics before they bite.</li>
+    </ol>
+
+    <div class="callout note">
+      <div class="callout-label">Where people get burned</div>
+      <p>The single most common failure mode for deployed optimal controllers: a subtle difference between the <em>design model</em> (continuous-time LTI, nominal parameters) and the <em>as-deployed plant</em> (discrete-time, time-varying, with delays, saturation, dead-zone, sensor latency). Always verify closed-loop stability under realistic deployment conditions — not just nominal. Add a 1–2 sample delay to your design model as a robustness check. If LQR breaks, your margins were too tight.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 GLOSSARY ============ -->
+<section class="chapter" id="c13"><span class="anchor"></span>
+  <div class="wrap">
+    <div class="chapter-header">
+      <div class="chapter-num">13</div>
+      <div class="chapter-title-block">
+        <div class="chapter-kicker">Glossary &amp; Symbol Table</div>
+        <h2>Every term, one definition.</h2>
+        <p class="chapter-sub">When you read a new optimal-control paper, come back here. We all use the same symbols with subtly different conventions.</p>
+      </div>
+    </div>
+
+    <div class="glossary">
+
+      <div class="gloss-item">
+        <div class="gloss-term">State<span class="gloss-sym">x ∈ ℝⁿ</span></div>
+        <div class="gloss-def">Minimal information needed to predict future evolution of the system given future inputs. Not identical to measurements ("outputs $y$").</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Control input<span class="gloss-sym">u ∈ ℝᵐ</span></div>
+        <div class="gloss-def">Vector of actuator commands; the degrees of freedom the controller gets to choose. Usually constrained to a set $\mathcal{U}$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Costate / Adjoint<span class="gloss-sym">λ ∈ ℝⁿ</span></div>
+        <div class="gloss-def">Lagrange multiplier on the dynamics constraint in PMP; equals the gradient of the value function, $\lambda = \nabla_x V$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Hamiltonian<span class="gloss-sym">H = L + λᵀf</span></div>
+        <div class="gloss-def">The scalar function minimized in the control at each instant in PMP. For control-affine systems with quadratic cost: $H = \tfrac{1}{2}u^\top Ru + \lambda^\top B u + \ldots$</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Value function<span class="gloss-sym">V(x,t)</span></div>
+        <div class="gloss-def">Optimal cost-to-go from state $x$ at time $t$. Satisfies the HJB PDE. For LQR: $V(x) = x^\top P x$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Policy<span class="gloss-sym">π: x ↦ u</span></div>
+        <div class="gloss-def">A state-feedback control law. "Optimal policy" $\pi^\star(x) = \arg\min_u \{L + \nabla_x V \cdot f\}$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Bolza / Lagrange / Mayer<span class="gloss-sym">J</span></div>
+        <div class="gloss-def">Cost functional variants: Bolza = running + terminal; Lagrange = running only; Mayer = terminal only. All three are inter-convertible via state augmentation.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Stabilizable<span class="gloss-sym">(A,B)</span></div>
+        <div class="gloss-def">Uncontrollable modes (if any) are stable. Weaker than controllable. Required for infinite-horizon LQR existence.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Detectable<span class="gloss-sym">(A,C)</span></div>
+        <div class="gloss-def">Dual: unobservable modes are stable. Required for Kalman filter existence / CARE uniqueness.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Controllability Gramian<span class="gloss-sym">W_c</span></div>
+        <div class="gloss-def">$W_c = \int_0^\infty e^{A\tau} B B^\top e^{A^\top \tau}\, d\tau$. Measures "how much energy" to reach each direction. Small eigenvalues $\Rightarrow$ weakly controllable modes.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">CARE<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Continuous Algebraic Riccati Equation: $A^\top P + PA - PBR^{-1}B^\top P + Q = 0$. LQR steady-state solution.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">DARE<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Discrete Algebraic Riccati Equation. Analog of CARE for discrete-time systems.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Transversality<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Boundary conditions on the costate/value at free endpoints: $\lambda(t_f) = \nabla_x \phi$, $H(t_f) = -\partial\phi/\partial t$ if $t_f$ free.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Bang-bang<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Optimal $u$ takes values only on the boundary $\partial\mathcal{U}$; switches discretely. Characteristic of minimum-time and minimum-fuel problems with linear $H$ in $u$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Singular arc<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Interval where the switching function $\sigma = \partial H/\partial u$ is identically zero. Optimal $u$ is determined only after differentiating $\sigma$ enough times.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Receding horizon<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">The MPC strategy: solve a finite-horizon problem, apply only the first step, roll the horizon forward. Gives implicit state feedback.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Recursive feasibility<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Property that if MPC QP is solvable at step $k$, it remains solvable at step $k+1$. Ensured by terminal constraint on a positively invariant set.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Terminal cost / set<span class="gloss-sym">P, 𝒳f</span></div>
+        <div class="gloss-def">Cost added at the horizon end to approximate the "tail" of the infinite-horizon problem. Terminal set ensures stability of the closed loop.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Warm start<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Initialize solver at step $k+1$ with the shifted solution from step $k$. Free, major speedup. Standard practice.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Separation principle<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">For LQG: optimal stochastic controller = Kalman filter + LQR gain. The estimation and control problems decouple.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Joseph form<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Kalman covariance update written as $(I-LC)\Sigma(I-LC)^\top + LVL^\top$ — numerically robust variant.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">HJB<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Hamilton–Jacobi–Bellman PDE: the continuous-time dynamic programming equation for $V$.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">ZOH<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Zero-order hold: the most common way to discretize LTI systems — control held constant over each sample period.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">iLQR<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Iterative LQR. Gauss–Newton-style iterative nonlinear trajectory optimization; each iter solves a time-varying LQR via DRE.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">DDP<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Differential Dynamic Programming. Like iLQR but includes second-order dynamics expansions in the backward pass.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Kleinman iteration<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Policy iteration for LQR: alternates Lyapunov equation (value) with gain update. Converges quadratically to CARE solution.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">Q-function<span class="gloss-sym">Q(x,u)</span></div>
+        <div class="gloss-def">State-action value. $Q(x,u) = L + \gamma V(f(x,u))$. For LQR, quadratic in $[x;u]$. Basis of Q-learning and model-free ADP.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">WCET<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Worst-Case Execution Time. Mandatory certification metric for safety-critical real-time control. Bounded by capping solver iterations.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">LTR<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Loop Transfer Recovery. 1980s technique to recover LQR-like margins in LQG by aggressively tuning the Kalman filter to approximate full-state feedback.</div>
+      </div>
+
+      <div class="gloss-item">
+        <div class="gloss-term">RTI<span class="gloss-sym">—</span></div>
+        <div class="gloss-def">Real-Time Iteration. NMPC strategy where only one SQP iteration is performed per control step. Enables kHz-rate NMPC.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="ornament">· · · FIN · · ·</div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="sig">built for engineers who still believe theory and practice inform each other.</div>
+    <div>Optimal Control — An Interactive Field Guide · v1.0 · All simulations run locally in your browser.</div>
+  </div>
+</footer>
+
+<!-- ==================== INTERACTIVE SCRIPTS ==================== -->
+<script>
+/* ============ COMMON PLOTTING UTILITIES ============ */
+const COL = {
+  axis: '#2a2a34',
+  grid: 'rgba(255,255,255,0.04)',
+  text: '#827e74',
+  l1: '#e28f2a',
+  l2: '#5ec9e8',
+  l3: '#a78bfa',
+  l4: '#7bc97a',
+  l5: '#e26363',
+  l4d: 'rgba(123,201,122,0.5)',
+  l1d: 'rgba(226,143,42,0.35)'
+};
+
+function setupCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  cv.width = rect.width * dpr;
+  cv.height = rect.height * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function drawAxes(ctx, w, h, xmin, xmax, ymin, ymax, xlabel, ylabel) {
+  const pad = { l: 42, r: 20, t: 14, b: 30 };
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  ctx.clearRect(0, 0, w, h);
+
+  // bg
+  ctx.fillStyle = '#0c0c0f';
+  ctx.fillRect(0, 0, w, h);
+
+  // grid
+  ctx.strokeStyle = COL.grid;
+  ctx.lineWidth = 1;
+  const nx = 8, ny = 6;
+  for (let i = 0; i <= nx; i++) {
+    const x = pad.l + (i / nx) * pw;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+  }
+  for (let i = 0; i <= ny; i++) {
+    const y = pad.t + (i / ny) * ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = COL.axis;
+  ctx.lineWidth = 1;
+  // zero lines
+  const yZero = pad.t + ph * (ymax / (ymax - ymin));
+  const xZero = pad.l + pw * (-xmin / (xmax - xmin));
+  if (ymin < 0 && ymax > 0) {
+    ctx.strokeStyle = '#3a3a46';
+    ctx.beginPath(); ctx.moveTo(pad.l, yZero); ctx.lineTo(pad.l + pw, yZero); ctx.stroke();
+  }
+  if (xmin < 0 && xmax > 0) {
+    ctx.strokeStyle = '#3a3a46';
+    ctx.beginPath(); ctx.moveTo(xZero, pad.t); ctx.lineTo(xZero, pad.t + ph); ctx.stroke();
+  }
+
+  // border
+  ctx.strokeStyle = COL.axis;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+
+  // tick labels
+  ctx.fillStyle = COL.text;
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= nx; i++) {
+    const v = xmin + (i / nx) * (xmax - xmin);
+    const x = pad.l + (i / nx) * pw;
+    ctx.fillText(v.toFixed(Math.abs(v)<10 ? 1 : 0), x, h - pad.b + 14);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= ny; i++) {
+    const v = ymax - (i / ny) * (ymax - ymin);
+    const y = pad.t + (i / ny) * ph;
+    ctx.fillText(v.toFixed(Math.abs(v)<10 ? 1 : 0), pad.l - 6, y + 3);
+  }
+
+  return { pad, pw, ph };
+}
+
+function plotLine(ctx, geom, xmin, xmax, ymin, ymax, xs, ys, color, dash = []) {
+  const { pad, pw, ph } = geom;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  for (let i = 0; i < xs.length; i++) {
+    const x = pad.l + (xs[i] - xmin) / (xmax - xmin) * pw;
+    const y = pad.t + (1 - (ys[i] - ymin) / (ymax - ymin)) * ph;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ============ LAB 01 — MINIMUM-TIME DOUBLE INTEGRATOR ============ */
+(function() {
+  const cv = document.getElementById('mt-plot');
+  if (!cv) return;
+
+  function solve(x0, v0, umax) {
+    // switching curve: the state must be on one of the two parabolas leading to origin
+    // if v0 > 0: apply u = -umax until switching; if v0 < 0: apply u = +umax until switching
+    // switching happens when (x, v) = (v^2 / (2 umax) * sign(v), v) style
+    // general formula:
+    // if above curve (x + v|v|/(2umax) > 0), apply u = -umax first
+    // if below curve, apply u = +umax first
+    const s = x0 + v0 * Math.abs(v0) / (2 * umax);
+    const u1 = s > 0 ? -umax : umax;
+    // time to reach switching curve
+    // during first arc: x(t) = x0 + v0 t + 0.5 u1 t^2, v(t) = v0 + u1 t
+    // reach switching curve when x + v|v|/(2umax) = 0 (approach from sign(u1) = -sign)
+    // solve for t1: at time t1, velocity is v1, and x + v1|v1|/(2umax) = 0 with u1 bringing it there
+    // it's simpler: t1 = (u1>0 ? v_switch - v0 : v0 - v_switch) / |u1|
+    // where v_switch satisfies: -0.5 * v_switch |v_switch|/umax approached from u1 direction
+    // For u1 = -umax (decelerate from v0>0 case mostly):
+    //   we arrive at v_switch < 0 with x on switching curve (x = v_sw^2/(2umax))
+    //   during arc: v = v0 - umax*t; x = x0 + v0*t - 0.5 umax t^2
+    //   want x = v^2/(2umax) with v < 0: x = (v0-umax t)^2/(2umax)
+    //   solve: x0 + v0 t - 0.5 umax t^2 = (v0 - umax t)^2/(2 umax)
+    //   expand: (v0 - umax t)^2 = v0^2 - 2 v0 umax t + umax^2 t^2
+    //   RHS: v0^2/(2umax) - v0 t + 0.5 umax t^2
+    //   LHS - RHS: x0 + v0 t - 0.5 umax t^2 - v0^2/(2umax) + v0 t - 0.5 umax t^2 = 0
+    //   => x0 + 2 v0 t - umax t^2 - v0^2/(2umax) = 0
+    //   => umax t^2 - 2 v0 t + (v0^2/(2umax) - x0) = 0
+    //   t = [2 v0 ± sqrt(4 v0^2 - 4 umax (v0^2/(2umax) - x0))] / (2 umax)
+    //   = [v0 ± sqrt(v0^2 - v0^2/2 + umax x0)] / umax
+    //   = [v0 ± sqrt(v0^2/2 + umax x0)] / umax
+    // Pick positive root that gives t > 0.
+    // Analogous for u1 = +umax.
+
+    let t1;
+    if (u1 < 0) {
+      // u = -umax first; s > 0
+      const disc = 0.5 * v0 * v0 + umax * x0;
+      const sq = Math.sqrt(Math.max(disc, 0));
+      t1 = (v0 + sq) / umax;
+      if (t1 < 0) t1 = (v0 - sq) / umax;
+    } else {
+      // u = +umax first; s < 0
+      const disc = 0.5 * v0 * v0 - umax * x0;
+      const sq = Math.sqrt(Math.max(disc, 0));
+      t1 = (-v0 + sq) / umax;
+      if (t1 < 0) t1 = (-v0 - sq) / umax;
+    }
+    t1 = Math.max(t1, 0);
+
+    // switching state
+    const v1 = v0 + u1 * t1;
+    const x1 = x0 + v0 * t1 + 0.5 * u1 * t1 * t1;
+
+    // second arc: u2 = -u1, brings v1 to 0 at origin
+    const u2 = -u1;
+    const t2 = Math.abs(v1 / u2);
+    const tf = t1 + t2;
+
+    return { t1, t2, tf, u1, u2, v1, x1 };
+  }
+
+  function draw() {
+    const x0 = parseFloat(document.getElementById('mt-x0').value);
+    const v0 = parseFloat(document.getElementById('mt-v0').value);
+    const umax = parseFloat(document.getElementById('mt-u').value);
+    document.getElementById('mt-x0v').textContent = x0.toFixed(1);
+    document.getElementById('mt-v0v').textContent = v0.toFixed(1);
+    document.getElementById('mt-uv').textContent = umax.toFixed(2);
+
+    const s = solve(x0, v0, umax);
+    document.getElementById('mt-tf').textContent = s.tf.toFixed(3);
+    document.getElementById('mt-ts').textContent = s.t1.toFixed(3);
+    document.getElementById('mt-u0').textContent = (s.u1 > 0 ? '+' : '') + s.u1.toFixed(2);
+
+    // simulate
+    const N = 400;
+    const T = s.tf;
+    const dt = T / N;
+    const ts = [], xs = [], vs = [], us = [];
+    let x = x0, v = v0;
+    for (let i = 0; i <= N; i++) {
+      const t = i * dt;
+      const u = (t < s.t1) ? s.u1 : s.u2;
+      ts.push(t);
+      xs.push(x);
+      vs.push(v);
+      us.push(u);
+      x += v * dt + 0.5 * u * dt * dt;
+      v += u * dt;
+    }
+
+    const { ctx, w, h } = setupCanvas(cv);
+    const ymax = Math.max(Math.max(...xs.map(Math.abs)), Math.max(...vs.map(Math.abs)), umax) * 1.15;
+    const yminp = -ymax;
+    const geom = drawAxes(ctx, w, h, 0, T, yminp, ymax);
+    plotLine(ctx, geom, 0, T, yminp, ymax, ts, xs, COL.l1);
+    plotLine(ctx, geom, 0, T, yminp, ymax, ts, vs, COL.l2);
+    plotLine(ctx, geom, 0, T, yminp, ymax, ts, us, COL.l3);
+
+    // switching marker
+    ctx.fillStyle = COL.l3;
+    const xsw = geom.pad.l + s.t1 / T * geom.pw;
+    const ysw = geom.pad.t + (1 - (s.u2 - yminp)/(ymax - yminp)) * geom.ph;
+    ctx.beginPath(); ctx.arc(xsw, ysw, 3.5, 0, Math.PI * 2); ctx.fill();
+
+    // t axis label
+    ctx.fillStyle = COL.text;
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('t [s]', w - 24, h - 34);
+  }
+
+  document.getElementById('mt-x0').addEventListener('input', draw);
+  document.getElementById('mt-v0').addEventListener('input', draw);
+  document.getElementById('mt-u').addEventListener('input', draw);
+  document.querySelectorAll('[data-mt]').forEach(b => {
+    b.addEventListener('click', () => {
+      const [x0, v0] = b.dataset.mt.split(',').map(parseFloat);
+      document.getElementById('mt-x0').value = x0;
+      document.getElementById('mt-v0').value = v0;
+      draw();
+    });
+  });
+  window.addEventListener('resize', draw);
+  setTimeout(draw, 50);
+})();
+
+/* ============ COMMON: DISCRETE-TIME DOUBLE INTEGRATOR, RICCATI ============ */
+function doubleIntegratorDiscrete(Ts) {
+  // continuous: A = [[0,1],[0,0]], B = [[0],[1]]
+  // ZOH exact: A_d = [[1, Ts],[0,1]], B_d = [[0.5 Ts^2],[Ts]]
+  return {
+    A: [[1, Ts],[0, 1]],
+    B: [[0.5 * Ts * Ts],[Ts]]
+  };
+}
+
+function matMul(A, B) {
+  const m = A.length, n = B[0].length, p = B.length;
+  const R = Array.from({length:m}, () => new Array(n).fill(0));
+  for (let i = 0; i < m; i++)
+    for (let j = 0; j < n; j++)
+      for (let k = 0; k < p; k++)
+        R[i][j] += A[i][k] * B[k][j];
+  return R;
+}
+function matT(A) {
+  const m = A.length, n = A[0].length;
+  const R = Array.from({length:n}, () => new Array(m).fill(0));
+  for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) R[j][i] = A[i][j];
+  return R;
+}
+function matAdd(A, B) {
+  return A.map((r, i) => r.map((v, j) => v + B[i][j]));
+}
+function matSub(A, B) {
+  return A.map((r, i) => r.map((v, j) => v - B[i][j]));
+}
+function matScale(A, s) {
+  return A.map(r => r.map(v => v * s));
+}
+function matInv1x1(A) { return [[1 / A[0][0]]]; }
+function matInv2x2(A) {
+  const d = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+  return [[A[1][1]/d, -A[0][1]/d], [-A[1][0]/d, A[0][0]/d]];
+}
+
+function discreteRiccati(A, B, Q, R, iters = 500, tol = 1e-10) {
+  // P_k = Q + A' (P_{k+1} - P_{k+1} B (R + B' P_{k+1} B)^-1 B' P_{k+1}) A
+  const n = A.length;
+  let P = Array.from({length:n}, (_, i) => Array.from({length:n}, (_, j) => i===j ? 0 : 0));
+  const AT = matT(A); const BT = matT(B);
+  const history = [[P[0][0], P[0][1], P[1][1]]];
+  let lastDiff = Infinity;
+  let iterCount = 0;
+  for (let k = 0; k < iters; k++) {
+    const BtPB = matMul(BT, matMul(P, B));
+    const inner = matAdd(R, BtPB);
+    const innerInv = inner.length === 1 ? matInv1x1(inner) : matInv2x2(inner);
+    const BtPA = matMul(BT, matMul(P, A));
+    const AtPB = matT(BtPA);
+    const AtPA = matMul(AT, matMul(P, A));
+    const Pnew = matAdd(Q, matSub(AtPA, matMul(AtPB, matMul(innerInv, BtPA))));
+    // symmetrize
+    Pnew[0][1] = Pnew[1][0] = (Pnew[0][1] + Pnew[1][0]) / 2;
+    const diff = Math.max(Math.abs(Pnew[0][0]-P[0][0]), Math.abs(Pnew[0][1]-P[0][1]), Math.abs(Pnew[1][1]-P[1][1]));
+    P = Pnew;
+    history.push([P[0][0], P[0][1], P[1][1]]);
+    iterCount = k + 1;
+    if (diff < tol) break;
+    lastDiff = diff;
+  }
+  const BtPB = matMul(BT, matMul(P, B));
+  const inner = matAdd(R, BtPB);
+  const innerInv = inner.length === 1 ? matInv1x1(inner) : matInv2x2(inner);
+  const BtPA = matMul(BT, matMul(P, A));
+  const K = matMul(innerInv, BtPA);
+  return { P, K, history, iters: iterCount };
+}
+
+/* ============ LAB 02 — LQR TUNER ============ */
+(function() {
+  const cv = document.getElementById('lqr-plot');
+  if (!cv) return;
+
+  const Ts = 0.02; // 20 ms sampling for simulation
+
+  function draw() {
+    const q1Exp = parseFloat(document.getElementById('lqr-q1').value);
+    const q2Exp = parseFloat(document.getElementById('lqr-q2').value);
+    const rExp = parseFloat(document.getElementById('lqr-r').value);
+    const q1 = Math.pow(10, q1Exp);
+    const q2 = Math.pow(10, q2Exp);
+    const r  = Math.pow(10, rExp);
+    document.getElementById('lqr-q1v').textContent = q1.toFixed(q1<1?2:2);
+    document.getElementById('lqr-q2v').textContent = q2.toFixed(q2<1?2:2);
+    document.getElementById('lqr-rv').textContent = r.toFixed(r<1?2:2);
+    document.getElementById('lqr-q1-raw').textContent = q1.toFixed(2);
+    document.getElementById('lqr-q2-raw').textContent = q2.toFixed(2);
+    document.getElementById('lqr-r-raw').textContent = r.toFixed(2);
+
+    const { A, B } = doubleIntegratorDiscrete(Ts);
+    const Q = [[q1, 0], [0, q2]];
+    const R = [[r]];
+    const { K } = discreteRiccati(A, B, Q, R);
+    const k1 = K[0][0], k2 = K[0][1];
+    document.getElementById('lqr-K').textContent = `[${k1.toFixed(2)}, ${k2.toFixed(2)}]`;
+
+    // closed-loop poles in discrete, then back to continuous via log / Ts
+    // A_cl = A - B K (discrete)
+    const BK = matMul(B, K);
+    const Acl = matSub(A, BK);
+    // 2x2 eigenvalues
+    const a = Acl[0][0], b = Acl[0][1], c = Acl[1][0], d = Acl[1][1];
+    const tr = a + d;
+    const det = a*d - b*c;
+    const disc = tr*tr/4 - det;
+    let lam1, lam2;
+    if (disc >= 0) {
+      const sq = Math.sqrt(disc);
+      lam1 = tr/2 + sq; lam2 = tr/2 - sq;
+      document.getElementById('lqr-p1').textContent = lam1.toFixed(3);
+      document.getElementById('lqr-p2').textContent = lam2.toFixed(3);
+    } else {
+      const sq = Math.sqrt(-disc);
+      const mag = Math.sqrt((tr/2)*(tr/2) + sq*sq);
+      document.getElementById('lqr-p1').textContent = `${(tr/2).toFixed(2)}±${sq.toFixed(2)}i`;
+      document.getElementById('lqr-p2').textContent = `|λ|=${mag.toFixed(3)}`;
+    }
+
+    // simulate from initial x = [1, 0]
+    const N = 200;
+    const ts = [], x1s = [], x2s = [], us = [];
+    let x = [1, 0];
+    let umaxObs = 0;
+    for (let i = 0; i < N; i++) {
+      const u = -(k1 * x[0] + k2 * x[1]);
+      umaxObs = Math.max(umaxObs, Math.abs(u));
+      ts.push(i * Ts);
+      x1s.push(x[0]);
+      x2s.push(x[1]);
+      us.push(u);
+      const xNext = [A[0][0]*x[0] + A[0][1]*x[1] + B[0][0]*u,
+                     A[1][0]*x[0] + A[1][1]*x[1] + B[1][0]*u];
+      x = xNext;
+    }
+    document.getElementById('lqr-umax').textContent = umaxObs.toFixed(2);
+
+    const { ctx, w, h } = setupCanvas(cv);
+    const yMax = Math.max(1.2, Math.max(...x2s.map(Math.abs)), Math.min(umaxObs, 50));
+    const ymin = -yMax * 0.6;
+    const ymax = yMax;
+    const geom = drawAxes(ctx, w, h, 0, N*Ts, ymin, ymax);
+    plotLine(ctx, geom, 0, N*Ts, ymin, ymax, ts, x1s, COL.l1);
+    plotLine(ctx, geom, 0, N*Ts, ymin, ymax, ts, x2s, COL.l2);
+
+    // clip u for display
+    const usClipped = us.map(v => Math.max(Math.min(v, ymax), ymin));
+    plotLine(ctx, geom, 0, N*Ts, ymin, ymax, ts, usClipped, COL.l3);
+
+    ctx.fillStyle = COL.text;
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('t [s]', w - 24, h - 34);
+  }
+
+  ['lqr-q1','lqr-q2','lqr-r'].forEach(id => {
+    document.getElementById(id).addEventListener('input', draw);
+  });
+  document.querySelectorAll('[data-lqr]').forEach(b => {
+    b.addEventListener('click', () => {
+      const [q1, q2, r] = b.dataset.lqr.split(',').map(parseFloat);
+      document.getElementById('lqr-q1').value = q1;
+      document.getElementById('lqr-q2').value = q2;
+      document.getElementById('lqr-r').value = r;
+      draw();
+    });
+  });
+  window.addEventListener('resize', draw);
+  setTimeout(draw, 50);
+})();
+
+/* ============ LAB 03 — RICCATI CONVERGENCE ============ */
+(function() {
+  const cv = document.getElementById('ric-plot');
+  if (!cv) return;
+
+  function draw() {
+    const Ts_ms = parseFloat(document.getElementById('ric-ts-sl').value);
+    const qrExp = parseFloat(document.getElementById('ric-qr-sl').value);
+    const Ts = Ts_ms / 1000;
+    const qr = Math.pow(10, qrExp);
+    document.getElementById('ric-ts').textContent = Ts_ms;
+    document.getElementById('ric-qr').textContent = qr.toFixed(2);
+
+    const { A, B } = doubleIntegratorDiscrete(Ts);
+    const Q = [[qr, 0],[0, qr]];
+    const R = [[1]];
+    const { P, K, history, iters } = discreteRiccati(A, B, Q, R, 200);
+    document.getElementById('ric-p11').textContent = P[0][0].toFixed(3);
+    document.getElementById('ric-p22').textContent = P[1][1].toFixed(3);
+    document.getElementById('ric-it').textContent = iters;
+
+    const maxShow = Math.min(history.length, 120);
+    const ks = [];
+    const p11 = [], p12 = [], p22 = [];
+    for (let i = 0; i < maxShow; i++) {
+      ks.push(maxShow - 1 - i);
+      p11.push(history[i][0]);
+      p12.push(history[i][1]);
+      p22.push(history[i][2]);
+    }
+    // reverse so k=0 (converged) on the right
+    ks.reverse();
+
+    const { ctx, w, h } = setupCanvas(cv);
+    const allY = [...p11, ...p22, ...p12];
+    const ymax = Math.max(...allY) * 1.15 + 0.01;
+    const ymin = Math.min(0, Math.min(...allY)) * 1.15 - 0.01;
+    const geom = drawAxes(ctx, w, h, 0, maxShow - 1, ymin, ymax);
+
+    // Note: we want to see backward iteration left-to-right means "toward convergence".
+    // Index i in history goes forward; plot so forward = right.
+    const xs = history.slice(0, maxShow).map((_, i) => i);
+    plotLine(ctx, geom, 0, maxShow - 1, ymin, ymax, xs, history.slice(0, maxShow).map(h => h[0]), COL.l1);
+    plotLine(ctx, geom, 0, maxShow - 1, ymin, ymax, xs, history.slice(0, maxShow).map(h => h[1]), COL.l2);
+    plotLine(ctx, geom, 0, maxShow - 1, ymin, ymax, xs, history.slice(0, maxShow).map(h => h[2]), COL.l3);
+
+    ctx.fillStyle = COL.text;
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('backward iteration index', w - 24, h - 34);
+  }
+
+  ['ric-ts-sl','ric-qr-sl'].forEach(id => document.getElementById(id).addEventListener('input', draw));
+  document.querySelectorAll('[data-ric]').forEach(b => {
+    b.addEventListener('click', () => {
+      const [ts, qr] = b.dataset.ric.split(',').map(parseFloat);
+      document.getElementById('ric-ts-sl').value = ts;
+      document.getElementById('ric-qr-sl').value = qr;
+      draw();
+    });
+  });
+  window.addEventListener('resize', draw);
+  setTimeout(draw, 50);
+})();
+
+/* ============ LAB 04 — MPC HORIZON ============ */
+(function() {
+  const cv = document.getElementById('mpc-plot');
+  if (!cv) return;
+
+  const Ts = 0.05;
+
+  function solveFiniteHorizonUnconstrained(A, B, Q, R, P_terminal, N) {
+    // Returns list of gains K_0 ... K_{N-1}
+    const Ks = new Array(N);
+    let P = P_terminal;
+    const AT = matT(A), BT = matT(B);
+    for (let k = N - 1; k >= 0; k--) {
+      const BtPB = matMul(BT, matMul(P, B));
+      const inner = matAdd(R, BtPB);
+      const innerInv = matInv1x1(inner);
+      const BtPA = matMul(BT, matMul(P, A));
+      const K = matMul(innerInv, BtPA);
+      Ks[k] = K;
+      const AtPA = matMul(AT, matMul(P, A));
+      const AtPB = matMul(AT, matMul(P, B));
+      const Pnew = matAdd(Q, matSub(AtPA, matMul(AtPB, matMul(innerInv, BtPA))));
+      Pnew[0][1] = Pnew[1][0] = (Pnew[0][1] + Pnew[1][0]) / 2;
+      P = Pnew;
+    }
+    return Ks;
+  }
+
+  function draw() {
+    const N = parseInt(document.getElementById('mpc-N-sl').value);
+    const alpha = parseFloat(document.getElementById('mpc-alpha-sl').value);
+    const umax = parseFloat(document.getElementById('mpc-umax-sl').value);
+    document.getElementById('mpc-N').textContent = N;
+    document.getElementById('mpc-alpha').textContent = alpha.toFixed(2);
+    document.getElementById('mpc-umax').textContent = umax.toFixed(2);
+
+    const { A, B } = doubleIntegratorDiscrete(Ts);
+    const Q = [[1, 0],[0, 0.1]];
+    const R = [[0.1]];
+
+    // infinite-horizon DARE solution
+    const { P: Pinf, K: Kinf } = discreteRiccati(A, B, Q, R);
+
+    // terminal cost for MPC = alpha * Pinf
+    const Pterm = matScale(Pinf, alpha);
+
+    // at each closed-loop step, we solve finite-horizon with terminal weight Pterm and apply first u
+    const Tsim = 240;
+    const ts = [], x1s = [], x2s = [], us = [];
+    const x1r = [], x2r = []; // ref: infinite-horizon LQR
+    let x = [1, 0];
+    let xr = [1, 0];
+    let costMPC = 0, costRef = 0;
+    let firstU = 0, xN_norm = 0;
+
+    for (let i = 0; i < Tsim; i++) {
+      ts.push(i * Ts);
+      // MPC: finite horizon gains
+      const Ks = solveFiniteHorizonUnconstrained(A, B, Q, R, Pterm, N);
+      let u = -(Ks[0][0][0] * x[0] + Ks[0][0][1] * x[1]);
+      // saturate input
+      if (u > umax) u = umax; else if (u < -umax) u = -umax;
+      if (i === 0) firstU = u;
+      x1s.push(x[0]); x2s.push(x[1]); us.push(u);
+      costMPC += x[0]*x[0] + 0.1*x[1]*x[1] + 0.1*u*u;
+      const xNext = [A[0][0]*x[0] + A[0][1]*x[1] + B[0][0]*u,
+                     A[1][0]*x[0] + A[1][1]*x[1] + B[1][0]*u];
+      x = xNext;
+      if (i === N - 1) xN_norm = Math.sqrt(x[0]*x[0] + x[1]*x[1]);
+
+      // infinite-horizon LQR for comparison
+      let ur = -(Kinf[0][0] * xr[0] + Kinf[0][1] * xr[1]);
+      if (ur > umax) ur = umax; else if (ur < -umax) ur = -umax;
+      x1r.push(xr[0]); x2r.push(xr[1]);
+      costRef += xr[0]*xr[0] + 0.1*xr[1]*xr[1] + 0.1*ur*ur;
+      const xrNext = [A[0][0]*xr[0] + A[0][1]*xr[1] + B[0][0]*ur,
+                      A[1][0]*xr[0] + A[1][1]*xr[1] + B[1][0]*ur];
+      xr = xrNext;
+    }
+
+    document.getElementById('mpc-cost').textContent = (costMPC / costRef).toFixed(3);
+    document.getElementById('mpc-u0').textContent = firstU.toFixed(3);
+    document.getElementById('mpc-xN').textContent = xN_norm.toFixed(4);
+
+    const { ctx, w, h } = setupCanvas(cv);
+    const maxY = Math.max(1.2, Math.max(...x2s.map(Math.abs)), Math.min(umax, 5)) * 1.1;
+    const ymin = -maxY * 0.6;
+    const ymax = maxY;
+    const geom = drawAxes(ctx, w, h, 0, Tsim*Ts, ymin, ymax);
+    plotLine(ctx, geom, 0, Tsim*Ts, ymin, ymax, ts, x1s, COL.l1);
+    plotLine(ctx, geom, 0, Tsim*Ts, ymin, ymax, ts, x2s, COL.l2);
+    plotLine(ctx, geom, 0, Tsim*Ts, ymin, ymax, ts, us, COL.l3);
+    plotLine(ctx, geom, 0, Tsim*Ts, ymin, ymax, ts, x1r, COL.l4, [4, 3]);
+
+    ctx.fillStyle = COL.text;
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('t [s]', w - 24, h - 34);
+  }
+
+  ['mpc-N-sl','mpc-alpha-sl','mpc-umax-sl'].forEach(id => document.getElementById(id).addEventListener('input', draw));
+  window.addEventListener('resize', draw);
+  setTimeout(draw, 50);
+})();
+</script>
+
+</body>
+</html>
