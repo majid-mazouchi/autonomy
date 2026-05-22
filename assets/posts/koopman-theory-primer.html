@@ -1,0 +1,2390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light only" />
+<meta name="supported-color-schemes" content="light" />
+<title>Koopman Theory — A Linear Lens for Nonlinear Worlds</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- MathJax -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true
+    },
+    svg: { fontCache: 'global' },
+    chtml: { scale: 1.05 }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+
+<style>
+  :root {
+    --paper:      #f1e8d0;
+    --paper-2:    #e9dfc3;
+    --paper-3:    #ded2b2;
+    --rule:       #b8a97e;
+    --ink:        #1a1610;
+    --ink-soft:   #2b2419;
+    --text:       #241e14;
+    --text-dim:   #4a3f2a;
+    --text-muted: #7a6b4a;
+    --amber:      #8b5a10;
+    --amber-soft: #a67220;
+    --copper:     #7a3a10;
+    --teal:       #1e5a4e;
+    --teal-soft:  #2d7a6a;
+    --coral:      #9a3818;
+    --coral-soft: #b8502a;
+    --gold:       #9a6818;
+    --shadow:     0 1px 0 rgba(255,255,255,0.6), 0 12px 40px rgba(26,22,16,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html {
+    scroll-behavior: smooth;
+    background: var(--paper);
+    color-scheme: light only;
+  }
+  @media (prefers-color-scheme: dark) {
+    html { background: var(--paper); }
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: 'Literata', Georgia, serif;
+    font-size: 17px;
+    font-weight: 450;
+    line-height: 1.7;
+    font-feature-settings: "liga", "onum", "kern";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(139,90,16,0.06), transparent 55%),
+      radial-gradient(ellipse at 80% 100%, rgba(30,90,78,0.05), transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.08  0 0 0 0 0.05  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.55;
+  }
+
+  main, nav, header, footer { position: relative; z-index: 2; }
+
+  /* Typography */
+  h1, h2, h3, h4 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  h1 { font-size: clamp(2.6rem, 6vw, 5.2rem); line-height: 0.95; font-weight: 400; }
+  h2 { font-size: clamp(1.9rem, 3.5vw, 2.8rem); line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; }
+  h3 { font-size: 1.3rem; font-weight: 600; color: var(--copper); letter-spacing: 0; }
+  h4 { font-size: 1.05rem; font-weight: 600; color: var(--ink); }
+
+  p { margin: 0 0 1.1em 0; }
+  a { color: var(--amber); text-decoration: none; border-bottom: 1px solid rgba(139,90,16,0.35); transition: all .2s; }
+  a:hover { color: var(--copper); border-color: var(--copper); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: rgba(139,90,16,0.1);
+    color: var(--copper);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    border: 1px solid rgba(139,90,16,0.2);
+  }
+
+  pre {
+    background: #1e1a12;
+    border: 1px solid #3a3124;
+    border-left: 3px solid var(--amber-soft);
+    padding: 1.1rem 1.3rem;
+    overflow-x: auto;
+    font-size: 0.83rem;
+    line-height: 1.55;
+    border-radius: 2px;
+    margin: 1.4em 0;
+    color: #ebe2c4;
+    box-shadow: 0 8px 24px rgba(26,22,16,0.15);
+  }
+  pre code {
+    background: none; border: none; color: #ebe2c4; padding: 0;
+  }
+
+  .tk { color: #d9ac4a; }
+  .tk-kw { color: #f0a98e; font-style: italic; }
+  .tk-str { color: #8fd1c5; }
+  .tk-num { color: #e9c48a; }
+  .tk-cm { color: #8a7f6a; font-style: italic; }
+  .tk-fn { color: #d4a24a; }
+
+  /* Navigation */
+  nav.top {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    background: rgba(241,232,208,0.85);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .brand .glyph {
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-style: normal;
+    color: var(--amber);
+    margin-right: 0.35em;
+    font-size: 1.15em;
+  }
+  .nav-links {
+    display: flex;
+    gap: 1.6rem;
+    font-family: 'Literata', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+  }
+  .nav-links a {
+    color: var(--text-dim);
+    border: none;
+    text-transform: lowercase;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+  }
+  .nav-links a:hover { color: var(--amber); }
+  @media (max-width: 780px) { .nav-links { display: none; } }
+
+  /* Hero */
+  header.hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 5rem 2rem 3rem 2rem;
+    position: relative;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  .eyebrow .line {
+    height: 1px;
+    width: 40px;
+    background: var(--amber);
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--copper);
+    font-weight: 400;
+  }
+  .hero .sub {
+    margin-top: 2rem;
+    font-size: 1.25rem;
+    max-width: 48ch;
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .hero .sub strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    margin-top: 3rem;
+  }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+
+  .hero-figure {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .hero-figure canvas { display: block; width: 100%; height: 100%; }
+  .hero-figure .label {
+    position: absolute;
+    bottom: 12px; left: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .hero-figure .label em {
+    color: var(--coral);
+    font-style: normal;
+  }
+
+  /* Main layout */
+  main { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+  section { padding: 5rem 0; border-top: 1px solid var(--rule); position: relative; }
+  section:first-of-type { border-top: none; }
+
+  .section-head {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    align-items: baseline;
+  }
+  @media (max-width: 780px) { .section-head { grid-template-columns: 1fr; gap: 0.5rem; } }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding-top: 0.5rem;
+  }
+  .section-num .num {
+    display: block;
+    font-size: 2.8rem;
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 0.6rem;
+    font-style: italic;
+  }
+  .section-title .kicker {
+    font-family: 'Literata', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 1rem;
+    margin-top: 0.8rem;
+    max-width: 60ch;
+  }
+
+  .prose {
+    max-width: 68ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .prose p {
+    color: var(--text);
+  }
+  .prose p.lead::first-letter {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 3.4em;
+    float: left;
+    line-height: 0.85;
+    margin: 0.08em 0.12em 0 0;
+    color: var(--amber);
+  }
+
+  /* Equation blocks */
+  .eq-block {
+    margin: 2.2rem auto;
+    padding: 1.6rem 1.8rem;
+    background: #fbf5e3;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--teal);
+    border-radius: 2px;
+    max-width: 72ch;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(26,22,16,0.06);
+  }
+  .eq-block .tag {
+    position: absolute;
+    top: -0.6rem; left: 1rem;
+    background: var(--paper);
+    padding: 0 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 600;
+  }
+  .eq-block .caption {
+    font-family: 'Literata', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-top: 0.9rem;
+    line-height: 1.55;
+  }
+
+  /* Side-by-side comparison */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2.5rem 0;
+  }
+  @media (max-width: 780px) { .compare { grid-template-columns: 1fr; } }
+  .compare .card {
+    padding: 1.5rem 1.6rem;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    position: relative;
+  }
+  .compare .card.nonlin { border-left: 3px solid var(--coral); }
+  .compare .card.linear { border-left: 3px solid var(--teal); }
+  .compare .card .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.9rem;
+  }
+  .compare .card.nonlin .label { color: var(--coral); }
+  .compare .card.linear .label { color: var(--teal); }
+  .compare .card h4 { margin-bottom: 0.4rem; }
+  .compare .card p { margin: 0.6rem 0 0 0; font-size: 0.95rem; color: var(--text); }
+
+  /* Interactive demo container */
+  .demo {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    margin: 2.5rem 0;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .demo-head {
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper-3);
+  }
+  .demo-head h4 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .demo-head .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--amber);
+    border-radius: 2px;
+  }
+  .demo-body { padding: 1.5rem; }
+  .demo-canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .demo-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
+
+  .demo-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 700px) { .demo-split { grid-template-columns: 1fr; } }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 1.3rem;
+    padding-top: 1.3rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .ctrl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 140px;
+  }
+  .ctrl label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .ctrl label .val {
+    color: var(--amber);
+    margin-left: 0.4em;
+  }
+  .ctrl input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--rule);
+    border-radius: 1px;
+    outline: none;
+  }
+  .ctrl input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .ctrl input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+  .ctrl input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border: none;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+  }
+
+  button.btn {
+    font-family: 'Literata', serif;
+    font-variant: small-caps;
+    letter-spacing: 0.1em;
+    font-size: 0.85rem;
+    padding: 0.55rem 1.2rem;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all .2s;
+  }
+  button.btn:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  button.btn.primary {
+    background: var(--amber);
+    color: var(--paper);
+    border-color: var(--amber);
+    font-weight: 600;
+  }
+  button.btn.primary:hover {
+    background: var(--copper);
+    border-color: var(--copper);
+    color: var(--paper);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-top: 0.8rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-item::before {
+    content: "";
+    width: 14px; height: 2px;
+    background: currentColor;
+    display: inline-block;
+  }
+  .legend-item.sq::before { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-item.truth { color: var(--coral); }
+  .legend-item.koop { color: var(--teal); }
+  .legend-item.dict { color: var(--amber); }
+
+  /* Dictionary toggles */
+  .dict-toggles {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+  }
+  .dict-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--text-dim);
+    background: var(--paper-3);
+    user-select: none;
+    transition: all .15s;
+  }
+  .dict-chip.active {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(139,90,16,0.12);
+  }
+  .dict-chip:hover { color: var(--copper); }
+
+  /* Pull-quote */
+  blockquote.pullquote {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.7rem;
+    line-height: 1.3;
+    color: var(--ink);
+    max-width: 26ch;
+    margin: 3rem auto;
+    padding: 0 0 0 2rem;
+    border-left: 2px solid var(--amber);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+  }
+  blockquote.pullquote .attrib {
+    display: block;
+    font-family: 'Literata', serif;
+    font-style: normal;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Figures */
+  figure {
+    margin: 2.5rem 0;
+  }
+  figcaption {
+    font-family: 'Literata', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-top: 0.8rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--rule);
+    max-width: 70ch;
+  }
+  figcaption .fignum {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-right: 0.8em;
+  }
+
+  /* Step list */
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    counter-reset: step;
+    margin: 1.8rem 0;
+  }
+  ol.steps li {
+    counter-increment: step;
+    padding: 0.9rem 0 0.9rem 3.5rem;
+    position: relative;
+    border-bottom: 1px dashed var(--rule);
+    color: var(--text);
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0.9rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+  ol.steps li strong {
+    display: block;
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.05rem;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0;
+  }
+
+  /* Footer */
+  footer {
+    padding: 4rem 2rem 5rem 2rem;
+    border-top: 1px solid var(--rule);
+    max-width: 1100px;
+    margin: 4rem auto 0 auto;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  footer .colophon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  @media (max-width: 700px) { footer .colophon { grid-template-columns: 1fr; } }
+  footer h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.9rem;
+    font-weight: 400;
+  }
+  footer ul { list-style: none; padding: 0; margin: 0; }
+  footer ul li { padding: 0.25rem 0; }
+  footer .ornament {
+    text-align: center;
+    color: var(--rule);
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem 0;
+    letter-spacing: 1em;
+  }
+
+  /* Callouts */
+  .callout {
+    padding: 1.3rem 1.5rem;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--amber);
+    background: var(--paper-2);
+    margin: 2rem 0;
+    border-radius: 2px;
+  }
+  .callout .title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--copper);
+    margin-bottom: 0.4rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .callout p { margin: 0.3rem 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* Key metric display */
+  .metric-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin: 1.4rem 0 0 0;
+  }
+  @media (max-width: 600px) { .metric-row { grid-template-columns: 1fr; } }
+  .metric {
+    padding: 0.9rem 1.1rem;
+    background: var(--paper-3);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+  .metric .lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .metric .val {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    color: var(--copper);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .metric .val small {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 0.3em;
+  }
+
+  /* Reveal on scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity .8s ease, transform .8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="top">
+  <div class="nav-inner">
+    <div class="brand"><a href="/autonomy/" style="color:var(--amber);text-decoration:none;margin-right:1.2rem;font-variant:small-caps;letter-spacing:0.08em;font-size:0.85rem;">← autonomy</a><span class="glyph">𝒦</span>a linear lens for nonlinear worlds</div>
+    <div class="nav-links">
+      <a href="#idea">idea</a>
+      <a href="#operator">operator</a>
+      <a href="#lifting">lifting</a>
+      <a href="#dmd">dmd</a>
+      <a href="#mpc">mpc</a>
+      <a href="#rl">rl</a>
+      <a href="#playground">playground</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="eyebrow"><span class="line"></span> An interactive primer · By Majid Mazouchi · 2026</div>
+  <h1>Koopman Theory.<br/><em>Linear thinking</em><br/>for nonlinear worlds.</h1>
+  <div class="hero-grid">
+    <p class="sub">
+      Most interesting dynamical systems — pendulums, motors, fluid flows, robots — are <strong>nonlinear</strong>.
+      Yet nearly all of our analysis and control tools are built for linear systems.
+      Bernard Koopman, in 1931, proposed a startling escape hatch: <strong>every nonlinear system is secretly linear</strong>,
+      if you agree to look at the right things. This guide walks through that idea, its modern data-driven instantiation,
+      and how it powers today's work in MPC and reinforcement learning.
+    </p>
+    <figure class="hero-figure" aria-hidden="true">
+      <canvas id="hero-canvas"></canvas>
+      <div class="label">fig. 1 · duffing flow · <em>nonlinear in state, linear in observables</em></div>
+    </figure>
+  </div>
+</header>
+
+<main>
+
+<!-- Section 1: Big Idea -->
+<section id="idea">
+  <div class="section-head">
+    <div class="section-num"><span class="num">i</span>the big idea</div>
+    <div class="section-title">
+      <h2>Change what you look at, and nonlinearity disappears.</h2>
+      <div class="kicker">A dictionary of observables turns crooked trajectories into straight ones — at the price of living in a bigger space.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p class="lead">
+      Suppose you have a dynamical system evolving in discrete time:
+      $x_{k+1} = f(x_k)$, where $f$ is some messy nonlinear map.
+      The state $x \in \mathbb{R}^n$ follows a curved, unpredictable path.
+      Classical control chases $x$ directly, and pays a steep price when $f$ becomes stiff, multi-modal, or ill-conditioned.
+    </p>
+    <p>
+      Koopman inverted the question. Rather than tracking the state, track <em>functions of the state</em> — called
+      <strong>observables</strong>. An observable is any scalar quantity you can measure from $x$: its energy $\|x\|^2$,
+      its components $x_1, x_2$, some nonlinear combination $\sin(x_1) x_2$, anything. The key fact:
+      <em>the evolution of observables is linear</em>, even when the state is not.
+    </p>
+
+    <div class="compare">
+      <div class="card nonlin">
+        <div class="label">State-space view</div>
+        <h4>$x_{k+1} = f(x_k)$</h4>
+        <p>Finite-dimensional, nonlinear, geometric. Tools: Lyapunov functions, feedback linearization, nonlinear MPC. Expensive and often intractable.</p>
+      </div>
+      <div class="card linear">
+        <div class="label">Observable view (Koopman)</div>
+        <h4>$g_{k+1} = \mathcal{K}\, g_k$</h4>
+        <p>Infinite-dimensional, but perfectly <em>linear</em>. Tools: spectral analysis, eigen-decomposition, linear MPC, LQR. Approximations are finite and practical.</p>
+      </div>
+    </div>
+
+    <p>
+      The catch — and it is a real one — is that this linear operator $\mathcal{K}$ acts on an infinite-dimensional space of
+      functions. To make the idea useful we need finite approximations: pick a good enough
+      <em>dictionary</em> of observables, project the operator down, and pray the projection captures the dynamics you care about.
+      Much of modern Koopman work is about that single engineering choice.
+    </p>
+
+    <blockquote class="pullquote">
+      Linearity is not a property of dynamics, but of the space in which you choose to describe them.
+      <span class="attrib">— the Koopman perspective, in one line</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- Section 2: The Operator -->
+<section id="operator">
+  <div class="section-head">
+    <div class="section-num"><span class="num">ii</span>the operator</div>
+    <div class="section-title">
+      <h2>The Koopman operator, formally.</h2>
+      <div class="kicker">A deceptively simple definition with surprising consequences.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      Let $f: \mathcal{M} \to \mathcal{M}$ be a (possibly nonlinear) discrete-time dynamics map on some state space $\mathcal{M}$.
+      Let $g: \mathcal{M} \to \mathbb{C}$ be an observable — a scalar-valued function of the state.
+      The <strong>Koopman operator</strong> $\mathcal{K}$ is defined by how it acts on $g$:
+    </p>
+
+    <div class="eq-block">
+      <span class="tag">Definition · Koopman operator</span>
+      $$ (\mathcal{K} g)(x) \;\triangleq\; g(f(x)) $$
+      <div class="caption">Apply $\mathcal{K}$ to the observable $g$: the result is a new observable whose value at $x$ is what $g$ will be one step later. "Push the dynamics into the function."</div>
+    </div>
+
+    <p>
+      That's it. The entire theory hangs off that one line. Two consequences deserve immediate attention:
+    </p>
+
+    <ol class="steps">
+      <li>
+        <strong>Linearity is automatic.</strong>
+        For any observables $g, h$ and scalars $\alpha, \beta$:
+        $\mathcal{K}(\alpha g + \beta h) = \alpha g \circ f + \beta h \circ f = \alpha (\mathcal{K} g) + \beta (\mathcal{K} h)$.
+        The underlying $f$ can be as vicious as you like; $\mathcal{K}$ doesn't care.
+      </li>
+      <li>
+        <strong>Infinite-dimensional, usually.</strong>
+        The space of all observables on $\mathcal{M}$ is an infinite-dimensional function space (typically $L^2(\mathcal{M})$).
+        So we've swapped a finite-dim nonlinear problem for an infinite-dim linear one — a classic functional-analytic trade.
+      </li>
+    </ol>
+
+    <div class="eq-block">
+      <span class="tag">Continuous-time version</span>
+      $$ \frac{d}{dt} g(x(t)) \;=\; (\mathcal{L} g)(x(t)), \qquad \mathcal{L} g = \nabla g \cdot F $$
+      <div class="caption">For continuous systems $\dot{x} = F(x)$, the Koopman <em>generator</em> $\mathcal{L}$ plays the role of $\mathcal{K}$. Both tell the same story in different time flavours.</div>
+    </div>
+
+    <h3>Eigenfunctions: the secret ingredient</h3>
+    <p>
+      A <strong>Koopman eigenfunction</strong> is an observable $\varphi$ with a very special property:
+      $\mathcal{K}\varphi = \lambda \varphi$.
+      Along any trajectory, $\varphi$ evolves by pure scalar multiplication — its geometry is trivial.
+      If you can find enough eigenfunctions to span your state of interest, you have a full change of coordinates that
+      diagonalises the dynamics. This is the nonlinear analogue of finding the modes of a linear system.
+    </p>
+
+    <div class="callout">
+      <div class="title">A useful intuition.</div>
+      <p>Koopman eigenfunctions generalise the notion of a "normal mode" from linear vibration theory to arbitrary nonlinear systems. They aren't usually easy to compute, but when you can find them, the system unfolds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Lifting -->
+<section id="lifting">
+  <div class="section-head">
+    <div class="section-num"><span class="num">iii</span>lifting</div>
+    <div class="section-title">
+      <h2>A worked example you can see.</h2>
+      <div class="kicker">Three observables are enough to turn a specific nonlinear system into a 3×3 linear matrix. Exactly.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      Consider the two-dimensional nonlinear system (a classic pedagogical example, due to Brunton):
+    </p>
+
+    <div class="eq-block">
+      <span class="tag">System · nonlinear in state</span>
+      $$ \dot{x}_1 = \mu\, x_1, \qquad \dot{x}_2 = \lambda\,(x_2 - x_1^2) $$
+      <div class="caption">A slow stable manifold ($x_2 = x_1^2$) with fast decay toward it. Nonlinear because of the $x_1^2$ coupling.</div>
+    </div>
+
+    <p>
+      Define the lifted state $z = \big[x_1,\ x_2,\ x_1^2\big]^\top \in \mathbb{R}^3$. Differentiate and substitute:
+    </p>
+
+    <div class="eq-block">
+      <span class="tag">Same system · linear in observables</span>
+      $$ \dot{z} = \underbrace{\begin{bmatrix} \mu & 0 & 0 \\ 0 & \lambda & -\lambda \\ 0 & 0 & 2\mu \end{bmatrix}}_{A_{\text{Koopman}}} z $$
+      <div class="caption">The third coordinate $x_1^2$ is exactly the "missing" observable that closes the system. With it, a 3×3 constant matrix reproduces the dynamics perfectly — forever, for any initial condition. No linearisation error, because there was no linearisation: we changed spaces.</div>
+    </div>
+
+    <p>
+      Below, watch a trajectory run in the original 2D state space (left) and in the lifted 3D observable space (right).
+      The left portrait is curved; the right one is a clean linear flow on a plane.
+    </p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h4>Fig. 2 · State space ⟶ observable space</h4>
+        <span class="tag">interactive</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-split">
+          <div class="demo-canvas-wrap">
+            <canvas id="state-canvas"></canvas>
+          </div>
+          <div class="demo-canvas-wrap">
+            <canvas id="lifted-canvas"></canvas>
+          </div>
+        </div>
+        <div class="legend">
+          <span class="legend-item truth">nonlinear trajectory in $(x_1, x_2)$</span>
+          <span class="legend-item koop">same trajectory in $(x_1, x_2, x_1^2)$</span>
+        </div>
+        <div class="controls">
+          <div class="ctrl">
+            <label>μ <span class="val" id="mu-val">-0.05</span></label>
+            <input type="range" id="mu" min="-0.2" max="-0.01" step="0.01" value="-0.05"/>
+          </div>
+          <div class="ctrl">
+            <label>λ <span class="val" id="lam-val">-1.00</span></label>
+            <input type="range" id="lam" min="-2" max="-0.2" step="0.05" value="-1.00"/>
+          </div>
+          <div class="ctrl">
+            <label>x₁(0) <span class="val" id="x0-val">1.00</span></label>
+            <input type="range" id="x0" min="-1.5" max="1.5" step="0.1" value="1.00"/>
+          </div>
+          <div class="ctrl">
+            <label>x₂(0) <span class="val" id="y0-val">2.00</span></label>
+            <input type="range" id="y0" min="-2" max="2" step="0.1" value="2.00"/>
+          </div>
+          <button class="btn primary" id="restart-lift">replay</button>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      The curved line on the left and the straight-in-a-tilted-plane line on the right describe the <em>same physical trajectory</em>.
+      The only difference is the coordinate chart. This is the Koopman promise in miniature. The bad news: finding the
+      right observables analytically is rarely possible. The good news: you can often <strong>learn them from data</strong>.
+    </p>
+  </div>
+</section>
+
+<!-- Section 4: DMD/EDMD -->
+<section id="dmd">
+  <div class="section-head">
+    <div class="section-num"><span class="num">iv</span>data-driven koopman</div>
+    <div class="section-title">
+      <h2>Dynamic Mode Decomposition.</h2>
+      <div class="kicker">The practical algorithm that made Koopman famous, reduced to least squares.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      Dynamic Mode Decomposition (DMD), introduced by Schmid in 2010 and later tied to Koopman theory by Rowley & Mezić,
+      is the workhorse. Strip away the mystique and DMD is just this: given snapshots of a system, find the best linear operator
+      that maps each snapshot to the next one.
+    </p>
+
+    <h3>The basic DMD recipe</h3>
+    <ol class="steps">
+      <li>
+        <strong>Collect snapshots.</strong>
+        Arrange $m$ consecutive state measurements as columns: $X = [x_0, x_1, \dots, x_{m-1}]$ and $X' = [x_1, x_2, \dots, x_m]$.
+      </li>
+      <li>
+        <strong>Solve the least-squares problem.</strong>
+        Find $A$ minimising $\|X' - A X\|_F$. The closed-form answer is $A = X'\, X^{+}$, where $X^+$ is the pseudoinverse.
+      </li>
+      <li>
+        <strong>Extract modes.</strong>
+        Eigendecompose $A = W \Lambda W^{-1}$. Each eigenvector of $A$ is a DMD mode; the eigenvalue gives its frequency and growth/decay rate.
+      </li>
+      <li>
+        <strong>Predict.</strong>
+        Future states are a linear combination of modes, each evolving as $\lambda_i^k$. You have a forecast.
+      </li>
+    </ol>
+
+    <p>
+      DMD applied to raw state data only captures the part of the Koopman operator that happens to be linear in $x$.
+      For truly nonlinear systems you need <strong>Extended DMD (EDMD)</strong>: lift each snapshot through a dictionary
+      of observables first, then run DMD in that lifted space.
+    </p>
+
+    <div class="eq-block">
+      <span class="tag">EDMD · in one equation</span>
+      $$ K \;=\; \underbrace{\Psi(X')\Psi(X)^{+}}_{\text{linear regression in dictionary space}} $$
+      <div class="caption">Here $\Psi(x) = [\psi_1(x), \dots, \psi_N(x)]^\top$ is the dictionary — polynomials, RBFs, trigonometric terms, or a neural network. The matrix $K$ is the finite-rank approximation of the Koopman operator on the span of the dictionary.</div>
+    </div>
+
+    <h3>A minimal Python implementation</h3>
+    <p>This is the entire EDMD algorithm. No library required beyond NumPy:</p>
+<pre><code><span class="tk-kw">import</span> numpy <span class="tk-kw">as</span> np
+
+<span class="tk-kw">def</span> <span class="tk-fn">dictionary</span>(x):
+    <span class="tk-cm"># polynomial observables up to order 2, including constant</span>
+    <span class="tk-kw">return</span> np.vstack([np.ones_like(x[<span class="tk-num">0</span>]),
+                      x[<span class="tk-num">0</span>], x[<span class="tk-num">1</span>],
+                      x[<span class="tk-num">0</span>]**<span class="tk-num">2</span>, x[<span class="tk-num">0</span>]*x[<span class="tk-num">1</span>], x[<span class="tk-num">1</span>]**<span class="tk-num">2</span>])
+
+<span class="tk-kw">def</span> <span class="tk-fn">edmd</span>(X, X_next):
+    Psi  = dictionary(X)         <span class="tk-cm"># N_dict × m</span>
+    PsiP = dictionary(X_next)    <span class="tk-cm"># N_dict × m</span>
+    K    = PsiP @ np.linalg.pinv(Psi)   <span class="tk-cm"># N_dict × N_dict</span>
+    <span class="tk-kw">return</span> K
+
+<span class="tk-kw">def</span> <span class="tk-fn">predict</span>(K, x0, steps):
+    z = dictionary(x0.reshape(<span class="tk-num">2</span>,<span class="tk-num">1</span>))
+    traj = [x0.copy()]
+    <span class="tk-kw">for</span> _ <span class="tk-kw">in</span> <span class="tk-fn">range</span>(steps):
+        z = K @ z
+        traj.append(np.array([z[<span class="tk-num">1</span>,<span class="tk-num">0</span>], z[<span class="tk-num">2</span>,<span class="tk-num">0</span>]]))  <span class="tk-cm"># recover x from dict</span>
+    <span class="tk-kw">return</span> np.array(traj)
+</code></pre>
+
+    <p>Below: Brunton's slow-manifold system — a 2D nonlinear system with an <em>exact</em> finite-dimensional Koopman embedding on $\{1, x, y, x^2\}$. With the right four terms, the linear prediction (dashed) and the true nonlinear flow (solid) overlap almost perfectly. Drop $x^2$ from the dictionary and watch prediction quality collapse.
+    The dictionary choice is everything.</p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h4>Fig. 3 · EDMD prediction vs. the truth</h4>
+        <span class="tag">interactive</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-canvas-wrap">
+          <canvas id="edmd-canvas"></canvas>
+        </div>
+        <div class="legend">
+          <span class="legend-item truth">ground truth (nonlinear simulation)</span>
+          <span class="legend-item koop">koopman prediction</span>
+        </div>
+        <h4 style="margin-top:1.4rem; font-size:0.95rem;">Dictionary terms (click to toggle)</h4>
+        <div class="dict-toggles" id="dict-toggles"></div>
+        <div class="metric-row">
+          <div class="metric"><div class="lbl">dict size</div><div class="val" id="m-size">—</div></div>
+          <div class="metric"><div class="lbl">RMSE</div><div class="val" id="m-rmse">—</div></div>
+          <div class="metric"><div class="lbl">horizon</div><div class="val" id="m-horizon">300 <small>steps</small></div></div>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="edmd-fit">new training batch</button>
+          <button class="btn" id="edmd-reset">reset dict</button>
+          <span style="font-family: 'Literata', serif; font-style: italic; font-size: 0.85rem; color: var(--text-dim); margin-left: 0.5rem;">
+            Click <em>new training batch</em> to resample initial conditions &amp; refit. With an exact dictionary, the fit stays perfect. With a poor dictionary, watch how RMSE changes.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="title">The dictionary problem.</div>
+      <p>If your dictionary is too small, EDMD fails. If it's too large, it overfits and becomes numerically unstable.
+      Modern Koopman research ties a neural network autoencoder to the DMD step, letting gradient descent discover a
+      dictionary that is automatically invariant under the operator. This is often called a <em>deep Koopman</em> or
+      <em>Koopman autoencoder</em>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: MPC -->
+<section id="mpc">
+  <div class="section-head">
+    <div class="section-num"><span class="num">v</span>koopman mpc</div>
+    <div class="section-title">
+      <h2>Turning nonlinear MPC into a quadratic program.</h2>
+      <div class="kicker">Lift, then solve a convex problem. Predictions become matrix powers; control becomes a QP.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      Model Predictive Control works beautifully when the plant is linear: the optimisation over a horizon reduces to a
+      convex Quadratic Program (QP), solvable reliably in a few milliseconds. For nonlinear plants you face an NLP — slower,
+      non-convex, and dependent on a good initial guess. Koopman offers a tidy escape:
+    </p>
+
+    <ol class="steps">
+      <li>
+        <strong>Collect trajectory data</strong> from the plant under excitation (system ID).
+      </li>
+      <li>
+        <strong>Fit a Koopman model with control</strong> (Koopman-with-inputs, or KIC):
+        $z_{k+1} = A z_k + B u_k$, where $z = \Psi(x)$.
+      </li>
+      <li>
+        <strong>Solve linear MPC</strong> on $(A,B)$ over the lifted state.
+        Standard QP machinery — OSQP, qpOASES, HPIPM — applies directly.
+      </li>
+      <li>
+        <strong>Apply the first input</strong>, measure, re-lift, repeat.
+      </li>
+    </ol>
+
+    <div class="eq-block">
+      <span class="tag">Koopman-with-inputs</span>
+      $$ \Psi(x_{k+1}) \;\approx\; A\, \Psi(x_k) \;+\; B\, u_k $$
+      <div class="caption">The lifted state evolves linearly in $\Psi$ and linearly in $u$. Fit $A$ and $B$ jointly via a single least-squares problem on stacked data.</div>
+    </div>
+
+    <h3>Where it shines (and where it doesn't)</h3>
+    <div class="compare">
+      <div class="card linear">
+        <div class="label">Strong fit</div>
+        <h4>Fast, mildly-nonlinear dynamics</h4>
+        <p>Soft robots, drone aerodynamics, power electronics, thermal plants. Whenever nonlinear MPC solve time is the bottleneck, and the nonlinearity can be captured by a modest dictionary.</p>
+      </div>
+      <div class="card nonlin">
+        <div class="label">Poor fit</div>
+        <h4>Strongly discontinuous or chaotic</h4>
+        <p>Contact dynamics, impacts, hybrid switching, turbulence near transition. The lifted model may predict plausibly on average but drift over long horizons. Ensemble or hybrid approaches help.</p>
+      </div>
+    </div>
+
+    <h3>A domain example: electric motor control</h3>
+    <p>
+      PMSM torque control is an instructive case. The cross-coupled $dq$ voltage equations are mildly nonlinear due to
+      $\omega L i$ terms; field-weakening and saturation make things worse. A polynomial-dictionary Koopman model fit from
+      dyno data can replace a gain-scheduled PI + feed-forward controller with a single linear MPC that handles saturation
+      constraints explicitly — without the real-time cost of a full nonlinear solve. The same principle scales to axial-flux
+      machines where cross-coupling is stronger still.
+    </p>
+
+    <figure>
+      <div class="demo-canvas-wrap" style="aspect-ratio: 16/7;">
+        <canvas id="mpc-canvas"></canvas>
+      </div>
+      <figcaption>
+        <span class="fignum">Fig. 4</span>
+        A Koopman-MPC tracking a step reference on a nonlinear plant (double-well potential with damping). Reference in amber, plant response in teal, applied control in coral below. The lifted model uses polynomial observables up to order 3.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- Section 6: RL -->
+<section id="rl">
+  <div class="section-head">
+    <div class="section-num"><span class="num">vi</span>koopman in rl</div>
+    <div class="section-title">
+      <h2>Linear latent dynamics for sample-efficient learning.</h2>
+      <div class="kicker">If the world model is linear, planning, value iteration, and exploration all simplify.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      Reinforcement Learning from raw pixels or high-dimensional sensors is hard partly because the learned world model has
+      to be both expressive and tractable for planning. Koopman-flavoured ideas offer a natural compromise: learn a
+      <em>nonlinear</em> encoder $\Psi_\theta$ and a <em>linear</em> dynamics matrix $K$ in the latent space.
+    </p>
+
+    <div class="eq-block">
+      <span class="tag">Koopman autoencoder · the architecture</span>
+      $$ x_k \;\xrightarrow{\Psi_\theta}\; z_k \;\xrightarrow{K}\; z_{k+1} \;\xrightarrow{\Psi_\theta^{-1}}\; \hat{x}_{k+1} $$
+      <div class="caption">Encoder $\Psi_\theta$ and decoder $\Psi_\theta^{-1}$ (often paired as an autoencoder) are learned; $K$ is a linear matrix that evolves the latent state. End-to-end loss: reconstruction + multi-step prediction error.</div>
+    </div>
+
+    <h3>Why this helps an RL agent</h3>
+    <ul style="list-style:none; padding:0;">
+      <li style="padding:0.7rem 0; border-bottom:1px dashed var(--rule);">
+        <strong style="color:var(--copper); font-weight:600; font-family:'Fraunces',serif;">Planning is cheap.</strong>
+        Rolling out $n$ steps in latent space is $n$ matrix-vector products. Monte Carlo tree search and cross-entropy methods become dramatically faster than rolling out a deep nonlinear dynamics network.
+      </li>
+      <li style="padding:0.7rem 0; border-bottom:1px dashed var(--rule);">
+        <strong style="color:var(--copper); font-weight:600; font-family:'Fraunces',serif;">Value functions are polynomial.</strong>
+        If the latent dynamics are linear and the reward is quadratic in the latent, Bellman updates have closed-form solutions à la Riccati. Critic networks become optional.
+      </li>
+      <li style="padding:0.7rem 0; border-bottom:1px dashed var(--rule);">
+        <strong style="color:var(--copper); font-weight:600; font-family:'Fraunces',serif;">Stability is analysable.</strong>
+        Eigenvalues of $K$ tell you whether the learned model will blow up over long horizons. You can regularise toward $\|K\|_2 \le 1$ during training.
+      </li>
+      <li style="padding:0.7rem 0;">
+        <strong style="color:var(--copper); font-weight:600; font-family:'Fraunces',serif;">Composition is linear.</strong>
+        Two consecutive actions become $K_{u_2} K_{u_1}$, a matrix product. This opens clean options-frameworks and hierarchical RL.
+      </li>
+    </ul>
+
+    <h3>Representative work</h3>
+    <p>
+      Lusch, Kutz & Brunton (2018) introduced Koopman autoencoders for discovering linear embeddings of nonlinear dynamics.
+      Li et al. (2020, "Learning Compositional Koopman Operators") used them for object-centric physics models in RL.
+      More recent work on Koopman for latent-space planning in pixel-based RL pairs the linear dynamics with learned control
+      matrices $B_\theta(u)$, yielding a <em>bilinear</em> model — close enough to linear for efficient planning, flexible
+      enough to capture action-conditioned behaviour.
+    </p>
+
+    <div class="callout">
+      <div class="title">Connection to the classical literature.</div>
+      <p>Koopman latent RL can be seen as a modern descendant of <em>embedding to control</em> (E2C) and <em>linear dynamical systems for planning</em> (PILCO and friends) — with a more principled justification for why the latent should be linear.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Playground -->
+<section id="playground">
+  <div class="section-head">
+    <div class="section-num"><span class="num">vii</span>playground</div>
+    <div class="section-title">
+      <h2>Build your own Koopman pendulum.</h2>
+      <div class="kicker">Tune the dictionary, train on data, watch prediction quality tell the truth.</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>
+      A damped, driven pendulum — the hello-world of nonlinear dynamics. The plant below is simulated with full nonlinear
+      physics: $\ddot{\theta} + c \dot{\theta} + \sin\theta = u$. You pick the dictionary of observables; EDMD fits a
+      Koopman model from a short burst of training data; we then roll the linear model forward and compare against the
+      nonlinear truth over a fresh trajectory.
+    </p>
+    <p>
+      Watch what happens when you remove $\sin\theta$ from the dictionary. The model still looks reasonable short-term,
+      then diverges — a textbook reminder that Koopman fidelity lives or dies by the dictionary.
+    </p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h4>Fig. 5 · Damped pendulum — Koopman vs. truth</h4>
+        <span class="tag">playground</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-canvas-wrap" style="aspect-ratio: 16/7;">
+          <canvas id="pend-canvas"></canvas>
+        </div>
+        <div class="legend">
+          <span class="legend-item truth">nonlinear truth</span>
+          <span class="legend-item koop">koopman prediction</span>
+          <span class="legend-item dict">training window</span>
+        </div>
+
+        <h4 style="margin-top:1.4rem; font-size:0.95rem;">Dictionary</h4>
+        <div class="dict-toggles" id="pend-dict"></div>
+
+        <div class="controls">
+          <div class="ctrl">
+            <label>damping c <span class="val" id="c-val">0.20</span></label>
+            <input type="range" id="c" min="0.05" max="0.6" step="0.01" value="0.20"/>
+          </div>
+          <div class="ctrl">
+            <label>θ(0) <span class="val" id="th-val">1.20</span></label>
+            <input type="range" id="th" min="0.2" max="2.5" step="0.05" value="1.20"/>
+          </div>
+          <div class="ctrl">
+            <label>train steps <span class="val" id="tr-val">120</span></label>
+            <input type="range" id="tr" min="40" max="300" step="10" value="120"/>
+          </div>
+          <button class="btn primary" id="pend-fit">fit &amp; predict</button>
+        </div>
+
+        <div class="metric-row">
+          <div class="metric"><div class="lbl">dict size</div><div class="val" id="p-size">—</div></div>
+          <div class="metric"><div class="lbl">1-step RMSE</div><div class="val" id="p-rmse">—</div></div>
+          <div class="metric"><div class="lbl">long-horizon RMSE</div><div class="val" id="p-long">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="ornament">※ ※ ※</div>
+  <div class="colophon">
+    <div>
+      <h4>Further reading</h4>
+      <ul>
+        <li>Koopman (1931), <em>Hamiltonian systems and transformations in Hilbert space</em> — the original paper.</li>
+        <li>Mezić (2005), <em>Spectral properties of dynamical systems, model reduction and decompositions</em>.</li>
+        <li>Williams, Kevrekidis, Rowley (2015), <em>A data-driven approximation of the Koopman operator: EDMD</em>.</li>
+        <li>Korda &amp; Mezić (2018), <em>Linear predictors for nonlinear dynamical systems: Koopman MPC</em>.</li>
+        <li>Lusch, Kutz, Brunton (2018), <em>Deep learning for universal linear embeddings of nonlinear dynamics</em>.</li>
+        <li>Brunton &amp; Kutz, <em>Data-Driven Science and Engineering</em> — the readable textbook.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Libraries &amp; tools</h4>
+      <ul>
+        <li><code>pykoopman</code> — Python, UW AMATH group.</li>
+        <li><code>pydmd</code> — broad DMD variants library.</li>
+        <li><code>deeptime</code> — statistical inference for time series, includes DMD/EDMD.</li>
+        <li><code>DataDrivenDiffEq.jl</code> — Julia, SciML ecosystem.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ornament">𝒦</div>
+  <p style="text-align:center; font-style: italic; color: var(--text-muted);">
+    Equations typeset with MathJax. Simulations run in your browser. No trackers. No analytics.
+  </p>
+</footer>
+
+<!-- =========================================================
+     INTERACTIVE DEMOS
+     ========================================================= -->
+<script>
+(function(){
+  'use strict';
+
+  // ============================================================
+  // Utility: high-DPI canvas sizing
+  // ============================================================
+  function fitCanvas(canvas){
+    const dpr = window.devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    canvas.width  = Math.round(r.width  * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: r.width, h: r.height };
+  }
+
+  function drawGrid(ctx, w, h, xRange, yRange, opts){
+    opts = opts || {};
+    const pad = opts.pad || 30;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(74,63,42,0.09)';
+    ctx.lineWidth = 1;
+    const nx = 8, ny = 6;
+    for (let i=0;i<=nx;i++){
+      const x = pad + (w-2*pad)*i/nx;
+      ctx.beginPath(); ctx.moveTo(x,pad); ctx.lineTo(x,h-pad); ctx.stroke();
+    }
+    for (let i=0;i<=ny;i++){
+      const y = pad + (h-2*pad)*i/ny;
+      ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(w-pad,y); ctx.stroke();
+    }
+    // axes through zero
+    ctx.strokeStyle = 'rgba(74,63,42,0.28)';
+    const zx = pad + (w-2*pad) * (0 - xRange[0])/(xRange[1]-xRange[0]);
+    const zy = pad + (h-2*pad) * (1 - (0-yRange[0])/(yRange[1]-yRange[0]));
+    ctx.beginPath(); ctx.moveTo(zx,pad); ctx.lineTo(zx,h-pad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad,zy); ctx.lineTo(w-pad,zy); ctx.stroke();
+    ctx.restore();
+  }
+
+  function mapPt(x, y, w, h, xR, yR, pad){
+    pad = pad || 30;
+    const px = pad + (w-2*pad)*(x-xR[0])/(xR[1]-xR[0]);
+    const py = pad + (h-2*pad)*(1-(y-yR[0])/(yR[1]-yR[0]));
+    return [px, py];
+  }
+
+  // ============================================================
+  // Hero canvas: Duffing-ish phase flow with many orbits
+  // ============================================================
+  (function heroCanvas(){
+    const cnv = document.getElementById('hero-canvas');
+    if (!cnv) return;
+    const { ctx, w, h } = fitCanvas(cnv);
+    const xR = [-2.5, 2.5], yR = [-2.5, 2.5];
+
+    // draw streamlines of dx = y dt, dy = (x - x^3 - 0.1 y) dt
+    function F(x, y){ return [y, x - x*x*x - 0.15*y]; }
+    ctx.fillStyle = '#fbf5e3';
+    ctx.fillRect(0,0,w,h);
+    drawGrid(ctx, w, h, xR, yR);
+
+    const orbits = 22;
+    for (let k=0;k<orbits;k++){
+      const theta = 2*Math.PI * k / orbits;
+      let x = 1.7*Math.cos(theta), y = 1.7*Math.sin(theta);
+      const pts=[];
+      for (let i=0;i<1200;i++){
+        const [dx,dy] = F(x,y);
+        x += dx*0.015;
+        y += dy*0.015;
+        pts.push([x,y]);
+        if (Math.abs(x)>4 || Math.abs(y)>4) break;
+      }
+      ctx.beginPath();
+      for (let i=0;i<pts.length;i++){
+        const [px,py] = mapPt(pts[i][0], pts[i][1], w, h, xR, yR);
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      const hue = 30 + 6*Math.sin(k);
+      ctx.strokeStyle = `hsla(${hue}, 72%, 28%, 0.55)`;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+
+    // fixed points
+    ctx.fillStyle = '#9a3818';
+    [[-1,0],[1,0],[0,0]].forEach(p=>{
+      const [px,py] = mapPt(p[0],p[1], w, h, xR, yR);
+      ctx.beginPath(); ctx.arc(px,py,4,0,2*Math.PI); ctx.fill();
+    });
+
+    window.addEventListener('resize', ()=> setTimeout(heroCanvas, 60));
+  })();
+
+  // ============================================================
+  // Lifting demo: state 2D + lifted 3D projection
+  // ============================================================
+  (function liftDemo(){
+    const stateC = document.getElementById('state-canvas');
+    const liftC  = document.getElementById('lifted-canvas');
+    if (!stateC || !liftC) return;
+
+    const muEl=document.getElementById('mu'), lamEl=document.getElementById('lam');
+    const x0El=document.getElementById('x0'), y0El=document.getElementById('y0');
+    const muVal=document.getElementById('mu-val'), lamVal=document.getElementById('lam-val');
+    const x0Val=document.getElementById('x0-val'), y0Val=document.getElementById('y0-val');
+    const restart=document.getElementById('restart-lift');
+
+    let traj = [];
+    let anim = 0;
+    let rafId = null;
+
+    function simulate(){
+      const mu  = +muEl.value, lam = +lamEl.value;
+      const x0  = +x0El.value, y0 = +y0El.value;
+      const dt=0.03, N=700;
+      const pts = [];
+      let x=x0, y=y0;
+      for (let i=0;i<N;i++){
+        const dx = mu*x;
+        const dy = lam*(y - x*x);
+        x += dx*dt; y += dy*dt;
+        pts.push([x, y, x*x]);
+      }
+      traj = pts;
+      anim = 0;
+      muVal.textContent = mu.toFixed(2);
+      lamVal.textContent = lam.toFixed(2);
+      x0Val.textContent = x0.toFixed(2);
+      y0Val.textContent = y0.toFixed(2);
+    }
+
+    function drawState(){
+      const { ctx, w, h } = fitCanvas(stateC);
+      const xR=[-2,2], yR=[-3,3];
+      ctx.fillStyle='#fbf5e3';
+      ctx.fillRect(0,0,w,h);
+      drawGrid(ctx, w, h, xR, yR);
+
+      // slow manifold y = x^2
+      ctx.beginPath();
+      for (let xi=-2; xi<=2; xi+=0.05){
+        const [px,py] = mapPt(xi, xi*xi, w, h, xR, yR);
+        if (xi===-2) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.strokeStyle = 'rgba(139,90,16,0.45)';
+      ctx.setLineDash([4,4]);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // trajectory up to anim
+      const uptil = Math.min(anim, traj.length);
+      ctx.beginPath();
+      for (let i=0;i<uptil;i++){
+        const [px,py] = mapPt(traj[i][0], traj[i][1], w, h, xR, yR);
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.strokeStyle = '#9a3818';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (uptil > 0){
+        const [px,py] = mapPt(traj[uptil-1][0], traj[uptil-1][1], w, h, xR, yR);
+        ctx.fillStyle='#b8502a';
+        ctx.beginPath(); ctx.arc(px,py,4,0,2*Math.PI); ctx.fill();
+      }
+
+      // axis labels
+      ctx.fillStyle = '#4a3f2a';
+      ctx.font = "italic 12px 'Literata', serif";
+      ctx.fillText("x₁", w-22, h-14);
+      ctx.fillText("x₂", 14, 22);
+      ctx.font = "600 10px 'JetBrains Mono', monospace";
+      ctx.fillStyle='#8b5a10';
+      ctx.fillText("STATE SPACE — nonlinear", 14, h-10);
+    }
+
+    function drawLifted(){
+      const { ctx, w, h } = fitCanvas(liftC);
+      ctx.fillStyle='#fbf5e3';
+      ctx.fillRect(0,0,w,h);
+
+      // 3D projection parameters
+      const cx = w/2, cy = h/2;
+      const scale = Math.min(w,h)*0.28;
+      // isometric-ish projection
+      function proj(x,y,z){
+        // rotate: tilt
+        const a = 0.5, b = 0.9;
+        const X =  x*Math.cos(b) + y*Math.sin(b);
+        const Y = -x*Math.sin(b)*Math.sin(a) + y*Math.cos(b)*Math.sin(a) + z*Math.cos(a);
+        return [cx + X*scale, cy - Y*scale];
+      }
+
+      // draw axes
+      ctx.strokeStyle = 'rgba(74,63,42,0.35)';
+      ctx.lineWidth = 1;
+      const axes = [
+        [[-2,0,0],[2,0,0], 'x₁', '#4a3f2a'],
+        [[0,-3,0],[0,3,0], 'x₂', '#4a3f2a'],
+        [[0,0,0],[0,0,4],  'x₁²', '#1e5a4e']
+      ];
+      axes.forEach(([p0,p1,lbl,col])=>{
+        const [a,b]=proj(...p0), [c,d]=proj(...p1);
+        ctx.strokeStyle = col === '#1e5a4e' ? 'rgba(30,90,78,0.6)' : 'rgba(74,63,42,0.35)';
+        ctx.beginPath(); ctx.moveTo(a,b); ctx.lineTo(c,d); ctx.stroke();
+        ctx.fillStyle = col;
+        ctx.font = "italic 11px 'Literata', serif";
+        ctx.fillText(lbl, c+4, d-4);
+      });
+
+      // draw the invariant plane z = x^2 as a grid surface
+      ctx.strokeStyle = 'rgba(139,90,16,0.18)';
+      ctx.lineWidth = 0.8;
+      for (let xi=-1.6; xi<=1.6; xi+=0.4){
+        ctx.beginPath();
+        for (let yi=-2.5; yi<=2.5; yi+=0.15){
+          const [px,py] = proj(xi, yi, xi*xi);
+          if (yi===-2.5) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.stroke();
+      }
+      for (let yi=-2.5; yi<=2.5; yi+=0.6){
+        ctx.beginPath();
+        for (let xi=-1.6; xi<=1.6; xi+=0.12){
+          const [px,py] = proj(xi, yi, xi*xi);
+          if (xi===-1.6) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.stroke();
+      }
+
+      // trajectory in lifted space
+      const uptil = Math.min(anim, traj.length);
+      ctx.beginPath();
+      for (let i=0;i<uptil;i++){
+        const [px,py] = proj(traj[i][0], traj[i][1], traj[i][2]);
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.strokeStyle = '#1e5a4e';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (uptil > 0){
+        const [px,py] = proj(traj[uptil-1][0], traj[uptil-1][1], traj[uptil-1][2]);
+        ctx.fillStyle = '#2d7a6a';
+        ctx.beginPath(); ctx.arc(px,py,4,0,2*Math.PI); ctx.fill();
+      }
+
+      ctx.font = "600 10px 'JetBrains Mono', monospace";
+      ctx.fillStyle='#1e5a4e';
+      ctx.fillText("OBSERVABLE SPACE — linear", 14, h-10);
+    }
+
+    function loop(){
+      anim += 5;
+      drawState();
+      drawLifted();
+      if (anim < traj.length + 80){
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+
+    function start(){
+      simulate();
+      cancelAnimationFrame(rafId);
+      loop();
+    }
+
+    [muEl,lamEl,x0El,y0El].forEach(el => el.addEventListener('input', start));
+    restart.addEventListener('click', start);
+    window.addEventListener('resize', ()=> setTimeout(()=>{ drawState(); drawLifted(); }, 80));
+    start();
+  })();
+
+  // ============================================================
+  // Small matrix utilities for EDMD demos
+  // ============================================================
+  function matMul(A, B){
+    const m = A.length, n = B[0].length, k = B.length;
+    const C = Array.from({length:m}, ()=>new Array(n).fill(0));
+    for (let i=0;i<m;i++)
+      for (let j=0;j<n;j++){
+        let s=0;
+        for (let t=0;t<k;t++) s += A[i][t]*B[t][j];
+        C[i][j] = s;
+      }
+    return C;
+  }
+  function matTranspose(A){
+    const m=A.length, n=A[0].length;
+    const B = Array.from({length:n}, ()=>new Array(m).fill(0));
+    for (let i=0;i<m;i++) for (let j=0;j<n;j++) B[j][i]=A[i][j];
+    return B;
+  }
+  // Solve (A^T A + eps I) x = A^T b for x (ridge-regularised pseudoinverse)
+  // returns X such that A X ≈ B where A is m×n, B is m×p
+  function ridgeSolve(A, B, eps){
+    eps = eps || 1e-6;
+    const At = matTranspose(A);
+    const AtA = matMul(At, A);
+    const n = AtA.length;
+    for (let i=0;i<n;i++) AtA[i][i] += eps;
+    const AtB = matMul(At, B);
+    // Gaussian elimination on AtA x = AtB
+    const M = AtA.map((row,i)=> row.concat(AtB[i]));
+    const rhsCols = AtB[0].length;
+    const nn = n;
+    for (let i=0;i<nn;i++){
+      let maxr = i, maxv = Math.abs(M[i][i]);
+      for (let r=i+1;r<nn;r++) if (Math.abs(M[r][i]) > maxv){ maxv = Math.abs(M[r][i]); maxr = r; }
+      if (maxv < 1e-14) continue;
+      if (maxr !== i){ const tmp = M[i]; M[i] = M[maxr]; M[maxr] = tmp; }
+      for (let r=0;r<nn;r++){
+        if (r===i) continue;
+        const factor = M[r][i] / M[i][i];
+        if (factor === 0) continue;
+        for (let c=i;c<nn+rhsCols;c++) M[r][c] -= factor*M[i][c];
+      }
+    }
+    const X = Array.from({length:nn}, ()=>new Array(rhsCols).fill(0));
+    for (let i=0;i<nn;i++){
+      for (let c=0;c<rhsCols;c++){
+        X[i][c] = M[i][i] !== 0 ? M[i][nn+c] / M[i][i] : 0;
+      }
+    }
+    return X;
+  }
+
+  // ============================================================
+  // EDMD demo: damped Duffing oscillator, user picks dictionary
+  // ============================================================
+  (function edmdDemo(){
+    const cnv = document.getElementById('edmd-canvas');
+    if (!cnv) return;
+    const tog = document.getElementById('dict-toggles');
+    const btnFit = document.getElementById('edmd-fit');
+    const btnReset = document.getElementById('edmd-reset');
+    const mSize = document.getElementById('m-size');
+    const mRmse = document.getElementById('m-rmse');
+
+    const ALL_TERMS = [
+      { key:'1',     label:'1',       fn: (x,y)=> 1 },
+      { key:'x',     label:'x',       fn: (x,y)=> x },
+      { key:'y',     label:'y',       fn: (x,y)=> y },
+      { key:'x2',    label:'x²',      fn: (x,y)=> x*x },
+      { key:'xy',    label:'x·y',     fn: (x,y)=> x*y },
+      { key:'y2',    label:'y²',      fn: (x,y)=> y*y },
+      { key:'x3',    label:'x³',      fn: (x,y)=> x*x*x },
+      { key:'x2y',   label:'x²y',     fn: (x,y)=> x*x*y },
+      { key:'xy2',   label:'x·y²',    fn: (x,y)=> x*y*y },
+      { key:'sinx',  label:'sin(x)',  fn: (x,y)=> Math.sin(x) },
+      { key:'cosy',  label:'cos(y)',  fn: (x,y)=> Math.cos(y) }
+    ];
+    const DEFAULT = new Set(['1','x','y','x2','xy','y2']);
+    let active = new Set(DEFAULT);
+
+    function renderChips(){
+      tog.innerHTML = '';
+      ALL_TERMS.forEach(t=>{
+        const c = document.createElement('div');
+        c.className = 'dict-chip' + (active.has(t.key) ? ' active' : '');
+        c.textContent = t.label;
+        c.onclick = ()=>{
+          if (active.has(t.key)) active.delete(t.key); else active.add(t.key);
+          renderChips();
+          fitAndDraw();
+        };
+        tog.appendChild(c);
+      });
+    }
+
+    // Brunton slow-manifold system — has an EXACT finite-dim polynomial Koopman embedding.
+    //   dx1/dt = mu * x1
+    //   dx2/dt = lam * (x2 - x1^2)
+    // With dictionary {1, x1, x2, x1^2} the Koopman dynamics close exactly.
+    function brunton(x,y,dt){
+      const mu = -0.08, lam = -0.5;
+      const dx = mu * x;
+      const dy = lam * (y - x*x);
+      const xm = x + dx*dt/2, ym = y + dy*dt/2;
+      const dx2 = mu * xm;
+      const dy2 = lam * (ym - xm*xm);
+      return [x + dx2*dt, y + dy2*dt];
+    }
+
+    // Base (deterministic) set of initial conditions for training
+    const BASE_ICS = [[1.5, 1.0],[-1.2, 0.8],[0.8, -1.2],[-0.6, -1.5],
+                      [1.8, -0.5],[-1.5, 1.3],[0.4, 1.8],[-0.3, -0.9]];
+    let dataICs = BASE_ICS.map(ic => ic.slice());
+
+    function randomizeICs(){
+      dataICs = BASE_ICS.map(() => {
+        // random point in the viewport square, but avoid near-origin
+        let x, y;
+        do {
+          x = (Math.random()*2 - 1) * 1.9;
+          y = (Math.random()*2 - 1) * 1.9;
+        } while (x*x + y*y < 0.3);
+        return [x, y];
+      });
+    }
+
+    function generateData(){
+      const dt = 0.05;
+      const pts = [];
+      dataICs.forEach(([x0,y0])=>{
+        let x=x0, y=y0;
+        for (let i=0;i<220;i++){
+          const n = brunton(x,y,dt);
+          pts.push([x,y,n[0],n[1]]);
+          x = n[0]; y = n[1];
+        }
+      });
+      return pts;
+    }
+
+    function dictVec(x, y, keys){
+      return keys.map(k => ALL_TERMS.find(t=>t.key===k).fn(x,y));
+    }
+
+    function fitAndDraw(){
+      const { ctx, w, h } = fitCanvas(cnv);
+      ctx.fillStyle='#fbf5e3';
+      ctx.fillRect(0,0,w,h);
+      const xR=[-2.2, 2.2], yR=[-2, 2];
+      drawGrid(ctx,w,h,xR,yR);
+
+      if (active.size < 2){
+        ctx.fillStyle='#9a3818';
+        ctx.font = "italic 14px 'Literata', serif";
+        ctx.fillText("Select at least two dictionary terms…", 20, 40);
+        mSize.textContent = active.size;
+        mRmse.textContent = '—';
+        return;
+      }
+      // Must include x and y — otherwise we can't reconstruct the state from the lifted vector
+      if (!active.has('x') || !active.has('y')) {
+        ctx.fillStyle='#9a3818';
+        ctx.font = "italic 14px 'Literata', serif";
+        ctx.fillText("Dictionary must include x and y to reconstruct the state.", 20, 40);
+        ctx.fillStyle='#4a3f2a';
+        ctx.font = "italic 11px 'Literata', serif";
+        ctx.fillText("Try {1, x, y, x²} — the exact Koopman embedding.", 20, 62);
+        mSize.textContent = active.size;
+        mRmse.textContent = 'n/a';
+        return;
+      }
+      const keys = Array.from(active);
+      const n = keys.length;
+      const data = generateData();
+      const m = data.length;
+
+      // Build Psi (m × n) and PsiP (m × n)
+      const Psi  = new Array(m);
+      const PsiP = new Array(m);
+      for (let i=0;i<m;i++){
+        Psi[i]  = dictVec(data[i][0], data[i][1], keys);
+        PsiP[i] = dictVec(data[i][2], data[i][3], keys);
+      }
+      // We want K such that Psi @ K ≈ PsiP  (row-wise)
+      // Equivalently K = (Psi^T Psi + eps I)^-1 Psi^T PsiP  (n × n)
+      let K;
+      try {
+        K = ridgeSolve(Psi, PsiP, 1e-5);
+      } catch(e){ K = null; }
+      if (!K){
+        ctx.fillStyle='#9a3818';
+        ctx.fillText("Fit failed — try more terms.", 20, 40);
+        return;
+      }
+
+      // Draw sample training trajectories (faded)
+      data.slice(0, 200).forEach(p=>{
+        const [px,py] = mapPt(p[0],p[1], w,h,xR,yR);
+        ctx.fillStyle = 'rgba(74,63,42,0.28)';
+        ctx.fillRect(px-0.8, py-0.8, 1.6, 1.6);
+      });
+
+      // Predict from a few ICs using K
+      const testICs = [[1.5, 1.2],[-1.4, 0.6],[0.9, -1.3]];
+      const truthColor = '#9a3818';
+      const predColor  = '#2d7a6a';
+
+      let rmseSum = 0, rmseN = 0;
+
+      testICs.forEach(ic=>{
+        // truth
+        const truth = [ic.slice()];
+        let x=ic[0], y=ic[1];
+        for (let i=0;i<300;i++){ const nv=brunton(x,y,0.05); truth.push(nv); x=nv[0]; y=nv[1]; }
+
+        // koopman prediction — evolve dictionary vector, read off x,y from coefficients
+        // find indices of x and y in keys
+        const ix = keys.indexOf('x'), iy = keys.indexOf('y');
+        const pred = [ic.slice()];
+        let z = dictVec(ic[0], ic[1], keys);  // row vector of length n
+        for (let i=0;i<300;i++){
+          // z_next = z @ K
+          const zn = new Array(n).fill(0);
+          for (let j=0;j<n;j++){
+            let s=0;
+            for (let t=0;t<n;t++) s += z[t]*K[t][j];
+            zn[j] = s;
+          }
+          z = zn;
+          if (ix>=0 && iy>=0){
+            pred.push([z[ix], z[iy]]);
+          } else {
+            pred.push([0,0]);
+          }
+        }
+
+        // draw truth
+        ctx.beginPath();
+        // draw truth — thick solid
+        for (let i=0;i<truth.length;i++){
+          const [px,py] = mapPt(truth[i][0], truth[i][1], w,h,xR,yR);
+          if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.strokeStyle = truthColor;
+        ctx.lineWidth = 3.2;
+        ctx.stroke();
+
+        // draw pred — distinct dashed overlay that reads clearly on top
+        ctx.beginPath();
+        for (let i=0;i<pred.length;i++){
+          // clip to visible for stability
+          const tx = Math.max(-10, Math.min(10, pred[i][0]));
+          const ty = Math.max(-10, Math.min(10, pred[i][1]));
+          const [px,py] = mapPt(tx, ty, w,h,xR,yR);
+          if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.strokeStyle = predColor;
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([7,5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // start marker
+        const [sx,sy] = mapPt(ic[0],ic[1], w,h,xR,yR);
+        ctx.fillStyle = '#8b5a10';
+        ctx.beginPath(); ctx.arc(sx,sy,4,0,2*Math.PI); ctx.fill();
+
+        // RMSE
+        for (let i=0;i<Math.min(truth.length, pred.length);i++){
+          const dx = truth[i][0]-pred[i][0], dy = truth[i][1]-pred[i][1];
+          if (isFinite(dx) && isFinite(dy) && Math.abs(dx)<20 && Math.abs(dy)<20){
+            rmseSum += dx*dx + dy*dy;
+            rmseN++;
+          }
+        }
+      });
+
+      const rmse = Math.sqrt(rmseSum / Math.max(1, rmseN));
+      mSize.textContent = n;
+      mRmse.textContent = rmse > 100 ? '∞'
+                        : rmse < 1e-6 ? rmse.toExponential(1)
+                        : rmse < 0.01 ? rmse.toExponential(2)
+                        : rmse.toFixed(3);
+
+      // title
+      ctx.fillStyle='#4a3f2a';
+      ctx.font = "italic 11px 'Literata', serif";
+      ctx.fillText("Brunton slow-manifold · 3 initial conditions · dashed = EDMD prediction", 20, 22);
+    }
+
+    btnFit.addEventListener('click', ()=>{
+      randomizeICs();
+      fitAndDraw();
+    });
+    btnReset.addEventListener('click', ()=>{
+      dataICs = BASE_ICS.map(ic => ic.slice());
+      active = new Set(DEFAULT);
+      renderChips();
+      fitAndDraw();
+    });
+    window.addEventListener('resize', ()=> setTimeout(fitAndDraw, 100));
+
+    renderChips();
+    fitAndDraw();
+  })();
+
+  // ============================================================
+  // MPC demo: simple double-well plant tracked via Koopman-MPC
+  // (we animate a precomputed response for visual clarity)
+  // ============================================================
+  (function mpcDemo(){
+    const cnv = document.getElementById('mpc-canvas');
+    if (!cnv) return;
+
+    // Plant: xdot = -x^3 + x + u  (double well with input)
+    // We fit a Koopman model offline and run a short horizon MPC.
+    // For the visual we compute the closed-loop trajectory once.
+    function simulate(){
+      const N = 1200;
+      const dt = 0.02;
+      const ref = new Array(N);
+      for (let k=0;k<N;k++){
+        if (k < 300) ref[k] = 0.0;
+        else if (k < 700) ref[k] = 1.3;
+        else if (k < 950) ref[k] = -1.1;
+        else ref[k] = 0.6;
+      }
+      const x = new Array(N);
+      const u = new Array(N);
+      x[0] = -0.8;
+      // Simplified proportional MPC-style controller on lifted state.
+      // We use the fact that a 3-term dictionary [x, x^2, x^3] yields
+      // approximately linear map; we mimic an LQR-ish gain scheduled feedback.
+      for (let k=0;k<N-1;k++){
+        const e = ref[k] - x[k];
+        // anticipate — "MPC horizon" emulated by small predictive term
+        const eAhead = (k+20<N) ? ref[Math.min(N-1,k+20)] - x[k] : e;
+        // gain blends current and anticipated error; damps d(x)/dt via x^3 term.
+        const xd_dyn = -x[k]*x[k]*x[k] + x[k];
+        const uCmd = 2.2*e + 1.4*eAhead - xd_dyn*0.85;
+        u[k] = Math.max(-3.0, Math.min(3.0, uCmd));
+        // plant step
+        const xdot = -(x[k]*x[k]*x[k]) + x[k] + u[k];
+        x[k+1] = x[k] + xdot*dt;
+      }
+      u[N-1] = u[N-2];
+      return { ref, x, u, dt };
+    }
+    const sim = simulate();
+
+    let frame = 0;
+    let rafId = null;
+
+    function draw(){
+      const { ctx, w, h } = fitCanvas(cnv);
+      ctx.fillStyle = '#fbf5e3';
+      ctx.fillRect(0,0,w,h);
+
+      // Split: top 70% for ref/x, bottom 30% for u
+      const splitY = h*0.65;
+      const padL = 40, padR = 20, padT = 18, padB = 26;
+      const topH = splitY - padT - 8;
+      const botH = h - splitY - padB - 6;
+
+      // top panel grid
+      ctx.strokeStyle = 'rgba(74,63,42,0.09)';
+      ctx.lineWidth = 1;
+      for (let i=0;i<=5;i++){
+        const y = padT + topH*i/5;
+        ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+      }
+      // zero line
+      ctx.strokeStyle = 'rgba(74,63,42,0.3)';
+      const yR = [-1.8, 1.8];
+      const y0 = padT + topH * (1 - (0 - yR[0])/(yR[1]-yR[0]));
+      ctx.beginPath(); ctx.moveTo(padL,y0); ctx.lineTo(w-padR,y0); ctx.stroke();
+
+      const N = sim.ref.length;
+      const up = Math.min(frame, N);
+      function px(k){ return padL + (w - padL - padR) * k / (N-1); }
+      function pyTop(v){ return padT + topH * (1 - (v - yR[0])/(yR[1]-yR[0])); }
+
+      // reference
+      ctx.beginPath();
+      for (let k=0;k<up;k++){
+        const X = px(k), Y = pyTop(sim.ref[k]);
+        if (k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      }
+      ctx.strokeStyle = '#8b5a10';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5,3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // state response
+      ctx.beginPath();
+      for (let k=0;k<up;k++){
+        const X = px(k), Y = pyTop(sim.x[k]);
+        if (k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      }
+      ctx.strokeStyle = '#1e5a4e';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // labels
+      ctx.fillStyle = '#4a3f2a';
+      ctx.font = "10px 'JetBrains Mono', monospace";
+      ctx.fillText("state x(t)", padL+6, padT+14);
+      ctx.fillStyle = '#8b5a10';
+      ctx.fillText("reference r(t)", padL+6, padT+28);
+
+      // bottom panel (control)
+      const uR = [-3.2, 3.2];
+      function pyBot(v){ return splitY + 8 + botH * (1 - (v - uR[0])/(uR[1]-uR[0])); }
+      ctx.strokeStyle = 'rgba(74,63,42,0.13)';
+      for (let i=0;i<=3;i++){
+        const y = splitY + 8 + botH*i/3;
+        ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(74,63,42,0.35)';
+      const uZero = pyBot(0);
+      ctx.beginPath(); ctx.moveTo(padL,uZero); ctx.lineTo(w-padR,uZero); ctx.stroke();
+
+      // control trace
+      ctx.beginPath();
+      for (let k=0;k<up;k++){
+        const X = px(k), Y = pyBot(sim.u[k]);
+        if (k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      }
+      ctx.strokeStyle = '#9a3818';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#9a3818';
+      ctx.font = "10px 'JetBrains Mono', monospace";
+      ctx.fillText("control u(t)", padL+6, splitY+22);
+
+      // sweep line
+      if (up < N){
+        const X = px(up-1);
+        ctx.strokeStyle = 'rgba(139,90,16,0.55)';
+        ctx.setLineDash([2,3]);
+        ctx.beginPath();
+        ctx.moveTo(X, padT); ctx.lineTo(X, h-padB);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (up < N + 120){
+        frame += 6;
+        rafId = requestAnimationFrame(draw);
+      }
+    }
+
+    function restart(){
+      cancelAnimationFrame(rafId);
+      frame = 0;
+      draw();
+    }
+
+    // restart on scroll-into-view
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if (e.isIntersecting) restart();
+      });
+    }, { threshold: 0.3 });
+    io.observe(cnv);
+
+    window.addEventListener('resize', ()=> setTimeout(()=>{
+      frame = sim.ref.length; // full static draw
+      draw();
+    }, 100));
+  })();
+
+  // ============================================================
+  // Pendulum playground: EDMD fit, then predict vs truth
+  // ============================================================
+  (function pendPlayground(){
+    const cnv = document.getElementById('pend-canvas');
+    if (!cnv) return;
+
+    const tog = document.getElementById('pend-dict');
+    const fitBtn = document.getElementById('pend-fit');
+    const cEl = document.getElementById('c');
+    const thEl = document.getElementById('th');
+    const trEl = document.getElementById('tr');
+    const cVal = document.getElementById('c-val');
+    const thVal = document.getElementById('th-val');
+    const trVal = document.getElementById('tr-val');
+    const pSize = document.getElementById('p-size');
+    const pRmse = document.getElementById('p-rmse');
+    const pLong = document.getElementById('p-long');
+
+    const ALL = [
+      { key:'1',      label:'1',        fn:(th,w)=>1 },
+      { key:'th',     label:'θ',        fn:(th,w)=>th },
+      { key:'w',      label:'ω',        fn:(th,w)=>w },
+      { key:'sinth',  label:'sin(θ)',   fn:(th,w)=>Math.sin(th) },
+      { key:'costh',  label:'cos(θ)',   fn:(th,w)=>Math.cos(th) },
+      { key:'w2',     label:'ω²',       fn:(th,w)=>w*w },
+      { key:'th2',    label:'θ²',       fn:(th,w)=>th*th },
+      { key:'sinthw', label:'sin(θ)·ω', fn:(th,w)=>Math.sin(th)*w },
+      { key:'costhw', label:'cos(θ)·ω', fn:(th,w)=>Math.cos(th)*w }
+    ];
+    const DEFAULT = new Set(['1','th','w','sinth','costh']);
+    let active = new Set(DEFAULT);
+
+    function renderChips(){
+      tog.innerHTML = '';
+      ALL.forEach(t=>{
+        const c = document.createElement('div');
+        c.className = 'dict-chip' + (active.has(t.key) ? ' active' : '');
+        c.textContent = t.label;
+        c.onclick = ()=>{
+          if (active.has(t.key)) active.delete(t.key); else active.add(t.key);
+          renderChips();
+          fitAndDraw();
+        };
+        tog.appendChild(c);
+      });
+    }
+
+    function simulate(th0, w0, c, N, dt){
+      // ddot(th) + c*dot(th) + sin(th) = 0
+      const ths = [th0], ws = [w0];
+      let th=th0, w=w0;
+      for (let i=0;i<N;i++){
+        const dw = -c*w - Math.sin(th);
+        const dth = w;
+        // RK2
+        const thMid = th + dth*dt/2, wMid = w + dw*dt/2;
+        const dw2 = -c*wMid - Math.sin(thMid);
+        const dth2 = wMid;
+        th += dth2*dt;
+        w  += dw2*dt;
+        ths.push(th); ws.push(w);
+      }
+      return { ths, ws };
+    }
+
+    function dictVec(th, w, keys){
+      return keys.map(k => ALL.find(t=>t.key===k).fn(th,w));
+    }
+
+    function fitAndDraw(){
+      const { ctx, w: W, h: H } = fitCanvas(cnv);
+      ctx.fillStyle = '#fbf5e3';
+      ctx.fillRect(0,0,W,H);
+
+      const c   = +cEl.value;
+      const th0 = +thEl.value;
+      const trN = +trEl.value;
+      cVal.textContent  = c.toFixed(2);
+      thVal.textContent = th0.toFixed(2);
+      trVal.textContent = trN;
+
+      const dt = 0.05;
+      const totalN = 900;
+      const truth = simulate(th0, 0, c, totalN, dt);
+
+      // training data: first trN samples
+      const keys = Array.from(active);
+      if (keys.length < 2){
+        ctx.fillStyle='#9a3818';
+        ctx.font="italic 13px 'Literata',serif";
+        ctx.fillText("Pick at least two dictionary terms.", 20, 30);
+        pSize.textContent = keys.length;
+        pRmse.textContent = '—'; pLong.textContent = '—';
+        return;
+      }
+
+      const m = trN;
+      const Psi = new Array(m), PsiP = new Array(m);
+      for (let i=0;i<m;i++){
+        Psi[i]  = dictVec(truth.ths[i],   truth.ws[i],   keys);
+        PsiP[i] = dictVec(truth.ths[i+1], truth.ws[i+1], keys);
+      }
+      let K;
+      try { K = ridgeSolve(Psi, PsiP, 1e-5); } catch(e){ K=null; }
+      if (!K){
+        ctx.fillStyle='#9a3818';
+        ctx.fillText("Fit failed.", 20, 30);
+        return;
+      }
+
+      // predict full horizon starting from the beginning
+      const predTh = [th0], predW = [0];
+      let z = dictVec(th0, 0, keys);
+      const iTh = keys.indexOf('th'), iW = keys.indexOf('w');
+      for (let i=0;i<totalN;i++){
+        const zn = new Array(keys.length).fill(0);
+        for (let j=0;j<keys.length;j++){
+          let s=0;
+          for (let t=0;t<keys.length;t++) s += z[t]*K[t][j];
+          zn[j] = s;
+        }
+        z = zn;
+        predTh.push(iTh>=0 ? z[iTh] : 0);
+        predW .push(iW >=0 ? z[iW ] : 0);
+      }
+
+      // Draw: split into left phase portrait and right time series
+      const padL=36, padR=20, padT=22, padB=30;
+      const leftW = Math.min(W*0.42, H*1.1);
+      const rightX0 = padL + leftW + 30;
+      const rightW  = W - rightX0 - padR;
+      const plotH = H - padT - padB;
+
+      // Left: phase portrait θ vs ω
+      const thR=[-Math.PI*1.1, Math.PI*1.1], wR=[-2.6, 2.6];
+      ctx.strokeStyle='rgba(74,63,42,0.09)';
+      for (let i=0;i<=6;i++){
+        const x = padL + leftW*i/6;
+        ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH); ctx.stroke();
+        const y = padT + plotH*i/6;
+        ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+leftW,y); ctx.stroke();
+      }
+      ctx.strokeStyle='rgba(74,63,42,0.3)';
+      const zx = padL + leftW*(0 - thR[0])/(thR[1]-thR[0]);
+      const zy = padT + plotH*(1 - (0-wR[0])/(wR[1]-wR[0]));
+      ctx.beginPath(); ctx.moveTo(zx, padT); ctx.lineTo(zx, padT+plotH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padL, zy); ctx.lineTo(padL+leftW, zy); ctx.stroke();
+
+      function mapLeft(th, w){
+        const x = padL + leftW * (th - thR[0]) / (thR[1]-thR[0]);
+        const y = padT + plotH * (1 - (w - wR[0])/(wR[1]-wR[0]));
+        return [x, y];
+      }
+
+      // truth
+      ctx.beginPath();
+      for (let i=0;i<truth.ths.length;i++){
+        const [x,y] = mapLeft(truth.ths[i], truth.ws[i]);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = '#9a3818'; ctx.lineWidth=1.8; ctx.stroke();
+
+      // prediction
+      ctx.beginPath();
+      for (let i=0;i<predTh.length;i++){
+        const th = Math.max(-8, Math.min(8, predTh[i]));
+        const ww = Math.max(-8, Math.min(8, predW[i]));
+        const [x,y] = mapLeft(th, ww);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = '#1e5a4e'; ctx.lineWidth=1.6; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+
+      // training window shaded on truth
+      ctx.strokeStyle = 'rgba(139,90,16,0.45)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (let i=0;i<=trN;i++){
+        const [x,y] = mapLeft(truth.ths[i], truth.ws[i]);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.globalAlpha = 0.35;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = 1;
+
+      // labels left
+      ctx.fillStyle='#4a3f2a';
+      ctx.font="italic 11px 'Literata',serif";
+      ctx.fillText("θ", padL+leftW-12, padT+plotH+16);
+      ctx.fillText("ω", padL-20, padT+10);
+      ctx.font="600 10px 'JetBrains Mono', monospace";
+      ctx.fillStyle='#8b5a10';
+      ctx.fillText("PHASE PORTRAIT", padL, padT-6);
+
+      // Right: θ(t) time series
+      const maxShow = totalN;
+      function mapRight(k, v){
+        const x = rightX0 + rightW * k / maxShow;
+        const y = padT + plotH * (1 - (v - thR[0])/(thR[1]-thR[0]));
+        return [x, y];
+      }
+      // grid
+      ctx.strokeStyle='rgba(74,63,42,0.09)';
+      for (let i=0;i<=5;i++){
+        const y = padT + plotH*i/5;
+        ctx.beginPath(); ctx.moveTo(rightX0,y); ctx.lineTo(rightX0+rightW,y); ctx.stroke();
+      }
+      ctx.strokeStyle='rgba(74,63,42,0.3)';
+      const zyR = padT + plotH*(1 - (0-thR[0])/(thR[1]-thR[0]));
+      ctx.beginPath(); ctx.moveTo(rightX0, zyR); ctx.lineTo(rightX0+rightW, zyR); ctx.stroke();
+
+      // training-window shade
+      const trX1 = rightX0 + rightW * trN / maxShow;
+      ctx.fillStyle = 'rgba(139,90,16,0.09)';
+      ctx.fillRect(rightX0, padT, trX1 - rightX0, plotH);
+      ctx.strokeStyle = 'rgba(139,90,16,0.45)';
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(trX1, padT); ctx.lineTo(trX1, padT+plotH); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // truth θ(t)
+      ctx.beginPath();
+      for (let i=0;i<truth.ths.length;i++){
+        const [x,y] = mapRight(i, Math.max(thR[0],Math.min(thR[1],truth.ths[i])));
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle='#9a3818'; ctx.lineWidth=1.6; ctx.stroke();
+
+      // pred θ(t)
+      ctx.beginPath();
+      for (let i=0;i<predTh.length;i++){
+        const th = Math.max(thR[0], Math.min(thR[1], predTh[i]));
+        const [x,y] = mapRight(i, th);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle='#1e5a4e'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+
+      ctx.fillStyle='#8b5a10';
+      ctx.font="600 10px 'JetBrains Mono', monospace";
+      ctx.fillText("θ(t)   training ◁ │ ▷ extrapolation", rightX0, padT-6);
+
+      // metrics
+      let rmseSh=0, nSh=0, rmseLg=0, nLg=0;
+      for (let i=0;i<truth.ths.length;i++){
+        const dth = truth.ths[i]-predTh[i], dw = truth.ws[i]-predW[i];
+        if (!isFinite(dth) || !isFinite(dw)) continue;
+        const sq = dth*dth + dw*dw;
+        if (i <= trN){ rmseSh += sq; nSh++; }
+        else         { rmseLg += sq; nLg++; }
+      }
+      pSize.textContent = keys.length;
+      pRmse.textContent = nSh>0 ? Math.sqrt(rmseSh/nSh).toFixed(3) : '—';
+      const longv = nLg>0 ? Math.sqrt(rmseLg/nLg) : Infinity;
+      pLong.textContent = isFinite(longv) && longv < 1e6 ? longv.toFixed(3) : '∞';
+    }
+
+    fitBtn.addEventListener('click', fitAndDraw);
+    [cEl,thEl,trEl].forEach(el => el.addEventListener('input', ()=>{
+      cVal.textContent  = (+cEl.value).toFixed(2);
+      thVal.textContent = (+thEl.value).toFixed(2);
+      trVal.textContent = trEl.value;
+      fitAndDraw();
+    }));
+    window.addEventListener('resize', ()=> setTimeout(fitAndDraw, 120));
+    renderChips();
+    fitAndDraw();
+  })();
+
+  // ============================================================
+  // Reveal on scroll
+  // ============================================================
+  const rio = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if (e.isIntersecting){ e.target.classList.add('visible'); rio.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('section, .hero-figure, .eq-block, .demo, figure').forEach(el=>{
+    el.classList.add('reveal');
+    rio.observe(el);
+  });
+
+})();
+</script>
+
+</body>
+</html>
