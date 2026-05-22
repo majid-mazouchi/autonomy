@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cox Regression & DeepSurv — An Illustrated Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f3ead4;
+  --paper-deep: #ead9b4;
+  --paper-shadow: #dfc99a;
+  --ink: #1a1612;
+  --ink-soft: #433a30;
+  --ink-faint: #746654;
+  --rule: #c9b88d;
+  --event:   #a8321e;   /* hazard / events */
+  --survive: #2b5e3f;   /* survival */
+  --flex:    #b5871e;   /* deepsurv / flexible */
+  --cox:     #1a1612;   /* cox baseline */
+  --highlight: #e8d9a8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(200, 170, 100, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(150, 110, 60, 0.06) 0%, transparent 35%);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 40px 120px;
+  position: relative;
+  z-index: 2;
+}
+
+/* MASTHEAD */
+.back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--event);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 24px;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--event);
+}
+.author-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 18px 0 0;
+}
+.author-line strong {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+header.masthead {
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 36px;
+  margin-bottom: 48px;
+}
+
+.kicker {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+h1 em {
+  font-variation-settings: "opsz" 144;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--event);
+}
+
+.deck {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 48;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 640px;
+}
+
+.byline {
+  display: flex;
+  gap: 32px;
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.byline span::before { content: "§ "; color: var(--event); }
+
+/* TYPOGRAPHY */
+h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 72;
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-top: 72px;
+  margin-bottom: 8px;
+}
+h2::before {
+  content: counter(section, decimal-leading-zero) " —";
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--event);
+  display: block;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+body { counter-reset: section figure; }
+h2 { counter-increment: section; }
+
+h3 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24;
+  font-weight: 600;
+  font-size: 24px;
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--event);
+  margin-top: 28px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+p { margin-bottom: 18px; }
+p + p { text-indent: 1.4em; }
+a { color: var(--event); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { background: var(--highlight); }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.eq {
+  text-align: center;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 22px;
+  margin: 22px 0;
+  color: var(--ink);
+}
+
+.lede::first-letter {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: 72px;
+  float: left;
+  line-height: 0.85;
+  padding: 4px 10px 0 0;
+  color: var(--event);
+}
+
+/* FIGURES */
+.figure {
+  margin: 40px -20px;
+  padding: 32px 28px;
+  background: rgba(255, 252, 240, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.03),
+    0 20px 40px -24px rgba(100, 80, 40, 0.22);
+  position: relative;
+}
+.figure::before {
+  content: "FIG. " counter(figure, upper-roman);
+  position: absolute;
+  top: -12px;
+  left: 24px;
+  background: var(--paper);
+  padding: 2px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--event);
+  border: 1px solid var(--rule);
+}
+.figure { counter-increment: figure; }
+
+.figure-caption {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-family: 'Fraunces', serif;
+}
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: var(--paper-deep);
+  border-radius: 2px;
+  align-items: center;
+}
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+.control label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.control label .val {
+  color: var(--event);
+  font-weight: 600;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--ink);
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--event);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--event);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+button.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+button.btn:hover { background: var(--event); }
+button.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+button.btn.ghost:hover { background: var(--ink); color: var(--paper); }
+button.btn.toggle.on {
+  background: var(--event);
+}
+
+/* SVG */
+.svg-stage { width: 100%; display: block; }
+.label-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  fill: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+/* SPLIT */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 640px) {
+  .split { grid-template-columns: 1fr; }
+  .figure { margin: 40px -10px; padding: 24px 18px; }
+  .wrap { padding: 40px 20px 80px; }
+  h1 { font-size: 44px; }
+}
+.panel {
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--event);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* USE CASES */
+.usecases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin: 28px 0;
+}
+@media (max-width: 640px) { .usecases { grid-template-columns: 1fr; } }
+.uc {
+  padding: 18px 20px;
+  background: rgba(255, 252, 240, 0.55);
+  border-left: 2px solid var(--event);
+  border-radius: 0 2px 2px 0;
+}
+.uc:nth-child(even) { border-left-color: var(--survive); }
+.uc h4 { margin-top: 0; }
+.uc p { font-size: 16px; margin: 0; line-height: 1.5; }
+
+/* NOTES */
+.notes { margin: 28px 0; padding-left: 0; list-style: none; counter-reset: note; }
+.notes li {
+  counter-increment: note;
+  padding: 14px 0 14px 56px;
+  border-bottom: 1px dashed var(--rule);
+  position: relative;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.notes li::before {
+  content: counter(note, decimal-leading-zero);
+  position: absolute; left: 0; top: 14px;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 28px;
+  color: var(--event);
+  width: 44px; text-align: right;
+}
+.notes li strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 19px;
+  margin-bottom: 2px;
+}
+
+/* REFERENCES */
+.refs { list-style: none; counter-reset: ref; padding-left: 0; font-size: 15px; line-height: 1.55; }
+.refs li {
+  counter-increment: ref;
+  padding: 8px 0 8px 40px;
+  position: relative;
+  color: var(--ink-soft);
+  border-bottom: 1px dotted var(--rule);
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute; left: 0; top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--event);
+  font-weight: 600;
+}
+
+/* KEY IDEA */
+.key {
+  margin: 32px 0;
+  padding: 20px 24px;
+  background: var(--highlight);
+  border-left: 4px solid var(--event);
+  border-radius: 0 2px 2px 0;
+}
+.key .hd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--event);
+  margin-bottom: 6px;
+}
+.key p {
+  margin: 0;
+  font-size: 18px;
+  font-style: italic;
+  font-family: 'Fraunces', serif;
+}
+
+/* LEGEND */
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.legend .sw {
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+}
+.legend .sw.line {
+  width: 18px; height: 2px; border-radius: 0; border: none;
+}
+.legend .sw.dash {
+  width: 18px; height: 2px; border-radius: 0; border: none;
+  background-image: linear-gradient(to right, currentColor 50%, transparent 50%);
+  background-size: 6px 2px;
+}
+
+/* READOUT */
+.readout {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.readout .hl { color: var(--event); font-weight: 600; }
+.readout .hl2 { color: var(--survive); font-weight: 600; }
+.readout .hl3 { color: var(--flex); font-weight: 600; }
+
+/* TOC */
+nav.toc {
+  margin: 36px 0 48px;
+  padding: 20px 24px;
+  background: rgba(255, 252, 240, 0.6);
+  border: 1px solid var(--rule);
+  columns: 2;
+  column-gap: 40px;
+}
+@media (max-width: 640px) { nav.toc { columns: 1; } }
+nav.toc ol { list-style: none; counter-reset: toc; }
+nav.toc li {
+  counter-increment: toc;
+  padding: 4px 0;
+  break-inside: avoid;
+  font-size: 15px;
+}
+nav.toc li::before {
+  content: counter(toc, decimal-leading-zero) ".  ";
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--event);
+}
+nav.toc a { text-decoration: none; color: var(--ink); }
+nav.toc a:hover { background: var(--highlight); }
+
+/* FOOTER */
+footer {
+  margin-top: 80px;
+  padding-top: 30px;
+  border-top: 3px double var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* TABLES (for hazard ratio readouts) */
+.stats-table {
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+.stats-table th, .stats-table td {
+  padding: 5px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+.stats-table th {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+  <div class="kicker">Monograph № 3  ·  On Time-to-Event Modeling</div>
+  <h1>Cox Regression<br>and its <em>neural</em> cousin</h1>
+  <p class="deck">How to model how long things last when you can't wait around to see them all end — from Sir David Cox's 1972 trick to its deep-learning sequel.</p>
+  <div class="byline">
+    <span>Interactive Essay</span>
+    <span>≈ 14 min read</span>
+    <span>Four figures, all live</span>
+  </div>
+  <p class="author-line">By <strong>Majid Mazouchi</strong></p>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <ol>
+    <li><a href="#intro">Why survival data is different</a></li>
+    <li><a href="#censoring">Censoring, made visible</a></li>
+    <li><a href="#functions">The two fundamental functions</a></li>
+    <li><a href="#linked">Hazard meets survival</a></li>
+    <li><a href="#cox">Cox's elegant trick</a></li>
+    <li><a href="#ph">The proportional hazards assumption</a></li>
+    <li><a href="#partial">The partial likelihood</a></li>
+    <li><a href="#deepsurv">Where Cox ends, DeepSurv begins</a></li>
+    <li><a href="#flex">Linear vs flexible risk functions</a></li>
+    <li><a href="#usecases">Where these methods earn their keep</a></li>
+    <li><a href="#notes">Practical notes from the trenches</a></li>
+    <li><a href="#refs">References &amp; further reading</a></li>
+  </ol>
+</nav>
+
+<!-- INTRO -->
+<section id="intro">
+<h2>Why survival data is different</h2>
+
+<p class="lede">You have a list of subjects and, for each one, a number: how long they lasted. Patients who lived 14 months after diagnosis. Lightbulbs that burned 8,421 hours. Customers who stayed subscribed for 97 days. You'd like to ask: which covariates make this number bigger or smaller? A natural instinct is to reach for ordinary regression. <strong>Don't.</strong> Survival data has a peculiarity that standard regression cannot handle, and ignoring it will bias every conclusion you draw.</p>
+
+<p>The peculiarity is <em>censoring</em>. Not every subject reaches the event you're measuring before the study ends. Some patients are still alive at the last follow-up. Some bulbs are still burning when you pull the plug on the experiment. Some customers are still subscribed today. For these subjects, you don't know their true lifetime — you only know it's longer than what you observed. Drop them and you bias toward short lifetimes. Treat their observation time as a real event time and you bias in the same direction, harder. Survival analysis is the family of methods designed to use this partial information <em>correctly</em>.</p>
+
+<div class="key">
+  <div class="hd">Key insight</div>
+  <p>A censored observation is not a missing data point — it's a lower bound on the true lifetime, and it carries real information. The art of survival analysis is squeezing that information out.</p>
+</div>
+</section>
+
+<!-- FIGURE I -->
+<section id="censoring">
+<h2>Censoring, made visible</h2>
+
+<p>Here's what survival data looks like laid out as a timeline. Each horizontal line is one subject. The line starts at their enrollment (time zero) and ends when their event happens — or when the study closes, whichever comes first.</p>
+
+<div class="figure" id="fig-censor">
+  <svg viewBox="0 0 820 460" class="svg-stage" id="svgCensor"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:180px;">
+      <label>Study duration <span class="val" id="durVal">10</span></label>
+      <input type="range" id="durSlider" min="3" max="20" value="10">
+    </div>
+    <div class="control" style="flex:1; min-width:180px;">
+      <label>Base event rate <span class="val" id="rateVal">0.15</span></label>
+      <input type="range" id="rateSlider" min="5" max="50" value="15">
+    </div>
+    <button class="btn ghost" id="newCensorBtn">Resample</button>
+    <div class="legend">
+      <span><span class="sw" style="background:#a8321e;"></span>Event observed</span>
+      <span><span class="sw" style="background:#f3ead4; border-color:#2b5e3f; border-width:2px;"></span>Censored (unknown)</span>
+    </div>
+  </div>
+  <div class="readout" id="censorReadout"></div>
+  <div class="figure-caption">
+    Each bar is a subject, stopping at either an event (solid red dot) or the end of observation (open circle = censored). As you shorten the study duration, more subjects get cut off before their event and censoring grows. Survival methods use all of them — censored included.
+  </div>
+</div>
+
+<p>Two observations. First, as you shrink the study duration, more subjects remain censored. Information about their true lifetimes is lost — but the fact that they <em>made it</em> to the study's end is itself valuable. Second, if you simply threw out the censored subjects and ran a regression on the remaining ones, you'd be training on a biased sample: the short-lived. Your predictions would systematically underestimate lifetimes.</p>
+</section>
+
+<!-- FUNCTIONS -->
+<section id="functions">
+<h2>The two fundamental functions</h2>
+
+<p>Survival analysis speaks in two linked languages. One is the <strong>hazard function</strong> <span class="mono">h(t)</span> — the instantaneous rate of events at time <span class="mono">t</span>, conditional on having survived until <span class="mono">t</span>. Think: "given you've made it this far, what's your risk of dying in the next instant?" The other is the <strong>survival function</strong> <span class="mono">S(t)</span> — the probability of lasting beyond time <span class="mono">t</span>, full stop. They carry the same information and you can convert between them freely:</p>
+
+<p class="eq">S(t) = exp( − ∫₀<sup>t</sup> h(s) ds )</p>
+
+<p>The integrand is called the <em>cumulative hazard</em>. The relationship is mechanical: if you know the instantaneous risk at every time, you know the chance of surviving. If you know the chance of surviving, you can recover the instantaneous risk by differentiating.</p>
+</section>
+
+<!-- FIGURE II -->
+<section id="linked">
+<h2>Hazard meets survival</h2>
+
+<p>To build intuition, here are the two curves for a Weibull distribution — a flexible two-parameter family that covers most practical shapes of aging: infant mortality (hazard decreasing), random failures (hazard constant), and wear-out (hazard increasing).</p>
+
+<div class="figure" id="fig-linked">
+  <div class="split">
+    <div class="panel">
+      <div class="panel-title">Hazard  h(t)</div>
+      <svg viewBox="0 0 380 300" class="svg-stage" id="svgHazard"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Survival  S(t)</div>
+      <svg viewBox="0 0 380 300" class="svg-stage" id="svgSurvival"></svg>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Weibull shape  κ <span class="val" id="kVal">1.5</span></label>
+      <input type="range" id="kSlider" min="30" max="300" value="150">
+    </div>
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Scale  λ <span class="val" id="lamVal">1.0</span></label>
+      <input type="range" id="lamSlider" min="30" max="200" value="100">
+    </div>
+  </div>
+  <div class="readout" id="linkedReadout"></div>
+  <div class="figure-caption">
+    Same distribution, two views. When κ &lt; 1, hazard falls over time (infant mortality — things that survive early will likely survive long). When κ = 1, hazard is flat (memoryless). When κ &gt; 1, hazard rises (wear-out). The survival curve translates this into what you <em>observe</em>: the probability any individual is still with you at time t.
+  </div>
+</div>
+</section>
+
+<!-- COX -->
+<section id="cox">
+<h2>Cox's elegant trick</h2>
+
+<p>Fitting a full hazard function is hard. It's a whole curve, and curves have many parameters. Fitting a single-number effect of each covariate is easy — but if you commit to a specific hazard family like the Weibull, you've baked in assumptions about the shape of aging that may be wrong.</p>
+
+<p>In 1972, Sir David Cox proposed a remarkable compromise. Write the hazard for a subject with covariates <span class="mono">x</span> as:</p>
+
+<p class="eq">h(t | x) = h₀(t) · exp(β·x)</p>
+
+<p>The first factor, <span class="mono">h₀(t)</span>, is the <strong>baseline hazard</strong> — the hazard function for a subject whose covariates are all zero. It can be <em>any function</em>. No assumption on its shape. The second factor, <span class="mono">exp(β·x)</span>, is a constant-in-time multiplier that scales the baseline up or down depending on covariates. This is the <em>proportional hazards</em> structure: two subjects with different covariates have hazard functions that are scaled copies of each other. The ratio of their hazards at any time <span class="mono">t</span> is the same constant, forever.</p>
+
+<p>Why is this a miracle? Because you can estimate <span class="mono">β</span> without ever estimating <span class="mono">h₀(t)</span>. The baseline hazard is a nuisance — it cancels out in the mathematical trick we're about to see. You get the covariate effects, crisp and interpretable, without wrestling with what aging looks like.</p>
+</section>
+
+<!-- FIGURE III -->
+<section id="ph">
+<h2>The proportional hazards assumption</h2>
+
+<p>The name "proportional hazards" says what it does. Below are two groups — a control group (solid green) and a treatment group (red). The treatment has a log-hazard shift <span class="mono">β</span>. When you slide <span class="mono">β</span>, the treatment group's hazard and survival curves scale relative to the control, but the <em>shape</em> of the baseline hazard is preserved in both. The hazard ratio is <span class="mono">HR = exp(β)</span>: HR = 2 means the treated group has twice the instantaneous risk at every time; HR = 0.5 means half.</p>
+
+<div class="figure" id="fig-ph">
+  <div class="split">
+    <div class="panel">
+      <div class="panel-title"><span id="ph-left-title">Hazard  h(t | group)</span></div>
+      <svg viewBox="0 0 380 300" class="svg-stage" id="svgPhHazard"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Survival  S(t | group)</div>
+      <svg viewBox="0 0 380 300" class="svg-stage" id="svgPhSurvival"></svg>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Log hazard ratio  β <span class="val" id="betaVal">0.69</span></label>
+      <input type="range" id="betaSlider" min="-120" max="120" value="69">
+    </div>
+    <button class="btn toggle" id="logToggle">Log-hazard view</button>
+    <div class="legend">
+      <span style="color:#2b5e3f;"><span class="sw line" style="background:#2b5e3f;"></span>Control</span>
+      <span style="color:#a8321e;"><span class="sw line" style="background:#a8321e;"></span>Treatment</span>
+    </div>
+  </div>
+  <div class="readout" id="phReadout"></div>
+  <div class="figure-caption">
+    The central Cox commitment. On linear axes the two hazards look quite different in magnitude; on <em>log</em> axes they're parallel — their vertical distance is a constant equal to β. This is the signature of proportional hazards. When the real-world hazard ratio drifts with time (a common violation), Cox regression gives biased estimates and you need time-varying coefficients or a different model.
+  </div>
+</div>
+</section>
+
+<!-- PARTIAL LIKELIHOOD -->
+<section id="partial">
+<h2>The partial likelihood</h2>
+
+<p>Here is the beautiful move. Forget about absolute event times and think only about <em>orderings</em>. Suppose subject <em>i</em> has their event at time <em>t<sub>i</sub></em>. At that exact moment, consider the <strong>risk set</strong> <em>R(t<sub>i</sub>)</em> — every subject still alive (not yet eventful, not yet censored). Cox asks: given that exactly one event happened at <em>t<sub>i</sub></em>, what's the probability that the subject who had it was <em>i</em> in particular, rather than any of the others in the risk set?</p>
+
+<p>Under proportional hazards, this probability is:</p>
+
+<p class="eq">P(i has the event | one event at t<sub>i</sub>)  =  exp(β·x<sub>i</sub>) / Σ<sub>j ∈ R(t<sub>i</sub>)</sub> exp(β·x<sub>j</sub>)</p>
+
+<p>Notice what just happened. The baseline hazard <span class="mono">h₀(t<sub>i</sub>)</span> appears in the numerator and denominator identically — it <em>cancels</em>. All that's left is the covariate effect <span class="mono">β</span>. Multiply these probabilities across every observed event and you get the <strong>partial likelihood</strong>:</p>
+
+<p class="eq">L(β) = Π<sub>i : event</sub>  exp(β·x<sub>i</sub>) / Σ<sub>j ∈ R(t<sub>i</sub>)</sub> exp(β·x<sub>j</sub>)</p>
+
+<p>Maximize this and you've got β. Censored subjects show up in the risk sets (they contribute as competitors) but never as numerators (they never had the event). No distributional assumptions, no baseline hazard, no fuss. Cox's 1972 paper is three pages of this idea and it changed biostatistics forever.</p>
+</section>
+
+<!-- DEEPSURV -->
+<section id="deepsurv">
+<h2>Where Cox ends, DeepSurv begins</h2>
+
+<p>Look again at the Cox model: <span class="mono">h(t | x) = h₀(t) · exp(β·x)</span>. The risk is a <em>linear</em> function of the covariates. Doubling a feature doubles the log-hazard. If the true relationship is nonlinear — a U-shape in dose response, a threshold in pressure, an interaction between two sensor signals — plain Cox will fit a straight line through the curve and miss everything interesting.</p>
+
+<p>DeepSurv (Katzman et al., 2018) takes a single, direct step. Replace the linear score <span class="mono">β·x</span> with a neural network <span class="mono">f<sub>θ</sub>(x)</span>:</p>
+
+<p class="eq">h(t | x) = h₀(t) · exp(f<sub>θ</sub>(x))</p>
+
+<p>Train the network's weights <span class="mono">θ</span> by maximizing the same partial likelihood — just with the linear risk score replaced by the network's output. The censoring logic, the baseline-free elegance, the whole partial-likelihood machinery all carry through unchanged. You inherit Cox's philosophy and gain the flexibility of deep learning to model arbitrary, nonlinear, interaction-heavy risk functions.</p>
+
+<p>The trade-off is exactly what you'd expect. You lose coefficient-level interpretability — there's no single <span class="mono">β</span> telling you "a one-unit increase in feature-5 multiplies risk by 1.3." You gain the ability to capture complex risk surfaces that linear Cox cannot represent. For problems where the linear assumption is roughly right, classical Cox is often equal or better and far easier to defend. For problems where it clearly isn't, DeepSurv (and its cousins — Cox-Time, DeepHit, survival transformers) is where the field has moved.</p>
+</section>
+
+<!-- FIGURE IV -->
+<section id="flex">
+<h2>Linear vs flexible risk functions</h2>
+
+<p>To see the difference in action, we generate synthetic survival data where the true log-hazard depends on a single covariate <span class="mono">x</span> through a <em>U-shape</em>: risk is high at both extremes and low in the middle (a typical drug dose-response pattern). We then fit two models — a linear Cox and a flexible Cox (polynomial basis, an honest in-browser stand-in for what DeepSurv does with neural networks) — and plot their estimated log-hazard functions against the ground truth.</p>
+
+<div class="figure" id="fig-flex">
+  <svg viewBox="0 0 820 440" class="svg-stage" id="svgFlex"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Curvature  γ <span class="val" id="curvVal">2.5</span></label>
+      <input type="range" id="curvSlider" min="0" max="40" value="25">
+    </div>
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Sample size  n <span class="val" id="nVal">150</span></label>
+      <input type="range" id="nSlider" min="30" max="400" value="150">
+    </div>
+    <button class="btn ghost" id="newFlexBtn">Resample</button>
+    <div class="legend">
+      <span><span class="sw line" style="background:#1a1612;"></span>True log-hazard</span>
+      <span><span class="sw dash" style="color:#a8321e;"></span>Cox linear</span>
+      <span><span class="sw line" style="background:#b5871e;"></span>Flexible (DeepSurv-style)</span>
+    </div>
+  </div>
+  <div class="readout" id="flexReadout"></div>
+  <div class="figure-caption">
+    Ground truth log-hazard (black) is U-shaped. Linear Cox (red dashed) fits a straight line — the best linear approximation to a curve is a constant, so it flattens to near-zero and sees essentially no effect. Flexible Cox (gold), using polynomial basis functions as a stand-in for a neural network, bends to match the truth. With γ near zero the two models agree; as curvature grows, the linear fit falls farther behind.
+  </div>
+</div>
+
+<p>The concordance index (<em>c-index</em>) in the readout is survival analysis's analogue of AUC: over all valid pairs of subjects where one had the event first, how often does the model correctly give that subject the higher risk score? It ranges from 0.5 (random) to 1.0 (perfect). With a genuinely nonlinear ground truth, linear Cox's c-index hovers near 0.5 regardless of sample size — it has no power to see the U-shape. The flexible model's c-index climbs with sample size as it locks onto the curvature. This is the DeepSurv argument in one number.</p>
+</section>
+
+<!-- USE CASES -->
+<section id="usecases">
+<h2>Where these methods earn their keep</h2>
+
+<div class="usecases">
+  <div class="uc">
+    <h4>Clinical trials &amp; prognosis</h4>
+    <p>The historical home of Cox regression. Estimating the effect of treatments, biomarkers, or demographic factors on survival in oncology, cardiology, and epidemiology. Hazard ratios are the lingua franca of medical literature.</p>
+  </div>
+  <div class="uc">
+    <h4>Reliability &amp; RUL estimation</h4>
+    <p>Time-to-failure for bearings, batteries, power electronics, and mechanical components. Cox lets you bring in operating-condition covariates (load, temperature, duty cycle) without assuming a Weibull or log-normal lifetime distribution.</p>
+  </div>
+  <div class="uc">
+    <h4>Customer churn &amp; retention</h4>
+    <p>How long until a subscriber cancels, a user goes dormant, a free trial converts (or doesn't). Censoring is natural here: many customers are still active at the moment you query the database, and survival methods handle them correctly.</p>
+  </div>
+  <div class="uc">
+    <h4>Credit risk &amp; loan default</h4>
+    <p>Time-to-default modeling with covariates on borrower, loan, and macroeconomic features. Cox and its extensions are standard in banking risk models where the event of interest is rare and right-censored.</p>
+  </div>
+  <div class="uc">
+    <h4>Fleet health &amp; maintenance</h4>
+    <p>Predicting next failure for large populations of industrial assets — turbines, pumps, vehicles — where each unit's history is a mix of failures, repairs, and still-running censored observations. Perfect DeepSurv territory: many covariates, likely nonlinear interactions.</p>
+  </div>
+  <div class="uc">
+    <h4>Device &amp; component lifecycling</h4>
+    <p>For power-electronics components operating under varied duty cycles, DeepSurv can learn interactions between temperature, current stress, and switching patterns that a linear Cox would silently miss.</p>
+  </div>
+  <div class="uc">
+    <h4>HR analytics</h4>
+    <p>Time-to-promotion, time-to-attrition, time-to-hire. Wide use in workforce planning; Cox keeps you honest about employees who are still with the company at report time.</p>
+  </div>
+  <div class="uc">
+    <h4>Recurrent events &amp; warranty claims</h4>
+    <p>Extensions of Cox (Andersen-Gill, frailty models) handle subjects with multiple events over time — warranty claims on the same unit, repeated hospitalizations. The partial-likelihood machinery generalizes cleanly.</p>
+  </div>
+</div>
+</section>
+
+<!-- PRACTICAL NOTES -->
+<section id="notes">
+<h2>Practical notes from the trenches</h2>
+
+<ol class="notes">
+  <li><strong>Check the proportional hazards assumption before trusting a Cox fit.</strong> Use Schoenfeld residuals (<span class="mono">cox.zph()</span> in R, <span class="mono">lifelines.check_assumptions</span> in Python). If a covariate's effect drifts with time — a common violation — your reported hazard ratio is an average of a moving target and shouldn't be interpreted as a simple effect size.</li>
+  <li><strong>Handle ties in event times carefully.</strong> When two subjects have the same observed event time, the partial likelihood has three common approximations: Breslow (default in many packages, fastest, biased under heavy ties), Efron (usually the best default), and exact (correct but slow). Prefer Efron unless you have strong reasons not to.</li>
+  <li><strong>Scale your continuous covariates.</strong> Cox is theoretically scale-invariant for final estimates, but gradient-based optimizers converge much faster on standardized inputs, and coefficient magnitudes become directly comparable.</li>
+  <li><strong>Don't use Cox for absolute prediction without the baseline hazard.</strong> The partial likelihood gives you <span class="mono">β</span>, not <span class="mono">h₀(t)</span>. To produce survival probabilities for a new subject, estimate the baseline hazard separately (Breslow estimator is standard) after fitting.</li>
+  <li><strong>Concordance index is your primary performance metric.</strong> Not accuracy, not MSE. The c-index measures how well the model orders subjects by risk — that's what survival models actually do. Aim for &gt;0.65 to be useful, &gt;0.75 for strong, &gt;0.85 for exceptional in most medical domains.</li>
+  <li><strong>For DeepSurv, start simple.</strong> Two or three hidden layers, modest width, batch normalization, dropout around 0.2–0.4. Adam with a small learning rate. Early stopping on validation c-index. Don't begin with a Transformer — you'll tune forever for marginal gains.</li>
+  <li><strong>Watch out for tiny risk sets at long follow-up.</strong> Toward the tail of your observation window, the risk set shrinks and each surviving subject carries enormous weight in the partial likelihood. Consider trimming the last 5–10% of event times or adding a robustness weight.</li>
+  <li><strong>Beware confusing hazard ratio with risk ratio.</strong> HR is a ratio of instantaneous event rates; risk ratio is a ratio of cumulative probabilities over some interval. They only coincide when events are rare and follow-up is short. Report HR with a time horizon if you want the clinical reader to understand it.</li>
+  <li><strong>Stratify when proportionality fails for a categorical covariate.</strong> If a factor (say, hospital) violates PH, you can stratify on it — estimate a separate baseline hazard for each stratum while sharing <span class="mono">β</span> across them. It's a clean compromise that preserves interpretation.</li>
+  <li><strong>DeepSurv shines when n is large and nonlinearity is plausible.</strong> With small sample sizes (n &lt; a few hundred events), the linear Cox's simplicity usually wins — fewer parameters, more stable. Don't reach for the neural net until you have enough events to feed it (rough rule: &gt;10 events per hidden-unit's worth of parameters).</li>
+</ol>
+</section>
+
+<!-- REFERENCES -->
+<section id="refs">
+<h2>References &amp; further reading</h2>
+
+<ol class="refs">
+  <li>Cox, D. R. (1972). <em>Regression Models and Life-Tables.</em> Journal of the Royal Statistical Society, Series B, 34(2), 187–220. The founding paper. Remarkably readable.</li>
+  <li>Katzman, J. L., Shaham, U., Cloninger, A., Bates, J., Jiang, T., &amp; Kluger, Y. (2018). <em>DeepSurv: Personalized Treatment Recommender System Using a Cox Proportional Hazards Deep Neural Network.</em> BMC Medical Research Methodology, 18(1).</li>
+  <li>Kvamme, H., Borgan, Ø., &amp; Scheel, I. (2019). <em>Time-to-Event Prediction with Neural Networks and Cox Regression.</em> Journal of Machine Learning Research, 20. Introduces Cox-Time and related extensions.</li>
+  <li>Lee, C., Zame, W., Yoon, J., &amp; van der Schaar, M. (2018). <em>DeepHit: A Deep Learning Approach to Survival Analysis with Competing Risks.</em> AAAI. Neural alternative that drops the proportional-hazards assumption entirely.</li>
+  <li>Therneau, T. M., &amp; Grambsch, P. M. (2000). <em>Modeling Survival Data: Extending the Cox Model.</em> Springer. The canonical practical reference for applied Cox regression.</li>
+  <li>Klein, J. P., &amp; Moeschberger, M. L. (2003). <em>Survival Analysis: Techniques for Censored and Truncated Data</em> (2nd ed.). Springer. Comprehensive textbook, good for self-study.</li>
+  <li>Ishwaran, H., Kogalur, U. B., Blackstone, E. H., &amp; Lauer, M. S. (2008). <em>Random Survival Forests.</em> Annals of Applied Statistics, 2(3). A tree-based non-neural alternative worth knowing about.</li>
+  <li>Davidson-Pilon, C. <em>lifelines: Survival Analysis in Python.</em> <span class="mono">lifelines.readthedocs.io</span>. The reference Python implementation; excellent documentation.</li>
+  <li>Pölsterl, S. <em>scikit-survival: a Python library for survival analysis.</em> <span class="mono">scikit-survival.readthedocs.io</span>. Integrates cleanly with scikit-learn pipelines.</li>
+  <li>Harrell, F. E., Jr. (2015). <em>Regression Modeling Strategies</em> (2nd ed.). Springer. Chapters 20–21 are the classic practical treatment of Cox modeling with splines and other nonlinear extensions.</li>
+</ol>
+</section>
+
+<footer>
+  Monograph № 3 &nbsp; ·  &nbsp;  typeset in Fraunces &amp; EB Garamond &nbsp; · &nbsp; all figures computed live in your browser &nbsp;· &nbsp; no tracking, no data leaves this page
+</footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   Shared utilities
+===================================================================== */
+const EVENT = '#a8321e', SURVIVE = '#2b5e3f', FLEX = '#b5871e';
+const INK = '#1a1612', SOFT = '#433a30', FAINT = '#746654', RULE = '#c9b88d';
+const PAPER = '#f3ead4', HIGH = '#e8d9a8';
+
+function svgEl(tag, attrs={}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* =====================================================================
+   FIGURE I — Censored timeline
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgCensor');
+  const durSlider = document.getElementById('durSlider');
+  const rateSlider = document.getElementById('rateSlider');
+  const durVal = document.getElementById('durVal');
+  const rateVal = document.getElementById('rateVal');
+  const newBtn = document.getElementById('newCensorBtn');
+  const readout = document.getElementById('censorReadout');
+
+  const N = 22;
+  const W = 820, H = 460;
+  const pad = { l: 80, r: 30, t: 30, b: 50 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  let subjects = [];
+  let seed = 7;
+
+  function generate(seed) {
+    const rng = mulberry32(seed);
+    const rate = +rateSlider.value / 100;
+    const subs = [];
+    for (let i = 0; i < N; i++) {
+      // true event time ~ Exponential(rate), with some heterogeneity
+      const individualRate = rate * (0.5 + rng() * 1.5);
+      const u = rng();
+      const eventTime = -Math.log(Math.max(1e-9, u)) / individualRate;
+      subs.push({
+        id: i, 
+        trueEventTime: eventTime,
+        individualRate,
+      });
+    }
+    return subs;
+  }
+
+  function draw() {
+    clear(svg);
+    const duration = +durSlider.value;
+
+    // Observations: event if trueEventTime <= duration, else censored at duration
+    const obs = subjects.map(s => {
+      if (s.trueEventTime <= duration) {
+        return { ...s, obsTime: s.trueEventTime, event: true };
+      } else {
+        return { ...s, obsTime: duration, event: false };
+      }
+    });
+    // Sort by observation time for cleaner staircase
+    obs.sort((a, b) => a.obsTime - b.obsTime);
+
+    // axes
+    const x0 = pad.l;
+    const xMax = Math.max(duration * 1.1, 1);
+    const xToPx = t => pad.l + (t / xMax) * plotW;
+
+    // Axis line
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t + plotH, x2: pad.l + plotW, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+
+    // Study end line
+    const xEnd = xToPx(duration);
+    svg.appendChild(svgEl('line', {
+      x1: xEnd, y1: pad.t, x2: xEnd, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1.2, 'stroke-dasharray': '4,3',
+    }));
+    const endLabel = svgEl('text', {
+      x: xEnd, y: pad.t - 8, 'text-anchor': 'middle', class: 'label-text', fill: INK,
+    });
+    endLabel.textContent = `STUDY END · t = ${duration}`;
+    svg.appendChild(endLabel);
+
+    // x ticks
+    const tickStep = duration >= 15 ? 5 : duration >= 8 ? 2 : 1;
+    for (let t = 0; t <= xMax; t += tickStep) {
+      const px = xToPx(t);
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: pad.t + plotH, x2: px, y2: pad.t + plotH + 4,
+        stroke: INK, 'stroke-width': 0.8,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: pad.t + plotH + 16, 'text-anchor': 'middle', class: 'label-text',
+      });
+      lab.textContent = t.toFixed(0);
+      svg.appendChild(lab);
+    }
+    const xLab = svgEl('text', {
+      x: pad.l + plotW/2, y: pad.t + plotH + 40, 'text-anchor': 'middle', class: 'label-text',
+    });
+    xLab.textContent = 'TIME';
+    svg.appendChild(xLab);
+    const yLab = svgEl('text', {
+      x: 22, y: pad.t + plotH/2, 'text-anchor': 'middle',
+      transform: `rotate(-90 22 ${pad.t + plotH/2})`,
+      class: 'label-text',
+    });
+    yLab.textContent = 'SUBJECTS';
+    svg.appendChild(yLab);
+
+    // subject lines
+    const rowH = plotH / (N + 1);
+    let events = 0, censored = 0;
+    obs.forEach((s, i) => {
+      const y = pad.t + (i + 1) * rowH;
+      const xObs = xToPx(s.obsTime);
+      const color = s.event ? EVENT : SURVIVE;
+      // line
+      svg.appendChild(svgEl('line', {
+        x1: x0, y1: y, x2: xObs, y2: y,
+        stroke: color, 'stroke-width': 1.5, 'stroke-opacity': 0.55,
+      }));
+      // marker
+      if (s.event) {
+        svg.appendChild(svgEl('circle', {
+          cx: xObs, cy: y, r: 4.5,
+          fill: EVENT, stroke: INK, 'stroke-width': 0.6,
+        }));
+        events++;
+      } else {
+        svg.appendChild(svgEl('circle', {
+          cx: xObs, cy: y, r: 4.5,
+          fill: PAPER, stroke: SURVIVE, 'stroke-width': 1.8,
+        }));
+        censored++;
+      }
+      // subject id
+      const idLab = svgEl('text', {
+        x: x0 - 10, y: y + 3, 'text-anchor': 'end', class: 'label-text',
+      });
+      idLab.textContent = `s${String(s.id).padStart(2, '0')}`;
+      svg.appendChild(idLab);
+    });
+
+    const total = events + censored;
+    const eventRate = (100 * events / total).toFixed(0);
+    const censorRate = (100 * censored / total).toFixed(0);
+    readout.innerHTML =
+      `Total subjects: <strong>${total}</strong> &nbsp;·&nbsp; ` +
+      `Events observed: <span class="hl">${events}</span> (${eventRate}%) &nbsp;·&nbsp; ` +
+      `Censored: <span class="hl2">${censored}</span> (${censorRate}%) &nbsp;·&nbsp; ` +
+      `Throwing away censored subjects would discard <strong>${censorRate}%</strong> of your data.`;
+  }
+
+  function regenerate() {
+    subjects = generate(seed);
+    draw();
+  }
+
+  durSlider.addEventListener('input', () => {
+    durVal.textContent = durSlider.value;
+    draw();
+  });
+  rateSlider.addEventListener('input', () => {
+    rateVal.textContent = (+rateSlider.value / 100).toFixed(2);
+    regenerate();
+  });
+  newBtn.addEventListener('click', () => {
+    seed = Math.floor(Math.random() * 1e6);
+    regenerate();
+  });
+
+  rateVal.textContent = (+rateSlider.value / 100).toFixed(2);
+  regenerate();
+})();
+
+/* =====================================================================
+   FIGURE II — Hazard and Survival (Weibull)
+===================================================================== */
+(function(){
+  const svgH = document.getElementById('svgHazard');
+  const svgS = document.getElementById('svgSurvival');
+  const kSlider = document.getElementById('kSlider');
+  const lamSlider = document.getElementById('lamSlider');
+  const kVal = document.getElementById('kVal');
+  const lamVal = document.getElementById('lamVal');
+  const readout = document.getElementById('linkedReadout');
+
+  const W = 380, H = 300;
+  const pad = { l: 50, r: 20, t: 25, b: 45 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  function hazard(t, k, lam) {
+    if (t <= 0) return (k === 1) ? 1/lam : (k < 1 ? Infinity : 0);
+    return (k / lam) * Math.pow(t / lam, k - 1);
+  }
+  function survival(t, k, lam) {
+    if (t <= 0) return 1;
+    return Math.exp(-Math.pow(t / lam, k));
+  }
+
+  function drawAxis(svg, xMax, yMax, title, xLabel, yLabel) {
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t + plotH, x2: pad.l + plotW, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    // x ticks
+    const nTicks = 4;
+    for (let i = 0; i <= nTicks; i++) {
+      const v = (xMax * i) / nTicks;
+      const px = pad.l + (v / xMax) * plotW;
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: pad.t + plotH, x2: px, y2: pad.t + plotH + 3,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: pad.t + plotH + 14, 'text-anchor': 'middle', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    for (let i = 0; i <= nTicks; i++) {
+      const v = (yMax * i) / nTicks;
+      const py = pad.t + plotH - (v / yMax) * plotH;
+      svg.appendChild(svgEl('line', {
+        x1: pad.l - 3, y1: py, x2: pad.l, y2: py,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: pad.l - 6, y: py + 3, 'text-anchor': 'end', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    const xLab = svgEl('text', {
+      x: pad.l + plotW/2, y: pad.t + plotH + 32, 'text-anchor': 'middle', class: 'label-text',
+    });
+    xLab.textContent = xLabel;
+    svg.appendChild(xLab);
+    const yLab = svgEl('text', {
+      x: 18, y: pad.t + plotH/2, 'text-anchor': 'middle',
+      transform: `rotate(-90 18 ${pad.t + plotH/2})`,
+      class: 'label-text',
+    });
+    yLab.textContent = yLabel;
+    svg.appendChild(yLab);
+  }
+
+  function drawCurve(svg, fn, xMax, yMax, color, width=2.2) {
+    const N = 200;
+    let d = '';
+    for (let i = 0; i <= N; i++) {
+      const x = (i / N) * xMax;
+      let y = fn(x);
+      if (!isFinite(y)) y = yMax * 1.2;
+      y = Math.max(0, Math.min(yMax * 1.15, y));
+      const px = pad.l + (x / xMax) * plotW;
+      const py = pad.t + plotH - (y / yMax) * plotH;
+      d += (i === 0 ? 'M' : 'L') + ` ${px.toFixed(2)} ${py.toFixed(2)} `;
+    }
+    svg.appendChild(svgEl('path', {
+      d, fill: 'none', stroke: color, 'stroke-width': width,
+    }));
+  }
+
+  function draw() {
+    const k = +kSlider.value / 100;
+    const lam = +lamSlider.value / 100;
+    kVal.textContent = k.toFixed(2);
+    lamVal.textContent = lam.toFixed(2);
+
+    const tMax = Math.max(2.5, lam * 3);
+    // dynamic y-max for hazard
+    let hMax = 0;
+    for (let i = 1; i <= 100; i++) {
+      const t = (i / 100) * tMax;
+      const h = hazard(t, k, lam);
+      if (isFinite(h) && h > hMax) hMax = h;
+    }
+    hMax = Math.max(1, Math.min(hMax * 1.1, 8));
+
+    clear(svgH);
+    drawAxis(svgH, tMax, hMax, 'HAZARD', 't', 'h(t)');
+    drawCurve(svgH, t => hazard(t, k, lam), tMax, hMax, EVENT, 2.4);
+
+    clear(svgS);
+    drawAxis(svgS, tMax, 1, 'SURVIVAL', 't', 'S(t)');
+    drawCurve(svgS, t => survival(t, k, lam), tMax, 1, SURVIVE, 2.4);
+
+    // Interpretation
+    let shape;
+    if (k < 0.95) shape = 'decreasing — infant mortality / burn-in';
+    else if (k < 1.05) shape = 'constant — memoryless, exponential';
+    else if (k < 1.9) shape = 'slowly increasing — mild aging';
+    else shape = 'sharply increasing — wear-out dominated';
+    readout.innerHTML =
+      `Weibull(κ = <span class="hl">${k.toFixed(2)}</span>, λ = <span class="hl">${lam.toFixed(2)}</span>) &nbsp;·&nbsp; ` +
+      `Shape: <span class="hl3">${shape}</span> &nbsp;·&nbsp; ` +
+      `Median lifetime: <span class="hl2">${(lam * Math.pow(Math.log(2), 1/k)).toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `Mean lifetime: <span class="hl2">${(lam * gammaApprox(1 + 1/k)).toFixed(2)}</span>`;
+  }
+
+  // Stirling approximation for gamma
+  function gammaApprox(x) {
+    // Lanczos-ish for x>0
+    const g = 7;
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+               771.32342877765313, -176.61502916214059, 12.507343278686905,
+               -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.PI / (Math.sin(Math.PI * x) * gammaApprox(1 - x));
+    x -= 1;
+    let a = c[0];
+    const t = x + g + 0.5;
+    for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+    return Math.sqrt(2 * Math.PI) * Math.pow(t, x + 0.5) * Math.exp(-t) * a;
+  }
+
+  kSlider.addEventListener('input', draw);
+  lamSlider.addEventListener('input', draw);
+  draw();
+})();
+
+/* =====================================================================
+   FIGURE III — Proportional Hazards demo
+===================================================================== */
+(function(){
+  const svgH = document.getElementById('svgPhHazard');
+  const svgS = document.getElementById('svgPhSurvival');
+  const betaSlider = document.getElementById('betaSlider');
+  const betaVal = document.getElementById('betaVal');
+  const logToggle = document.getElementById('logToggle');
+  const phReadout = document.getElementById('phReadout');
+  const leftTitle = document.getElementById('ph-left-title');
+
+  const W = 380, H = 300;
+  const pad = { l: 50, r: 20, t: 25, b: 45 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  // Baseline: Weibull k=1.8, lam=1.0
+  const K0 = 1.8, LAM0 = 1.0;
+  let logMode = false;
+
+  function hBase(t) { return (K0 / LAM0) * Math.pow(t / LAM0, K0 - 1); }
+  function SBase(t) { return Math.exp(-Math.pow(t / LAM0, K0)); }
+  function hTreat(t, beta) { return Math.exp(beta) * hBase(t); }
+  function STreat(t, beta) { return Math.pow(SBase(t), Math.exp(beta)); }
+
+  function drawAxis(svg, xMax, yMin, yMax, xLabel, yLabel, isLog=false) {
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t + plotH, x2: pad.l + plotW, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    for (let i = 0; i <= 4; i++) {
+      const v = xMax * i / 4;
+      const px = pad.l + (v / xMax) * plotW;
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: pad.t + plotH, x2: px, y2: pad.t + plotH + 3,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: pad.t + plotH + 14, 'text-anchor': 'middle', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    for (let i = 0; i <= 4; i++) {
+      const v = yMin + (yMax - yMin) * i / 4;
+      const py = pad.t + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+      svg.appendChild(svgEl('line', {
+        x1: pad.l - 3, y1: py, x2: pad.l, y2: py,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: pad.l - 6, y: py + 3, 'text-anchor': 'end', class: 'label-text',
+      });
+      lab.textContent = isLog ? v.toFixed(1) : v.toFixed(2);
+      svg.appendChild(lab);
+    }
+    const xLab = svgEl('text', {
+      x: pad.l + plotW/2, y: pad.t + plotH + 32, 'text-anchor': 'middle', class: 'label-text',
+    });
+    xLab.textContent = xLabel;
+    svg.appendChild(xLab);
+    const yLab = svgEl('text', {
+      x: 18, y: pad.t + plotH/2, 'text-anchor': 'middle',
+      transform: `rotate(-90 18 ${pad.t + plotH/2})`,
+      class: 'label-text',
+    });
+    yLab.textContent = yLabel;
+    svg.appendChild(yLab);
+  }
+
+  function drawCurve(svg, fn, xMin, xMax, yMin, yMax, color, width=2.2) {
+    const N = 200;
+    let d = '';
+    for (let i = 0; i <= N; i++) {
+      const x = xMin + (i / N) * (xMax - xMin);
+      const y = fn(x);
+      if (!isFinite(y) || y < yMin - 1e6 || y > yMax + 1e6) continue;
+      const py = pad.t + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
+      const px = pad.l + ((x - xMin) / (xMax - xMin)) * plotW;
+      const pyCl = Math.max(pad.t, Math.min(pad.t + plotH, py));
+      d += (d === '' ? 'M' : 'L') + ` ${px.toFixed(2)} ${pyCl.toFixed(2)} `;
+    }
+    svg.appendChild(svgEl('path', {
+      d, fill: 'none', stroke: color, 'stroke-width': width,
+    }));
+  }
+
+  function draw() {
+    const beta = +betaSlider.value / 100;
+    betaVal.textContent = beta.toFixed(2);
+    const HR = Math.exp(beta);
+
+    const tMin = 0.05;
+    const tMax = 2.5;
+
+    clear(svgH);
+    if (logMode) {
+      leftTitle.textContent = 'Log-hazard  log h(t | group)';
+      // log scale
+      const yMin = -2, yMax = 3;
+      drawAxis(svgH, tMax, yMin, yMax, 't', 'log h(t)', true);
+      drawCurve(svgH, t => Math.log(hBase(t)), tMin, tMax, yMin, yMax, SURVIVE, 2.4);
+      drawCurve(svgH, t => Math.log(hTreat(t, beta)), tMin, tMax, yMin, yMax, EVENT, 2.4);
+      // annotation: vertical distance = beta
+      if (Math.abs(beta) > 0.05) {
+        const xAnn = pad.l + (1.5 / tMax) * plotW;
+        const yBase = Math.log(hBase(1.5));
+        const yTreat = Math.log(hTreat(1.5, beta));
+        const yMinPx = pad.t + plotH - ((yBase - yMin) / (yMax - yMin)) * plotH;
+        const yMaxPx = pad.t + plotH - ((yTreat - yMin) / (yMax - yMin)) * plotH;
+        svgH.appendChild(svgEl('line', {
+          x1: xAnn, y1: yMinPx, x2: xAnn, y2: yMaxPx,
+          stroke: FLEX, 'stroke-width': 1.5, 'stroke-dasharray': '3,2',
+        }));
+        const midY = (yMinPx + yMaxPx) / 2;
+        const lab = svgEl('text', {
+          x: xAnn + 5, y: midY + 3, class: 'label-text', fill: FLEX, 'font-weight': 700,
+        });
+        lab.textContent = `β = ${beta.toFixed(2)}`;
+        svgH.appendChild(lab);
+      }
+    } else {
+      leftTitle.textContent = 'Hazard  h(t | group)';
+      // find yMax based on larger hazard
+      let hMax = 0;
+      for (let i = 0; i <= 100; i++) {
+        const t = (i / 100) * tMax;
+        const v = Math.max(hBase(t), hTreat(t, beta));
+        if (isFinite(v) && v > hMax) hMax = v;
+      }
+      hMax = Math.max(1, Math.min(hMax * 1.1, 10));
+      drawAxis(svgH, tMax, 0, hMax, 't', 'h(t)');
+      drawCurve(svgH, hBase, 0.01, tMax, 0, hMax, SURVIVE, 2.4);
+      drawCurve(svgH, t => hTreat(t, beta), 0.01, tMax, 0, hMax, EVENT, 2.4);
+    }
+
+    clear(svgS);
+    drawAxis(svgS, tMax, 0, 1, 't', 'S(t)');
+    drawCurve(svgS, SBase, 0, tMax, 0, 1, SURVIVE, 2.4);
+    drawCurve(svgS, t => STreat(t, beta), 0, tMax, 0, 1, EVENT, 2.4);
+
+    // Median survival times
+    const medBase = LAM0 * Math.pow(Math.log(2), 1/K0);
+    const medTreat = LAM0 * Math.pow(Math.log(2) / HR, 1/K0);
+    const verdict =
+      HR > 1.5 ? '<span class="hl">Treatment group has markedly higher hazard.</span>' :
+      HR > 1.05 ? '<span class="hl">Treatment group has modestly higher hazard.</span>' :
+      HR > 0.95 ? '<span class="hl3">Essentially no group effect.</span>' :
+      HR > 0.67 ? '<span class="hl2">Treatment group has modestly lower hazard.</span>' :
+      '<span class="hl2">Treatment group has markedly lower hazard.</span>';
+    phReadout.innerHTML =
+      `β = <span class="hl">${beta.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `Hazard ratio = exp(β) = <span class="hl">${HR.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `Median (control) = <span class="hl2">${medBase.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `Median (treatment) = <span class="hl">${medTreat.toFixed(2)}</span> &nbsp;·&nbsp; ${verdict}`;
+  }
+
+  betaSlider.addEventListener('input', draw);
+  logToggle.addEventListener('click', () => {
+    logMode = !logMode;
+    logToggle.classList.toggle('on', logMode);
+    logToggle.textContent = logMode ? 'Linear view' : 'Log-hazard view';
+    draw();
+  });
+  draw();
+})();
+
+/* =====================================================================
+   FIGURE IV — Linear vs Flexible Cox
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgFlex');
+  const curvSlider = document.getElementById('curvSlider');
+  const nSlider = document.getElementById('nSlider');
+  const curvVal = document.getElementById('curvVal');
+  const nVal = document.getElementById('nVal');
+  const newBtn = document.getElementById('newFlexBtn');
+  const readout = document.getElementById('flexReadout');
+
+  const W = 820, H = 440;
+  const pad = { l: 60, r: 40, t: 40, b: 60 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  let seed = 2024;
+
+  // Ground truth U-shape: r(x) = curv * (x - 0.5)^2 - offset
+  function trueRisk(x, curv) {
+    return curv * Math.pow(x - 0.5, 2) - curv / 4;
+  }
+
+  function generateData(n, curv, seed) {
+    const rng = mulberry32(seed);
+    const data = [];
+    const studyDur = 2.0;
+    for (let i = 0; i < n; i++) {
+      const x = rng();
+      const r = trueRisk(x, curv);
+      const hazard = Math.exp(r);
+      const u = rng();
+      const T = -Math.log(Math.max(1e-9, u)) / hazard;
+      const obsTime = Math.min(T, studyDur);
+      const event = T < studyDur;
+      data.push({ x, obsTime, event });
+    }
+    return data;
+  }
+
+  // Sort data by obsTime ASCENDING
+  function sortedByTime(data) {
+    return [...data].sort((a, b) => a.obsTime - b.obsTime);
+  }
+
+  // Compute risk set indices for each event time (using sorted data)
+  // For sorted data, the risk set of entry i is {j : j >= i} (all with obsTime >= obsTime_i)
+  // This is correct if events happen before censoring at tied times;
+  // we'll use obsTime tie-breaking with event priority.
+
+  // Negative log partial likelihood and gradient for linear Cox
+  function nllCoxLinear(data, beta) {
+    const sorted = sortedByTime(data);
+    let nll = 0;
+    // We'll iterate over events, computing the log-sum-exp over risk set.
+    // For efficiency, build reverse cumulative sum of exp(beta*x) from end.
+    const n = sorted.length;
+    const expBx = sorted.map(d => Math.exp(beta * d.x));
+    const cumSum = new Array(n);
+    cumSum[n - 1] = expBx[n - 1];
+    for (let i = n - 2; i >= 0; i--) cumSum[i] = cumSum[i + 1] + expBx[i];
+    for (let i = 0; i < n; i++) {
+      if (sorted[i].event) {
+        nll -= (beta * sorted[i].x - Math.log(cumSum[i]));
+      }
+    }
+    return { nll, sorted, cumSum };
+  }
+
+  function fitCoxLinear(data) {
+    // Newton-Raphson on 1D beta.
+    let beta = 0;
+    for (let it = 0; it < 30; it++) {
+      const sorted = sortedByTime(data);
+      const n = sorted.length;
+      const expBx = sorted.map(d => Math.exp(beta * d.x));
+      const xExp = sorted.map((d, i) => d.x * expBx[i]);
+      const x2Exp = sorted.map((d, i) => d.x * d.x * expBx[i]);
+      // reverse cumulative sums
+      const S0 = new Array(n), S1 = new Array(n), S2 = new Array(n);
+      S0[n-1] = expBx[n-1]; S1[n-1] = xExp[n-1]; S2[n-1] = x2Exp[n-1];
+      for (let i = n-2; i >= 0; i--) {
+        S0[i] = S0[i+1] + expBx[i];
+        S1[i] = S1[i+1] + xExp[i];
+        S2[i] = S2[i+1] + x2Exp[i];
+      }
+      let grad = 0, hess = 0;
+      for (let i = 0; i < n; i++) {
+        if (!sorted[i].event) continue;
+        const mean = S1[i] / S0[i];
+        const var_ = S2[i] / S0[i] - mean * mean;
+        grad += sorted[i].x - mean;
+        hess -= var_;
+      }
+      if (Math.abs(hess) < 1e-9) break;
+      const step = grad / hess;
+      beta -= step;
+      if (Math.abs(step) < 1e-6) break;
+    }
+    return beta;
+  }
+
+  // Flexible: polynomial basis (x, x^2, x^3), fit via Newton-Raphson on vector beta
+  function fitCoxPoly(data, degree=3) {
+    const sorted = sortedByTime(data);
+    const n = sorted.length;
+    function basis(x) {
+      const b = new Array(degree);
+      for (let k = 0; k < degree; k++) b[k] = Math.pow(x, k + 1);
+      return b;
+    }
+    let beta = new Array(degree).fill(0);
+    for (let it = 0; it < 40; it++) {
+      const phi = sorted.map(d => basis(d.x));
+      const eta = phi.map(p => p.reduce((s, v, k) => s + v * beta[k], 0));
+      const expEta = eta.map(Math.exp);
+      // S0, S1 (vector), S2 (matrix) reverse cumulative
+      const S0 = new Array(n); const S1 = Array.from({length: n}, () => new Array(degree).fill(0));
+      const S2 = Array.from({length: n}, () => Array.from({length: degree}, () => new Array(degree).fill(0)));
+      S0[n-1] = expEta[n-1];
+      for (let k = 0; k < degree; k++) S1[n-1][k] = phi[n-1][k] * expEta[n-1];
+      for (let a = 0; a < degree; a++)
+        for (let b = 0; b < degree; b++)
+          S2[n-1][a][b] = phi[n-1][a] * phi[n-1][b] * expEta[n-1];
+      for (let i = n-2; i >= 0; i--) {
+        S0[i] = S0[i+1] + expEta[i];
+        for (let k = 0; k < degree; k++) S1[i][k] = S1[i+1][k] + phi[i][k] * expEta[i];
+        for (let a = 0; a < degree; a++)
+          for (let b = 0; b < degree; b++)
+            S2[i][a][b] = S2[i+1][a][b] + phi[i][a] * phi[i][b] * expEta[i];
+      }
+      const grad = new Array(degree).fill(0);
+      const hess = Array.from({length: degree}, () => new Array(degree).fill(0));
+      for (let i = 0; i < n; i++) {
+        if (!sorted[i].event) continue;
+        const mean = new Array(degree);
+        for (let k = 0; k < degree; k++) mean[k] = S1[i][k] / S0[i];
+        for (let k = 0; k < degree; k++) grad[k] += phi[i][k] - mean[k];
+        for (let a = 0; a < degree; a++) {
+          for (let b = 0; b < degree; b++) {
+            const cov = S2[i][a][b] / S0[i] - mean[a] * mean[b];
+            hess[a][b] -= cov;
+          }
+        }
+      }
+      // Regularize hessian
+      for (let k = 0; k < degree; k++) hess[k][k] -= 0.01;
+      const step = solveLinear(hess, grad);
+      if (!step) break;
+      let maxStep = 0;
+      for (let k = 0; k < degree; k++) {
+        beta[k] -= step[k];
+        maxStep = Math.max(maxStep, Math.abs(step[k]));
+      }
+      if (maxStep < 1e-6) break;
+    }
+    return beta;
+  }
+
+  // Simple linear solve for small systems (degree <= 4)
+  function solveLinear(A, b) {
+    const n = A.length;
+    const M = A.map((r, i) => [...r, b[i]]);
+    for (let i = 0; i < n; i++) {
+      // pivot
+      let maxRow = i;
+      for (let k = i + 1; k < n; k++) if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) maxRow = k;
+      [M[i], M[maxRow]] = [M[maxRow], M[i]];
+      if (Math.abs(M[i][i]) < 1e-12) return null;
+      for (let k = i + 1; k < n; k++) {
+        const f = M[k][i] / M[i][i];
+        for (let j = i; j <= n; j++) M[k][j] -= f * M[i][j];
+      }
+    }
+    const x = new Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+      x[i] = M[i][n];
+      for (let j = i + 1; j < n; j++) x[i] -= M[i][j] * x[j];
+      x[i] /= M[i][i];
+    }
+    return x;
+  }
+
+  // Concordance index
+  function cIndex(data, riskFn) {
+    let concordant = 0, discordant = 0, tied = 0;
+    let comparable = 0;
+    for (let i = 0; i < data.length; i++) {
+      for (let j = 0; j < data.length; j++) {
+        if (i === j) continue;
+        // i should be comparable: i had event, and j was observed at least as long as i
+        if (!data[i].event) continue;
+        if (data[j].obsTime < data[i].obsTime) continue;
+        if (data[i].obsTime === data[j].obsTime && !data[j].event) continue;
+        comparable++;
+        const ri = riskFn(data[i].x);
+        const rj = riskFn(data[j].x);
+        if (ri > rj) concordant++;
+        else if (ri < rj) discordant++;
+        else tied++;
+      }
+    }
+    if (comparable === 0) return 0.5;
+    return (concordant + 0.5 * tied) / comparable;
+  }
+
+  function draw() {
+    clear(svg);
+    const curv = +curvSlider.value / 10;
+    const n = +nSlider.value;
+    curvVal.textContent = curv.toFixed(1);
+    nVal.textContent = n;
+
+    const data = generateData(n, curv, seed);
+    const betaLin = fitCoxLinear(data);
+    const betaPoly = fitCoxPoly(data, 3);
+
+    // Center curves at their mean across x in [0,1] for fair comparison
+    const NS = 80;
+    const gridX = Array.from({length: NS + 1}, (_, i) => i / NS);
+    const trueY = gridX.map(x => trueRisk(x, curv));
+    const linY  = gridX.map(x => betaLin * x);
+    const polyY = gridX.map(x => betaPoly[0]*x + betaPoly[1]*x*x + betaPoly[2]*x*x*x);
+
+    // Center
+    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+    const cTrue = mean(trueY), cLin = mean(linY), cPoly = mean(polyY);
+    const trueC = trueY.map(v => v - cTrue);
+    const linC  = linY.map(v => v - cLin);
+    const polyC = polyY.map(v => v - cPoly);
+
+    // y range
+    const allY = [...trueC, ...linC, ...polyC];
+    const yMax = Math.max(0.5, Math.max(...allY.map(Math.abs)) * 1.1);
+    const yMin = -yMax;
+
+    // axes
+    svg.appendChild(svgEl('rect', {
+      x: pad.l, y: pad.t, width: plotW, height: plotH,
+      fill: PAPER, stroke: INK, 'stroke-width': 1,
+    }));
+    // zero line
+    const zY = pad.t + plotH/2;
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: zY, x2: pad.l + plotW, y2: zY,
+      stroke: RULE, 'stroke-width': 0.8, 'stroke-dasharray': '2,3',
+    }));
+
+    // x ticks
+    for (let i = 0; i <= 5; i++) {
+      const v = i / 5;
+      const px = pad.l + v * plotW;
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: pad.t + plotH, x2: px, y2: pad.t + plotH + 4,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: pad.t + plotH + 16, 'text-anchor': 'middle', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    const xLab = svgEl('text', {
+      x: pad.l + plotW/2, y: pad.t + plotH + 40, 'text-anchor': 'middle', class: 'label-text',
+    });
+    xLab.textContent = 'COVARIATE  x';
+    svg.appendChild(xLab);
+
+    // y ticks
+    for (let i = -2; i <= 2; i++) {
+      const v = i * yMax / 2;
+      const py = pad.t + plotH/2 - v / yMax * plotH / 2;
+      svg.appendChild(svgEl('line', {
+        x1: pad.l - 4, y1: py, x2: pad.l, y2: py,
+        stroke: INK, 'stroke-width': 0.7,
+      }));
+      const lab = svgEl('text', {
+        x: pad.l - 8, y: py + 3, 'text-anchor': 'end', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    const yLab = svgEl('text', {
+      x: 20, y: pad.t + plotH/2, 'text-anchor': 'middle',
+      transform: `rotate(-90 20 ${pad.t + plotH/2})`,
+      class: 'label-text',
+    });
+    yLab.textContent = 'LOG-HAZARD  (centered)';
+    svg.appendChild(yLab);
+
+    // data rug at bottom
+    for (const d of data) {
+      const px = pad.l + d.x * plotW;
+      const py = pad.t + plotH;
+      const tickColor = d.event ? EVENT : SURVIVE;
+      const height = d.event ? 8 : 5;
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: py, x2: px, y2: py + height,
+        stroke: tickColor, 'stroke-width': 1.2, 'stroke-opacity': 0.7,
+      }));
+    }
+    // rug labels
+    const rugLab = svgEl('text', {
+      x: pad.l + plotW + 8, y: pad.t + plotH + 5, class: 'label-text', fill: SOFT,
+    });
+    rugLab.textContent = 'n = ' + n;
+    svg.appendChild(rugLab);
+
+    // plot curves
+    function plotCurve(ys, color, width, dash) {
+      let d = '';
+      for (let i = 0; i <= NS; i++) {
+        const px = pad.l + gridX[i] * plotW;
+        const py = pad.t + plotH/2 - ys[i] / yMax * plotH / 2;
+        d += (i === 0 ? 'M' : 'L') + ` ${px.toFixed(2)} ${py.toFixed(2)} `;
+      }
+      const attrs = { d, fill: 'none', stroke: color, 'stroke-width': width };
+      if (dash) attrs['stroke-dasharray'] = dash;
+      svg.appendChild(svgEl('path', attrs));
+    }
+
+    plotCurve(trueC, INK, 2.2, null);
+    plotCurve(linC, EVENT, 2.2, '6,3');
+    plotCurve(polyC, FLEX, 2.6, null);
+
+    // compute c-indices
+    const cTrueFn = x => trueRisk(x, curv);
+    const cLinFn  = x => betaLin * x;
+    const cPolyFn = x => betaPoly[0]*x + betaPoly[1]*x*x + betaPoly[2]*x*x*x;
+    const cTrueIdx = cIndex(data, cTrueFn);
+    const cLinIdx  = cIndex(data, cLinFn);
+    const cPolyIdx = cIndex(data, cPolyFn);
+
+    readout.innerHTML =
+      `<table class="stats-table"><thead><tr>` +
+      `<th>MODEL</th><th>RISK FORM</th><th>β / θ</th><th>C-INDEX</th>` +
+      `</tr></thead><tbody>` +
+      `<tr><td>Truth</td><td>γ(x−0.5)² − γ/4</td><td>γ = ${curv.toFixed(1)}</td><td>${cTrueIdx.toFixed(3)}</td></tr>` +
+      `<tr><td>Cox linear</td><td>β·x</td><td>β = <span class="hl">${betaLin.toFixed(2)}</span></td><td><span class="hl">${cLinIdx.toFixed(3)}</span></td></tr>` +
+      `<tr><td>Flexible Cox</td><td>β₁x + β₂x² + β₃x³</td><td>β = [${betaPoly.map(b => b.toFixed(2)).join(', ')}]</td><td><span class="hl3">${cPolyIdx.toFixed(3)}</span></td></tr>` +
+      `</tbody></table>`;
+  }
+
+  curvSlider.addEventListener('input', draw);
+  nSlider.addEventListener('input', draw);
+  newBtn.addEventListener('click', () => {
+    seed = Math.floor(Math.random() * 1e6);
+    draw();
+  });
+  draw();
+})();
+</script>
+</body>
+</html>

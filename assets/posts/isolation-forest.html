@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isolation Forest — An Illustrated Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f3ead4;
+  --paper-deep: #ead9b4;
+  --paper-shadow: #dfc99a;
+  --ink: #1a1612;
+  --ink-soft: #433a30;
+  --ink-faint: #746654;
+  --rule: #c9b88d;
+  --anomaly: #a8321e;
+  --normal:  #2b5e3f;
+  --cut:     #b5871e;
+  --highlight: #e8d9a8;
+  --heat-low: #f3ead4;
+  --heat-mid: #d8a678;
+  --heat-hi:  #a8321e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(200, 170, 100, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(150, 110, 60, 0.06) 0%, transparent 35%);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 40px 120px;
+  position: relative;
+  z-index: 2;
+}
+
+/* MASTHEAD */
+.back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--anomaly);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 24px;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--anomaly);
+}
+.author-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 18px 0 0;
+}
+.author-line strong {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+header.masthead {
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 36px;
+  margin-bottom: 48px;
+}
+
+.kicker {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+h1 em {
+  font-variation-settings: "opsz" 144;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--anomaly);
+}
+
+.deck {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 48;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 620px;
+}
+
+.byline {
+  display: flex;
+  gap: 32px;
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.byline span::before { content: "§ "; color: var(--anomaly); }
+
+/* TYPOGRAPHY */
+h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 72;
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-top: 72px;
+  margin-bottom: 8px;
+}
+h2::before {
+  content: counter(section, decimal-leading-zero) " —";
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--anomaly);
+  display: block;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+body { counter-reset: section figure; }
+h2 { counter-increment: section; }
+
+h3 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24;
+  font-weight: 600;
+  font-size: 24px;
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--anomaly);
+  margin-top: 28px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+p { margin-bottom: 18px; }
+p + p { text-indent: 1.4em; }
+a { color: var(--anomaly); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { background: var(--highlight); }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.lede::first-letter {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: 72px;
+  float: left;
+  line-height: 0.85;
+  padding: 4px 10px 0 0;
+  color: var(--anomaly);
+}
+
+/* FIGURES */
+.figure {
+  margin: 40px -20px;
+  padding: 32px 28px;
+  background: rgba(255, 252, 240, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.03),
+    0 20px 40px -24px rgba(100, 80, 40, 0.22);
+  position: relative;
+}
+.figure::before {
+  content: "FIG. " counter(figure, upper-roman);
+  position: absolute;
+  top: -12px;
+  left: 24px;
+  background: var(--paper);
+  padding: 2px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--anomaly);
+  border: 1px solid var(--rule);
+}
+.figure { counter-increment: figure; }
+
+.figure-caption {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 14;
+}
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: var(--paper-deep);
+  border-radius: 2px;
+  align-items: center;
+}
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+.control label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.control label .val {
+  color: var(--anomaly);
+  font-weight: 600;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--ink);
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--anomaly);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--anomaly);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+button.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+button.btn:hover { background: var(--anomaly); }
+button.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+button.btn.ghost:hover { background: var(--ink); color: var(--paper); }
+button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+button.btn:disabled:hover { background: var(--ink); }
+
+/* SVG */
+.svg-stage { width: 100%; display: block; }
+.label-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  fill: var(--ink-soft);
+  text-transform: uppercase;
+}
+.title-text {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 14px;
+  fill: var(--ink);
+}
+
+/* SPLIT */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 640px) {
+  .split { grid-template-columns: 1fr; }
+  .figure { margin: 40px -10px; padding: 24px 18px; }
+  .wrap { padding: 40px 20px 80px; }
+  h1 { font-size: 44px; }
+}
+
+.panel {
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--anomaly);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* USE CASES */
+.usecases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin: 28px 0;
+}
+@media (max-width: 640px) { .usecases { grid-template-columns: 1fr; } }
+.uc {
+  padding: 18px 20px;
+  background: rgba(255, 252, 240, 0.55);
+  border-left: 2px solid var(--anomaly);
+  border-radius: 0 2px 2px 0;
+}
+.uc:nth-child(even) { border-left-color: var(--normal); }
+.uc h4 { margin-top: 0; }
+.uc p { font-size: 16px; margin: 0; line-height: 1.5; }
+
+/* NOTES */
+.notes { margin: 28px 0; padding-left: 0; list-style: none; counter-reset: note; }
+.notes li {
+  counter-increment: note;
+  padding: 14px 0 14px 56px;
+  border-bottom: 1px dashed var(--rule);
+  position: relative;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.notes li::before {
+  content: counter(note, decimal-leading-zero);
+  position: absolute; left: 0; top: 14px;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 28px;
+  color: var(--anomaly);
+  width: 44px; text-align: right;
+}
+.notes li strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 19px;
+  margin-bottom: 2px;
+}
+
+/* REFERENCES */
+.refs { list-style: none; counter-reset: ref; padding-left: 0; font-size: 15px; line-height: 1.55; }
+.refs li {
+  counter-increment: ref;
+  padding: 8px 0 8px 40px;
+  position: relative;
+  color: var(--ink-soft);
+  border-bottom: 1px dotted var(--rule);
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute; left: 0; top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--anomaly);
+  font-weight: 600;
+}
+
+/* KEY IDEA */
+.key {
+  margin: 32px 0;
+  padding: 20px 24px;
+  background: var(--highlight);
+  border-left: 4px solid var(--anomaly);
+  border-radius: 0 2px 2px 0;
+}
+.key .hd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--anomaly);
+  margin-bottom: 6px;
+}
+.key p {
+  margin: 0;
+  font-size: 18px;
+  font-style: italic;
+  font-family: 'Fraunces', serif;
+}
+
+/* LEGEND */
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.legend .sw {
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+}
+
+/* READOUT */
+.readout {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  margin-top: 12px;
+  line-height: 1.6;
+}
+.readout .hl { color: var(--anomaly); font-weight: 600; }
+.readout .hl2 { color: var(--normal); font-weight: 600; }
+.readout .hl3 { color: var(--cut); font-weight: 600; }
+
+/* TOC */
+nav.toc {
+  margin: 36px 0 48px;
+  padding: 20px 24px;
+  background: rgba(255, 252, 240, 0.6);
+  border: 1px solid var(--rule);
+  columns: 2;
+  column-gap: 40px;
+}
+@media (max-width: 640px) { nav.toc { columns: 1; } }
+nav.toc ol { list-style: none; counter-reset: toc; }
+nav.toc li {
+  counter-increment: toc;
+  padding: 4px 0;
+  break-inside: avoid;
+  font-size: 15px;
+}
+nav.toc li::before {
+  content: counter(toc, decimal-leading-zero) ".  ";
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--anomaly);
+}
+nav.toc a { text-decoration: none; color: var(--ink); }
+nav.toc a:hover { background: var(--highlight); }
+
+/* FOOTER */
+footer {
+  margin-top: 80px;
+  padding-top: 30px;
+  border-top: 3px double var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* TABLES */
+table.compact {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+table.compact th, table.compact td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+table.compact th {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--anomaly);
+}
+table.compact tr.anom td:first-child::before { content: "●  "; color: var(--anomaly); }
+table.compact tr.norm td:first-child::before { content: "●  "; color: var(--normal); }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+  <div class="kicker">Monograph № 2  ·  On Anomaly Detection</div>
+  <h1>The Isolation<br><em>Forest</em></h1>
+  <p class="deck">Why anomalies are the points that get lonely first — an interactive primer on a strange, elegant algorithm.</p>
+  <div class="byline">
+    <span>Interactive Essay</span>
+    <span>≈ 12 min read</span>
+    <span>Four figures, all live</span>
+  </div>
+  <p class="author-line">By <strong>Majid Mazouchi</strong></p>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <ol>
+    <li><a href="#intro">The core idea, in one sentence</a></li>
+    <li><a href="#intuition">A point gets isolated</a></li>
+    <li><a href="#tree">Growing a single tree</a></li>
+    <li><a href="#forest">From one tree to a forest</a></li>
+    <li><a href="#lengths">Path lengths tell the whole story</a></li>
+    <li><a href="#why">Why it works so well</a></li>
+    <li><a href="#usecases">Where it earns its keep</a></li>
+    <li><a href="#notes">Practical notes from the trenches</a></li>
+    <li><a href="#refs">References &amp; further reading</a></li>
+  </ol>
+</nav>
+
+<!-- INTRO -->
+<section id="intro">
+<h2>The core idea, in one sentence</h2>
+
+<p class="lede">Most anomaly detectors work by modeling what <em>normal</em> looks like — fitting a density, drawing a boundary, reconstructing through a bottleneck — and then flagging anything that doesn't fit. Isolation Forest, introduced by Liu, Ting &amp; Zhou in 2008, takes the opposite route. It doesn't model normal at all. Instead, it asks a sneakier question: <strong>how hard is it to isolate this point from all the others using random cuts?</strong></p>
+
+<p>The observation behind this is trivial once you see it. Anomalies are, by definition, <em>few and different</em>. A point that sits far from the crowd gets fenced off after just a couple of random axis-aligned slices. A point buried in the middle of a dense cluster takes many more slices to pry away from its neighbors. So if you grow a tree of random splits and record the depth at which each point ends up alone, anomalies live at shallow depths and normals live deep. That depth is your anomaly score. No distance metric. No density estimate. No notion of "normal" required.</p>
+
+<div class="key">
+  <div class="hd">Key idea</div>
+  <p>Anomalies are easier to isolate than normals — so use the number of random cuts needed to isolate a point as its anomaly score. Shallow = anomalous. Deep = normal.</p>
+</div>
+</section>
+
+<!-- FIGURE I -->
+<section id="intuition">
+<h2>A point gets isolated</h2>
+
+<p>Before the math, the feel. Below is a synthetic 2-D dataset — a cluster of 80 normal points and a handful of scattered anomalies. Click any point to select it, then press <em>Isolate</em>. The algorithm makes random axis-aligned cuts (pick a feature at random, pick a split value at random between the current min and max), each time shrinking the active region to the side containing your chosen point. Repeat until the region holds only your point. The number of cuts needed is the <strong>path length</strong>.</p>
+
+<div class="figure" id="fig-isolate">
+  <svg viewBox="0 0 820 420" class="svg-stage" id="svgIsolate" style="cursor: pointer;"></svg>
+  <div class="controls">
+    <button class="btn" id="isolateBtn">Isolate</button>
+    <button class="btn ghost" id="resetIsoBtn">Reset</button>
+    <div class="control" style="flex:1; min-width:200px;">
+      <label>Animation speed <span class="val" id="speedVal">MEDIUM</span></label>
+      <input type="range" id="speedSlider" min="1" max="3" value="2">
+    </div>
+    <div class="legend">
+      <span><span class="sw" style="background:#2b5e3f;"></span>Normal</span>
+      <span><span class="sw" style="background:#a8321e;"></span>Anomaly</span>
+      <span><span class="sw" style="background:#b5871e;border-radius:0;"></span>Cut</span>
+    </div>
+  </div>
+  <div class="readout" id="isoReadout">
+    Click a point to select it. Try one of the <span class="hl">red anomalies</span> first — notice how few cuts it takes. Then try a <span class="hl2">green normal point</span> buried in the cluster and see the difference.
+  </div>
+  <div class="figure-caption">
+    Each axis-aligned cut is a random split on a random feature. The shaded outline tracks the active region as it closes around the selected point. Anomalies typically get isolated in 3–6 cuts; points deep in the cluster take 10–15 or more. <em>That gap is what the algorithm exploits.</em>
+  </div>
+</div>
+
+<p>Two patterns emerge after a couple of tries. First, the gap between anomaly depths and normal depths is <em>large</em> — often a factor of three or four. Second, the gap is robust: it shows up across different random seeds, different cut sequences, different data realizations. The randomness washes out and the signal remains.</p>
+</section>
+
+<!-- FIGURE II -->
+<section id="tree">
+<h2>Growing a single tree</h2>
+
+<p>What you just watched, done to completion and for <em>every</em> point at once, is the construction of a single <strong>isolation tree</strong> (iTree). Start with all the data in one node. Pick a feature at random. Pick a split value at random between its min and max in that node. Partition the node into left and right children. Recurse on each child. Stop when a node has one point, or when you've hit a depth cap.</p>
+
+<div class="figure" id="fig-tree">
+  <svg viewBox="0 0 820 460" class="svg-stage" id="svgTree"></svg>
+  <div class="controls">
+    <button class="btn" id="growStepBtn">Grow one split</button>
+    <button class="btn ghost" id="growAllBtn">Grow all</button>
+    <button class="btn ghost" id="newTreeBtn">New tree</button>
+  </div>
+  <div class="readout" id="treeReadout"></div>
+  <div class="figure-caption">
+    Axis-aligned random splits accumulate into a partition of the plane. Three highlighted probe points (<strong>A</strong>, <strong>B</strong>, <strong>C</strong>) track their current tree depth — the number of cuts standing between them and the rest of the data. Anomaly probes settle at shallow depth and stay there; normal probes keep getting subdivided.
+  </div>
+</div>
+
+<p>Two details are worth noticing. <strong>One</strong>: the tree is <em>not</em> balanced. It doesn't try to be. A well-isolated point settles in a shallow leaf and stops; a dense region keeps splitting. This asymmetry is the whole point. <strong>Two</strong>: the leaves near anomalies cover large, mostly-empty rectangles of the plane. The leaves near the cluster core are tiny. The tree has implicitly mapped out the density of the data just by growing randomly.</p>
+</section>
+
+<!-- FIGURE III -->
+<section id="forest">
+<h2>From one tree to a forest</h2>
+
+<p>One tree is too noisy to trust. The splits are random — a different random seed gives a different tree, different path lengths, sometimes misleading answers. The fix is the same fix every ensemble method uses: average over many trees. Build <em>t</em> independent iTrees on random subsamples of the data (the standard subsample size is ψ = 256). For any query point, compute its path length in each tree and average. Short average path length → anomaly. Long average path length → normal.</p>
+
+<div class="figure" id="fig-forest">
+  <svg viewBox="0 0 820 460" class="svg-stage" id="svgForest" style="cursor: crosshair;"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>Trees in forest <span class="val" id="treeCountVal">1</span></label>
+      <input type="range" id="treeCountSlider" min="1" max="100" value="1">
+    </div>
+    <button class="btn ghost" id="newForestBtn">New forest</button>
+    <div class="legend">
+      <span><span class="sw" style="background:#2b5e3f;"></span>Normal</span>
+      <span><span class="sw" style="background:#a8321e;"></span>Anomaly</span>
+      <span style="margin-left:12px;">heat → high anomaly score</span>
+    </div>
+  </div>
+  <div class="readout" id="forestReadout">
+    Slide the tree count up and watch the score map smooth out. <span class="hl2">Click anywhere on the plot</span> to drop a test point and see its anomaly score.
+  </div>
+  <div class="figure-caption">
+    The background is the anomaly score <em>s(x, n)</em> evaluated on a dense grid. Paler regions = lower score = "looks normal." Darker regions = higher score = "looks anomalous." One tree gives a chaotic, stripy map; a hundred trees give a smooth contour that tracks the data density remarkably well.
+  </div>
+</div>
+
+<h3>The score, formally</h3>
+
+<p>The raw path length has an inconvenient property: it grows with the sample size, so comparing across datasets is awkward. The paper resolves this with a normalization. Define</p>
+
+<p style="text-align:center; font-family: 'Fraunces', serif; font-style: italic; font-size: 22px; margin: 16px 0;">
+  s(x, n) = 2<sup>−E[h(x)] / c(n)</sup>
+</p>
+
+<p>where <span class="mono">E[h(x)]</span> is the average path length of point <span class="mono">x</span> across the forest, and <span class="mono">c(n) ≈ 2·H(n−1) − 2(n−1)/n</span> is the expected path length of an unsuccessful search in an unsuccessful binary search tree of <span class="mono">n</span> samples. <span class="mono">c(n)</span> is just a normalizer: it makes the score live in <span class="mono">(0, 1]</span>. Scores near <strong>1</strong> are strongly anomalous; scores near <strong>0.5</strong> are ambiguous; scores well below <strong>0.5</strong> are safely normal.</p>
+</section>
+
+<!-- FIGURE IV -->
+<section id="lengths">
+<h2>Path lengths tell the whole story</h2>
+
+<p>The cleanest way to see why this all works is to plot the distribution of average path lengths for normals versus anomalies. The two histograms should sit nearly disjoint, and that separation is exactly what lets a threshold do useful work.</p>
+
+<div class="figure" id="fig-hist">
+  <svg viewBox="0 0 820 380" class="svg-stage" id="svgHist"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>Decision threshold <span class="val" id="threshVal">0.55</span></label>
+      <input type="range" id="threshSlider" min="20" max="80" value="55">
+    </div>
+    <button class="btn ghost" id="resampleHistBtn">Resample</button>
+  </div>
+  <div class="readout" id="histReadout"></div>
+  <div class="figure-caption">
+    Green = normal training points, red = anomalies. The vertical dashed line is the anomaly-score threshold. Everything to its right is flagged. Drag the threshold and watch true positives, false positives, and the resulting precision &amp; recall update live.
+  </div>
+</div>
+
+<p>The shape of those two histograms is the entire case for the algorithm. If you could move the threshold freely and always make one or the other zero, you'd have a perfect classifier. In reality there's a thin overlap region — borderline points that sit near the cluster edge and could plausibly be either. That overlap is where threshold tuning matters, and where domain knowledge earns its keep.</p>
+</section>
+
+<!-- WHY IT WORKS -->
+<section id="why">
+<h2>Why it works so well</h2>
+
+<p>The Isolation Forest has some unusual properties that set it apart from nearest-neighbor, density-based, or boundary-based detectors:</p>
+
+<ul class="notes">
+  <li><strong>No distance metric.</strong> The algorithm never computes distances or similarities between points. It only looks at whether a single feature value lies above or below a threshold. This means it's unaffected by the scale of features, and it doesn't suffer the <em>curse of dimensionality</em> that wrecks nearest-neighbor methods in high dimensions.</li>
+  <li><strong>Subsampling helps, not hurts.</strong> Unlike most learners, Isolation Forest works <em>better</em> on small random subsamples of the data (ψ = 256 is the default). When you subsample, the anomalies are relatively more exposed — fewer nearby normals to hide behind — and they isolate even faster. This also makes it cheap: the algorithm scales roughly linearly in the number of training points and sublinearly in the test points.</li>
+  <li><strong>No distributional assumptions.</strong> Nothing here assumes Gaussians, or unimodality, or anything about the shape of the normal distribution. The method makes peace with oddly-shaped, multimodal, heavy-tailed data.</li>
+  <li><strong>Embarrassingly parallel.</strong> Trees are built independently, so you can grow and score them across cores or machines with no coordination.</li>
+  <li><strong>Tiny memory footprint.</strong> Each tree is shallow by construction (depth capped at <span class="mono">log₂(ψ)</span>, roughly 8 for ψ=256). A hundred of them is kilobytes, not megabytes.</li>
+</ul>
+
+<p>It also has some limitations you should know about before betting production on it. Axis-aligned splits mean it can struggle with anomalies that are only unusual along oblique directions (e.g. a point that violates a linear relationship between two features). <strong>Extended Isolation Forest</strong> (Hariri et al., 2019) addresses this with random hyperplane splits. And because the randomness only enters through splits, it can be less sensitive to local density variations than distance-aware methods in some edge cases.</p>
+</section>
+
+<!-- USE CASES -->
+<section id="usecases">
+<h2>Where it earns its keep</h2>
+
+<div class="usecases">
+  <div class="uc">
+    <h4>Sensor &amp; telemetry monitoring</h4>
+    <p>Catch abnormal operating points in multi-sensor streams — unusual current/voltage/temperature/vibration combinations in powertrains, factory lines, server fleets. Runs fast enough to score incoming points in near-real-time.</p>
+  </div>
+  <div class="uc">
+    <h4>Fraud detection</h4>
+    <p>Flagging anomalous transactions in credit card, insurance claims, or online account behavior. Handles heterogeneous tabular features gracefully — no need to scale, no need to encode everything into a common metric space.</p>
+  </div>
+  <div class="uc">
+    <h4>Network intrusion detection</h4>
+    <p>Unusual packet headers, session lengths, or access patterns. One of the earliest and most cited application domains for iForest, with many production deployments.</p>
+  </div>
+  <div class="uc">
+    <h4>Manufacturing defect screening</h4>
+    <p>Test results or process-log records that deviate from the bulk of historical measurements. Works even when defect types are unseen in training because you never labeled anything.</p>
+  </div>
+  <div class="uc">
+    <h4>Quick baseline for novel domains</h4>
+    <p>When you've been handed a new dataset and asked "anything weird in here?", iForest is the 15-minute first answer. It almost always gives a useful signal and costs nearly nothing to run.</p>
+  </div>
+  <div class="uc">
+    <h4>Pre-filter for expensive models</h4>
+    <p>Use iForest to triage the bulk of the data down to a small pool of suspicious candidates, then run a heavier (and more accurate) model only on those. Cheap gatekeeper in front of an expensive specialist.</p>
+  </div>
+  <div class="uc">
+    <h4>Rare-event data augmentation targets</h4>
+    <p>Feed iForest scores into active-learning loops to surface the few interesting samples in oceans of mundane data — anomalies to label, rare faults to collect, edge cases worth investigating.</p>
+  </div>
+  <div class="uc">
+    <h4>Data quality &amp; EDA</h4>
+    <p>Flag probable data-entry errors, corrupted rows, or out-of-range measurements before they poison downstream models. A cheap sanity check applied to any new batch of data.</p>
+  </div>
+</div>
+</section>
+
+<!-- PRACTICAL NOTES -->
+<section id="notes">
+<h2>Practical notes from the trenches</h2>
+
+<ol class="notes">
+  <li><strong>Use the default subsample size (ψ = 256) as a starting point.</strong> The paper's surprising result is that increasing ψ does <em>not</em> generally improve detection. Larger subsamples let normals cluster thickly around anomalies and actually hide them. If ψ = 256 isn't working, try 128 or 512 — don't jump to 4096.</li>
+  <li><strong>100 trees is plenty.</strong> Adding more rarely helps past a few hundred; the average path length converges quickly. Spend your compute budget elsewhere.</li>
+  <li><strong>Set the contamination rate explicitly if you can.</strong> The scikit-learn implementation uses a <span class="mono">contamination</span> parameter to pick the score threshold. If you know roughly what fraction of your data is anomalous, set it. If you don't, leave it at <span class="mono">'auto'</span> and pick the threshold by inspecting the score distribution.</li>
+  <li><strong>Don't train on data that contains anomalies if you can help it.</strong> iForest is robust to a small amount of contamination, but clean training data gives tighter score separations. In anomaly detection terms, prefer a <em>semi-supervised</em> setup (train on normals only) when practical.</li>
+  <li><strong>Beware axis-aligned blind spots.</strong> iForest splits along one feature at a time. If your anomalies are defined by correlations across features (e.g. "x and y are both high" is fine but "x high, y low" is weird), standard iForest will miss some of them. Use the <strong>Extended Isolation Forest</strong> variant (oblique splits) or engineer interaction features manually.</li>
+  <li><strong>Categorical features need encoding.</strong> One-hot is usually fine for low-cardinality categoricals. For high-cardinality, target encoding or embedding-based encoding before feeding into iForest often works better than raw one-hot.</li>
+  <li><strong>Watch for feature collapse on constant columns.</strong> If a feature has zero variance in a subsample, the random split on it is degenerate. Most implementations skip these gracefully, but double-check if you're rolling your own.</li>
+  <li><strong>Scoring is cheap, reporting is hard.</strong> Getting a score is fast. Explaining <em>why</em> a point got a high score is harder — the algorithm's "reason" is distributed across many trees. For explainability, use SHAP values designed for iForest, or pair the detector with a downstream interpretable classifier on flagged points.</li>
+  <li><strong>Retrain on rolling windows for drifting data.</strong> If the normal distribution shifts over time (seasonality, concept drift), a stale forest will start flagging the new normal as anomalous. Retrain on a sliding window of recent history.</li>
+  <li><strong>Compare against simple baselines.</strong> Before celebrating an iForest result, run a Z-score on each feature and a Mahalanobis distance over the full feature set. If those find everything iForest finds, you didn't need the forest. If iForest finds things they miss, you have a real lift worth deploying.</li>
+</ol>
+</section>
+
+<!-- REFERENCES -->
+<section id="refs">
+<h2>References &amp; further reading</h2>
+
+<ol class="refs">
+  <li>Liu, F. T., Ting, K. M., &amp; Zhou, Z.-H. (2008). <em>Isolation Forest.</em> Eighth IEEE International Conference on Data Mining. The original paper — short, sharp, and worth reading in full.</li>
+  <li>Liu, F. T., Ting, K. M., &amp; Zhou, Z.-H. (2012). <em>Isolation-Based Anomaly Detection.</em> ACM Transactions on Knowledge Discovery from Data, 6(1). The extended journal version with more theory and experiments.</li>
+  <li>Hariri, S., Kind, M. C., &amp; Brunner, R. J. (2019). <em>Extended Isolation Forest.</em> IEEE TKDE. Oblique hyperplane splits that fix the axis-aligned blind spot.</li>
+  <li>Guha, S., Mishra, N., Roy, G., &amp; Schrijvers, O. (2016). <em>Robust Random Cut Forest Based Anomaly Detection on Streams.</em> ICML. A streaming cousin with elegant incremental updates.</li>
+  <li>Pedregosa, F. et al. (2011). <em>Scikit-learn: Machine Learning in Python.</em> JMLR. See <span class="mono">sklearn.ensemble.IsolationForest</span> for the reference implementation.</li>
+  <li>Chalapathy, R., &amp; Chawla, S. (2019). <em>Deep Learning for Anomaly Detection: A Survey.</em> arXiv:1901.03407. Useful for placing iForest in the wider landscape of anomaly methods.</li>
+  <li>Emmott, A. F. et al. (2015). <em>A Meta-Analysis of the Anomaly Detection Problem.</em> arXiv:1503.01158. Benchmark across many detectors, including iForest.</li>
+  <li>Aggarwal, C. C. (2017). <em>Outlier Analysis</em> (2nd ed.). Springer. Textbook-level treatment of the whole field.</li>
+</ol>
+</section>
+
+<footer>
+  Monograph № 2 &nbsp; ·  &nbsp;  typeset in Fraunces &amp; EB Garamond &nbsp; · &nbsp; all figures computed live in your browser &nbsp;· &nbsp; no tracking, no data leaves this page
+</footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   Shared utilities
+===================================================================== */
+const ANOM = '#a8321e', NORM = '#2b5e3f', CUT = '#b5871e';
+const INK = '#1a1612', SOFT = '#433a30', FAINT = '#746654', RULE = '#c9b88d';
+const PAPER = '#f3ead4', HIGH = '#e8d9a8';
+
+function svgEl(tag, attrs={}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function gaussian(rng) {
+  const u1 = rng(), u2 = rng();
+  return Math.sqrt(-2 * Math.log(Math.max(1e-12, u1))) * Math.cos(2 * Math.PI * u2);
+}
+
+/* Data generation: normals + scattered anomalies. Coordinates in [0,1] */
+function generateData(nNormal=80, nAnom=8, seed=42) {
+  const rng = mulberry32(seed);
+  const data = [];
+  for (let i = 0; i < nNormal; i++) {
+    let x, y;
+    do {
+      x = 0.5 + gaussian(rng) * 0.09;
+      y = 0.5 + gaussian(rng) * 0.09;
+    } while (x < 0.05 || x > 0.95 || y < 0.05 || y > 0.95);
+    data.push({ x, y, anomaly: false });
+  }
+  const spots = [
+    [0.10, 0.12], [0.92, 0.08], [0.08, 0.92], [0.90, 0.90],
+    [0.50, 0.05], [0.07, 0.50], [0.93, 0.48], [0.55, 0.95],
+    [0.20, 0.85], [0.82, 0.22]
+  ];
+  for (let i = 0; i < nAnom; i++) {
+    const [bx, by] = spots[i % spots.length];
+    data.push({
+      x: bx + (rng()-0.5)*0.03,
+      y: by + (rng()-0.5)*0.03,
+      anomaly: true,
+    });
+  }
+  return data;
+}
+
+/* Isolation tree */
+function buildTree(points, maxDepth, rng, depth=0, bbox=null) {
+  bbox = bbox || { xmin: 0, ymin: 0, xmax: 1, ymax: 1 };
+  if (depth >= maxDepth || points.length <= 1) {
+    return { leaf: true, size: points.length, depth, bbox };
+  }
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  if (xMin === xMax && yMin === yMax) {
+    return { leaf: true, size: points.length, depth, bbox };
+  }
+  // random feature between x and y; if one is degenerate, pick the other
+  let feat;
+  if (xMin === xMax) feat = 'y';
+  else if (yMin === yMax) feat = 'x';
+  else feat = rng() < 0.5 ? 'x' : 'y';
+  const fMin = feat === 'x' ? xMin : yMin;
+  const fMax = feat === 'x' ? xMax : yMax;
+  const split = fMin + rng() * (fMax - fMin);
+  const leftBbox = {...bbox}, rightBbox = {...bbox};
+  if (feat === 'x') { leftBbox.xmax = split; rightBbox.xmin = split; }
+  else { leftBbox.ymax = split; rightBbox.ymin = split; }
+  const left = points.filter(p => p[feat] < split);
+  const right = points.filter(p => p[feat] >= split);
+  return {
+    leaf: false, feature: feat, split, depth, bbox,
+    left:  buildTree(left,  maxDepth, rng, depth + 1, leftBbox),
+    right: buildTree(right, maxDepth, rng, depth + 1, rightBbox),
+  };
+}
+
+function pathLength(pt, tree, depth=0) {
+  if (tree.leaf) return depth + cFactor(tree.size);
+  if (pt[tree.feature] < tree.split) return pathLength(pt, tree.left, depth + 1);
+  return pathLength(pt, tree.right, depth + 1);
+}
+
+function cFactor(n) {
+  if (n <= 1) return 0;
+  const H = Math.log(n - 1) + 0.5772156649;
+  return 2 * H - 2 * (n - 1) / n;
+}
+
+function anomalyScore(avgPathLen, n) {
+  const c = cFactor(n);
+  if (c === 0) return 0;
+  return Math.pow(2, -avgPathLen / c);
+}
+
+/* =====================================================================
+   FIGURE I — Isolate a chosen point
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgIsolate');
+  const isolateBtn = document.getElementById('isolateBtn');
+  const resetBtn = document.getElementById('resetIsoBtn');
+  const speedSlider = document.getElementById('speedSlider');
+  const speedVal = document.getElementById('speedVal');
+  const readout = document.getElementById('isoReadout');
+
+  const W = 820, H = 420;
+  const pad = { l: 40, t: 30, r: 30, b: 30 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  const data = generateData(80, 10, 7);
+  let selected = null;
+  let running = false;
+  let timer = null;
+
+  function toPx(p) {
+    return { px: pad.l + p.x * plotW, py: pad.t + (1 - p.y) * plotH };
+  }
+
+  function drawBase() {
+    clear(svg);
+    // frame
+    svg.appendChild(svgEl('rect', {
+      x: pad.l, y: pad.t, width: plotW, height: plotH,
+      fill: 'none', stroke: INK, 'stroke-width': 1,
+    }));
+    // axis labels
+    const x1 = svgEl('text', { x: pad.l + plotW/2, y: H - 6, 'text-anchor':'middle', class:'label-text' });
+    x1.textContent = 'FEATURE 1';
+    svg.appendChild(x1);
+    const y1 = svgEl('text', { x: 12, y: pad.t + plotH/2, transform: `rotate(-90 12 ${pad.t + plotH/2})`, 'text-anchor':'middle', class:'label-text' });
+    y1.textContent = 'FEATURE 2';
+    svg.appendChild(y1);
+  }
+
+  function drawScene(activeBox = null, cuts = [], dimOutside = false) {
+    drawBase();
+
+    // dim-out region if needed (shade everything outside activeBox)
+    if (activeBox) {
+      // draw four semi-transparent rects around active region to dim outside
+      const abL = pad.l + activeBox.xmin * plotW;
+      const abR = pad.l + activeBox.xmax * plotW;
+      const abT = pad.t + (1 - activeBox.ymax) * plotH;
+      const abB = pad.t + (1 - activeBox.ymin) * plotH;
+      const shade = 'rgba(100, 80, 40, 0.18)';
+      svg.appendChild(svgEl('rect', { x: pad.l, y: pad.t, width: abL - pad.l, height: plotH, fill: shade }));
+      svg.appendChild(svgEl('rect', { x: abR, y: pad.t, width: pad.l + plotW - abR, height: plotH, fill: shade }));
+      svg.appendChild(svgEl('rect', { x: abL, y: pad.t, width: abR - abL, height: abT - pad.t, fill: shade }));
+      svg.appendChild(svgEl('rect', { x: abL, y: abB, width: abR - abL, height: pad.t + plotH - abB, fill: shade }));
+
+      // active rectangle outline
+      svg.appendChild(svgEl('rect', {
+        x: abL, y: abT, width: abR - abL, height: abB - abT,
+        fill: 'none', stroke: CUT, 'stroke-width': 1.6, 'stroke-dasharray': '3,3',
+      }));
+    }
+
+    // past cuts (lines)
+    for (const cut of cuts) {
+      const { feature, split, bbox } = cut;
+      if (feature === 'x') {
+        const cx = pad.l + split * plotW;
+        const y1 = pad.t + (1 - bbox.ymax) * plotH;
+        const y2 = pad.t + (1 - bbox.ymin) * plotH;
+        svg.appendChild(svgEl('line', {
+          x1: cx, y1, x2: cx, y2, stroke: CUT, 'stroke-width': 1.5, 'stroke-opacity': 0.9,
+        }));
+      } else {
+        const cy = pad.t + (1 - split) * plotH;
+        const x1 = pad.l + bbox.xmin * plotW;
+        const x2 = pad.l + bbox.xmax * plotW;
+        svg.appendChild(svgEl('line', {
+          x1, y1: cy, x2, y2: cy, stroke: CUT, 'stroke-width': 1.5, 'stroke-opacity': 0.9,
+        }));
+      }
+    }
+
+    // points
+    for (const p of data) {
+      const { px, py } = toPx(p);
+      const color = p.anomaly ? ANOM : NORM;
+      let opacity = 0.85;
+      if (activeBox) {
+        const inside = p.x >= activeBox.xmin && p.x <= activeBox.xmax &&
+                       p.y >= activeBox.ymin && p.y <= activeBox.ymax;
+        opacity = inside ? 0.9 : 0.18;
+      }
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 4,
+        fill: color, 'fill-opacity': opacity,
+        stroke: INK, 'stroke-width': 0.4, 'stroke-opacity': opacity,
+      }));
+    }
+
+    // selected ring
+    if (selected) {
+      const { px, py } = toPx(selected);
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 9,
+        fill: 'none', stroke: INK, 'stroke-width': 1.4,
+      }));
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 13,
+        fill: 'none', stroke: INK, 'stroke-width': 0.6, 'stroke-dasharray': '2,2',
+      }));
+    }
+  }
+
+  function updateReadoutIdle() {
+    if (!selected) {
+      readout.innerHTML = 'Click a point to select it. Try one of the <span class="hl">red anomalies</span> first — notice how few cuts it takes. Then try a <span class="hl2">green normal point</span> buried in the cluster and see the difference.';
+    } else {
+      readout.innerHTML = `Selected: <span class="${selected.anomaly ? 'hl' : 'hl2'}">${selected.anomaly ? 'ANOMALY' : 'NORMAL'}</span> at (${selected.x.toFixed(2)}, ${selected.y.toFixed(2)}). Press <strong>Isolate</strong> to run the random cuts.`;
+    }
+  }
+
+  function findNearestPoint(mx, my) {
+    let best = null, bestD = Infinity;
+    for (const p of data) {
+      const { px, py } = toPx(p);
+      const d = (mx - px) ** 2 + (my - py) ** 2;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return (bestD < 400) ? best : null;
+  }
+
+  svg.addEventListener('click', e => {
+    if (running) return;
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / rect.width * W;
+    const my = (e.clientY - rect.top) / rect.height * H;
+    const p = findNearestPoint(mx, my);
+    if (p) {
+      selected = p;
+      drawScene();
+      updateReadoutIdle();
+    }
+  });
+
+  function isolate() {
+    if (!selected) {
+      readout.innerHTML = '<span class="hl">Select a point first by clicking one.</span>';
+      return;
+    }
+    if (running) return;
+    running = true;
+    isolateBtn.disabled = true;
+
+    let bbox = { xmin: 0, ymin: 0, xmax: 1, ymax: 1 };
+    let activePts = data.slice();
+    const cutsRendered = [];
+    const rng = mulberry32(Math.floor(Math.random() * 1e9));
+    let stepCount = 0;
+    const maxSteps = 30;
+    const speeds = { 1: 900, 2: 500, 3: 220 };
+    const delay = speeds[+speedSlider.value] || 500;
+
+    function step() {
+      if (!running) return;
+      // done?
+      if (activePts.length <= 1 || stepCount >= maxSteps) {
+        running = false;
+        isolateBtn.disabled = false;
+        const verdict = selected.anomaly
+          ? `<span class="hl">Anomaly isolated in ${stepCount} cuts.</span> Compare this to a normal point deep in the cluster — it will typically need 3–5× more.`
+          : `<span class="hl2">Normal point isolated in ${stepCount} cuts.</span> Notice how many more cuts it took than an anomaly — that gap is the signal.`;
+        readout.innerHTML = `Selected: ${selected.anomaly ? 'ANOMALY' : 'NORMAL'} · cuts used: <span class="hl3">${stepCount}</span>. ${verdict}`;
+        return;
+      }
+      // choose feature
+      let feat;
+      const xs = activePts.map(p => p.x), ys = activePts.map(p => p.y);
+      const xMin = Math.min(...xs), xMax = Math.max(...xs);
+      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+      if (xMin === xMax) feat = 'y';
+      else if (yMin === yMax) feat = 'x';
+      else feat = rng() < 0.5 ? 'x' : 'y';
+
+      const fMin = feat === 'x' ? xMin : yMin;
+      const fMax = feat === 'x' ? xMax : yMax;
+      if (fMin === fMax) {
+        stepCount++;
+        timer = setTimeout(step, delay);
+        return;
+      }
+      const split = fMin + rng() * (fMax - fMin);
+      cutsRendered.push({ feature: feat, split, bbox: {...bbox} });
+
+      const targetVal = selected[feat];
+      if (targetVal < split) {
+        if (feat === 'x') bbox.xmax = split;
+        else bbox.ymax = split;
+      } else {
+        if (feat === 'x') bbox.xmin = split;
+        else bbox.ymin = split;
+      }
+      activePts = activePts.filter(p =>
+        p.x >= bbox.xmin && p.x <= bbox.xmax &&
+        p.y >= bbox.ymin && p.y <= bbox.ymax
+      );
+      stepCount++;
+      drawScene(bbox, cutsRendered);
+      readout.innerHTML = `Selected: ${selected.anomaly ? '<span class="hl">ANOMALY</span>' : '<span class="hl2">NORMAL</span>'} · cuts so far: <span class="hl3">${stepCount}</span> · points remaining in active region: <strong>${activePts.length}</strong>`;
+      timer = setTimeout(step, delay);
+    }
+    step();
+  }
+
+  isolateBtn.addEventListener('click', isolate);
+  resetBtn.addEventListener('click', () => {
+    running = false;
+    if (timer) clearTimeout(timer);
+    selected = null;
+    isolateBtn.disabled = false;
+    drawScene();
+    updateReadoutIdle();
+  });
+  speedSlider.addEventListener('input', () => {
+    speedVal.textContent = ['SLOW', 'MEDIUM', 'FAST'][+speedSlider.value - 1];
+  });
+
+  drawScene();
+  updateReadoutIdle();
+})();
+
+/* =====================================================================
+   FIGURE II — Grow a single tree, track probe depths
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgTree');
+  const growBtn = document.getElementById('growStepBtn');
+  const growAllBtn = document.getElementById('growAllBtn');
+  const newBtn = document.getElementById('newTreeBtn');
+  const readout = document.getElementById('treeReadout');
+
+  const W = 820, H = 460;
+  const pad = { l: 40, t: 30, r: 30, b: 30 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  const data = generateData(60, 6, 123);
+  // pick three probe points: one anomaly, one edge-of-cluster, one core
+  let probes;
+
+  function pickProbes() {
+    const anoms = data.filter(p => p.anomaly);
+    const normals = data.filter(p => !p.anomaly);
+    normals.sort((a, b) => {
+      const da = Math.hypot(a.x - 0.5, a.y - 0.5);
+      const db = Math.hypot(b.x - 0.5, b.y - 0.5);
+      return da - db;
+    });
+    probes = [
+      { ...anoms[0], label: 'A', kind: 'anomaly' },
+      { ...normals[Math.floor(normals.length * 0.7)], label: 'B', kind: 'edge' },
+      { ...normals[2], label: 'C', kind: 'core' },
+    ];
+  }
+  pickProbes();
+
+  let treeSteps = [];
+  let currentStep = 0;
+  let treeSeed = 999;
+
+  function buildSteps(seed) {
+    const rng = mulberry32(seed);
+    const root = { leaf: false, points: data.slice(), depth: 0, bbox: {xmin:0, ymin:0, xmax:1, ymax:1} };
+    const steps = [];
+    const queue = [root];
+    const maxDepth = 14;
+    while (queue.length > 0) {
+      const node = queue.shift();
+      if (node.points.length <= 1 || node.depth >= maxDepth) {
+        node.leaf = true;
+        node.size = node.points.length;
+        continue;
+      }
+      const xs = node.points.map(p => p.x), ys = node.points.map(p => p.y);
+      const xMin = Math.min(...xs), xMax = Math.max(...xs);
+      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+      if (xMin === xMax && yMin === yMax) {
+        node.leaf = true; node.size = node.points.length; continue;
+      }
+      let feat;
+      if (xMin === xMax) feat = 'y';
+      else if (yMin === yMax) feat = 'x';
+      else feat = rng() < 0.5 ? 'x' : 'y';
+      const fMin = feat === 'x' ? xMin : yMin;
+      const fMax = feat === 'x' ? xMax : yMax;
+      const split = fMin + rng() * (fMax - fMin);
+
+      const leftBbox = {...node.bbox}, rightBbox = {...node.bbox};
+      if (feat === 'x') { leftBbox.xmax = split; rightBbox.xmin = split; }
+      else { leftBbox.ymax = split; rightBbox.ymin = split; }
+      const leftPts = node.points.filter(p => p[feat] < split);
+      const rightPts = node.points.filter(p => p[feat] >= split);
+
+      node.feature = feat;
+      node.split = split;
+      node.leftNode = { leaf: false, points: leftPts, depth: node.depth + 1, bbox: leftBbox };
+      node.rightNode = { leaf: false, points: rightPts, depth: node.depth + 1, bbox: rightBbox };
+
+      steps.push({
+        feature: feat, split, bbox: {...node.bbox}, depth: node.depth,
+        leftSize: leftPts.length, rightSize: rightPts.length,
+      });
+
+      queue.push(node.leftNode);
+      queue.push(node.rightNode);
+    }
+    return steps;
+  }
+
+  function computeProbeDepth(probe, shownSteps) {
+    // walk as if traversing a tree, using ordered steps
+    // A probe's depth = number of splits that actually sliced through its current region.
+    let bbox = { xmin: 0, ymin: 0, xmax: 1, ymax: 1 };
+    let depth = 0;
+    for (const s of shownSteps) {
+      // step applies only if its bbox matches the probe's current bbox approximately
+      if (Math.abs(s.bbox.xmin - bbox.xmin) < 1e-9 &&
+          Math.abs(s.bbox.xmax - bbox.xmax) < 1e-9 &&
+          Math.abs(s.bbox.ymin - bbox.ymin) < 1e-9 &&
+          Math.abs(s.bbox.ymax - bbox.ymax) < 1e-9) {
+        // this step is operating on the probe's current region
+        depth++;
+        if (s.feature === 'x') {
+          if (probe.x < s.split) bbox.xmax = s.split;
+          else bbox.xmin = s.split;
+        } else {
+          if (probe.y < s.split) bbox.ymax = s.split;
+          else bbox.ymin = s.split;
+        }
+      }
+    }
+    return depth;
+  }
+
+  function toPx(p) {
+    return { px: pad.l + p.x * plotW, py: pad.t + (1 - p.y) * plotH };
+  }
+
+  function drawScene() {
+    clear(svg);
+    svg.appendChild(svgEl('rect', {
+      x: pad.l, y: pad.t, width: plotW, height: plotH,
+      fill: PAPER, stroke: INK, 'stroke-width': 1,
+    }));
+
+    const shown = treeSteps.slice(0, currentStep);
+
+    // cuts
+    for (const s of shown) {
+      if (s.feature === 'x') {
+        const cx = pad.l + s.split * plotW;
+        const y1 = pad.t + (1 - s.bbox.ymax) * plotH;
+        const y2 = pad.t + (1 - s.bbox.ymin) * plotH;
+        svg.appendChild(svgEl('line', {
+          x1: cx, y1, x2: cx, y2,
+          stroke: CUT, 'stroke-width': 1.2, 'stroke-opacity': 0.8,
+        }));
+      } else {
+        const cy = pad.t + (1 - s.split) * plotH;
+        const x1 = pad.l + s.bbox.xmin * plotW;
+        const x2 = pad.l + s.bbox.xmax * plotW;
+        svg.appendChild(svgEl('line', {
+          x1, y1: cy, x2, y2: cy,
+          stroke: CUT, 'stroke-width': 1.2, 'stroke-opacity': 0.8,
+        }));
+      }
+    }
+
+    // all points
+    for (const p of data) {
+      const { px, py } = toPx(p);
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 3.5,
+        fill: p.anomaly ? ANOM : NORM, 'fill-opacity': 0.75,
+        stroke: INK, 'stroke-width': 0.3,
+      }));
+    }
+
+    // probe labels and depths
+    const probeColors = { 'anomaly': ANOM, 'edge': NORM, 'core': NORM };
+    for (const pr of probes) {
+      const { px, py } = toPx(pr);
+      const depth = computeProbeDepth(pr, shown);
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 9,
+        fill: PAPER, stroke: INK, 'stroke-width': 1.4,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: py + 4, 'text-anchor': 'middle',
+        'font-family': 'Fraunces, serif',
+        'font-weight': 700, 'font-size': 12,
+        fill: probeColors[pr.kind],
+      });
+      lab.textContent = pr.label;
+      svg.appendChild(lab);
+      // depth tag
+      const tag = svgEl('text', {
+        x: px + 14, y: py - 8, 'text-anchor':'start',
+        class: 'label-text', fill: INK, 'font-weight': 600,
+      });
+      tag.textContent = `d=${depth}`;
+      svg.appendChild(tag);
+    }
+
+    // axis labels + step counter
+    const stepText = svgEl('text', { x: pad.l, y: pad.t - 8, class: 'label-text', fill: INK });
+    stepText.textContent = `splits: ${currentStep} / ${treeSteps.length}`;
+    svg.appendChild(stepText);
+  }
+
+  function updateReadout() {
+    const shown = treeSteps.slice(0, currentStep);
+    const rows = probes.map(pr => {
+      const d = computeProbeDepth(pr, shown);
+      return `${pr.label} (${pr.kind === 'anomaly' ? '<span class="hl">ANOMALY</span>' : pr.kind === 'edge' ? '<span class="hl2">cluster edge</span>' : '<span class="hl2">cluster core</span>'}): depth <span class="hl3">${d}</span>`;
+    });
+    readout.innerHTML = `Probes tracked across the growing tree:<br>${rows.join('  &nbsp;·&nbsp;  ')}`;
+  }
+
+  function reset(seed) {
+    treeSeed = seed;
+    treeSteps = buildSteps(seed);
+    currentStep = 0;
+    drawScene();
+    updateReadout();
+  }
+
+  growBtn.addEventListener('click', () => {
+    if (currentStep < treeSteps.length) {
+      currentStep++;
+      drawScene();
+      updateReadout();
+    }
+  });
+  growAllBtn.addEventListener('click', () => {
+    currentStep = treeSteps.length;
+    drawScene();
+    updateReadout();
+  });
+  newBtn.addEventListener('click', () => {
+    reset(Math.floor(Math.random() * 1e6));
+  });
+
+  reset(42);
+})();
+
+/* =====================================================================
+   FIGURE III — Forest with anomaly-score heatmap
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgForest');
+  const treeCountSlider = document.getElementById('treeCountSlider');
+  const treeCountVal = document.getElementById('treeCountVal');
+  const newForestBtn = document.getElementById('newForestBtn');
+  const readout = document.getElementById('forestReadout');
+
+  const W = 820, H = 460;
+  const pad = { l: 40, t: 30, r: 30, b: 50 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  const GRID = 40;
+  const MAX_TREES = 100;
+  const SUB_PSI = 64;
+
+  let forest = [];          // array of trees
+  let gridPathLens = null;  // [treeIdx][cellIdx]
+  let data = [];
+  let testPoint = null;
+  let forestSeed = 55;
+
+  function buildForest(seed) {
+    const rng = mulberry32(seed);
+    data = generateData(80, 8, seed);
+    forest = [];
+    const maxDepth = Math.ceil(Math.log2(SUB_PSI));
+    for (let t = 0; t < MAX_TREES; t++) {
+      // subsample
+      const sub = [];
+      const indices = new Set();
+      while (sub.length < Math.min(SUB_PSI, data.length)) {
+        const idx = Math.floor(rng() * data.length);
+        if (!indices.has(idx)) {
+          indices.add(idx);
+          sub.push(data[idx]);
+        }
+      }
+      const tree = buildTree(sub, maxDepth, rng);
+      forest.push(tree);
+    }
+    // precompute path lengths over grid and over data
+    gridPathLens = new Array(MAX_TREES);
+    const cells = [];
+    for (let j = 0; j < GRID; j++) {
+      for (let i = 0; i < GRID; i++) {
+        cells.push({ x: (i + 0.5) / GRID, y: (j + 0.5) / GRID });
+      }
+    }
+    for (let t = 0; t < MAX_TREES; t++) {
+      const arr = new Float32Array(cells.length);
+      for (let k = 0; k < cells.length; k++) {
+        arr[k] = pathLength(cells[k], forest[t]);
+      }
+      gridPathLens[t] = arr;
+    }
+  }
+
+  function heatColor(score) {
+    // score in (0, 1]. Map to paper → gold → deep red gradient.
+    // Use ~0.4 to ~0.75 as the visually interesting band
+    const t = Math.max(0, Math.min(1, (score - 0.38) / 0.37));
+    // paper (243,234,212), mid (216,166,120), hi (168,50,30)
+    let r, g, b;
+    if (t < 0.5) {
+      const u = t / 0.5;
+      r = 243 + (216 - 243) * u;
+      g = 234 + (166 - 234) * u;
+      b = 212 + (120 - 212) * u;
+    } else {
+      const u = (t - 0.5) / 0.5;
+      r = 216 + (168 - 216) * u;
+      g = 166 + ( 50 - 166) * u;
+      b = 120 + ( 30 - 120) * u;
+    }
+    return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+  }
+
+  function drawScene() {
+    clear(svg);
+    const K = +treeCountSlider.value;
+    // frame
+    svg.appendChild(svgEl('rect', {
+      x: pad.l, y: pad.t, width: plotW, height: plotH,
+      fill: PAPER, stroke: INK, 'stroke-width': 1,
+    }));
+    // heatmap via rects
+    const nCells = GRID * GRID;
+    const cellW = plotW / GRID, cellH = plotH / GRID;
+    for (let k = 0; k < nCells; k++) {
+      let sum = 0;
+      for (let t = 0; t < K; t++) sum += gridPathLens[t][k];
+      const avg = sum / K;
+      const score = anomalyScore(avg, SUB_PSI);
+      const i = k % GRID, j = Math.floor(k / GRID);
+      const px = pad.l + i * cellW;
+      const py = pad.t + (GRID - 1 - j) * cellH;
+      svg.appendChild(svgEl('rect', {
+        x: px, y: py, width: cellW + 0.5, height: cellH + 0.5,
+        fill: heatColor(score),
+      }));
+    }
+    // frame on top
+    svg.appendChild(svgEl('rect', {
+      x: pad.l, y: pad.t, width: plotW, height: plotH,
+      fill: 'none', stroke: INK, 'stroke-width': 1,
+    }));
+
+    // points
+    for (const p of data) {
+      const px = pad.l + p.x * plotW;
+      const py = pad.t + (1 - p.y) * plotH;
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 4,
+        fill: p.anomaly ? ANOM : NORM, 'fill-opacity': 0.9,
+        stroke: PAPER, 'stroke-width': 1.2,
+      }));
+    }
+
+    // test point
+    if (testPoint) {
+      const px = pad.l + testPoint.x * plotW;
+      const py = pad.t + (1 - testPoint.y) * plotH;
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 6,
+        fill: PAPER, stroke: INK, 'stroke-width': 1.6,
+      }));
+      svg.appendChild(svgEl('circle', {
+        cx: px, cy: py, r: 11,
+        fill: 'none', stroke: INK, 'stroke-width': 0.6, 'stroke-dasharray': '2,2',
+      }));
+    }
+
+    // color legend
+    const legendY = pad.t + plotH + 14;
+    const lgW = 160, lgH = 10;
+    const lgX = pad.l + plotW - lgW;
+    const grad = svgEl('defs');
+    const g = svgEl('linearGradient', { id: 'heatGrad', x1: '0%', x2: '100%', y1: '0%', y2: '0%' });
+    g.appendChild(svgEl('stop', { offset: '0%', 'stop-color': heatColor(0.35) }));
+    g.appendChild(svgEl('stop', { offset: '50%', 'stop-color': heatColor(0.55) }));
+    g.appendChild(svgEl('stop', { offset: '100%', 'stop-color': heatColor(0.78) }));
+    grad.appendChild(g);
+    svg.appendChild(grad);
+    svg.appendChild(svgEl('rect', {
+      x: lgX, y: legendY, width: lgW, height: lgH,
+      fill: 'url(#heatGrad)',
+      stroke: INK, 'stroke-width': 0.4,
+    }));
+    const l1 = svgEl('text', { x: lgX - 6, y: legendY + lgH, 'text-anchor': 'end', class: 'label-text' });
+    l1.textContent = 'LOW';
+    svg.appendChild(l1);
+    const l2 = svgEl('text', { x: lgX + lgW + 6, y: legendY + lgH, 'text-anchor': 'start', class: 'label-text' });
+    l2.textContent = 'HIGH';
+    svg.appendChild(l2);
+    const lt = svgEl('text', { x: lgX + lgW/2, y: legendY - 4, 'text-anchor': 'middle', class: 'label-text', fill: INK });
+    lt.textContent = 'ANOMALY SCORE';
+    svg.appendChild(lt);
+
+    // tree-count indicator on left
+    const tCount = svgEl('text', { x: pad.l, y: legendY + 8, 'text-anchor': 'start', class: 'label-text', fill: INK });
+    tCount.textContent = `USING ${K} / ${MAX_TREES} TREES`;
+    svg.appendChild(tCount);
+  }
+
+  function scoreAt(x, y) {
+    const pt = { x, y };
+    const K = +treeCountSlider.value;
+    let sum = 0;
+    for (let t = 0; t < K; t++) sum += pathLength(pt, forest[t]);
+    return anomalyScore(sum / K, SUB_PSI);
+  }
+
+  svg.addEventListener('click', e => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / rect.width * W;
+    const my = (e.clientY - rect.top) / rect.height * H;
+    if (mx < pad.l || mx > pad.l + plotW || my < pad.t || my > pad.t + plotH) return;
+    const x = (mx - pad.l) / plotW;
+    const y = 1 - (my - pad.t) / plotH;
+    testPoint = { x, y };
+    const s = scoreAt(x, y);
+    const verdict = s > 0.6 ? '<span class="hl">LIKELY ANOMALY</span>' : s > 0.5 ? '<span class="hl3">borderline</span>' : '<span class="hl2">likely normal</span>';
+    readout.innerHTML = `Test point at (${x.toFixed(2)}, ${y.toFixed(2)}) scored <span class="hl">${s.toFixed(3)}</span> → ${verdict}. Slide the tree count to see how the score stabilizes with more trees.`;
+    drawScene();
+  });
+
+  treeCountSlider.addEventListener('input', () => {
+    treeCountVal.textContent = treeCountSlider.value;
+    drawScene();
+    if (testPoint) {
+      const s = scoreAt(testPoint.x, testPoint.y);
+      const verdict = s > 0.6 ? '<span class="hl">LIKELY ANOMALY</span>' : s > 0.5 ? '<span class="hl3">borderline</span>' : '<span class="hl2">likely normal</span>';
+      readout.innerHTML = `Test point at (${testPoint.x.toFixed(2)}, ${testPoint.y.toFixed(2)}) scored <span class="hl">${s.toFixed(3)}</span> → ${verdict}.`;
+    }
+  });
+
+  newForestBtn.addEventListener('click', () => {
+    forestSeed = Math.floor(Math.random() * 1e6);
+    testPoint = null;
+    buildForest(forestSeed);
+    drawScene();
+    readout.innerHTML = 'Slide the tree count up and watch the score map smooth out. <span class="hl2">Click anywhere on the plot</span> to drop a test point and see its anomaly score.';
+  });
+
+  buildForest(forestSeed);
+  treeCountVal.textContent = treeCountSlider.value;
+  drawScene();
+})();
+
+/* =====================================================================
+   FIGURE IV — Path length distribution (histogram)
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgHist');
+  const threshSlider = document.getElementById('threshSlider');
+  const threshVal = document.getElementById('threshVal');
+  const resampleBtn = document.getElementById('resampleHistBtn');
+  const readout = document.getElementById('histReadout');
+
+  const W = 820, H = 380;
+  const pad = { l: 60, t: 40, r: 30, b: 60 };
+  const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+  const SUB_PSI = 64;
+  const MAX_TREES = 100;
+
+  let scores = []; // { score, anomaly }
+
+  function computeScores(seed) {
+    const rng = mulberry32(seed);
+    const data = generateData(120, 14, seed);
+    const maxDepth = Math.ceil(Math.log2(SUB_PSI));
+    const forest = [];
+    for (let t = 0; t < MAX_TREES; t++) {
+      const sub = [];
+      const idxSet = new Set();
+      while (sub.length < Math.min(SUB_PSI, data.length)) {
+        const idx = Math.floor(rng() * data.length);
+        if (!idxSet.has(idx)) {
+          idxSet.add(idx);
+          sub.push(data[idx]);
+        }
+      }
+      forest.push(buildTree(sub, maxDepth, rng));
+    }
+    scores = data.map(p => {
+      let sum = 0;
+      for (const tr of forest) sum += pathLength(p, tr);
+      const avg = sum / forest.length;
+      const s = anomalyScore(avg, SUB_PSI);
+      return { score: s, anomaly: p.anomaly };
+    });
+  }
+
+  function drawScene() {
+    clear(svg);
+    // axis
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t + plotH, x2: pad.l + plotW, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1,
+    }));
+
+    // bins from 0.3 to 0.85
+    const xMin = 0.30, xMax = 0.85;
+    const bins = 32;
+    const binW = (xMax - xMin) / bins;
+
+    const histN = new Array(bins).fill(0);
+    const histA = new Array(bins).fill(0);
+    for (const s of scores) {
+      const b = Math.floor((s.score - xMin) / binW);
+      if (b < 0 || b >= bins) continue;
+      if (s.anomaly) histA[b]++; else histN[b]++;
+    }
+    const yMax = Math.max(Math.max(...histN), Math.max(...histA), 1);
+
+    const xToPx = v => pad.l + (v - xMin) / (xMax - xMin) * plotW;
+    const yToPx = v => pad.t + plotH - v / yMax * plotH;
+
+    // draw normal bars (green)
+    for (let b = 0; b < bins; b++) {
+      if (histN[b] === 0) continue;
+      const x = xToPx(xMin + b * binW);
+      const w = plotW / bins - 1;
+      const y = yToPx(histN[b]);
+      const h = pad.t + plotH - y;
+      svg.appendChild(svgEl('rect', {
+        x, y, width: w, height: h,
+        fill: NORM, 'fill-opacity': 0.55,
+        stroke: NORM, 'stroke-width': 0.8,
+      }));
+    }
+    // draw anomaly bars (red)
+    for (let b = 0; b < bins; b++) {
+      if (histA[b] === 0) continue;
+      const x = xToPx(xMin + b * binW);
+      const w = plotW / bins - 1;
+      const y = yToPx(histA[b]);
+      const h = pad.t + plotH - y;
+      svg.appendChild(svgEl('rect', {
+        x, y, width: w, height: h,
+        fill: ANOM, 'fill-opacity': 0.7,
+        stroke: ANOM, 'stroke-width': 0.8,
+      }));
+    }
+
+    // threshold line
+    const th = +threshSlider.value / 100;
+    const thX = xToPx(th);
+    svg.appendChild(svgEl('line', {
+      x1: thX, y1: pad.t, x2: thX, y2: pad.t + plotH,
+      stroke: INK, 'stroke-width': 1.6, 'stroke-dasharray': '4,3',
+    }));
+    const thLab = svgEl('text', {
+      x: thX, y: pad.t - 10, 'text-anchor': 'middle', class: 'label-text', fill: INK,
+    });
+    thLab.textContent = `THRESHOLD = ${th.toFixed(2)}`;
+    svg.appendChild(thLab);
+
+    // shade flagged region
+    svg.appendChild(svgEl('rect', {
+      x: thX, y: pad.t, width: pad.l + plotW - thX, height: plotH,
+      fill: ANOM, 'fill-opacity': 0.04,
+    }));
+
+    // x-axis ticks
+    for (let v = 0.3; v <= 0.85 + 1e-6; v += 0.1) {
+      const px = xToPx(v);
+      svg.appendChild(svgEl('line', {
+        x1: px, y1: pad.t + plotH, x2: px, y2: pad.t + plotH + 4,
+        stroke: INK, 'stroke-width': 0.8,
+      }));
+      const lab = svgEl('text', {
+        x: px, y: pad.t + plotH + 16, 'text-anchor': 'middle', class: 'label-text',
+      });
+      lab.textContent = v.toFixed(1);
+      svg.appendChild(lab);
+    }
+    const xLab = svgEl('text', {
+      x: pad.l + plotW/2, y: pad.t + plotH + 40, 'text-anchor': 'middle', class: 'label-text',
+    });
+    xLab.textContent = 'ANOMALY SCORE  s(x, n)';
+    svg.appendChild(xLab);
+
+    // y ticks
+    for (let v = 0; v <= yMax; v += Math.max(1, Math.floor(yMax / 4))) {
+      const py = yToPx(v);
+      svg.appendChild(svgEl('line', {
+        x1: pad.l - 4, y1: py, x2: pad.l, y2: py, stroke: INK, 'stroke-width': 0.8,
+      }));
+      const lab = svgEl('text', {
+        x: pad.l - 8, y: py + 3, 'text-anchor': 'end', class: 'label-text',
+      });
+      lab.textContent = `${v}`;
+      svg.appendChild(lab);
+    }
+    const yLab = svgEl('text', {
+      x: 18, y: pad.t + plotH/2,
+      transform: `rotate(-90 18 ${pad.t + plotH/2})`,
+      'text-anchor': 'middle', class: 'label-text',
+    });
+    yLab.textContent = 'COUNT';
+    svg.appendChild(yLab);
+
+    // legend
+    const legX = pad.l + plotW - 180, legY = pad.t + 6;
+    svg.appendChild(svgEl('rect', { x: legX, y: legY, width: 10, height: 10, fill: NORM, 'fill-opacity': 0.6 }));
+    const lt1 = svgEl('text', { x: legX + 16, y: legY + 9, class: 'label-text', fill: SOFT });
+    lt1.textContent = 'NORMAL';
+    svg.appendChild(lt1);
+    svg.appendChild(svgEl('rect', { x: legX + 80, y: legY, width: 10, height: 10, fill: ANOM, 'fill-opacity': 0.7 }));
+    const lt2 = svgEl('text', { x: legX + 96, y: legY + 9, class: 'label-text', fill: SOFT });
+    lt2.textContent = 'ANOMALY';
+    svg.appendChild(lt2);
+  }
+
+  function updateMetrics() {
+    const th = +threshSlider.value / 100;
+    let tp = 0, fp = 0, tn = 0, fn = 0;
+    for (const s of scores) {
+      const flagged = s.score >= th;
+      if (flagged && s.anomaly) tp++;
+      else if (flagged && !s.anomaly) fp++;
+      else if (!flagged && s.anomaly) fn++;
+      else tn++;
+    }
+    const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+    const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+    const f1 = precision + recall > 0 ? 2 * precision * recall / (precision + recall) : 0;
+    readout.innerHTML =
+      `At threshold <span class="hl">${th.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `True positives <span class="hl">${tp}</span> &nbsp;·&nbsp; ` +
+      `False positives <span class="hl3">${fp}</span> &nbsp;·&nbsp; ` +
+      `Missed anomalies <span class="hl3">${fn}</span> &nbsp;·&nbsp; ` +
+      `Precision <span class="hl2">${precision.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `Recall <span class="hl2">${recall.toFixed(2)}</span> &nbsp;·&nbsp; ` +
+      `F1 <span class="hl2">${f1.toFixed(2)}</span>`;
+  }
+
+  threshSlider.addEventListener('input', () => {
+    threshVal.textContent = (+threshSlider.value / 100).toFixed(2);
+    drawScene();
+    updateMetrics();
+  });
+  resampleBtn.addEventListener('click', () => {
+    computeScores(Math.floor(Math.random() * 1e6));
+    drawScene();
+    updateMetrics();
+  });
+
+  threshVal.textContent = (+threshSlider.value / 100).toFixed(2);
+  computeScores(13);
+  drawScene();
+  updateMetrics();
+})();
+</script>
+</body>
+</html>

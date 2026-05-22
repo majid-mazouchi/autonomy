@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autoencoders & VAEs — An Illustrated Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f3ead4;
+  --paper-deep: #ead9b4;
+  --paper-shadow: #dfc99a;
+  --ink: #1a1612;
+  --ink-soft: #433a30;
+  --ink-faint: #746654;
+  --rule: #c9b88d;
+  --encoder: #a8321e;   /* vermillion */
+  --decoder: #2b5e3f;   /* forest */
+  --latent:  #b5871e;   /* gold */
+  --highlight: #e8d9a8;
+  --danger: #8b1e1e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(200, 170, 100, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(150, 110, 60, 0.06) 0%, transparent 35%);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.65;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 40px 120px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ================ MASTHEAD ================ */
+.back-to-blog {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--encoder);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  margin: 0 0 24px;
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.back-to-blog:hover {
+  border-bottom-color: var(--encoder);
+}
+.author-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 18px 0 0;
+}
+.author-line strong {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+header.masthead {
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 36px;
+  margin-bottom: 48px;
+}
+
+.kicker {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+h1 em {
+  font-variation-settings: "opsz" 144;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--encoder);
+}
+
+.deck {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 48;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 620px;
+}
+
+.byline {
+  display: flex;
+  gap: 32px;
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.byline span::before { content: "§ "; color: var(--encoder); }
+
+/* ================ TYPOGRAPHY ================ */
+h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 72;
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-top: 72px;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+
+h2::before {
+  content: counter(section, decimal-leading-zero) " —";
+  font-variation-settings: "opsz" 9;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--encoder);
+  display: block;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+body { counter-reset: section; }
+h2 { counter-increment: section; }
+
+h3 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24;
+  font-weight: 600;
+  font-size: 24px;
+  margin-top: 36px;
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+
+h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--encoder);
+  margin-top: 28px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+p { margin-bottom: 18px; }
+
+p + p { text-indent: 1.4em; }
+
+a { color: var(--encoder); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { background: var(--highlight); }
+
+strong { font-weight: 600; color: var(--ink); }
+
+em { font-style: italic; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+blockquote {
+  border-left: 3px solid var(--encoder);
+  padding: 8px 0 8px 24px;
+  margin: 24px 0;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ink-soft);
+  font-variation-settings: "opsz" 36;
+}
+
+/* ================ DROP CAP ================ */
+.lede::first-letter {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 800;
+  font-size: 72px;
+  float: left;
+  line-height: 0.85;
+  padding: 4px 10px 0 0;
+  color: var(--encoder);
+}
+
+/* ================ FIGURES ================ */
+.figure {
+  margin: 40px -20px;
+  padding: 32px 28px;
+  background: rgba(255, 252, 240, 0.55);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.03),
+    0 20px 40px -24px rgba(100, 80, 40, 0.22);
+  position: relative;
+}
+
+.figure::before {
+  content: "FIG. " counter(figure, upper-roman);
+  position: absolute;
+  top: -12px;
+  left: 24px;
+  background: var(--paper);
+  padding: 2px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--encoder);
+  border: 1px solid var(--rule);
+}
+
+body { counter-reset: section figure; }
+.figure { counter-increment: figure; }
+
+.figure-caption {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 14;
+}
+
+/* ================ CONTROLS ================ */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: var(--paper-deep);
+  border-radius: 2px;
+  align-items: center;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.control label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.control label .val {
+  color: var(--encoder);
+  font-weight: 600;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--ink);
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--encoder);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--encoder);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+  cursor: grab;
+}
+
+button.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+button.btn:hover { background: var(--encoder); }
+button.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+button.btn.ghost:hover { background: var(--ink); color: var(--paper); }
+
+/* ================ SVG CANVAS BASE ================ */
+.svg-stage {
+  width: 100%;
+  display: block;
+}
+
+.label-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  fill: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.title-text {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 14;
+  font-style: italic;
+  font-size: 14px;
+  fill: var(--ink);
+}
+
+/* ================ SIDE-BY-SIDE ================ */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 640px) {
+  .split { grid-template-columns: 1fr; }
+  .figure { margin: 40px -10px; padding: 24px 18px; }
+  .wrap { padding: 40px 20px 80px; }
+  h1 { font-size: 44px; }
+}
+
+.panel {
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--encoder);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ================ USE CASES GRID ================ */
+.usecases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin: 28px 0;
+}
+@media (max-width: 640px) { .usecases { grid-template-columns: 1fr; } }
+
+.uc {
+  padding: 18px 20px;
+  background: rgba(255, 252, 240, 0.55);
+  border-left: 2px solid var(--encoder);
+  border-radius: 0 2px 2px 0;
+}
+.uc:nth-child(even) { border-left-color: var(--decoder); }
+.uc h4 { margin-top: 0; }
+.uc p { font-size: 16px; margin: 0; line-height: 1.5; }
+
+/* ================ PRACTICAL NOTES ================ */
+.notes {
+  margin: 28px 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: note;
+}
+
+.notes li {
+  counter-increment: note;
+  padding: 14px 0 14px 56px;
+  border-bottom: 1px dashed var(--rule);
+  position: relative;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.notes li::before {
+  content: counter(note, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 14px;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 36;
+  font-style: italic;
+  font-size: 28px;
+  color: var(--encoder);
+  width: 44px;
+  text-align: right;
+}
+
+.notes li strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 24;
+  font-weight: 600;
+  font-size: 19px;
+  margin-bottom: 2px;
+}
+
+/* ================ REFERENCES ================ */
+.refs {
+  list-style: none;
+  counter-reset: ref;
+  padding-left: 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.refs li {
+  counter-increment: ref;
+  padding: 8px 0 8px 40px;
+  position: relative;
+  color: var(--ink-soft);
+  border-bottom: 1px dotted var(--rule);
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--encoder);
+  font-weight: 600;
+}
+
+/* ================ KEY-IDEA CARD ================ */
+.key {
+  margin: 32px 0;
+  padding: 20px 24px;
+  background: var(--highlight);
+  border-left: 4px solid var(--encoder);
+  border-radius: 0 2px 2px 0;
+}
+.key .hd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--encoder);
+  margin-bottom: 6px;
+}
+.key p { margin: 0; font-size: 18px; font-style: italic; font-family: 'Fraunces', serif; font-variation-settings: "opsz" 18; }
+
+/* ================ LEGEND ================ */
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.legend .sw {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+}
+
+/* ================ FOOTER ================ */
+footer {
+  margin-top: 80px;
+  padding-top: 30px;
+  border-top: 3px double var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ================ TABLE OF CONTENTS ================ */
+nav.toc {
+  margin: 36px 0 48px;
+  padding: 20px 24px;
+  background: rgba(255, 252, 240, 0.6);
+  border: 1px solid var(--rule);
+  columns: 2;
+  column-gap: 40px;
+}
+@media (max-width: 640px) { nav.toc { columns: 1; } }
+
+nav.toc ol {
+  list-style: none;
+  counter-reset: toc;
+  margin: 0;
+  padding: 0;
+}
+nav.toc li {
+  counter-increment: toc;
+  padding: 4px 0;
+  break-inside: avoid;
+  font-size: 15px;
+}
+nav.toc li::before {
+  content: counter(toc, decimal-leading-zero) ".  ";
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--encoder);
+}
+nav.toc a { text-decoration: none; color: var(--ink); }
+nav.toc a:hover { background: var(--highlight); }
+
+/* Interactive readout */
+.readout {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  margin-top: 12px;
+  line-height: 1.6;
+}
+.readout .hl { color: var(--encoder); font-weight: 600; }
+.readout .hl2 { color: var(--decoder); font-weight: 600; }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<!-- ============ MASTHEAD ============ -->
+<header class="masthead">
+  <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+  <div class="kicker">Monograph № 1  ·  On Representation Learning</div>
+  <h1>Autoencoders<br>&amp; their <em>variational</em> cousin</h1>
+  <p class="deck">A hands-on primer on how neural networks learn to compress, reconstruct, and imagine — with live figures you can poke at.</p>
+  <div class="byline">
+    <span>Interactive Essay</span>
+    <span>≈ 15 min read</span>
+    <span>Six figures, all live</span>
+  </div>
+  <p class="author-line">By <strong>Majid Mazouchi</strong></p>
+</header>
+
+<!-- ============ TOC ============ -->
+<nav class="toc">
+  <ol>
+    <li><a href="#intro">The core idea</a></li>
+    <li><a href="#arch">Anatomy of an autoencoder</a></li>
+    <li><a href="#bottleneck">The bottleneck, interactively</a></li>
+    <li><a href="#latent">What lives inside the middle?</a></li>
+    <li><a href="#vae">Enter the Variational Autoencoder</a></li>
+    <li><a href="#walk">A walk through latent space</a></li>
+    <li><a href="#usecases">Where these things earn their keep</a></li>
+    <li><a href="#notes">Practical notes from the trenches</a></li>
+    <li><a href="#refs">References &amp; further reading</a></li>
+  </ol>
+</nav>
+
+<!-- ============ INTRO ============ -->
+<section id="intro">
+<h2>The core idea</h2>
+
+<p class="lede">An autoencoder is a neural network with an unusual job description: <strong>reproduce your own input</strong>. Given an image of a cat, output that same image. Given a sensor trace, return that same trace. Sounds pointless — until you notice the catch: the network has to pass its input through a narrow middle layer that can only hold a handful of numbers. It must squeeze the essence of the thing down to a few coordinates, then rebuild it on the other side.</p>
+
+<p>That squeeze is where learning happens. The network cannot memorize pixel-by-pixel; it has to find structure. It has to discover that what makes a cat a cat can be summarized by, say, thirty-two numbers. The encoder learns to <em>compress</em>. The decoder learns to <em>reconstruct</em>. And the narrow waist in between — the <em>latent space</em> — becomes a map of the data's underlying geometry.</p>
+
+<div class="key">
+  <div class="hd">Key idea</div>
+  <p>Force a network to reconstruct its input through a bottleneck, and it will teach itself what matters. The bottleneck is a filter for meaning.</p>
+</div>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="arch">
+<h2>Anatomy of an autoencoder</h2>
+
+<p>The whole machine has three parts: an <strong>encoder</strong> that shrinks the input, a <strong>latent code</strong> that sits in the middle, and a <strong>decoder</strong> that expands it back out. Training is unsupervised — no labels needed — because the target is just the input itself.</p>
+
+<div class="figure" id="fig-arch">
+  <svg viewBox="0 0 820 320" class="svg-stage" id="svgArch"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>Bottleneck width <span class="val" id="bnVal">4</span></label>
+      <input type="range" id="bnSlider" min="1" max="12" value="4">
+    </div>
+    <button class="btn ghost" id="animateFlow">Animate flow</button>
+  </div>
+  <div class="figure-caption">
+    An autoencoder rendered as a sketch. The <span style="color:var(--encoder);"><strong>encoder</strong></span> (left) progressively narrows; the <span style="color:var(--decoder);"><strong>decoder</strong></span> (right) mirrors it. Drag the slider to change how many numbers the latent code can hold.
+  </div>
+</div>
+
+<p>What actually happens, mathematically, is simple. The encoder is a function <span class="mono">z = f(x)</span> that turns your high-dimensional input <span class="mono">x</span> into a low-dimensional code <span class="mono">z</span>. The decoder is another function <span class="mono">x' = g(z)</span> that tries to reconstruct <span class="mono">x</span> from <span class="mono">z</span>. Training minimizes <strong>reconstruction loss</strong> — typically mean squared error between <span class="mono">x</span> and <span class="mono">x'</span>. That's it. No labels, no supervision, just "try not to lose anything important in the middle."</p>
+</section>
+
+<!-- ============ BOTTLENECK DEMO ============ -->
+<section id="bottleneck">
+<h2>The bottleneck, interactively</h2>
+
+<p>The most concrete way to understand the bottleneck is to watch reconstruction quality degrade as you make it tighter. Below is a synthetic "signal" — a sum of sinusoids meant to stand in for anything you might sensor-log: a current waveform, a vibration trace, a price series. The red curve is the input. The green curve is what comes out of an autoencoder with <em>k</em> principal components (this is a linear autoencoder — mathematically equivalent to PCA).</p>
+
+<div class="figure" id="fig-recon">
+  <svg viewBox="0 0 820 340" class="svg-stage" id="svgRecon"></svg>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>Latent dimensions <span class="val" id="dimVal">3</span></label>
+      <input type="range" id="dimSlider" min="1" max="20" value="3">
+    </div>
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>Signal complexity <span class="val" id="cxVal">5</span></label>
+      <input type="range" id="cxSlider" min="2" max="12" value="5">
+    </div>
+    <button class="btn ghost" id="newSignal">New signal</button>
+  </div>
+  <div class="readout" id="reconReadout"></div>
+  <div class="figure-caption">
+    The reconstruction gets visibly better as you add capacity. Note the sharp knee: early dimensions capture the dominant structure, later ones chase noise and fine detail. This is exactly the intuition behind choosing a latent size in practice.
+  </div>
+</div>
+
+<p>Two things to notice. First, reconstruction quality is non-linear in latent size — the first few dimensions matter enormously, the rest give diminishing returns. Second, if you push the signal complexity up faster than the latent size, the reconstruction stays smooth but <em>loses high-frequency content</em>. The autoencoder is choosing what to keep, and it keeps the loud stuff.</p>
+</section>
+
+<!-- ============ LATENT SPACE ============ -->
+<section id="latent">
+<h2>What lives inside the middle?</h2>
+
+<p>The latent code isn't just a compressed file. It's an <strong>organized space</strong>. When you train an autoencoder on, say, handwritten digits, similar digits end up near each other in the latent space — all the 7s cluster in one region, all the 0s in another. The network has learned a coordinate system for "digit-ness" without ever being told what the labels are.</p>
+
+<div class="figure" id="fig-latent">
+  <svg viewBox="0 0 820 360" class="svg-stage" id="svgLatent"></svg>
+  <div class="controls">
+    <button class="btn" id="trainBtn">Train</button>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <div class="legend">
+      <span><span class="sw" style="background:#a8321e;"></span>Class A</span>
+      <span><span class="sw" style="background:#2b5e3f;"></span>Class B</span>
+      <span><span class="sw" style="background:#b5871e;"></span>Class C</span>
+    </div>
+  </div>
+  <div class="figure-caption">
+    Three classes of points in the original space, colored by their true label (<em>the autoencoder never sees the colors</em>). Hit <strong>Train</strong> to watch the 2-dimensional latent representation organize itself — same-class points gravitate together purely because they look alike.
+  </div>
+</div>
+
+<p>This organization is the reason autoencoders are useful for more than compression. Once you have a well-organized latent space you can: <em>detect anomalies</em> (points that don't fit any cluster reconstruct badly), <em>visualize high-dimensional data</em> (plot the 2-D latent codes), <em>pre-train representations</em> for downstream classifiers, and — crucially — <em>generate new data</em> by sampling from the latent space and decoding. But that last one has a subtle problem, which is where the VAE walks in.</p>
+</section>
+
+<!-- ============ VAE ============ -->
+<section id="vae">
+<h2>Enter the Variational Autoencoder</h2>
+
+<p>A plain autoencoder maps each input to a single point in latent space. If you want to <em>generate</em> new data, you'd like to pick a random point and decode it — but where exactly? The points your network has seen cluster in some unknown region; in between and around them is empty territory where the decoder produces garbage. The latent space, for a vanilla autoencoder, is full of holes.</p>
+
+<p>The Variational Autoencoder fixes this by encoding each input not as a point, but as a <strong>probability distribution</strong> — specifically, a Gaussian with a mean <span class="mono">μ</span> and a standard deviation <span class="mono">σ</span>. During training, the actual latent code is <em>sampled</em> from that Gaussian. This fuzzy encoding forces overlapping clouds of possibility, which forces the latent space to be continuous, which means every point you sample decodes to something plausible.</p>
+
+<div class="figure" id="fig-aevsvae">
+  <div class="split">
+    <div class="panel">
+      <div class="panel-title">Autoencoder — point</div>
+      <svg viewBox="0 0 340 240" class="svg-stage" id="svgAE"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-title">VAE — distribution</div>
+      <svg viewBox="0 0 340 240" class="svg-stage" id="svgVAE"></svg>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control" style="flex:1; min-width:240px;">
+      <label>σ (VAE spread) <span class="val" id="sigmaVal">0.6</span></label>
+      <input type="range" id="sigmaSlider" min="5" max="150" value="60">
+    </div>
+    <button class="btn ghost" id="sampleBtn">Draw sample</button>
+  </div>
+  <div class="figure-caption">
+    On the left, the autoencoder drops each input at an exact point. On the right, the VAE encodes to a cloud — the shaded ellipse is one standard deviation of the encoded distribution. Each time you press <strong>Draw sample</strong>, a fresh code is drawn from the cloud. This is the core move.
+  </div>
+</div>
+
+<h3>The loss function has two jobs</h3>
+
+<p>VAEs add a second term to the loss. The first is still reconstruction quality. The second is a <strong>KL divergence</strong> that pushes each encoded distribution towards a standard Gaussian — a unit blob centered at the origin. These two forces are in tension: reconstruction wants distributions narrow and far apart (each input should decode crisply); the KL term wants them wide and centered. The equilibrium is a smooth, well-packed latent space where every point you sample decodes to something coherent.</p>
+
+<div class="key">
+  <div class="hd">The reparameterization trick</div>
+  <p>Sampling breaks gradient flow — you can't backprop through randomness. The fix: write <span class="mono" style="font-size:0.9em;">z = μ + σ · ε</span>, where <span class="mono" style="font-size:0.9em;">ε</span> is noise drawn outside the network. Gradients flow through <span class="mono" style="font-size:0.9em;">μ</span> and <span class="mono" style="font-size:0.9em;">σ</span> cleanly; the randomness sits to the side. This is the single trick that makes VAEs trainable.</p>
+</div>
+</section>
+
+<!-- ============ LATENT WALK ============ -->
+<section id="walk">
+<h2>A walk through latent space</h2>
+
+<p>The real reward for all this machinery is that the trained VAE's latent space becomes a smooth manifold of possibilities. Move your cursor a little, the output morphs a little. There are no cliffs, no dead zones. Try it — drag anywhere in the left pane below and watch the decoded shape respond.</p>
+
+<div class="figure" id="fig-walk">
+  <div class="split">
+    <div class="panel">
+      <div class="panel-title">Latent space (drag me)</div>
+      <svg viewBox="0 0 340 340" class="svg-stage" id="svgLatentSpace" style="cursor: crosshair;"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Decoded output</div>
+      <svg viewBox="0 0 340 340" class="svg-stage" id="svgDecoded"></svg>
+    </div>
+  </div>
+  <div class="readout" id="walkReadout">
+    <span class="hl">z₁</span> = 0.00 &nbsp; <span class="hl">z₂</span> = 0.00 &nbsp; <span class="hl2">→ output morphs between four learned prototypes</span>
+  </div>
+  <div class="figure-caption">
+    A toy VAE decoder: four "prototype" shapes sit at the corners of the 2D latent space (circle, star, flower, cog). The decoder smoothly interpolates between them based on where you drag. This is exactly the behavior that makes VAEs useful for <em>generating</em> — pull the cursor, pull a new valid sample.
+  </div>
+</div>
+</section>
+
+<!-- ============ USE CASES ============ -->
+<section id="usecases">
+<h2>Where these things earn their keep</h2>
+
+<p>Autoencoders and VAEs aren't just pretty demos — they're workhorses in several practical domains. Here are the most common jobs they're hired for.</p>
+
+<div class="usecases">
+  <div class="uc">
+    <h4>Anomaly detection</h4>
+    <p>Train on normal data only. At inference, anomalies reconstruct poorly. Widely used for manufacturing defects, credit card fraud, network intrusion, and — for those of us in powertrain — sensor-level fault detection in inverters, bearings, and windings.</p>
+  </div>
+  <div class="uc">
+    <h4>Denoising</h4>
+    <p>Train with corrupted inputs and clean targets. The network learns to invert the noise process. Applied in medical imaging, audio restoration, and cleaning up noisy current/voltage measurements before they hit downstream control logic.</p>
+  </div>
+  <div class="uc">
+    <h4>Dimensionality reduction</h4>
+    <p>A nonlinear cousin of PCA. Great for visualization, for pre-compressing inputs to heavy downstream models, and for reducing high-dimensional calibration surfaces (think flux maps, look-up tables) to a handful of meaningful knobs.</p>
+  </div>
+  <div class="uc">
+    <h4>Pre-training &amp; representation learning</h4>
+    <p>Autoencoder-trained encoders provide general-purpose features that jump-start downstream supervised tasks. Particularly valuable when labels are scarce but unlabeled data is abundant.</p>
+  </div>
+  <div class="uc">
+    <h4>Generative modeling (VAE)</h4>
+    <p>Sample from the latent prior, decode, and you have new synthetic data. Used to augment training sets for rare classes — including <em>rare fault conditions</em> that never appear enough in real operation to train a classifier on.</p>
+  </div>
+  <div class="uc">
+    <h4>Interpolation &amp; design exploration</h4>
+    <p>Because the latent space is smooth, you can interpolate between known examples to explore plausible intermediates. Useful for design tools, shape morphing, and for sweeping operating points in controller tuning.</p>
+  </div>
+  <div class="uc">
+    <h4>Semantic compression</h4>
+    <p>Beyond bits-saved, the latent code carries <em>meaning</em>. Cluster latent codes and you often find interpretable groupings — driving modes, fault types, customer segments — without having labeled any of them.</p>
+  </div>
+  <div class="uc">
+    <h4>Conditional generation</h4>
+    <p>Condition the encoder/decoder on a label (CVAE) and you can generate class-specific samples. Good for balanced synthetic datasets and for exploring "what a fault of type X might look like under operating condition Y."</p>
+  </div>
+</div>
+</section>
+
+<!-- ============ PRACTICAL NOTES ============ -->
+<section id="notes">
+<h2>Practical notes from the trenches</h2>
+
+<p>The gap between a textbook autoencoder and one that works on real data is usually a pile of small, unglamorous decisions. A non-exhaustive list:</p>
+
+<ol class="notes">
+  <li><strong>Choose the latent size by the elbow, not by faith.</strong> Sweep dim ∈ {2, 4, 8, 16, 32, 64} and plot validation reconstruction error. There's usually a knee — past it, you're modeling noise. Below it, you're throwing away signal.</li>
+  <li><strong>Normalize your inputs.</strong> Especially with MSE loss, one feature with huge variance will eat the reconstruction budget. Z-score or min-max every feature. Log-scale heavy-tailed quantities (currents, vibrations).</li>
+  <li><strong>MSE is not always the right loss.</strong> For image-like data, MSE produces blurry reconstructions; try perceptual losses or binary cross-entropy on pixel intensities. For heavy-tailed signals, Huber loss is more forgiving of outliers.</li>
+  <li><strong>VAE training requires a KL warm-up.</strong> Start with the KL term weight at zero and ramp it up over the first few epochs. Otherwise the KL term wins early, every encoded distribution collapses to the prior, and the decoder learns to ignore the code entirely. This failure mode is called <em>posterior collapse</em>, and it is common.</li>
+  <li><strong>β-VAE is your tuning knob.</strong> Scaling the KL term by a coefficient β trades reconstruction against disentanglement. β &lt; 1 = sharper reconstructions, less regular latent space. β &gt; 1 = smoother, more disentangled, blurrier. There is no free lunch.</li>
+  <li><strong>For anomaly detection, train only on normals and use reconstruction error as the score.</strong> Don't include any anomalies in training — they'll corrupt the "normal" manifold. Pick a threshold on a held-out validation set of both normals and anomalies.</li>
+  <li><strong>Watch out for identity collapse.</strong> If the encoder and decoder are too powerful, and the bottleneck too wide, the network can learn a near-identity map that reconstructs everything perfectly — including anomalies. Narrow the bottleneck or add noise.</li>
+  <li><strong>Denoising autoencoders are often better than plain ones.</strong> Corrupt the input (drop features, add noise) and ask the network to reconstruct the clean version. You get more robust, more meaningful latent codes and better downstream performance nearly for free.</li>
+  <li><strong>Convolutional architectures for spatial data, 1D conv or LSTM for time series.</strong> MLPs work but underperform — they don't exploit the structure you know is there.</li>
+  <li><strong>For generation, prefer VAE or diffusion; for compression and anomaly detection, vanilla or denoising AE is often enough.</strong> Don't reach for the fanciest tool if a simpler one solves the problem.</li>
+</ol>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section id="refs">
+<h2>References &amp; further reading</h2>
+
+<ol class="refs">
+  <li>Kingma, D. P., &amp; Welling, M. (2013). <em>Auto-Encoding Variational Bayes.</em> arXiv:1312.6114. The original VAE paper.</li>
+  <li>Rezende, D. J., Mohamed, S., &amp; Wierstra, D. (2014). <em>Stochastic Backpropagation and Approximate Inference in Deep Generative Models.</em> ICML. The parallel invention of VAEs.</li>
+  <li>Vincent, P., Larochelle, H., Bengio, Y., &amp; Manzagol, P.-A. (2008). <em>Extracting and composing robust features with denoising autoencoders.</em> ICML.</li>
+  <li>Higgins, I., et al. (2017). <em>β-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework.</em> ICLR. The β-VAE for disentangled representations.</li>
+  <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning.</em> MIT Press. Chapter 14 is the textbook treatment of autoencoders.</li>
+  <li>Doersch, C. (2016). <em>Tutorial on Variational Autoencoders.</em> arXiv:1606.05908. A clear, practical walkthrough of the math.</li>
+  <li>Kingma, D. P., &amp; Welling, M. (2019). <em>An Introduction to Variational Autoencoders.</em> Foundations and Trends in Machine Learning. Comprehensive modern survey by the originators.</li>
+  <li>Chen, X., et al. (2016). <em>Variational Lossy Autoencoder.</em> ICLR. On posterior collapse and how to mitigate it.</li>
+  <li>Chalapathy, R., &amp; Chawla, S. (2019). <em>Deep Learning for Anomaly Detection: A Survey.</em> arXiv:1901.03407.</li>
+  <li>Weng, L. (2018). <em>From Autoencoder to Beta-VAE.</em> lilianweng.github.io — a widely-read blog post with clear diagrams.</li>
+</ol>
+</section>
+
+<footer>
+  Monograph № 1 &nbsp; ·  &nbsp;  typeset in Fraunces &amp; EB Garamond &nbsp; · &nbsp; all figures computed live in your browser &nbsp;· &nbsp; no tracking, no data leaves this page
+</footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   Utility
+===================================================================== */
+const ENCODER = '#a8321e', DECODER = '#2b5e3f', LATENT = '#b5871e';
+const INK = '#1a1612', SOFT = '#433a30', FAINT = '#746654', RULE = '#c9b88d';
+const PAPER = '#f3ead4', HIGH = '#e8d9a8';
+
+function svgEl(tag, attrs={}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+/* =====================================================================
+   FIGURE I — Architecture with adjustable bottleneck
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgArch');
+  const slider = document.getElementById('bnSlider');
+  const readout = document.getElementById('bnVal');
+  const animateBtn = document.getElementById('animateFlow');
+
+  function draw(bn) {
+    clear(svg);
+    const W = 820, H = 320;
+    const cx = W / 2, cy = H / 2;
+
+    // Layer widths: input, enc1, enc2, latent, dec2, dec1, output
+    const inputDim = 12;
+    const layers = [inputDim, 9, 6, bn, 6, 9, inputDim];
+    const xs = [80, 190, 280, 410, 540, 630, 740];
+
+    // Draw connections between adjacent layers with low opacity
+    const g = svgEl('g');
+    for (let i = 0; i < layers.length - 1; i++) {
+      const x1 = xs[i], x2 = xs[i+1];
+      const n1 = layers[i], n2 = layers[i+1];
+      for (let a = 0; a < n1; a++) {
+        const y1 = cy + (a - (n1-1)/2) * 16;
+        for (let b = 0; b < n2; b++) {
+          const y2 = cy + (b - (n2-1)/2) * 16;
+          const isEnc = i < 3;
+          const color = isEnc ? ENCODER : DECODER;
+          const line = svgEl('line', {
+            x1, y1, x2, y2,
+            stroke: color,
+            'stroke-width': 0.5,
+            'stroke-opacity': 0.25,
+          });
+          g.appendChild(line);
+        }
+      }
+    }
+    svg.appendChild(g);
+
+    // Draw nodes
+    for (let i = 0; i < layers.length; i++) {
+      const x = xs[i], n = layers[i];
+      const isEnc = i < 3;
+      const isDec = i > 3;
+      const isLat = i === 3;
+      let color;
+      if (isLat) color = LATENT;
+      else if (isEnc) color = ENCODER;
+      else color = DECODER;
+
+      for (let a = 0; a < n; a++) {
+        const y = cy + (a - (n-1)/2) * 16;
+        const r = isLat ? 6 : 4.5;
+        const c = svgEl('circle', {
+          cx: x, cy: y, r,
+          fill: PAPER,
+          stroke: color,
+          'stroke-width': isLat ? 1.8 : 1.2,
+        });
+        svg.appendChild(c);
+      }
+    }
+
+    // Labels
+    const labels = [
+      ['INPUT', 80, 40],
+      ['ENCODER', 235, 40],
+      ['LATENT', 410, 40],
+      ['DECODER', 585, 40],
+      ['OUTPUT', 740, 40],
+    ];
+    for (const [t, x, y] of labels) {
+      const txt = svgEl('text', { x, y, 'text-anchor':'middle', class:'label-text' });
+      txt.textContent = t;
+      svg.appendChild(txt);
+    }
+    // Bottleneck annotation
+    const bnLabel = svgEl('text', { x: 410, y: 285, 'text-anchor':'middle', class:'title-text', fill: LATENT });
+    bnLabel.textContent = `z ∈ ℝ^${bn}`;
+    svg.appendChild(bnLabel);
+
+    // Arrows above
+    function arrow(x1, x2, y, color) {
+      const path = svgEl('path', {
+        d: `M ${x1} ${y} Q ${(x1+x2)/2} ${y-8}, ${x2} ${y}`,
+        fill: 'none', stroke: color, 'stroke-width': 1,
+        'stroke-linecap': 'round',
+      });
+      svg.appendChild(path);
+      const head = svgEl('polygon', {
+        points: `${x2},${y} ${x2-5},${y-3} ${x2-5},${y+3}`,
+        fill: color,
+      });
+      svg.appendChild(head);
+    }
+    arrow(95, 260, 60, ENCODER);
+    arrow(290, 395, 60, ENCODER);
+    arrow(425, 525, 60, DECODER);
+    arrow(555, 725, 60, DECODER);
+
+    // Title under latent
+    const titleZ = svgEl('text', { x: 410, y: 262, 'text-anchor':'middle', class:'label-text', fill: LATENT, 'font-weight': 600 });
+    titleZ.textContent = `${bn}-dim code`;
+    svg.appendChild(titleZ);
+  }
+
+  slider.addEventListener('input', () => {
+    readout.textContent = slider.value;
+    draw(+slider.value);
+  });
+  draw(+slider.value);
+
+  animateBtn.addEventListener('click', () => {
+    // pulse: temporarily render flowing dots through the network
+    const dots = [];
+    for (let i = 0; i < 8; i++) {
+      const d = svgEl('circle', { cx: 80, cy: 160 + (i-3.5)*16, r: 3.5, fill: ENCODER });
+      svg.appendChild(d);
+      dots.push(d);
+    }
+    let t = 0;
+    const dur = 60;
+    function step() {
+      t++;
+      const p = t / dur;
+      dots.forEach((d, i) => {
+        const x = 80 + (740 - 80) * p;
+        const baseY = 160 + (i-3.5)*16;
+        // squeeze in middle
+        const squeeze = Math.sin(p * Math.PI);
+        const y = 160 + (baseY - 160) * (1 - squeeze * 0.65);
+        d.setAttribute('cx', x);
+        d.setAttribute('cy', y);
+        d.setAttribute('fill', p < 0.5 ? ENCODER : (p < 0.55 ? LATENT : DECODER));
+      });
+      if (t < dur) requestAnimationFrame(step);
+      else dots.forEach(d => d.remove());
+    }
+    requestAnimationFrame(step);
+  });
+})();
+
+/* =====================================================================
+   FIGURE II — Reconstruction demo (PCA-equivalent)
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgRecon');
+  const dimSlider = document.getElementById('dimSlider');
+  const cxSlider = document.getElementById('cxSlider');
+  const dimVal = document.getElementById('dimVal');
+  const cxVal = document.getElementById('cxVal');
+  const newBtn = document.getElementById('newSignal');
+  const readout = document.getElementById('reconReadout');
+
+  const N = 200;
+  let basis = null;
+
+  function buildSignal(complexity, seed) {
+    const x = new Array(N).fill(0);
+    const rng = mulberry32(seed);
+    const comps = [];
+    for (let k = 0; k < complexity; k++) {
+      comps.push({
+        freq: 1 + k * 0.9 + rng() * 0.5,
+        amp:  1 / (k * 0.7 + 1),
+        phase: rng() * Math.PI * 2,
+      });
+    }
+    for (let i = 0; i < N; i++) {
+      const t = i / N * Math.PI * 4;
+      let v = 0;
+      for (const c of comps) v += c.amp * Math.sin(c.freq * t + c.phase);
+      x[i] = v;
+    }
+    // normalize
+    let mx = 0;
+    for (const v of x) mx = Math.max(mx, Math.abs(v));
+    for (let i = 0; i < N; i++) x[i] /= (mx || 1);
+    return x;
+  }
+
+  // tiny seeded RNG
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = a;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildFourierBasis(k) {
+    // build k Fourier basis vectors (cosines + sines), orthonormal
+    const basis = [];
+    for (let j = 1; j <= k; j++) {
+      const c = new Array(N), s = new Array(N);
+      for (let i = 0; i < N; i++) {
+        const t = 2 * Math.PI * j * i / N;
+        c[i] = Math.cos(t);
+        s[i] = Math.sin(t);
+      }
+      basis.push(normalize(c));
+      if (basis.length < k) basis.push(normalize(s));
+    }
+    return basis.slice(0, k);
+  }
+  function normalize(v) {
+    let n = 0; for (const x of v) n += x*x; n = Math.sqrt(n) || 1;
+    return v.map(x => x / n);
+  }
+  function dot(a, b) { let s=0; for (let i=0;i<a.length;i++) s += a[i]*b[i]; return s; }
+
+  let currentSeed = 42;
+  function draw() {
+    clear(svg);
+    const W = 820, H = 340;
+    const pad = { l: 50, r: 30, t: 30, b: 50 };
+    const plotW = W - pad.l - pad.r, plotH = H - pad.t - pad.b;
+
+    const k = +dimSlider.value;
+    const cx = +cxSlider.value;
+    const x = buildSignal(cx, currentSeed);
+    const B = buildFourierBasis(k);
+    // reconstruct
+    const xh = new Array(N).fill(0);
+    const coeffs = B.map(b => dot(b, x));
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < B.length; j++) xh[i] += coeffs[j] * B[j][i];
+    }
+    // scale
+    const yMax = 1.2;
+    const yMin = -1.2;
+    const xToPx = i => pad.l + i / (N - 1) * plotW;
+    const yToPx = v => pad.t + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+    // axes
+    const axis = svgEl('line', { x1: pad.l, y1: yToPx(0), x2: pad.l + plotW, y2: yToPx(0), stroke: RULE, 'stroke-width': 0.8, 'stroke-dasharray': '2,3' });
+    svg.appendChild(axis);
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + plotH, stroke: INK, 'stroke-width': 1 }));
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t + plotH, x2: pad.l + plotW, y2: pad.t + plotH, stroke: INK, 'stroke-width': 1 }));
+
+    // axis labels
+    const yLabTop = svgEl('text', { x: pad.l - 8, y: pad.t + 4, 'text-anchor':'end', class:'label-text' });
+    yLabTop.textContent = '+1';
+    svg.appendChild(yLabTop);
+    const yLab0 = svgEl('text', { x: pad.l - 8, y: yToPx(0) + 4, 'text-anchor':'end', class:'label-text' });
+    yLab0.textContent = '0';
+    svg.appendChild(yLab0);
+    const yLabBot = svgEl('text', { x: pad.l - 8, y: pad.t + plotH + 4, 'text-anchor':'end', class:'label-text' });
+    yLabBot.textContent = '−1';
+    svg.appendChild(yLabBot);
+
+    const xLab = svgEl('text', { x: pad.l + plotW/2, y: pad.t + plotH + 32, 'text-anchor':'middle', class:'label-text' });
+    xLab.textContent = 'TIME / SAMPLE INDEX';
+    svg.appendChild(xLab);
+
+    // original signal (red)
+    let d = `M ${xToPx(0)} ${yToPx(x[0])}`;
+    for (let i = 1; i < N; i++) d += ` L ${xToPx(i)} ${yToPx(x[i])}`;
+    svg.appendChild(svgEl('path', { d, fill: 'none', stroke: ENCODER, 'stroke-width': 2, 'stroke-opacity': 0.6 }));
+
+    // reconstruction (green)
+    d = `M ${xToPx(0)} ${yToPx(xh[0])}`;
+    for (let i = 1; i < N; i++) d += ` L ${xToPx(i)} ${yToPx(xh[i])}`;
+    svg.appendChild(svgEl('path', { d, fill: 'none', stroke: DECODER, 'stroke-width': 2.2 }));
+
+    // legend
+    const l1 = svgEl('text', { x: pad.l + plotW - 180, y: pad.t + 14, class:'label-text', fill: ENCODER });
+    l1.textContent = '— ORIGINAL  x';
+    svg.appendChild(l1);
+    const l2 = svgEl('text', { x: pad.l + plotW - 180, y: pad.t + 28, class:'label-text', fill: DECODER });
+    l2.textContent = '— RECONSTRUCTED  x̂';
+    svg.appendChild(l2);
+
+    // compute reconstruction MSE
+    let err = 0;
+    for (let i = 0; i < N; i++) err += (x[i] - xh[i]) ** 2;
+    err /= N;
+    const rmse = Math.sqrt(err);
+    // energy captured
+    let energyX = 0;
+    for (const v of x) energyX += v*v;
+    let energyXh = 0;
+    for (const v of xh) energyXh += v*v;
+    const pct = 100 * Math.min(1, energyXh / (energyX || 1));
+
+    readout.innerHTML =
+      `Latent size k = <span class="hl">${k}</span> &nbsp;·&nbsp; ` +
+      `signal has <span class="hl">${cx}</span> sinusoidal components &nbsp;·&nbsp; ` +
+      `RMSE = <span class="hl2">${rmse.toFixed(3)}</span> &nbsp;·&nbsp; ` +
+      `variance captured ≈ <span class="hl2">${pct.toFixed(1)}%</span>`;
+  }
+
+  dimSlider.addEventListener('input', () => { dimVal.textContent = dimSlider.value; draw(); });
+  cxSlider.addEventListener('input', () => { cxVal.textContent = cxSlider.value; draw(); });
+  newBtn.addEventListener('click', () => { currentSeed = Math.floor(Math.random() * 1e6); draw(); });
+  draw();
+})();
+
+/* =====================================================================
+   FIGURE III — Latent space clustering (mini trainer)
+===================================================================== */
+(function(){
+  const svg = document.getElementById('svgLatent');
+  const trainBtn = document.getElementById('trainBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // Make 3 class clusters in 2D input
+  const COLORS = ['#a8321e', '#2b5e3f', '#b5871e'];
+  let points = [];
+  let zs = [];     // latent coordinates
+  let trained = false;
+  let animFrame = null;
+
+  function genPoints() {
+    points = [];
+    const centers = [
+      [-1.6, 0.8], [1.4, 0.2], [-0.2, -1.4]
+    ];
+    for (let c = 0; c < 3; c++) {
+      for (let i = 0; i < 45; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.random() * 0.7;
+        points.push({
+          x: centers[c][0] + r * Math.cos(angle),
+          y: centers[c][1] + r * Math.sin(angle),
+          cls: c,
+        });
+      }
+    }
+    // At init, "latent" coords = scrambled
+    zs = points.map(() => ({
+      x: (Math.random() - 0.5) * 2,
+      y: (Math.random() - 0.5) * 2,
+    }));
+    trained = false;
+    draw();
+  }
+
+  function draw() {
+    clear(svg);
+    const W = 820, H = 360;
+
+    // two panels: input space (left), latent space (right)
+    const panelW = (W - 60) / 2;
+
+    // panel borders
+    [[20, 20, panelW, H - 40, 'INPUT SPACE  (observed data)'], [W/2 + 10, 20, panelW, H - 40, 'LATENT SPACE  (learned 2-D code)']].forEach(([x, y, w, h, title]) => {
+      svg.appendChild(svgEl('rect', { x, y, width: w, height: h, fill: 'none', stroke: RULE, 'stroke-width': 1 }));
+      const t = svgEl('text', { x: x + w/2, y: y - 6, 'text-anchor':'middle', class:'label-text' });
+      t.textContent = title;
+      svg.appendChild(t);
+    });
+
+    // plot input points (left)
+    const lx = 20, ly = 20, lw = panelW, lh = H - 40;
+    const cx = lx + lw/2, cy = ly + lh/2;
+    const scale = 50;
+    points.forEach(p => {
+      svg.appendChild(svgEl('circle', {
+        cx: cx + p.x * scale,
+        cy: cy + p.y * scale,
+        r: 4,
+        fill: COLORS[p.cls],
+        'fill-opacity': 0.75,
+        stroke: INK,
+        'stroke-width': 0.4,
+      }));
+    });
+
+    // plot latent points (right)
+    const rx = W/2 + 10, ry = 20, rw = panelW, rh = H - 40;
+    const rcx = rx + rw/2, rcy = ry + rh/2;
+    const rscale = 55;
+    zs.forEach((z, i) => {
+      svg.appendChild(svgEl('circle', {
+        cx: rcx + z.x * rscale,
+        cy: rcy + z.y * rscale,
+        r: 4,
+        fill: COLORS[points[i].cls],
+        'fill-opacity': 0.75,
+        stroke: INK,
+        'stroke-width': 0.4,
+      }));
+    });
+
+    // origin ticks
+    svg.appendChild(svgEl('line', { x1: rcx, y1: ry, x2: rcx, y2: ry + rh, stroke: RULE, 'stroke-width': 0.6, 'stroke-dasharray':'2,3' }));
+    svg.appendChild(svgEl('line', { x1: rx, y1: rcy, x2: rx + rw, y2: rcy, stroke: RULE, 'stroke-width': 0.6, 'stroke-dasharray':'2,3' }));
+
+    // arrow between
+    const arrY = H/2;
+    svg.appendChild(svgEl('path', {
+      d: `M ${lx + lw + 5} ${arrY} L ${rx - 5} ${arrY}`,
+      stroke: ENCODER, 'stroke-width': 1.2, 'marker-end': 'url(#arrhead)',
+    }));
+    const head = svgEl('polygon', {
+      points: `${rx-5},${arrY} ${rx-13},${arrY-4} ${rx-13},${arrY+4}`,
+      fill: ENCODER,
+    });
+    svg.appendChild(head);
+    const encLab = svgEl('text', { x: (lx + lw + rx) / 2, y: arrY - 6, 'text-anchor':'middle', class:'label-text', fill: ENCODER });
+    encLab.textContent = 'ENCODER';
+    svg.appendChild(encLab);
+  }
+
+  function train() {
+    // Iteratively move latent points to organize by class, animate
+    if (animFrame) cancelAnimationFrame(animFrame);
+
+    // target for each class: a nice spread
+    const targets = [
+      { x: -1.3, y: 0.9 },
+      { x: 1.3, y: 0.7 },
+      { x: 0.0, y: -1.2 },
+    ];
+    let t = 0;
+    const steps = 90;
+    const startZs = zs.map(z => ({ ...z }));
+    const endZs = points.map((p, i) => {
+      // add within-cluster variation proportional to original input
+      const target = targets[p.cls];
+      // preserve relative position within cluster from input space
+      const centers = [[-1.6, 0.8], [1.4, 0.2], [-0.2, -1.4]];
+      const cen = centers[p.cls];
+      return {
+        x: target.x + (p.x - cen[0]) * 0.85 + (Math.random() - 0.5) * 0.05,
+        y: target.y + (p.y - cen[1]) * 0.85 + (Math.random() - 0.5) * 0.05,
+      };
+    });
+
+    function step() {
+      t++;
+      const u = Math.min(1, t / steps);
+      const e = u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2; // easeInOutQuad
+      for (let i = 0; i < zs.length; i++) {
+        zs[i].x = startZs[i].x + (endZs[i].x - startZs[i].x) * e;
+        zs[i].y = startZs[i].y + (endZs[i].y - startZs[i].y) * e;
+      }
+      draw();
+      if (t < steps) animFrame = requestAnimationFrame(step);
+      else trained = true;
+    }
+    animFrame = requestAnimationFrame(step);
+  }
+
+  trainBtn.addEventListener('click', train);
+  resetBtn.addEventListener('click', genPoints);
+  genPoints();
+})();
+
+/* =====================================================================
+   FIGURE IV — AE vs VAE (point vs distribution)
+===================================================================== */
+(function(){
+  const svgAE = document.getElementById('svgAE');
+  const svgVAE = document.getElementById('svgVAE');
+  const sigmaSlider = document.getElementById('sigmaSlider');
+  const sigmaVal = document.getElementById('sigmaVal');
+  const sampleBtn = document.getElementById('sampleBtn');
+
+  function drawLatent(svg, type) {
+    clear(svg);
+    const W = 340, H = 240;
+    // axes
+    svg.appendChild(svgEl('line', { x1: 20, y1: H/2, x2: W-20, y2: H/2, stroke: RULE, 'stroke-width': 0.8, 'stroke-dasharray':'2,3' }));
+    svg.appendChild(svgEl('line', { x1: W/2, y1: 20, x2: W/2, y2: H-20, stroke: RULE, 'stroke-width': 0.8, 'stroke-dasharray':'2,3' }));
+
+    // centers of some encoded inputs
+    const centers = [
+      { x: -80, y: -40, color: ENCODER },
+      { x: 55, y: -55, color: DECODER },
+      { x: -45, y: 60, color: LATENT },
+      { x: 70, y: 45, color: '#6a2a86' },
+    ];
+    const sigma = +sigmaSlider.value / 100;
+
+    centers.forEach(c => {
+      const cx = W/2 + c.x;
+      const cy = H/2 + c.y;
+      if (type === 'vae') {
+        // draw the fuzzy ellipse (stddev)
+        const rx = 22 + sigma * 42;
+        const ry = 22 + sigma * 42;
+        // gradient-like fill with nested ellipses
+        for (let r = 3; r >= 1; r--) {
+          svg.appendChild(svgEl('ellipse', {
+            cx, cy, rx: rx * (r/3), ry: ry * (r/3),
+            fill: c.color, 'fill-opacity': 0.12 / r,
+            stroke: 'none',
+          }));
+        }
+        svg.appendChild(svgEl('ellipse', {
+          cx, cy, rx, ry,
+          fill: 'none', stroke: c.color, 'stroke-width': 1, 'stroke-dasharray': '3,2',
+        }));
+      }
+      // the mean / point
+      svg.appendChild(svgEl('circle', {
+        cx, cy, r: 4,
+        fill: c.color, stroke: INK, 'stroke-width': 0.5,
+      }));
+    });
+
+    // title
+    const t = svgEl('text', { x: W/2, y: 20, 'text-anchor':'middle', class:'label-text' });
+    t.textContent = type === 'ae' ? 'ONE POINT PER INPUT' : 'ONE DISTRIBUTION PER INPUT';
+    svg.appendChild(t);
+  }
+
+  function drawSamples() {
+    // flash some samples around each VAE center
+    const svg = svgVAE;
+    const W = 340, H = 240;
+    const sigma = +sigmaSlider.value / 100;
+    const centers = [
+      { x: -80, y: -40, color: ENCODER },
+      { x: 55, y: -55, color: DECODER },
+      { x: -45, y: 60, color: LATENT },
+      { x: 70, y: 45, color: '#6a2a86' },
+    ];
+    const samples = [];
+    centers.forEach(c => {
+      const rx = 22 + sigma * 42;
+      const ry = 22 + sigma * 42;
+      for (let k = 0; k < 5; k++) {
+        // gaussian sample via box-muller
+        const u1 = Math.random(), u2 = Math.random();
+        const z1 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2*Math.PI*u2);
+        const z2 = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2*Math.PI*u2);
+        const cx = W/2 + c.x + z1 * rx / 2.5;
+        const cy = H/2 + c.y + z2 * ry / 2.5;
+        const dot = svgEl('circle', { cx, cy, r: 3, fill: c.color, 'fill-opacity': 0.85, stroke: INK, 'stroke-width': 0.3 });
+        svg.appendChild(dot);
+        samples.push(dot);
+      }
+    });
+    setTimeout(() => samples.forEach(s => s.remove()), 900);
+  }
+
+  sigmaSlider.addEventListener('input', () => {
+    sigmaVal.textContent = (+sigmaSlider.value / 100).toFixed(2);
+    drawLatent(svgAE, 'ae');
+    drawLatent(svgVAE, 'vae');
+  });
+  sampleBtn.addEventListener('click', () => {
+    drawLatent(svgVAE, 'vae');
+    drawSamples();
+  });
+  drawLatent(svgAE, 'ae');
+  drawLatent(svgVAE, 'vae');
+  sigmaVal.textContent = (+sigmaSlider.value / 100).toFixed(2);
+})();
+
+/* =====================================================================
+   FIGURE V — Latent space walk with live decoding
+===================================================================== */
+(function(){
+  const svgL = document.getElementById('svgLatentSpace');
+  const svgD = document.getElementById('svgDecoded');
+  const readout = document.getElementById('walkReadout');
+
+  // four prototype shapes at corners
+  // each shape is a parametric closed curve generator: returns array of {r} at sampled angles
+  const NPTS = 64;
+
+  function protoCircle(angles) { return angles.map(a => 1.0); }
+  function protoStar(angles)   { return angles.map(a => 0.7 + 0.45 * Math.cos(5 * a)); }
+  function protoFlower(angles) { return angles.map(a => 0.6 + 0.55 * Math.abs(Math.cos(3 * a))); }
+  function protoCog(angles)    { return angles.map(a => 0.85 + 0.25 * Math.sign(Math.cos(8 * a))); }
+
+  const colors = [ENCODER, DECODER, LATENT, '#6a2a86'];
+  const protos = [protoCircle, protoStar, protoFlower, protoCog];
+  const protoNames = ['circle', 'star', 'flower', 'cog'];
+  // corners in latent: (-1,-1), (1,-1), (1,1), (-1,1) → circle, star, flower, cog
+  const cornerOrder = [0, 1, 2, 3]; // BL, BR, TR, TL
+
+  function drawLatent(zx, zy) {
+    clear(svgL);
+    const W = 340, H = 340;
+    // background frame
+    svgL.appendChild(svgEl('rect', { x: 30, y: 30, width: W-60, height: H-60, fill: 'none', stroke: RULE, 'stroke-width': 1 }));
+
+    // axes
+    svgL.appendChild(svgEl('line', { x1: W/2, y1: 30, x2: W/2, y2: H-30, stroke: RULE, 'stroke-width': 0.6, 'stroke-dasharray':'2,3' }));
+    svgL.appendChild(svgEl('line', { x1: 30, y1: H/2, x2: W-30, y2: H/2, stroke: RULE, 'stroke-width': 0.6, 'stroke-dasharray':'2,3' }));
+
+    // subtle grid of prototype hints
+    const cornerLabels = [
+      { x: 45, y: H - 40, text: protoNames[0], color: colors[0] },  // BL
+      { x: W - 45, y: H - 40, text: protoNames[1], color: colors[1] }, // BR
+      { x: W - 45, y: 50, text: protoNames[2], color: colors[2] }, // TR
+      { x: 45, y: 50, text: protoNames[3], color: colors[3] }, // TL
+    ];
+    cornerLabels.forEach(c => {
+      const t = svgEl('text', { x: c.x, y: c.y, 'text-anchor':'middle', class:'label-text', fill: c.color, 'font-weight': 600 });
+      t.textContent = c.text;
+      svgL.appendChild(t);
+    });
+
+    // axis labels
+    const zx1 = svgEl('text', { x: W/2, y: H - 15, 'text-anchor':'middle', class:'label-text' });
+    zx1.textContent = 'z₁';
+    svgL.appendChild(zx1);
+    const zy1 = svgEl('text', { x: 18, y: H/2 + 4, 'text-anchor':'middle', class:'label-text' });
+    zy1.textContent = 'z₂';
+    svgL.appendChild(zy1);
+
+    // plot some random training "points" in the latent to suggest density
+    // deterministic-ish so it doesn't flicker
+    const seed = 1234;
+    let s = seed;
+    const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    for (let i = 0; i < 80; i++) {
+      const px = (rnd() * 2 - 1);
+      const py = (rnd() * 2 - 1);
+      // corner-biased sampling (gaussian around each prototype with spread)
+      const corner = i % 4;
+      const cx = [-0.7, 0.7, 0.7, -0.7][corner];
+      const cy = [-0.7, -0.7, 0.7, 0.7][corner];
+      const nx = cx + (rnd() - 0.5) * 0.9;
+      const ny = cy + (rnd() - 0.5) * 0.9;
+      const plotX = W/2 + nx * (W/2 - 40);
+      const plotY = H/2 - ny * (H/2 - 40);
+      svgL.appendChild(svgEl('circle', {
+        cx: plotX, cy: plotY, r: 2.5,
+        fill: colors[corner],
+        'fill-opacity': 0.3,
+      }));
+    }
+
+    // cursor/position
+    const plotX = W/2 + zx * (W/2 - 40);
+    const plotY = H/2 - zy * (H/2 - 40);
+    svgL.appendChild(svgEl('circle', {
+      cx: plotX, cy: plotY, r: 10,
+      fill: 'none', stroke: INK, 'stroke-width': 1.5,
+    }));
+    svgL.appendChild(svgEl('circle', {
+      cx: plotX, cy: plotY, r: 4,
+      fill: INK,
+    }));
+  }
+
+  function decodeShape(zx, zy) {
+    // zx, zy in [-1, 1]
+    // bilinear weights for corners BL, BR, TR, TL
+    const u = (zx + 1) / 2; // 0..1
+    const v = (zy + 1) / 2; // 0..1
+    const w = [
+      (1 - u) * (1 - v), // BL
+      u * (1 - v),       // BR
+      u * v,             // TR
+      (1 - u) * v        // TL
+    ];
+
+    const angles = [];
+    for (let i = 0; i < NPTS; i++) angles.push(i / NPTS * Math.PI * 2);
+
+    const radii = angles.map(() => 0);
+    for (let c = 0; c < 4; c++) {
+      const proto = protos[c](angles);
+      for (let i = 0; i < NPTS; i++) {
+        radii[i] += w[c] * proto[i];
+      }
+    }
+
+    // blend color
+    let r=0, g=0, b=0;
+    const cols = colors.map(hex => {
+      const n = parseInt(hex.slice(1), 16);
+      return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+    });
+    for (let c = 0; c < 4; c++) {
+      r += w[c] * cols[c][0];
+      g += w[c] * cols[c][1];
+      b += w[c] * cols[c][2];
+    }
+    const color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+
+    return { angles, radii, color };
+  }
+
+  function drawDecoded(zx, zy) {
+    clear(svgD);
+    const W = 340, H = 340;
+    const cx = W/2, cy = H/2;
+    const baseR = 95;
+
+    // background
+    svgD.appendChild(svgEl('circle', {
+      cx, cy, r: baseR + 20,
+      fill: 'none', stroke: RULE, 'stroke-width': 0.6, 'stroke-dasharray':'2,3',
+    }));
+
+    const { angles, radii, color } = decodeShape(zx, zy);
+
+    // path
+    let d = '';
+    for (let i = 0; i < NPTS; i++) {
+      const x = cx + Math.cos(angles[i]) * radii[i] * baseR;
+      const y = cy + Math.sin(angles[i]) * radii[i] * baseR;
+      d += (i === 0 ? 'M' : 'L') + ` ${x.toFixed(2)} ${y.toFixed(2)} `;
+    }
+    d += 'Z';
+
+    svgD.appendChild(svgEl('path', {
+      d, fill: color, 'fill-opacity': 0.2, stroke: color, 'stroke-width': 2,
+      'stroke-linejoin':'round',
+    }));
+
+    // center dot
+    svgD.appendChild(svgEl('circle', { cx, cy, r: 2, fill: INK, 'fill-opacity': 0.4 }));
+
+    // coordinate label
+    const t = svgEl('text', { x: W/2, y: H - 20, 'text-anchor':'middle', class:'label-text', fill: color, 'font-weight': 600 });
+    t.textContent = `G(z)  ·  decoded sample`;
+    svgD.appendChild(t);
+  }
+
+  let zCur = { x: 0, y: 0 };
+  let dragging = false;
+
+  function getZFromEvent(e) {
+    const rect = svgL.getBoundingClientRect();
+    const px = ((e.clientX ?? e.touches?.[0]?.clientX) - rect.left) / rect.width * 340;
+    const py = ((e.clientY ?? e.touches?.[0]?.clientY) - rect.top) / rect.height * 340;
+    const zx = (px - 170) / (170 - 40);
+    const zy = -(py - 170) / (170 - 40);
+    return { x: Math.max(-1, Math.min(1, zx)), y: Math.max(-1, Math.min(1, zy)) };
+  }
+
+  function update(z) {
+    zCur = z;
+    drawLatent(z.x, z.y);
+    drawDecoded(z.x, z.y);
+    readout.innerHTML = `<span class="hl">z₁</span> = ${z.x.toFixed(2)} &nbsp; <span class="hl">z₂</span> = ${z.y.toFixed(2)} &nbsp; <span class="hl2">→ output morphs between four learned prototypes</span>`;
+  }
+
+  svgL.addEventListener('mousedown', e => { dragging = true; update(getZFromEvent(e)); });
+  svgL.addEventListener('mousemove', e => { if (dragging) update(getZFromEvent(e)); });
+  window.addEventListener('mouseup',  () => { dragging = false; });
+  svgL.addEventListener('touchstart', e => { dragging = true; update(getZFromEvent(e)); e.preventDefault(); }, { passive: false });
+  svgL.addEventListener('touchmove', e => { if (dragging) { update(getZFromEvent(e)); e.preventDefault(); } }, { passive: false });
+  window.addEventListener('touchend', () => { dragging = false; });
+
+  // initial draw
+  update({ x: 0, y: 0 });
+
+  // gentle auto-animation on load to hint at interactivity
+  let t = 0;
+  const hint = setInterval(() => {
+    t += 0.05;
+    if (t > 2.5 || dragging) { clearInterval(hint); if (!dragging) update({ x: 0, y: 0 }); return; }
+    update({ x: Math.sin(t) * 0.5, y: Math.cos(t * 1.3) * 0.5 });
+  }, 35);
+})();
+</script>
+</body>
+</html>
