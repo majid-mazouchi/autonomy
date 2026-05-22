@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Neural Networks — Deep Dive Reference</title>
+<style>
+:root {
+    --bg: #0b1020;
+    --panel: #111834;
+    --panel-2: #0f1530;
+    --border: #1f2a4a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --primary: #6366f1;
+    --primary-2: #818cf8;
+    --accent: #22d3ee;
+    --accent-2: #a5b4fc;
+    --good: #10b981;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --code-bg: #050914;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                 Ubuntu, Cantarell, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 100vh;
+    line-height: 1.65;
+    font-size: 15px;
+}
+aside {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--panel-2);
+    border-right: 1px solid var(--border);
+    padding: 24px 18px;
+}
+aside h1 {
+    font-size: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--primary-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+}
+aside .sub {
+    color: var(--muted); font-size: 12px; margin-bottom: 20px;
+}
+aside .backlink {
+    display: inline-block; padding: 6px 10px; margin-bottom: 18px;
+    font-size: 12px; color: var(--accent);
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.25);
+    border-radius: 6px; text-decoration: none;
+}
+aside .backlink:hover { background: rgba(34,211,238,0.15); }
+aside .group-title {
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    margin: 18px 0 8px 0; padding-left: 4px;
+}
+aside a.tocitem {
+    display: block; padding: 6px 10px; margin: 1px 0;
+    color: var(--text); text-decoration: none;
+    border-radius: 6px; font-size: 13px;
+    transition: background 0.15s;
+}
+aside a.tocitem .num {
+    display: inline-block; color: var(--muted);
+    font-size: 10px; min-width: 22px; margin-right: 2px;
+}
+aside a.tocitem:hover { background: var(--panel); color: var(--accent); }
+aside a.tocitem.active { background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(34,211,238,0.12));
+    color: var(--text); border-left: 2px solid var(--accent); padding-left: 8px; }
+main {
+    padding: 48px 56px 120px 56px;
+    max-width: 960px;
+}
+header.page {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px; margin-bottom: 40px;
+}
+header.page h1 {
+    font-size: 34px; margin: 0 0 8px 0;
+    background: linear-gradient(135deg, var(--accent), var(--primary-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+header.page p { color: var(--muted); margin: 0; }
+section.deep { margin-bottom: 80px; scroll-margin-top: 20px; }
+section.deep h2 {
+    font-size: 26px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    letter-spacing: -0.01em;
+    margin-top: 0;
+}
+section.deep h3 {
+    font-size: 16px; color: var(--accent);
+    margin-top: 28px; margin-bottom: 8px;
+    letter-spacing: 0.02em;
+}
+section.deep p { margin: 10px 0; }
+section.deep p.lede {
+    font-size: 16px; color: var(--text);
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(34,211,238,0.05));
+    border-left: 3px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0 20px 0;
+}
+section.deep ul { padding-left: 22px; color: var(--text); }
+section.deep li { margin: 6px 0; }
+section.deep li strong { color: var(--accent-2); }
+code {
+    background: var(--code-bg);
+    color: #fbbf24;
+    padding: 2px 6px; border-radius: 4px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.92em;
+}
+pre {
+    background: var(--code-bg);
+    padding: 14px 18px; border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #e2e8f0;
+    margin: 14px 0;
+}
+pre code { background: transparent; color: inherit; padding: 0; }
+.math {
+    background: var(--code-bg);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    text-align: center;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 15px;
+    margin: 14px auto;
+    color: var(--accent);
+}
+.trap-box {
+    margin-top: 22px;
+    background: rgba(239,68,68,0.06);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+.trap-box h4 {
+    margin: 0 0 8px 0; color: var(--bad); font-size: 14px;
+    letter-spacing: 0.02em;
+}
+.trap-box ul { padding-left: 18px; font-size: 14px; }
+.note-box {
+    margin-top: 22px;
+    background: rgba(34,211,238,0.06);
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+.note-box h4 {
+    margin: 0 0 8px 0; color: var(--accent); font-size: 14px;
+    letter-spacing: 0.02em;
+}
+.note-box ul { padding-left: 18px; font-size: 14px; }
+.kv {
+    display: grid; grid-template-columns: 200px 1fr;
+    gap: 8px 16px; margin: 14px 0;
+    font-size: 14px;
+}
+.kv .k { color: var(--muted); font-weight: 500; }
+table.compare {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px; margin: 16px 0;
+}
+table.compare th, table.compare td {
+    text-align: left; padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+table.compare th {
+    color: var(--accent); font-weight: 600;
+    border-bottom: 2px solid var(--border);
+}
+table.compare tr:hover td { background: rgba(99,102,241,0.04); }
+hr.sep {
+    border: none; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 30px 0;
+}
+.mini-diagram {
+    display: block; margin: 18px auto;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    white-space: pre;
+    color: var(--text);
+    line-height: 1.4;
+    overflow-x: auto;
+}
+@media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<aside>
+    <h1>Deep Dive</h1>
+    <div class="sub">Long-form reference for each cheat-sheet term</div>
+    <a href="/autonomy/" class="backlink">← Back to Autonomy</a>
+    <a href="neural-networks-interactive-concepts.html" class="backlink" style="margin-left: 6px;">← Interactive page</a>
+
+    <div class="group-title">Data & Evaluation</div>
+    <a href="#splits" class="tocitem"><span class="num">01</span>Train / Val / Test splits</a>
+    <a href="#preprocessing" class="tocitem"><span class="num">02</span>Signal preprocessing</a>
+    <a href="#sg" class="tocitem"><span class="num">03</span>Savitzky–Golay filter</a>
+    <a href="#outliers" class="tocitem"><span class="num">04</span>Outlier removal</a>
+    <a href="#grouping" class="tocitem"><span class="num">05</span>Temperature grouping</a>
+    <a href="#under" class="tocitem"><span class="num">06</span>Underfitting</a>
+    <a href="#over" class="tocitem"><span class="num">07</span>Overfitting</a>
+
+    <div class="group-title">Training</div>
+    <a href="#gd" class="tocitem"><span class="num">08</span>Gradient descent</a>
+    <a href="#lr" class="tocitem"><span class="num">09</span>Learning rate</a>
+    <a href="#reg" class="tocitem"><span class="num">10</span>Regularization</a>
+    <a href="#hparam" class="tocitem"><span class="num">11</span>Hyperparameter search</a>
+    <a href="#backprop" class="tocitem"><span class="num">12</span>Backpropagation</a>
+
+    <div class="group-title">Architectures</div>
+    <a href="#mlp" class="tocitem"><span class="num">13</span>Feedforward NN</a>
+    <a href="#rnn" class="tocitem"><span class="num">14</span>Recurrent NN</a>
+
+    <div class="group-title">Compression</div>
+    <a href="#quant" class="tocitem"><span class="num">15</span>Quantization</a>
+    <a href="#prune" class="tocitem"><span class="num">16</span>Pruning</a>
+    <a href="#kd" class="tocitem"><span class="num">17</span>Knowledge distillation</a>
+    <a href="#edgestack" class="tocitem"><span class="num">18</span>Compression stack for edge</a>
+</aside>
+
+<main>
+<header class="page">
+    <h1>Neural Networks — Deep Dive Reference</h1>
+    <p style="margin-bottom: 8px;">By <strong style="color: var(--text);">Majid Mazouchi</strong></p>
+    <p>Companion to the interactive neural networks page. Each term below goes deeper: intuition, math, key variants, practical details, and the common pitfalls that go with them.</p>
+</header>
+
+<!-- ====== 01 · SPLITS ====== -->
+<section class="deep" id="splits">
+<h2>01 · Train / Validation / Test Splits</h2>
+<p class="lede">Three disjoint subsets of your data, each with a strictly different role. The core experimental protocol of supervised ML — get this wrong and nothing downstream is trustworthy.</p>
+
+<h3>The three roles</h3>
+<div class="kv">
+    <div class="k">Training set</div>
+    <div>Used to fit weights via gradient descent. The model sees these labels directly.</div>
+    <div class="k">Validation set</div>
+    <div>Used to tune hyperparameters (LR, depth, regularization, early-stop point, architecture choice). The model never trains on it, but you <em>do</em> make decisions based on it — so it gets "contaminated" by your choices over time.</div>
+    <div class="k">Test set</div>
+    <div>Used <strong>once</strong>, at the very end, to produce the honest reported number. If you look at it and change anything, it's no longer a test set — it's another validation set.</div>
+</div>
+
+<h3>Typical ratios</h3>
+<p>For medium datasets (10³–10⁵ samples): 70/15/15 or 80/10/10 are standard. For large datasets (&gt;10⁶), the val and test sets can be proportionally tiny — 98/1/1 is fine because 10,000 test samples already give very tight confidence intervals. For small datasets, use k-fold cross-validation instead of a single held-out set.</p>
+
+<h3>Stratified splitting</h3>
+<p>For classification with imbalanced classes, random splitting can put all minority-class samples in the training set by chance. <code>stratify=y</code> in <code>sklearn.train_test_split</code> preserves class proportions across splits. Do this by default for any classification task.</p>
+
+<h3>Cross-validation</h3>
+<p>Instead of one fixed split, rotate through k folds:</p>
+<ul>
+    <li><strong>k-fold CV</strong> — split into k equal chunks, train on k-1, validate on the remaining one, repeat k times, average results. k=5 and k=10 are typical.</li>
+    <li><strong>Stratified k-fold</strong> — same, but preserves class balance per fold.</li>
+    <li><strong>Time-series CV</strong> — expanding window or rolling window. <em>Never</em> shuffle time-series data across splits — it leaks the future into the past.</li>
+    <li><strong>Group k-fold</strong> — when samples share an identity (same patient, same vehicle, same operating run), put all samples from one group entirely in one fold.</li>
+    <li><strong>Nested CV</strong> — outer loop for honest test scoring, inner loop for hyperparameter tuning. The gold standard for small datasets but computationally expensive.</li>
+</ul>
+
+<div class="trap-box">
+<h4>🚨 Leakage — the #1 silent killer</h4>
+<ul>
+    <li><strong>Feature leakage</strong> — including a feature that's a proxy for the label (e.g., a post-hoc status field). Trivially inflates metrics.</li>
+    <li><strong>Temporal leakage</strong> — training on data from the future. Common in time-series: fitting a scaler on the full dataset leaks future statistics.</li>
+    <li><strong>Duplicate leakage</strong> — near-duplicate samples in both train and test (same image under different file names, same waveform with a different timestamp).</li>
+    <li><strong>Subject leakage</strong> — same person / vehicle / sensor appears in both train and test. The model learns the subject, not the task.</li>
+    <li><strong>Preprocessing leakage</strong> — computing the mean/std on the whole dataset then splitting. The test-set statistics just leaked into training.</li>
+</ul>
+</div>
+
+<h3>For motor control / automotive contexts</h3>
+<p>Operating conditions are correlated across splits by default. If your dataset contains 50 driving cycles, don't shuffle samples — split by cycle. If the data spans multiple vehicles or temperatures, stratify by those regimes, or evaluate held-out-regime generalization explicitly. A model that scores 99% on a random split can collapse at 60% on an out-of-regime split — that gap is the real story.</p>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 02 · PREPROCESSING ====== -->
+<section class="deep" id="preprocessing">
+<h2>02 · Signal Preprocessing</h2>
+<p class="lede">Garbage in, garbage out. Every real-world signal needs cleaning before a model sees it. This is the stage where most projects silently succeed or fail.</p>
+
+<h3>The canonical pipeline</h3>
+<p>In order, for raw sensor data:</p>
+<ol>
+    <li><strong>Anti-alias filter</strong> — before any downsampling. Otherwise high-frequency content aliases down into your band of interest.</li>
+    <li><strong>DC removal / detrending</strong> — subtract the mean, a linear fit, or a slow-moving baseline (high-pass filter with very low cutoff).</li>
+    <li><strong>Outlier detection and handling</strong> — z-score, IQR, Hampel, or model-based residuals.</li>
+    <li><strong>Smoothing</strong> — Savitzky–Golay when peaks matter, Kalman when you have a model.</li>
+    <li><strong>Normalization</strong> — z-score or min–max, <strong>fit on training data only</strong>.</li>
+    <li><strong>Feature engineering</strong> — FFT bins, rolling statistics, domain-specific transforms (Park/Clarke for three-phase motors, envelope detection for bearings).</li>
+    <li><strong>Regime labeling</strong> — tag each sample with operating-point metadata for stratified validation.</li>
+</ol>
+
+<h3>Normalization methods</h3>
+<table class="compare">
+<tr><th>Method</th><th>Formula</th><th>Robust to outliers</th><th>When to use</th></tr>
+<tr><td>Z-score</td><td>(x − μ) / σ</td><td>No</td><td>Data is approximately Gaussian; default choice</td></tr>
+<tr><td>Min–max</td><td>(x − min) / (max − min)</td><td>No</td><td>Bounded range required (e.g., image pixels to [0,1])</td></tr>
+<tr><td>Robust</td><td>(x − median) / IQR</td><td>Yes</td><td>Heavy-tailed distributions; known outliers</td></tr>
+<tr><td>Unit-norm</td><td>x / ‖x‖₂</td><td>No</td><td>Direction matters more than magnitude (cosine similarity)</td></tr>
+</table>
+
+<h3>Feature engineering — motor-control examples</h3>
+<ul>
+    <li><strong>Park transform</strong> — rotate three-phase (a,b,c) currents into a rotating (d,q) frame aligned with the rotor. The AC problem becomes a DC problem.</li>
+    <li><strong>FFT-bin features</strong> — specific harmonic amplitudes (1×, 2×, 6× electrical order) are diagnostic for NVH and rotor eccentricity.</li>
+    <li><strong>Envelope / Hilbert transform</strong> — for bearing fault detection, the amplitude envelope of high-frequency content reveals the bearing characteristic frequencies.</li>
+    <li><strong>Rolling stats</strong> — 100-ms rolling mean, std, skew, kurtosis of a torque signal to detect transients.</li>
+</ul>
+
+<div class="trap-box">
+<h4>🚨 Traps</h4>
+<ul>
+    <li>Fitting a scaler on train+val combined leaks statistics from val.</li>
+    <li>Decimating before anti-aliasing produces irreversible aliasing artifacts.</li>
+    <li>Replacing outliers with the mean biases the distribution and can break downstream features (e.g., rolling std).</li>
+    <li>Normalizing per-sample when you should normalize per-feature (or vice versa) — know your axis conventions.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 03 · SG FILTER ====== -->
+<section class="deep" id="sg">
+<h2>03 · Savitzky–Golay Filter</h2>
+<p class="lede">A local polynomial least-squares smoother that preserves peaks, amplitudes, and derivatives — what you want when the features of the signal carry information, not just its low-frequency trend.</p>
+
+<h3>How it works</h3>
+<p>For every output sample, SG takes a window of 2k+1 neighboring input samples, fits a polynomial of degree P ≤ 2k in a least-squares sense, and sets the output equal to the polynomial's value at the center of the window:</p>
+<div class="math">ŷ[i] = Σ<sub>j=-k</sub><sup>k</sup> c<sub>j</sub> · y[i + j]</div>
+<p>where the coefficients c<sub>j</sub> come from the first row of (AᵀA)⁻¹Aᵀ and A is the Vandermonde matrix whose rows are [1, j, j², …, j<sup>P</sup>]. The magic is that for any fixed window size W and polynomial order P, the coefficients are <em>constant</em> — SG reduces to a FIR filter with a fixed impulse response.</p>
+
+<h3>Key parameters</h3>
+<div class="kv">
+    <div class="k">Window size W</div>
+    <div>Must be odd. Larger W → more smoothing, more lag (if non-causal), more distortion near rapidly varying features. Typical: 5–51 for sensor data.</div>
+    <div class="k">Polynomial order P</div>
+    <div>Must satisfy P &lt; W. Higher P preserves more of the signal's shape but attenuates less noise. Typical: P = 2 or 3. P = 0 is just a moving average.</div>
+    <div class="k">Derivative order</div>
+    <div>SG can also return the m<sup>th</sup> derivative of the fitted polynomial — a smooth derivative estimate. This is how you differentiate a noisy position signal into a usable velocity signal.</div>
+</div>
+
+<h3>SG vs moving average</h3>
+<p>A plain moving average is equivalent to SG with P = 0 — it fits a constant (the mean) to the window. It attenuates peaks because a peak is, by definition, deviation from a local mean. SG with P ≥ 2 fits curvature, so the output polynomial bends up at a peak the way the data does, and the peak survives.</p>
+
+<h3>Frequency response</h3>
+<p>SG's magnitude response is flatter near DC than a boxcar moving average and has milder ripple in the passband, but worse stopband rejection. If you need clean stopband rejection, a Butterworth or Chebyshev IIR is better. If you need to preserve waveform shape, SG wins.</p>
+
+<h3>Real-time use</h3>
+<p>The standard symmetric SG introduces W/2 samples of group delay — if that matters, you need a <strong>causal SG</strong> (window uses only past samples, polynomial extrapolated to the current sample). Causal SG has worse noise rejection but zero lag; it's a standard trick in motor control observers.</p>
+
+<h3>Edge handling</h3>
+<p>At the first and last W/2 samples, a symmetric window runs off the edge. Options: pad with the edge value (simple, biases the ends), mirror the signal (smooth but adds a spurious reflection), extrapolate via the local polynomial (best quality, more compute), or just return zeros at the edges (simplest, loses samples).</p>
+
+<div class="note-box">
+<h4>💡 In practice</h4>
+<ul>
+    <li>Start with W=11, P=3 for general-purpose smoothing. Sweep to taste.</li>
+    <li>For peak detection followed by smoothing, use SG. For baseline removal, use a high-pass filter or a much longer SG window subtracted from the signal.</li>
+    <li>Implementations: <code>scipy.signal.savgol_filter</code>, MATLAB <code>sgolayfilt</code>. Both also support derivative output via <code>deriv=</code>.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 04 · OUTLIERS ====== -->
+<section class="deep" id="outliers">
+<h2>04 · Outlier Removal</h2>
+<p class="lede">Not every weird sample is a problem — but some are sensor glitches, transcription errors, or events so rare they'll dominate a loss function. The art is distinguishing signal from noise.</p>
+
+<h3>Detection methods</h3>
+<table class="compare">
+<tr><th>Method</th><th>How it flags</th><th>Assumption</th><th>Robust to clusters?</th></tr>
+<tr><td>Z-score</td><td>|x − μ| / σ &gt; τ</td><td>Gaussian</td><td>No</td></tr>
+<tr><td>IQR / Tukey</td><td>Outside [Q1 − 1.5·IQR, Q3 + 1.5·IQR]</td><td>Reasonably symmetric</td><td>Somewhat</td></tr>
+<tr><td>Hampel</td><td>|x − median| / (1.4826·MAD) &gt; τ</td><td>Symmetric, moderate tails</td><td>Yes</td></tr>
+<tr><td>Isolation Forest</td><td>Average isolation depth in random trees</td><td>None (unsupervised)</td><td>Yes</td></tr>
+<tr><td>LOF</td><td>Local density vs neighbors</td><td>Density-based</td><td>Yes</td></tr>
+<tr><td>Model residuals</td><td>Large residual from a first-pass model</td><td>First model fits "normal" data</td><td>Yes</td></tr>
+</table>
+
+<h3>Z-score breakdown — why it fails on clusters</h3>
+<p>Consider 1000 clean samples around 0 plus 50 spike outliers near 10. The mean shifts to ~0.5 and the std inflates dramatically. Real outliers now have z-scores of ~3–4, marginal under a 3σ threshold. Meanwhile legitimate low points get flagged. This is the "breakdown point" problem — classical z-score has 0% breakdown. Hampel uses median and MAD, which have 50% breakdown — up to half your data can be outliers and the estimator still works.</p>
+
+<h3>Removal vs flagging vs winsorizing</h3>
+<ul>
+    <li><strong>Remove</strong> — drop the sample. Simple; loses information; changes the sample count.</li>
+    <li><strong>Flag</strong> — keep the value, add a boolean "is_outlier" feature. The model can learn to use or ignore it.</li>
+    <li><strong>Winsorize</strong> — clip to a threshold (e.g., the 99th percentile). Preserves sample count, bounds influence. Good default for heavy-tailed but real phenomena.</li>
+    <li><strong>Impute</strong> — replace with the median or a model-based estimate. Use sparingly; can mask real signal.</li>
+</ul>
+
+<h3>Domain-aware handling</h3>
+<p>A current spike in a PMSM could be a sensor glitch or a real fault. A 500°C temperature reading on a silicon die is impossible; a 500°C reading on a combustion chamber is Tuesday. Always apply domain-specific bounds first (the "possible reading" filter), then statistical methods for whatever's left.</p>
+
+<div class="trap-box">
+<h4>🚨 Traps</h4>
+<ul>
+    <li>Computing outlier thresholds on the full dataset leaks test statistics into training.</li>
+    <li>Aggressive removal on small datasets creates biased estimates.</li>
+    <li>Setting a single global threshold when the noise level is regime-dependent (e.g., high-speed samples are intrinsically noisier) — use per-regime thresholds.</li>
+    <li>Calling "rare but real" events outliers and throwing them out. In fault detection, rare events are the whole point.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 05 · TEMPERATURE GROUPING ====== -->
+<section class="deep" id="grouping">
+<h2>05 · Temperature Grouping (Regime Binning)</h2>
+<p class="lede">Physical systems are not i.i.d. across operating conditions. Binning by temperature — or any regime variable — lets you measure, validate, and train in a way that respects the underlying physics.</p>
+
+<h3>Why it matters</h3>
+<p>A dataset drawn from a motor operating at 20°C, 60°C, and 100°C mixes three physically distinct regimes: winding resistance R rises, magnet flux ψ<sub>m</sub> drops, viscosity in bearings changes, sensor offsets drift. A single global model trained on the pool implicitly averages these effects. Its overall RMSE might be excellent while its per-regime error at 100°C is catastrophic — and you won't notice unless you bin.</p>
+
+<h3>Binning methods</h3>
+<ul>
+    <li><strong>Equal-width</strong> — fixed intervals (e.g., 20°C bins). Easiest to interpret; can leave bins empty.</li>
+    <li><strong>Equal-frequency (quantile)</strong> — bins contain the same number of samples. Better statistical power per bin; bin edges move with the data.</li>
+    <li><strong>K-means of the regime variable</strong> — data-driven clusters. Best when the regime variable has natural clusters.</li>
+    <li><strong>Domain-defined</strong> — cold (&lt; 40°C), nominal (40–80°C), hot (&gt; 80°C). Aligns with engineering intuition and derating tables.</li>
+</ul>
+
+<h3>What to do with bins</h3>
+<ul>
+    <li><strong>Per-bin statistics</strong> — mean, std, min, max, distribution shape. Answers "is my training data balanced across conditions?"</li>
+    <li><strong>Stratified train/val/test splits</strong> — ensure every bin is represented in every split, so test-set metrics are honest.</li>
+    <li><strong>Stratified validation reporting</strong> — always report per-regime error alongside overall error.</li>
+    <li><strong>Regime as a feature</strong> — one-hot encode the bin (or feed the continuous regime variable directly). Lets the model condition its predictions on the regime.</li>
+    <li><strong>Specialist models per bin</strong> — mixture-of-experts style. Train a dedicated model per regime with a gating function on the regime variable. Overkill for most problems but powerful when regimes are physically very distinct.</li>
+</ul>
+
+<h3>Connection to other techniques</h3>
+<p>Regime binning is essentially supervised clustering. It's a structured version of what Gaussian Mixture Models or hierarchical clustering discover automatically. When you know the physics, always impose the structure — it's more sample-efficient than making the model rediscover it.</p>
+
+<div class="note-box">
+<h4>💡 In practice</h4>
+<ul>
+    <li>For motor control: bin by (speed, torque, temperature) jointly — a 3D operating-point map. This is already how you'd look at a flux map; make your training and validation protocol match.</li>
+    <li>Start with 3–5 bins per dimension. More bins = more statistical noise per bin; fewer bins = mixed regimes within a bin.</li>
+    <li>Report per-bin residuals as a heatmap during debugging. It instantly reveals which part of the operating space your model is failing on.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 06 · UNDERFITTING ====== -->
+<section class="deep" id="under">
+<h2>06 · Underfitting</h2>
+<p class="lede">High bias. The model is fundamentally too simple — or too constrained — to capture the patterns in the data. It can't even do well on the data it was trained on.</p>
+
+<h3>Symptoms</h3>
+<ul>
+    <li>Training loss is high and plateaus early.</li>
+    <li>Validation loss is also high, and close to the training loss (small train-val gap).</li>
+    <li>The model's predictions look systematically biased — e.g., it predicts the mean for every input.</li>
+    <li>Residuals show structure (not just noise) — if you plot prediction error versus input, you see patterns.</li>
+</ul>
+
+<h3>Causes and fixes</h3>
+<table class="compare">
+<tr><th>Cause</th><th>Fix</th></tr>
+<tr><td>Model has insufficient capacity</td><td>Add layers, add neurons, use a richer architecture</td></tr>
+<tr><td>Features are insufficient</td><td>Add features, do feature engineering, incorporate domain knowledge</td></tr>
+<tr><td>Too much regularization</td><td>Reduce λ (L1/L2), reduce dropout rate</td></tr>
+<tr><td>Learning rate too high (can't converge)</td><td>Reduce LR, use a warmup schedule</td></tr>
+<tr><td>Learning rate too low (gets stuck)</td><td>Increase LR, use a cyclic schedule</td></tr>
+<tr><td>Poor initialization</td><td>He / Xavier initialization; load a pretrained backbone</td></tr>
+<tr><td>Wrong loss function for the task</td><td>Check objective matches the problem (e.g., regression vs classification)</td></tr>
+<tr><td>Insufficient training</td><td>Train for more epochs; watch the training loss still decreasing</td></tr>
+</table>
+
+<h3>Diagnosing the cause</h3>
+<p>The standard test is to train the same architecture on a tiny subset (say 32 samples) and see if it can perfectly overfit it. If yes, the architecture is capable and the problem is optimization or regularization. If no, the architecture or representation is too weak. This "can my model memorize a batch?" test is one of the first things to run on any new setup.</p>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 07 · OVERFITTING ====== -->
+<section class="deep" id="over">
+<h2>07 · Overfitting</h2>
+<p class="lede">High variance. The model has too much capacity relative to the data, and it memorizes the noise in the training set instead of learning the underlying signal.</p>
+
+<h3>Symptoms</h3>
+<ul>
+    <li>Training loss keeps decreasing.</li>
+    <li>Validation loss starts decreasing, then <em>increases</em> — the classic U-shape.</li>
+    <li>Large gap between training and validation accuracy.</li>
+    <li>Predictions are wildly confident even when wrong.</li>
+    <li>Small perturbations to the input produce large changes in the output (low Lipschitz).</li>
+</ul>
+
+<h3>The bias-variance decomposition</h3>
+<p>For squared-error loss, the expected generalization error decomposes as:</p>
+<div class="math">E[(ŷ − y)²] = Bias² + Variance + Irreducible noise</div>
+<p>Underfitting = high bias. Overfitting = high variance. Increasing model capacity pushes bias down but variance up. More data reduces variance without increasing bias. Regularization trades some variance for some bias. The "sweet spot" is model-and-data dependent; that's what validation metrics are for.</p>
+
+<h3>Fixes, in order of cost</h3>
+<ol>
+    <li><strong>More data</strong> — always the best fix. Data augmentation gets you part of the way for free.</li>
+    <li><strong>Early stopping</strong> — free; just stop at validation minimum.</li>
+    <li><strong>Regularization</strong> — L2, L1, dropout, weight decay.</li>
+    <li><strong>Smaller model</strong> — reduce depth, width, or switch to a simpler architecture.</li>
+    <li><strong>Label smoothing</strong> — prevents overconfident outputs.</li>
+    <li><strong>Ensembling</strong> — average multiple models to reduce variance.</li>
+    <li><strong>Noise injection</strong> — add noise to inputs, weights, or activations during training.</li>
+</ol>
+
+<div class="trap-box">
+<h4>🚨 Overfitting can be subtle</h4>
+<ul>
+    <li><strong>Overfitting to the validation set</strong> — after 500 hyperparameter trials, your val score is optimistic. This is why you also need a held-out test set.</li>
+    <li><strong>Selection bias</strong> — reporting the best of many runs. Always report mean ± std across seeds.</li>
+    <li><strong>Distribution shift masquerading as overfitting</strong> — train–val gap can be caused by genuine distribution mismatch rather than capacity. Fix the data, not the regularizer.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 08 · GRADIENT DESCENT ====== -->
+<section class="deep" id="gd">
+<h2>08 · Gradient Descent</h2>
+<p class="lede">The optimization engine of almost all deep learning. Iteratively move the weights opposite to the gradient of the loss.</p>
+
+<h3>Update rule</h3>
+<div class="math">θ<sub>t+1</sub> = θ<sub>t</sub> − η · ∇<sub>θ</sub>L(θ<sub>t</sub>)</div>
+<p>where η is the learning rate and ∇<sub>θ</sub>L is the gradient of the loss with respect to the parameters. This is the "steepest descent" update — locally, it's the direction that most rapidly decreases the loss.</p>
+
+<h3>Variants</h3>
+<table class="compare">
+<tr><th>Variant</th><th>Gradient uses</th><th>Tradeoff</th></tr>
+<tr><td>Batch GD</td><td>All training samples</td><td>Smooth but slow; memory-intensive</td></tr>
+<tr><td>SGD</td><td>One sample at a time</td><td>Very noisy; can escape saddle points; slow per-epoch</td></tr>
+<tr><td>Mini-batch SGD</td><td>Batch of 32–2048 samples</td><td>The practical default. Good compromise</td></tr>
+</table>
+
+<h3>Beyond vanilla SGD</h3>
+<ul>
+    <li><strong>Momentum</strong> — add a running average of past gradients. Accelerates convergence in ravines; smooths oscillation.
+<div class="math">v<sub>t+1</sub> = βv<sub>t</sub> + ∇L;&nbsp;&nbsp;θ<sub>t+1</sub> = θ<sub>t</sub> − ηv<sub>t+1</sub></div>
+Typical β = 0.9.</li>
+    <li><strong>Nesterov momentum</strong> — "look ahead" variant. Evaluate the gradient at θ + βv rather than at θ. Slightly better convergence on convex problems; marginal on deep nets.</li>
+    <li><strong>AdaGrad</strong> — per-parameter LR that shrinks with the accumulated squared gradient. Great for sparse features; stalls on deep nets as the LR decays to zero.</li>
+    <li><strong>RMSProp</strong> — AdaGrad with an exponential moving average instead of a running sum. Fixes the stall.</li>
+    <li><strong>Adam</strong> — RMSProp + momentum + bias correction.
+<pre><code>m = β₁·m + (1 − β₁)·g         # first moment
+v = β₂·v + (1 − β₂)·g²        # second moment
+m̂ = m / (1 − β₁ᵗ)            # bias correction
+v̂ = v / (1 − β₂ᵗ)
+θ = θ − η · m̂ / (√v̂ + ε)</code></pre>
+Defaults: β₁=0.9, β₂=0.999, ε=10⁻⁸. LR typically 1e-3 to 1e-4.</li>
+    <li><strong>AdamW</strong> — decoupled weight decay. The weight-decay term is applied directly to θ, not through the gradient. This matters because Adam's adaptive denominator distorts L2 regularization. Always prefer AdamW over Adam with weight decay.</li>
+    <li><strong>LAMB / LARS</strong> — layer-wise scaling for very large batch sizes (&gt; 8k). Standard for training large transformers.</li>
+</ul>
+
+<h3>Optimization landscape challenges</h3>
+<ul>
+    <li><strong>Saddle points</strong> — far more common than local minima in high dimensions. SGD's noise helps escape them.</li>
+    <li><strong>Plateaus</strong> — flat regions where gradients vanish. Adaptive methods help.</li>
+    <li><strong>Ravines</strong> — steep in one direction, shallow in another. Momentum is essential here.</li>
+    <li><strong>Exploding gradients</strong> — solve with gradient clipping (norm or value).</li>
+    <li><strong>Vanishing gradients</strong> — solve with residual connections, careful initialization (He/Xavier), batch norm, or activation choice (ReLU family instead of sigmoid/tanh).</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 09 · LEARNING RATE ====== -->
+<section class="deep" id="lr">
+<h2>09 · Learning Rate</h2>
+<p class="lede">The single most important hyperparameter. If you can only tune one thing, tune this. Too large and training diverges; too small and it crawls or stalls.</p>
+
+<h3>Intuition</h3>
+<p>The loss landscape is high-dimensional and curved. The learning rate controls how big a step you take along the gradient. In a smooth bowl-shaped loss, a large LR overshoots; a small LR takes forever. In a narrow ravine, a large LR bounces off the walls. The ideal LR depends on the local curvature — which is why adaptive optimizers exist, and why scheduling matters.</p>
+
+<h3>How to find a good starting LR</h3>
+<ul>
+    <li><strong>LR range test</strong> (Smith 2017) — start with a tiny LR (e.g., 10⁻⁷), double it every few iterations, record loss. Plot loss vs LR. The loss decreases sharply, hits a minimum, then diverges. Pick an LR roughly an order of magnitude below where loss starts climbing.</li>
+    <li><strong>Default guesses by optimizer</strong> — Adam: 1e-3 or 3e-4. SGD with momentum: 1e-1 or 1e-2 (higher because no adaptive denominator). Fine-tuning from pretrained weights: 10–100× smaller than from-scratch.</li>
+</ul>
+
+<h3>Scheduling — mandatory in practice</h3>
+<table class="compare">
+<tr><th>Schedule</th><th>Shape</th><th>When to use</th></tr>
+<tr><td>Constant</td><td>Flat</td><td>Debugging; almost never in production</td></tr>
+<tr><td>Step decay</td><td>Cliff drops every N epochs</td><td>Computer vision legacy; interpretable</td></tr>
+<tr><td>Exponential</td><td>Smooth geometric decay</td><td>General-purpose</td></tr>
+<tr><td>Cosine annealing</td><td>Half-cosine down to zero</td><td>Default for most modern nets</td></tr>
+<tr><td>Warmup + cosine</td><td>Linear ramp then cosine</td><td>Transformers, large batches, deep nets</td></tr>
+<tr><td>SGDR (warm restarts)</td><td>Periodic cosine restarts</td><td>Ensembling snapshots; exploring basins</td></tr>
+<tr><td>Reduce on plateau</td><td>Drop when val loss stalls</td><td>Reactive; good when you don't know epoch count</td></tr>
+<tr><td>Cyclical LR (CLR)</td><td>Triangular waves</td><td>Alternative to SGDR; exploration-heavy</td></tr>
+</table>
+
+<h3>Linear scaling rule</h3>
+<p>When multiplying the batch size by k, multiply the LR by k (Goyal et al. 2017). This keeps the effective step size per epoch roughly constant. Valid up to very large batch sizes (~8k); beyond that, you need warmup or LARS to prevent early divergence.</p>
+
+<h3>LR × optimizer interaction</h3>
+<ul>
+    <li>Adam's effective per-parameter LR is already scaled by the inverse square root of the accumulated squared gradient — so a global LR schedule matters less for Adam than for SGD, but still matters.</li>
+    <li>Very low LR with Adam can let the denominator blow up early (tiny gradients) then stall. Small warmup helps.</li>
+    <li>SGD benefits strongly from cosine annealing. Adam benefits modestly.</li>
+</ul>
+
+<div class="note-box">
+<h4>💡 A common recipe that just works</h4>
+<ul>
+    <li>AdamW optimizer, LR = 3e-4, weight decay = 0.01.</li>
+    <li>Linear warmup for 500–2000 steps, then cosine decay to zero.</li>
+    <li>Gradient clipping at norm 1.0.</li>
+    <li>Adjust LR ±3× based on LR range test output.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 10 · REGULARIZATION ====== -->
+<section class="deep" id="reg">
+<h2>10 · Regularization</h2>
+<p class="lede">Anything that discourages the model from memorizing the training set. Most regularizers work by imposing a prior — on the weights, on the activations, or on the data itself.</p>
+
+<h3>Weight-space regularization</h3>
+<p>Add a penalty on the weights to the loss:</p>
+<div class="math">L<sub>total</sub> = L<sub>data</sub>(w) + λ · R(w)</div>
+<ul>
+    <li><strong>L2 (Ridge / weight decay)</strong> — R(w) = ½‖w‖². Gaussian prior on weights. Pulls weights smoothly toward zero; solutions stay smooth. Nearly always on; λ typically 1e-5 to 1e-3.</li>
+    <li><strong>L1 (Lasso)</strong> — R(w) = ‖w‖₁. Laplace prior. Pushes many weights to <em>exactly</em> zero → sparsity and implicit feature selection. Use when you believe only a subset of inputs matter.</li>
+    <li><strong>Elastic Net</strong> — α‖w‖₁ + (1−α)½‖w‖². Combines L1's sparsity with L2's stability. Standard in classical ML, less common in deep learning.</li>
+</ul>
+
+<h3>L2 vs weight decay in Adam</h3>
+<p>For SGD, adding λ‖w‖² to the loss and subtracting λw from the gradient are mathematically identical. For Adam, they're <em>not</em> — the adaptive denominator in Adam distorts the L2 gradient, effectively scaling the regularization per-parameter. <strong>AdamW</strong> fixes this by applying weight decay directly to the weights, outside the adaptive machinery. Always use AdamW over Adam + L2.</p>
+
+<h3>Dropout</h3>
+<p>During training, independently drop each activation with probability p. At inference, keep all activations and scale by (1 − p) (or use inverted dropout: scale training activations by 1/(1−p) instead). This is approximately equivalent to training an exponentially large ensemble of sub-networks and averaging at inference.</p>
+<ul>
+    <li>Typical p = 0.2–0.5 for fully-connected layers.</li>
+    <li>Dropout is much less effective in convolutional layers — use spatial dropout (drop whole feature maps) or skip it.</li>
+    <li>In transformers, attention dropout and residual dropout are both common, each with p ≈ 0.1.</li>
+    <li>DropConnect is the weight-space analog — drop individual weights rather than activations.</li>
+</ul>
+
+<h3>Normalization as regularization</h3>
+<p>Batch normalization and layer normalization are primarily optimization tools (they rescale activations to stabilize training), but they also act as mild regularizers. BN adds noise via the per-batch statistics; LN doesn't, but does restrict the hypothesis class. With BN present, dropout is often redundant or counterproductive.</p>
+
+<h3>Data-space regularization</h3>
+<p>Usually stronger than weight-space regularization for modern deep nets:</p>
+<ul>
+    <li><strong>Data augmentation</strong> — flips, crops, rotations, color jitter, time-warping, noise injection. Effectively increases dataset size.</li>
+    <li><strong>Mixup</strong> — train on linear interpolations of pairs of samples and their labels.</li>
+    <li><strong>CutMix</strong> — paste a patch from one image into another, mix the labels proportionally.</li>
+    <li><strong>Label smoothing</strong> — replace hard 0/1 labels with e.g. 0.05/0.95. Prevents overconfident outputs; improves calibration.</li>
+    <li><strong>Stochastic depth</strong> — randomly skip entire residual blocks during training (regularization + speedup).</li>
+</ul>
+
+<h3>Early stopping</h3>
+<p>Monitor validation loss; stop when it hasn't improved for N epochs (the "patience"). Save the best-so-far checkpoint and restore it at the end. Free, effective, always enable it.</p>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 11 · HYPERPARAMETER SEARCH ====== -->
+<section class="deep" id="hparam">
+<h2>11 · Hyperparameter Search</h2>
+<p class="lede">The outer loop around training. You can't gradient-descend through the choice of architecture, the learning rate, or the batch size — you have to search over them explicitly.</p>
+
+<h3>The three classical strategies</h3>
+<table class="compare">
+<tr><th>Strategy</th><th>Mechanism</th><th>Strengths</th><th>Weaknesses</th></tr>
+<tr><td>Grid search</td><td>Evaluate every combination</td><td>Exhaustive; easy to parallelize; reproducible</td><td>Cost is exponential in dimensions; wastes budget on insensitive axes</td></tr>
+<tr><td>Random search</td><td>Sample uniformly from the space</td><td>Usually beats grid at equal budget (Bergstra &amp; Bengio 2012); trivially parallel</td><td>No learning from past trials</td></tr>
+<tr><td>Bayesian opt</td><td>Fit surrogate, use acquisition function to pick next</td><td>Sample-efficient; principled exploration/exploitation</td><td>Serial bottleneck; surrogate can be miscalibrated</td></tr>
+</table>
+
+<h3>Why random beats grid</h3>
+<p>In most problems, a few hyperparameters matter a lot and many matter very little. Grid search wastes budget sampling the irrelevant axes densely. Random search naturally allocates more distinct values to the axes that matter. This was the surprising empirical finding of Bergstra &amp; Bengio: with the same number of trials, random search finds better configurations than grid search on most deep-learning problems.</p>
+
+<h3>Bayesian optimization in detail</h3>
+<p>Two components:</p>
+<ul>
+    <li><strong>Surrogate model</strong> — approximates the objective function given the trials seen so far. Gaussian Process (GP) is the textbook choice; Tree-structured Parzen Estimator (TPE) is Optuna's default; Random Forest is used by SMAC.</li>
+    <li><strong>Acquisition function</strong> — picks the next point to try, balancing exploration (areas of high uncertainty) against exploitation (areas of high predicted value). Common choices:
+        <ul>
+            <li><strong>Expected Improvement (EI)</strong> — expected amount by which we'd beat the current best.</li>
+            <li><strong>Upper Confidence Bound (UCB)</strong> — mean + κ · std. Tune κ for exploration.</li>
+            <li><strong>Probability of Improvement (PI)</strong> — probability of beating the current best.</li>
+            <li><strong>Thompson sampling</strong> — sample a function from the posterior, optimize it, use its argmax. Naturally parallelizable.</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>Multi-fidelity methods</h3>
+<p>When each trial is expensive (minutes to days), you can't afford many. Multi-fidelity methods start many trials cheaply and kill bad ones early:</p>
+<ul>
+    <li><strong>Successive Halving</strong> — run N trials for a short budget, keep the top half, double their budget, repeat.</li>
+    <li><strong>Hyperband</strong> — runs successive halving with multiple initial budgets. Addresses the "how short should the short budget be?" question.</li>
+    <li><strong>BOHB</strong> — Hyperband + Bayesian optimization. Uses Bayes to pick the configurations and Hyperband to allocate budget.</li>
+    <li><strong>ASHA</strong> — asynchronous variant of Hyperband. Trivially parallel; state of the art for deep-learning sweeps.</li>
+    <li><strong>PBT (Population-Based Training)</strong> — train many copies in parallel; periodically copy weights from good to bad trials while perturbing hyperparameters. Combines training and searching.</li>
+</ul>
+
+<h3>Practical guidelines</h3>
+<ul>
+    <li>Use <strong>log scale</strong> for learning rate, weight decay, regularization strengths. Use linear for integer counts.</li>
+    <li>Define a reasonable search space before starting. Don't let Bayesian opt explore LR = 10¹⁰ — use sensible bounds.</li>
+    <li>Start with random search for ~20 trials to characterize the space, then switch to Bayesian opt with a warm start.</li>
+    <li>Report mean ± std across seeds, not just best-of-many.</li>
+    <li>Libraries: <strong>Optuna</strong> (flexible, TPE default), <strong>Ray Tune</strong> (distributed), <strong>W&amp;B Sweeps</strong> (integrated UI), <strong>Hyperopt</strong> (older TPE).</li>
+</ul>
+
+<div class="trap-box">
+<h4>🚨 Traps</h4>
+<ul>
+    <li>Tuning on the test set. All hyperparameters must be chosen using the validation set.</li>
+    <li>Using the same seed for all trials — masks variance.</li>
+    <li>Searching too wide a space early. Exploration budget scales poorly with space volume.</li>
+    <li>Forgetting to fix the random seed for the data split — different folds produce different "best" hyperparameters.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 12 · BACKPROPAGATION ====== -->
+<section class="deep" id="backprop">
+<h2>12 · Backpropagation</h2>
+<p class="lede">Reverse-mode automatic differentiation applied to a computation graph. The algorithm that makes deep learning computationally feasible.</p>
+
+<h3>The core idea</h3>
+<p>Given a computation graph representing the loss as a composition of differentiable operations, backpropagation applies the chain rule <em>backwards</em> from the output to every parameter. The key trick: each intermediate gradient is computed exactly once and reused.</p>
+
+<h3>Why reverse-mode?</h3>
+<p>For a function f: ℝⁿ → ℝᵐ (n inputs, m outputs), you have two choices:</p>
+<ul>
+    <li><strong>Forward-mode autodiff</strong> — cost scales with n (the number of inputs). Good when n is small.</li>
+    <li><strong>Reverse-mode autodiff</strong> — cost scales with m (the number of outputs). Good when m is small.</li>
+</ul>
+<p>Neural network training has m = 1 (the scalar loss) and n = millions (the weights). Reverse-mode wins by a factor of n/m = millions. This is why all deep-learning frameworks use reverse-mode.</p>
+
+<h3>The forward-backward pattern</h3>
+<pre><code># forward pass
+h₁ = W₁ · x
+a₁ = ReLU(h₁)
+h₂ = W₂ · a₁
+ŷ = softmax(h₂)
+L = CE(ŷ, y)
+
+# backward pass — apply chain rule
+dL/dŷ   = ŷ − y                         # softmax + CE
+dL/dh₂  = dL/dŷ                         # (uses softmax jacobian)
+dL/dW₂  = dL/dh₂ · a₁ᵀ
+dL/da₁  = W₂ᵀ · dL/dh₂
+dL/dh₁  = dL/da₁ ⊙ (h₁ &gt; 0)             # ReLU derivative
+dL/dW₁  = dL/dh₁ · xᵀ</code></pre>
+
+<h3>Complexity</h3>
+<p>The backward pass costs roughly the same as the forward pass — within a constant factor of 2–3×. Memory is the bigger cost: to compute gradients, you must cache all intermediate activations from the forward pass. This is why memory usage scales with depth × batch size × activation size.</p>
+
+<h3>Gradient flow issues</h3>
+<ul>
+    <li><strong>Vanishing gradients</strong> — in deep networks with saturating activations (sigmoid, tanh), the gradient shrinks exponentially with depth. Solutions: ReLU family activations, residual connections (ResNets), careful initialization (He/Xavier).</li>
+    <li><strong>Exploding gradients</strong> — especially in RNNs and very deep networks. Solution: gradient clipping (clip the norm of the gradient vector to some max value).</li>
+</ul>
+
+<h3>Memory-saving tricks</h3>
+<ul>
+    <li><strong>Gradient checkpointing</strong> — don't cache all activations; recompute some during the backward pass. Trades compute for memory.</li>
+    <li><strong>Mixed-precision training</strong> — keep master weights in FP32, do forward/backward in FP16/BF16. Halves memory, often speeds up compute on modern GPUs.</li>
+    <li><strong>Gradient accumulation</strong> — simulate a large batch by running several small batches and summing their gradients before stepping. Essential when a single large batch won't fit in memory.</li>
+</ul>
+
+<h3>Dynamic vs static graphs</h3>
+<ul>
+    <li><strong>Dynamic graphs</strong> (PyTorch, TF eager) — the graph is built on the fly during the forward pass. Easy to debug and to use Python control flow.</li>
+    <li><strong>Static graphs</strong> (TF 1.x, XLA, TorchScript) — graph is defined once and reused. Enables more aggressive optimization (operator fusion, memory planning). Modern frameworks JIT-compile dynamic graphs to get the best of both.</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 13 · FEEDFORWARD NN ====== -->
+<section class="deep" id="mlp">
+<h2>13 · Feedforward Neural Networks (MLPs)</h2>
+<p class="lede">The simplest deep architecture: stacked affine transformations with nonlinearities between them. The "Hello, World!" of neural networks and still the right tool for plenty of tabular problems.</p>
+
+<h3>Structure</h3>
+<div class="math">a⁽ˡ⁺¹⁾ = φ(W⁽ˡ⁾ a⁽ˡ⁾ + b⁽ˡ⁾)</div>
+<p>Each layer is an affine transform followed by an elementwise nonlinearity φ. No memory, no recurrence, no spatial awareness — just a stack of functions that takes an input vector and produces an output vector.</p>
+
+<h3>Activation functions</h3>
+<table class="compare">
+<tr><th>Name</th><th>Formula</th><th>Characteristics</th></tr>
+<tr><td>Sigmoid</td><td>1/(1+e⁻ˣ)</td><td>Saturates, vanishing gradients, output in (0,1). Mostly replaced.</td></tr>
+<tr><td>Tanh</td><td>(eˣ−e⁻ˣ)/(eˣ+e⁻ˣ)</td><td>Zero-centered sigmoid. Used in some RNNs.</td></tr>
+<tr><td>ReLU</td><td>max(0, x)</td><td>Default for hidden layers. Sparse, non-saturating. Can "die" (output stuck at 0).</td></tr>
+<tr><td>Leaky ReLU</td><td>max(αx, x), α≈0.01</td><td>Fixes dying ReLU.</td></tr>
+<tr><td>GELU</td><td>x·Φ(x)</td><td>Smooth, used in transformers (BERT, GPT).</td></tr>
+<tr><td>Swish/SiLU</td><td>x·sigmoid(x)</td><td>Smooth, slight edge over ReLU on deep nets.</td></tr>
+<tr><td>Softmax</td><td>eᶻⁱ/Σeᶻʲ</td><td>Output layer for multiclass classification.</td></tr>
+</table>
+
+<h3>Universal Approximation Theorem</h3>
+<p>A feedforward network with a single hidden layer of sufficient width and a non-polynomial activation can approximate any continuous function on a compact domain to arbitrary accuracy (Cybenko 1989, Hornik 1991). This is a theoretical guarantee of expressive power, not a practical recipe — in practice, deep narrow networks are far more sample-efficient than shallow wide ones.</p>
+
+<h3>When to use an MLP</h3>
+<ul>
+    <li><strong>Tabular data</strong> — fixed-size feature vectors, no spatial or temporal structure. MLPs remain competitive here; gradient-boosted trees (XGBoost, LightGBM) often still win on small-to-medium tabular datasets.</li>
+    <li><strong>Regression heads</strong> — on top of a feature extractor (CNN, RNN, Transformer), an MLP is the canonical "read-out" head.</li>
+    <li><strong>Critic/value networks</strong> — in reinforcement learning.</li>
+    <li><strong>Physics-informed models</strong> — as a flexible function approximator inside a structured model (neural ODEs, PINNs, surrogate models for expensive simulators).</li>
+</ul>
+
+<h3>When <em>not</em> to use an MLP</h3>
+<ul>
+    <li>Images → CNNs or Vision Transformers. MLPs ignore spatial structure and need vastly more parameters.</li>
+    <li>Sequences → RNNs/LSTMs/GRUs, or Transformers. MLPs have no memory.</li>
+    <li>Graphs → Graph Neural Networks.</li>
+</ul>
+
+<h3>Initialization</h3>
+<ul>
+    <li><strong>Xavier/Glorot</strong> — variance = 2/(fan_in + fan_out). For tanh/sigmoid.</li>
+    <li><strong>He/Kaiming</strong> — variance = 2/fan_in. For ReLU family. The default for modern nets.</li>
+    <li>Zero initialization breaks symmetry only for biases, not weights — never use it for weight matrices.</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 14 · RNN ====== -->
+<section class="deep" id="rnn">
+<h2>14 · Recurrent Neural Networks</h2>
+<p class="lede">Feedforward networks augmented with a hidden state that feeds back in at the next timestep. The classical way to process sequences, largely supplanted by Transformers but still relevant on resource-constrained devices.</p>
+
+<h3>The core recurrence</h3>
+<div class="math">h<sub>t</sub> = φ(W<sub>x</sub> x<sub>t</sub> + W<sub>h</sub> h<sub>t−1</sub> + b)</div>
+<div class="math">y<sub>t</sub> = W<sub>y</sub> h<sub>t</sub> + b<sub>y</sub></div>
+<p>The same weights W<sub>x</sub>, W<sub>h</sub> are reused across all timesteps — this is the weight-sharing that makes RNNs work on sequences of arbitrary length with a fixed parameter count.</p>
+
+<h3>Training: backprop through time (BPTT)</h3>
+<p>Unroll the RNN for T timesteps, apply standard backpropagation through the unrolled graph. Gradient of the loss with respect to W<sub>h</sub> involves products of T jacobians — which leads directly to the core problem:</p>
+
+<h3>Vanishing and exploding gradients</h3>
+<p>If the spectral radius of W<sub>h</sub> is less than 1, gradients shrink exponentially as they propagate backward through time → vanishing gradients → can't learn long-range dependencies. If greater than 1, gradients blow up → exploding gradients → training diverges. Plain RNNs struggle to remember anything more than ~10 steps back.</p>
+
+<h3>LSTM — the classic fix</h3>
+<p>Long Short-Term Memory (Hochreiter &amp; Schmidhuber 1997) adds a separate <em>cell state</em> that flows through the sequence with only minor modifications at each step, controlled by three gates:</p>
+<ul>
+    <li><strong>Forget gate</strong> f<sub>t</sub> — how much of the previous cell state to keep.</li>
+    <li><strong>Input gate</strong> i<sub>t</sub> — how much of the proposed new content to add.</li>
+    <li><strong>Output gate</strong> o<sub>t</sub> — how much of the cell state to expose as the hidden state.</li>
+</ul>
+<p>The cell state's update is approximately additive, so gradients can flow through it without vanishing. LSTMs can learn dependencies hundreds of steps long.</p>
+
+<h3>GRU — the simpler cousin</h3>
+<p>Gated Recurrent Unit (Cho et al. 2014) merges the forget and input gates into a single "update gate" and combines the cell and hidden states. Fewer parameters than LSTM, often similar performance. A reasonable default when you don't want to debate LSTM vs GRU.</p>
+
+<h3>Variants and tricks</h3>
+<ul>
+    <li><strong>Bidirectional RNN</strong> — one forward pass, one backward pass, concatenate hidden states. Useful when the whole sequence is available (not for real-time).</li>
+    <li><strong>Encoder–decoder</strong> — the classic architecture for sequence-to-sequence tasks (translation). Encoder RNN compresses the input into a context vector; decoder RNN generates the output.</li>
+    <li><strong>Attention over RNN states</strong> — the predecessor to Transformers. Instead of a single context vector, the decoder attends to all encoder hidden states.</li>
+    <li><strong>Teacher forcing</strong> — during training, feed the ground-truth previous token as input rather than the model's own prediction. Faster convergence, but causes exposure bias at inference.</li>
+</ul>
+
+<h3>Why Transformers won</h3>
+<ul>
+    <li><strong>Parallelism</strong> — RNNs are inherently sequential; Transformers process all positions in parallel.</li>
+    <li><strong>Unlimited receptive field</strong> — every token attends to every other token directly.</li>
+    <li><strong>Better scaling</strong> — empirically, Transformers benefit more from scale.</li>
+</ul>
+
+<h3>Where RNNs still make sense</h3>
+<ul>
+    <li>Streaming / online inference with very tight latency, where you can't afford to re-run attention over the whole context.</li>
+    <li>Very long sequences where O(n²) attention is too expensive (though linear-attention Transformers are closing this gap).</li>
+    <li>Tiny memory budgets on edge devices — a small GRU is still hard to beat on a microcontroller.</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 15 · QUANTIZATION ====== -->
+<section class="deep" id="quant">
+<h2>15 · Quantization</h2>
+<p class="lede">Reduce numeric precision of weights and activations — typically FP32 → INT8 — to shrink the model, accelerate inference, and lower energy consumption. Essential for edge deployment.</p>
+
+<h3>The basic mapping</h3>
+<div class="math">q = round(x / s) + z&nbsp;&nbsp;&nbsp;&nbsp;x ≈ s · (q − z)</div>
+<p>where s is the <em>scale</em> and z is the <em>zero point</em>. Pick them so that the quantized range [q<sub>min</sub>, q<sub>max</sub>] (e.g., [−128, 127] for signed INT8) covers the float range [x<sub>min</sub>, x<sub>max</sub>] accurately.</p>
+
+<h3>Symmetric vs asymmetric</h3>
+<ul>
+    <li><strong>Symmetric</strong> — z = 0. Range is [−x<sub>max</sub>, x<sub>max</sub>]. Faster matmul (no zero-point correction). Wastes range if the distribution is asymmetric (e.g., post-ReLU activations which are ≥ 0).</li>
+    <li><strong>Asymmetric</strong> — z ≠ 0, chosen to best match the actual range. Better accuracy on asymmetric distributions; slightly more expensive compute.</li>
+</ul>
+<p>Standard practice: symmetric for weights (roughly zero-mean), asymmetric for activations.</p>
+
+<h3>Granularity</h3>
+<ul>
+    <li><strong>Per-tensor</strong> — one scale/zero for the whole tensor. Smallest overhead, worst accuracy for tensors with varied statistics.</li>
+    <li><strong>Per-channel (per-axis)</strong> — separate scale per output channel (for weights) or per feature map (for activations). Much better accuracy for weights; standard for CNNs.</li>
+</ul>
+
+<h3>Post-Training Quantization (PTQ)</h3>
+<p>Take a trained FP32 model, run a calibration dataset through it to collect activation statistics, compute the scales and zero points, convert the weights. No retraining required.</p>
+<ul>
+    <li><strong>Dynamic PTQ</strong> — quantize weights offline, quantize activations on the fly during inference (scales computed from running min/max or simple percentiles). Cheap, simple, tolerates any batch.</li>
+    <li><strong>Static PTQ</strong> — quantize weights <em>and</em> activations offline, using a calibration set to fix activation scales. Faster inference (no per-input quantization), better accuracy.</li>
+</ul>
+<p>PTQ typically loses 0–2% accuracy at INT8 on standard vision models, 3–5% on more sensitive architectures. At INT4 and below, PTQ usually isn't enough.</p>
+
+<h3>Quantization-Aware Training (QAT)</h3>
+<p>Insert "fake quantization" nodes into the model during training — they simulate the rounding and clipping of the target bit-width while keeping gradients flowing (straight-through estimator). The model learns weights that are robust to quantization noise.</p>
+<p>QAT recovers almost all of the PTQ accuracy loss and is necessary for INT4, INT2, and binary networks. Costs about 1 additional training epoch's worth of effort.</p>
+
+<h3>Hardware support</h3>
+<table class="compare">
+<tr><th>Platform</th><th>Preferred formats</th></tr>
+<tr><td>NVIDIA GPU (Ampere+)</td><td>FP16, BF16, INT8 via Tensor Cores; FP8 on Hopper</td></tr>
+<tr><td>Google TPU</td><td>BF16 training, INT8 inference</td></tr>
+<tr><td>ARM Cortex-A / Neon</td><td>INT8 matmul via NEON intrinsics</td></tr>
+<tr><td>ARM Cortex-M / CMSIS-NN</td><td>INT8, INT16 fixed-point</td></tr>
+<tr><td>TriCore / automotive MCUs</td><td>Fixed-point (usually INT16 or INT32 with custom scaling)</td></tr>
+</table>
+
+<h3>Typical wins</h3>
+<ul>
+    <li>FP32 → INT8: 4× smaller, 2–4× faster inference, 2–4× less energy, &lt; 1% accuracy loss.</li>
+    <li>FP32 → INT4 (with QAT): 8× smaller, needs specialized hardware to realize speedup.</li>
+</ul>
+
+<div class="trap-box">
+<h4>🚨 Traps</h4>
+<ul>
+    <li>Calibrating on an unrepresentative dataset produces miscalibrated scales and silent accuracy loss.</li>
+    <li>Per-tensor quantization of weights with wide dynamic range (one huge outlier channel) destroys accuracy — always use per-channel for weights.</li>
+    <li>Layer norm and softmax are numerically sensitive — often kept in FP16 even in an otherwise INT8 model.</li>
+    <li>Depthwise convolutions are unusually sensitive to quantization; may need QAT even if the rest of the model doesn't.</li>
+</ul>
+</div>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 16 · PRUNING ====== -->
+<section class="deep" id="prune">
+<h2>16 · Pruning</h2>
+<p class="lede">Identify and remove the weights (or neurons, or channels, or whole layers) that contribute least to the network's output. Shrinks the model and, if done structurally, speeds up inference.</p>
+
+<h3>Granularity: the key choice</h3>
+<table class="compare">
+<tr><th>Granularity</th><th>What's removed</th><th>Compression</th><th>Speedup on dense HW</th></tr>
+<tr><td>Unstructured (weight-level)</td><td>Individual weights</td><td>Very high (90%+ achievable)</td><td>None — produces a sparse matrix</td></tr>
+<tr><td>Vector / row / column</td><td>Sub-blocks of a weight matrix</td><td>High</td><td>Some, with structured sparse kernels</td></tr>
+<tr><td>Filter / channel</td><td>Entire output channels of a conv or FC layer</td><td>Moderate</td><td>Full speedup on any HW</td></tr>
+<tr><td>Layer / block</td><td>Whole layers (often in ResNets)</td><td>Modest</td><td>Full speedup</td></tr>
+</table>
+<p>The fundamental tradeoff: unstructured pruning gives the highest compression ratio, but the resulting sparse weight matrix doesn't run any faster on a dense GEMM (the standard CPU/GPU matmul). To get actual speedup, you need structured pruning, or specialized sparse hardware (NVIDIA 2:4 sparsity on Ampere+, some mobile accelerators).</p>
+
+<h3>Pruning criteria</h3>
+<ul>
+    <li><strong>Magnitude</strong> — remove weights with |w| below a threshold. Simple, strong baseline, used everywhere.</li>
+    <li><strong>Gradient-based</strong> — remove weights whose gradient is small (they're not actively being updated).</li>
+    <li><strong>Taylor expansion</strong> — estimate the effect of removing each weight on the loss using first- or second-order Taylor terms. More principled.</li>
+    <li><strong>Fisher information</strong> — weights with low Fisher info contribute little to the model's predictions.</li>
+    <li><strong>Movement pruning</strong> — for fine-tuning: prune weights that moved <em>toward</em> zero during training. Particularly effective for transformer fine-tuning.</li>
+    <li><strong>Filter-level</strong> — prune filters with low L1/L2 norm, low batch-norm scaling factor, or low activation magnitude on validation data.</li>
+</ul>
+
+<h3>The prune–fine-tune cycle</h3>
+<ol>
+    <li>Train a model to convergence.</li>
+    <li>Compute pruning scores for every weight/channel/filter.</li>
+    <li>Remove the bottom X% (or set them to zero and mask them out).</li>
+    <li>Fine-tune for a few epochs to recover accuracy.</li>
+    <li>Repeat (iterative pruning) — often outperforms one-shot pruning of the same total amount.</li>
+</ol>
+
+<h3>Iterative Magnitude Pruning (IMP) and the Lottery Ticket Hypothesis</h3>
+<p>Frankle &amp; Carbin (2018) showed that for many networks, if you prune a trained network heavily (say 90%), then reset the surviving weights to their <em>initial</em> values and retrain from scratch — the sparse network trains to nearly the original accuracy. This suggests that dense networks contain small "winning ticket" subnetworks that, once found, are sufficient on their own.</p>
+
+<h3>One-shot vs gradual pruning</h3>
+<ul>
+    <li><strong>One-shot</strong> — prune all X% in one step, fine-tune. Simple but less robust.</li>
+    <li><strong>Gradual</strong> — increase the pruning ratio smoothly from 0 to X% over many epochs while training continues. Less accuracy drop, more compute.</li>
+</ul>
+
+<h3>Practical guidance</h3>
+<ul>
+    <li>Start with magnitude pruning. Use it unless you have evidence something else works better.</li>
+    <li>For deployment speedup on general hardware, use structured (filter-level) pruning.</li>
+    <li>For models that will be followed by quantization, prune first — quantization of a pruned model often behaves better.</li>
+    <li>For fine-tuning a large pretrained model on a small dataset, movement pruning is state-of-the-art.</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 17 · KNOWLEDGE DISTILLATION ====== -->
+<section class="deep" id="kd">
+<h2>17 · Knowledge Distillation</h2>
+<p class="lede">Train a small "student" model to imitate a large "teacher" — not just its predictions, but its full probability distribution. Transfers information beyond what hard labels convey.</p>
+
+<h3>The Hinton formulation (2015)</h3>
+<p>Let z be the logits of a model. Standard softmax gives p = softmax(z). Add a <em>temperature</em> T &gt; 1:</p>
+<div class="math">p<sub>i</sub><sup>(T)</sup> = exp(z<sub>i</sub> / T) / Σ<sub>j</sub> exp(z<sub>j</sub> / T)</div>
+<p>Higher T produces a softer distribution (all probabilities pulled toward uniform). The student is trained to match the teacher's softened distribution <em>and</em> the hard labels:</p>
+<div class="math">L = α · CE(student, hard) + (1−α) · T² · KL(student<sub>T</sub>, teacher<sub>T</sub>)</div>
+<p>The T² factor is there to keep the distillation gradient magnitude independent of T.</p>
+
+<h3>Why it works: dark knowledge</h3>
+<p>A teacher that outputs [0.7, 0.2, 0.08, 0.02] for four classes is saying more than just "class 1." The <em>relative</em> probabilities encode similarity structure: class 2 is "more like" class 1 than class 4 is. This information is present in the teacher but absent from the one-hot hard label. Temperature amplifies it.</p>
+
+<h3>Variants</h3>
+<ul>
+    <li><strong>FitNets</strong> (Romero et al. 2015) — match the student's intermediate activations to the teacher's, not just the output.</li>
+    <li><strong>Attention Transfer</strong> — match the spatial attention maps of teacher and student.</li>
+    <li><strong>DistilBERT</strong> — compresses BERT to 40% size, 60% faster, 97% of the accuracy.</li>
+    <li><strong>TinyBERT</strong>, <strong>MobileBERT</strong> — more aggressive compression with multi-stage distillation.</li>
+    <li><strong>Self-distillation</strong> — the teacher is the same model at an earlier epoch, or an ensemble of the same architecture. Can improve accuracy over training from scratch — "distillation as regularization."</li>
+    <li><strong>Born-Again Networks</strong> — distill to a student of the same size as the teacher. Students often outperform teachers. Mysterious.</li>
+    <li><strong>Response, feature, and relation-based distillation</strong> — three-way taxonomy of what to match: outputs, intermediate features, or relations between features.</li>
+</ul>
+
+<h3>Practical notes</h3>
+<ul>
+    <li>Typical T ∈ [2, 10]. Start with T = 4 and α = 0.5.</li>
+    <li>KD is most effective when the student has enough capacity to express the teacher's behavior — too small a student will hit an accuracy floor.</li>
+    <li>KD does not require labeled data for distillation loss — you can distill using unlabeled data and just the teacher's outputs. Useful when you have lots of unlabeled data but only some labels.</li>
+    <li>Stacking KD with quantization and pruning is the standard edge-deployment pipeline.</li>
+</ul>
+
+<h3>Common pitfalls</h3>
+<ul>
+    <li>Mismatched temperature between training and inference: at inference, run the student with T = 1 (standard softmax). The T &gt; 1 softening is training-time only.</li>
+    <li>Poor teacher → poor student. Always verify the teacher's quality first.</li>
+    <li>Too high α → student ignores the teacher and just learns from hard labels.</li>
+    <li>Too low α → student can over-imitate teacher mistakes.</li>
+</ul>
+</section>
+
+<hr class="sep" />
+
+<!-- ====== 18 · EDGE STACK ====== -->
+<section class="deep" id="edgestack">
+<h2>18 · Compression Stack for Edge Deployment</h2>
+<p class="lede">Running neural networks on microcontrollers, automotive ECUs, or battery-constrained devices. The end-to-end pipeline that takes a GPU-trained research model down to a ~100 KB binary running at 1 ms latency.</p>
+
+<h3>The stack, in order</h3>
+<ol>
+    <li><strong>Start with the right architecture.</strong> Don't try to compress a ResNet-152 for a microcontroller; start with MobileNet, EfficientNet-Lite, SqueezeNet, ShuffleNet, or a hand-designed tiny model. Architecture search tailored for mobile (NetAdapt, MnasNet, MCUNet) can find better starting points.</li>
+    <li><strong>Distillation.</strong> Train a larger, more accurate teacher model, then distill knowledge into the smaller target architecture. Typical wins: 1–3% accuracy at no inference-time cost.</li>
+    <li><strong>Pruning.</strong> Structured pruning (filters / channels / heads) to get real speedup on dense hardware. Iterative, with fine-tuning between rounds. Typical wins: 30–70% FLOP reduction at &lt; 1% accuracy loss.</li>
+    <li><strong>Quantization.</strong> INT8 as the standard target. QAT if PTQ isn't enough or you need INT4. Typical wins: 4× smaller, 2–4× faster.</li>
+    <li><strong>Compile.</strong> Convert to a deployment format (TFLite, ONNX Runtime, TensorRT, CoreML, OpenVINO), let the compiler fuse operators, lay out memory, and tile for the target hardware. Often another 1.5–3× speedup on top.</li>
+</ol>
+
+<h3>Target hardware and toolchains</h3>
+<table class="compare">
+<tr><th>Target</th><th>Toolchain</th><th>Typical use</th></tr>
+<tr><td>NVIDIA GPU (server)</td><td>TensorRT</td><td>Data-center inference</td></tr>
+<tr><td>Intel CPU/iGPU</td><td>OpenVINO</td><td>Industrial / edge server</td></tr>
+<tr><td>Mobile phone (ARM)</td><td>TFLite, Core ML, PyTorch Mobile</td><td>Consumer apps</td></tr>
+<tr><td>Microcontroller (Cortex-M)</td><td>TFLite Micro, CMSIS-NN, microTVM</td><td>Sensor processing, keyword spotting</td></tr>
+<tr><td>Automotive MCU (e.g. Infineon AURIX / TriCore)</td><td>Vendor SDKs + hand-tuned C, TargetLink, custom fixed-point code</td><td>Real-time control, safety-critical</td></tr>
+<tr><td>Mobile NPU / DSP</td><td>Qualcomm SNPE, Huawei HiAI, Samsung Eden</td><td>On-device ML</td></tr>
+</table>
+
+<h3>Constraints that drive the pipeline</h3>
+<ul>
+    <li><strong>Memory</strong> — model size, runtime working memory, stack usage. Often the binding constraint on microcontrollers (&lt; 1 MB RAM).</li>
+    <li><strong>Compute</strong> — FLOPs per inference, feasible only if the hardware can finish in the latency budget.</li>
+    <li><strong>Latency</strong> — real-time deadlines. Fixed-point control loops run at kHz rates; missing a deadline is a safety issue.</li>
+    <li><strong>Energy</strong> — battery-powered or ISO 26262-constrained designs. Quantized INT8 uses ~10× less energy per op than FP32.</li>
+    <li><strong>Determinism</strong> — safety-critical systems (ASIL B/C/D) often prohibit dynamic memory, require bounded execution time, and need code that can be statically analyzed and certified.</li>
+</ul>
+
+<h3>Multiplicative effect</h3>
+<p>Each stage multiplies the previous gains:</p>
+<div class="math">
+architecture (5×) × distillation (accuracy margin) × pruning (3×) × quantization (4×) × compiler (2×) ≈ 100× total
+</div>
+<p>Real numbers vary but 50–200× total reduction from initial research model to deployed binary is typical.</p>
+
+<h3>Monitoring in production</h3>
+<ul>
+    <li>Accuracy on representative data (not just the validation set) — distribution shift is permanent once deployed.</li>
+    <li>Latency percentiles (P50, P95, P99), not just averages.</li>
+    <li>Memory footprint and peak stack depth.</li>
+    <li>Energy per inference on battery-critical devices.</li>
+    <li>A safety-critical system also tracks ASIL-level metrics: fault detection rate, single-point fault coverage, diagnostic latency.</li>
+</ul>
+
+<div class="note-box">
+<h4>💡 Automotive / motor-control specifics</h4>
+<ul>
+    <li>Fixed-point arithmetic with Q-format scaling is still the norm on TriCore and Cortex-M4 targets — INT8 quantization-aware training maps cleanly onto this.</li>
+    <li>ASIL constraints often exclude any library (including neural-net inference libraries) that hasn't been certified. Certified options exist (TUV-SUD-certified TFLite variants, Infineon Aurix AI stacks) but the certification process influences architecture choices from the start.</li>
+    <li>Determinism trumps peak performance: a 500 µs consistent worst-case inference time is preferable to a 200 µs average with 2 ms tail.</li>
+    <li>The AUTOSAR / TargetLink toolchain typically consumes the trained model via generated C code with static LUTs and fixed-point matmul kernels, not an ML runtime.</li>
+</ul>
+</div>
+
+</section>
+
+<hr class="sep" />
+
+<footer style="margin-top:80px;padding-top:30px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;">
+    <p>← <a href="neural-networks-interactive-concepts.html" style="color:var(--accent);">Back to the interactive page</a>  ·  <a href="/autonomy/" style="color:var(--accent);">Back to Autonomy</a></p>
+</footer>
+
+</main>
+
+<script>
+// TOC: highlight the section currently in view
+(function() {
+    const tocLinks = document.querySelectorAll('a.tocitem');
+    const sections = document.querySelectorAll('section.deep');
+    const byId = {};
+    tocLinks.forEach(a => byId[a.getAttribute('href').slice(1)] = a);
+    function onScroll() {
+        let currentId = sections[0].id;
+        const y = window.scrollY + 100;
+        sections.forEach(s => { if (s.offsetTop <= y) currentId = s.id; });
+        tocLinks.forEach(a => a.classList.remove('active'));
+        if (byId[currentId]) byId[currentId].classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+})();
+</script>
+
+</body>
+</html>
