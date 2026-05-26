@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Electrical Architecture — A Primer</title>
+<style>
+  :root {
+    --cream: #F4ECD8;
+    --cream-deep: #EBE0C5;
+    --cream-warm: #F8F1DE;
+    --ink: #1F1A12;
+    --ink-soft: #3A3225;
+    --ink-light: #6B5D45;
+    --rule: #C9B98F;
+    --rule-soft: #DDD0AA;
+    --accent-red: #9C2A20;
+    --accent-blue: #2C4F7C;
+    --accent-green: #4A6741;
+    --accent-ochre: #B8860B;
+    --accent-orange: #C76B1F;
+    --hv-orange: #D85A1A;
+    --lv-blue: #2C4F7C;
+    --bg-note: #F0E6CC;
+    --bg-warn: #F5E0D6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 60px 56px 100px 56px;
+    background: var(--cream);
+  }
+
+  /* --- Masthead --- */
+  .masthead {
+    text-align: center;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .masthead::before, .masthead::after {
+    content: "";
+    display: block;
+    height: 1px;
+    background: var(--ink);
+    width: 60%;
+    margin: 0 auto;
+  }
+  .masthead::before { margin-bottom: 18px; }
+  .masthead::after { display: none; }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Playfair Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1.1;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.01em;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent-red);
+  }
+  .subtitle {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 18px;
+    margin-top: 12px;
+  }
+  .byline {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-top: 18px;
+  }
+  .back-to-blog {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    margin: 0 0 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+    transition: border-color 0.15s;
+  }
+  .back-to-blog:hover { border-color: var(--accent-red); }
+
+  /* --- Section headings --- */
+  h2 {
+    font-family: 'Didot', 'Bodoni 72', Georgia, serif;
+    font-weight: 400;
+    font-size: 30px;
+    margin: 56px 0 4px 0;
+    letter-spacing: -0.005em;
+  }
+  h2 .num {
+    display: inline-block;
+    font-size: 14px;
+    letter-spacing: 0.25em;
+    color: var(--accent-red);
+    text-transform: uppercase;
+    margin-right: 14px;
+    vertical-align: middle;
+    font-family: inherit;
+  }
+  h2 + .sec-rule {
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    height: 4px;
+    margin: 6px 0 24px 0;
+  }
+  h2 + .sec-rule > div {
+    border-top: 1px solid var(--ink);
+    height: 2px;
+  }
+
+  h3 {
+    font-family: 'Didot', 'Bodoni 72', Georgia, serif;
+    font-weight: 400;
+    font-size: 22px;
+    margin: 36px 0 10px 0;
+    color: var(--ink);
+  }
+
+  h4 {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 17px;
+    margin: 24px 0 8px 0;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 0 0 14px 0; }
+  p.lead {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  p.lead::first-letter {
+    font-family: 'Didot', 'Bodoni 72', Georgia, serif;
+    font-size: 56px;
+    float: left;
+    line-height: 0.85;
+    padding: 6px 8px 0 0;
+    color: var(--accent-red);
+    font-weight: 400;
+  }
+
+  strong { color: var(--ink); font-weight: 600; }
+  em.term { font-style: italic; color: var(--accent-blue); font-weight: 500; }
+
+  ul, ol { margin: 8px 0 16px 0; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+
+  /* --- Callouts --- */
+  .note, .warn, .field {
+    border-left: 3px solid var(--accent-ochre);
+    background: var(--bg-note);
+    padding: 14px 20px;
+    margin: 20px 0;
+    font-size: 15.5px;
+    line-height: 1.55;
+  }
+  .note .label, .warn .label, .field .label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: var(--accent-ochre);
+    font-weight: 700;
+    font-family: 'Iowan Old Style', Georgia, serif;
+  }
+  .warn { border-left-color: var(--accent-red); background: var(--bg-warn); }
+  .warn .label { color: var(--accent-red); }
+  .field { border-left-color: var(--accent-green); }
+  .field .label { color: var(--accent-green); }
+
+  /* --- Figures --- */
+  figure {
+    margin: 28px 0 24px 0;
+    text-align: center;
+  }
+  figure svg {
+    max-width: 100%;
+    height: auto;
+    background: var(--cream-warm);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    border-radius: 2px;
+  }
+  figcaption {
+    font-size: 13px;
+    color: var(--ink-light);
+    font-style: italic;
+    margin-top: 10px;
+    padding: 0 30px;
+  }
+  figcaption .fignum {
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 11px;
+    color: var(--accent-red);
+    margin-right: 8px;
+  }
+
+  /* --- Tables --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0 22px 0;
+    font-size: 15px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  thead th {
+    border-top: 1.5px solid var(--ink);
+    border-bottom: 1.5px solid var(--ink);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+  td code { font-size: 13.5px; }
+
+  code {
+    font-family: 'Courier New', monospace;
+    background: var(--cream-deep);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.92em;
+    color: var(--accent-red);
+  }
+
+  /* --- TOC --- */
+  .toc {
+    background: var(--cream-warm);
+    border: 1px solid var(--rule);
+    padding: 22px 28px;
+    margin: 36px 0 48px 0;
+  }
+  .toc h5 {
+    margin: 0 0 12px 0;
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    font-weight: 600;
+  }
+  .toc ol {
+    margin: 0; padding-left: 22px;
+    columns: 2;
+    column-gap: 32px;
+  }
+  .toc ol li { margin-bottom: 4px; font-size: 15px; }
+  .toc a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px dotted var(--rule); }
+  .toc a:hover { color: var(--accent-red); border-bottom-color: var(--accent-red); }
+
+  /* --- Comparison grid for HV vs LV --- */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--ink);
+    margin: 22px 0;
+  }
+  .compare > div {
+    padding: 18px 22px;
+  }
+  .compare > div:first-child {
+    border-right: 1px solid var(--ink);
+    background: rgba(216, 90, 26, 0.06);
+  }
+  .compare > div:last-child {
+    background: rgba(44, 79, 124, 0.06);
+  }
+  .compare h6 {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-family: 'Iowan Old Style', Georgia, serif;
+  }
+  .compare > div:first-child h6 { color: var(--hv-orange); }
+  .compare > div:last-child h6 { color: var(--lv-blue); }
+  .compare ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+
+  /* --- References --- */
+  .refs {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 2px solid var(--ink);
+    font-size: 14px;
+  }
+  .refs h2 { font-size: 24px; margin-top: 0; }
+  .refs ol { padding-left: 22px; }
+  .refs li { margin-bottom: 9px; line-height: 1.5; }
+  .refs li span.cite-tag {
+    font-style: italic;
+    color: var(--ink-light);
+  }
+  .refs a { color: var(--accent-blue); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .refs a:hover { border-bottom-color: var(--accent-blue); }
+
+  /* --- Colophon --- */
+  .colophon {
+    margin-top: 50px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+  }
+  .colophon::before, .colophon::after {
+    content: "❦";
+    display: block;
+    font-size: 18px;
+    margin: 12px 0;
+    color: var(--accent-red);
+  }
+  .colophon::after { display: none; }
+
+  /* Drop-cap pull quote */
+  .pullquote {
+    font-family: 'Didot', 'Bodoni 72', Georgia, serif;
+    font-style: italic;
+    font-size: 21px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    text-align: center;
+    margin: 32px 40px;
+    padding: 18px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 36px 22px 60px 22px; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 24px; }
+    h3 { font-size: 19px; }
+    .toc ol { columns: 1; }
+    .compare { grid-template-columns: 1fr; }
+    .compare > div:first-child { border-right: none; border-bottom: 1px solid var(--ink); }
+    figcaption { padding: 0 8px; }
+  }
+</style>
+</head>
+<body>
+<article class="page">
+
+  <!-- ========== MASTHEAD ========== -->
+  <header class="masthead">
+    <a class="back-to-blog" href="/autonomy/">← Back to Autonomy</a>
+    <div class="eyebrow">A Working Engineer's Primer · No. I</div>
+    <h1>The Electrical Anatomy<br>of an <em>Electric Vehicle</em></h1>
+    <div class="subtitle">On the Battery, the High-Voltage Circuit, and the Low-Voltage Circuit</div>
+    <div class="byline">By Majid Mazouchi · Plain Language · Practical Notes · Verified References</div>
+  </header>
+
+  <!-- ========== INTRODUCTION ========== -->
+  <p class="lead">An electric vehicle is, at heart, two electrical worlds living in the same body. One world handles huge amounts of energy to make the car move; the other handles tiny amounts of energy to make the car <em>think</em>. A bridge connects them. Understanding those two worlds — and the battery that feeds them — is most of what you need to understand an EV.</p>
+
+  <p>This primer walks through three things, in order: <strong>the traction battery</strong>, the <strong>high-voltage (HV) circuit</strong> that turns stored energy into motion, and the <strong>low-voltage (LV) circuit</strong> that runs everything else. Each section ends with practical notes — the kind of things you only learn by actually working on these systems.</p>
+
+  <nav class="toc">
+    <h5>Contents</h5>
+    <ol>
+      <li><a href="#sec1">The Traction Battery</a></li>
+      <li><a href="#sec2">The High-Voltage Circuit</a></li>
+      <li><a href="#sec3">The Low-Voltage Circuit</a></li>
+      <li><a href="#sec4">How They Work Together</a></li>
+      <li><a href="#sec5">Safety &amp; Practical Notes</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- ========== SECTION 1: BATTERY ========== -->
+  <section id="sec1">
+    <h2><span class="num">§ I</span>The Traction Battery</h2>
+    <div class="sec-rule"><div></div></div>
+
+    <p>The battery is the EV's <em class="term">fuel tank</em>. But unlike a fuel tank, it doesn't just <em>hold</em> energy — it actively converts chemical energy to electrical energy on demand, and accepts it back when charging or regenerating. It is the single most expensive, heaviest, and most safety-critical component on the vehicle.</p>
+
+    <h3>From cell, to module, to pack</h3>
+    <p>Every EV battery is built up in three layers:</p>
+
+    <figure>
+      <svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cellGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#B8860B" stop-opacity="0.9"/>
+            <stop offset="1" stop-color="#9C2A20" stop-opacity="0.85"/>
+          </linearGradient>
+        </defs>
+        <!-- Cell -->
+        <g transform="translate(60,80)">
+          <rect x="0" y="0" width="30" height="80" rx="3" fill="url(#cellGrad)" stroke="#1F1A12" stroke-width="1.2"/>
+          <rect x="10" y="-6" width="10" height="6" fill="#1F1A12"/>
+          <text x="15" y="105" text-anchor="middle" font-family="Georgia" font-size="13" fill="#1F1A12" font-weight="600">Cell</text>
+          <text x="15" y="120" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">~3.7 V</text>
+        </g>
+
+        <!-- Arrow -->
+        <g transform="translate(125,120)">
+          <line x1="0" y1="0" x2="40" y2="0" stroke="#1F1A12" stroke-width="1.5"/>
+          <polygon points="40,-5 50,0 40,5" fill="#1F1A12"/>
+          <text x="25" y="-8" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">grouped</text>
+        </g>
+
+        <!-- Module -->
+        <g transform="translate(195,70)">
+          <rect x="0" y="0" width="130" height="100" rx="4" fill="#EBE0C5" stroke="#1F1A12" stroke-width="1.5"/>
+          <g fill="url(#cellGrad)" stroke="#1F1A12" stroke-width="0.8">
+            <rect x="10" y="15" width="14" height="70" rx="2"/>
+            <rect x="28" y="15" width="14" height="70" rx="2"/>
+            <rect x="46" y="15" width="14" height="70" rx="2"/>
+            <rect x="64" y="15" width="14" height="70" rx="2"/>
+            <rect x="82" y="15" width="14" height="70" rx="2"/>
+            <rect x="100" y="15" width="14" height="70" rx="2"/>
+          </g>
+          <text x="65" y="115" text-anchor="middle" font-family="Georgia" font-size="13" fill="#1F1A12" font-weight="600">Module</text>
+          <text x="65" y="130" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">~24–48 V</text>
+        </g>
+
+        <!-- Arrow -->
+        <g transform="translate(355,120)">
+          <line x1="0" y1="0" x2="40" y2="0" stroke="#1F1A12" stroke-width="1.5"/>
+          <polygon points="40,-5 50,0 40,5" fill="#1F1A12"/>
+          <text x="25" y="-8" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">assembled</text>
+        </g>
+
+        <!-- Pack -->
+        <g transform="translate(425,55)">
+          <rect x="0" y="0" width="220" height="130" rx="6" fill="#F4ECD8" stroke="#1F1A12" stroke-width="2"/>
+          <g fill="#EBE0C5" stroke="#1F1A12" stroke-width="1">
+            <rect x="10" y="12" width="60" height="50" rx="3"/>
+            <rect x="78" y="12" width="60" height="50" rx="3"/>
+            <rect x="146" y="12" width="60" height="50" rx="3"/>
+            <rect x="10" y="70" width="60" height="50" rx="3"/>
+            <rect x="78" y="70" width="60" height="50" rx="3"/>
+            <rect x="146" y="70" width="60" height="50" rx="3"/>
+          </g>
+          <!-- BMS box -->
+          <rect x="80" y="55" width="60" height="20" fill="#2C4F7C" stroke="#1F1A12"/>
+          <text x="110" y="69" text-anchor="middle" font-family="Georgia" font-size="10" fill="#F4ECD8" font-weight="600">BMS</text>
+          <text x="110" y="148" text-anchor="middle" font-family="Georgia" font-size="13" fill="#1F1A12" font-weight="600">Pack</text>
+          <text x="110" y="163" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">~400 V or 800 V</text>
+        </g>
+
+        <text x="350" y="225" text-anchor="middle" font-family="Georgia" font-size="11" fill="#6B5D45" font-style="italic">— hundreds of cells → tens of modules → one pack —</text>
+      </svg>
+      <figcaption><span class="fignum">Fig. 1</span>The three-tier hierarchy. A modern EV pack contains roughly 100–400 individual cells, depending on chemistry and pack architecture.</figcaption>
+    </figure>
+
+    <p>A <strong>cell</strong> is the smallest unit, typically about 3.7 V nominal for lithium-ion. A <strong>module</strong> is a group of cells wired together, with sensors and cooling. A <strong>pack</strong> is the whole assembly inside the vehicle floor — modules, wiring, cooling plates, contactors, and the brain that watches over everything: the <em class="term">Battery Management System</em> (BMS).</p>
+
+    <h3>What the BMS actually does</h3>
+    <p>The BMS is the most underappreciated piece of an EV. It is a small computer (or several) whose job is to keep every cell happy and to keep you safe. In practice that means:</p>
+    <ul>
+      <li><strong>Voltage monitoring</strong> — every cell, every few milliseconds. If one drifts too high or too low, contactors open.</li>
+      <li><strong>Temperature monitoring</strong> — usually one sensor per few cells, plus pack-level sensors.</li>
+      <li><strong>Current measurement</strong> — a precision shunt or Hall-effect sensor measures pack current to compute energy in/out.</li>
+      <li><strong>State estimation</strong> — <em class="term">State of Charge</em> (SOC, the fuel gauge) and <em class="term">State of Health</em> (SOH, the long-term aging).</li>
+      <li><strong>Cell balancing</strong> — passive (bleed resistors) or active (charge redistribution) to keep cells at matching voltages.</li>
+      <li><strong>Contactor control</strong> — opening the big switches if something goes wrong.</li>
+    </ul>
+
+    <h3>The chemistry choice</h3>
+    <p>Most production EVs today use one of two lithium-ion chemistries:</p>
+
+    <table>
+      <thead>
+        <tr><th>Chemistry</th><th>Energy density</th><th>Strengths</th><th>Trade-offs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>NMC / NCA</strong><br><span style="color:#6B5D45;font-size:13px">(Nickel-Manganese-Cobalt / Nickel-Cobalt-Aluminum)</span></td>
+          <td>High</td>
+          <td>Long range per kg, good cold performance</td>
+          <td>More expensive, less thermally stable, uses cobalt</td>
+        </tr>
+        <tr>
+          <td><strong>LFP</strong><br><span style="color:#6B5D45;font-size:13px">(Lithium Iron Phosphate)</span></td>
+          <td>Moderate</td>
+          <td>Cheap, very long cycle life, thermally stable, cobalt-free</td>
+          <td>Heavier per kWh, weaker in cold weather, flat voltage curve makes SOC tricky</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="field">
+      <span class="label">Practical Note</span>
+      LFP's <em>flat</em> voltage-vs-SOC curve sounds nice but it is a headache for SOC estimation — a 20% SOC change might only move terminal voltage by tens of millivolts. This is why LFP packs often need periodic 100% charges: it lets the BMS re-anchor the SOC estimate at a known reference point.
+    </div>
+
+    <h3>Practical numbers worth remembering</h3>
+    <ul>
+      <li>A typical passenger-EV pack stores <strong>50–100 kWh</strong>. For comparison, a household uses around 30 kWh per day.</li>
+      <li>Pack <strong>weight</strong>: roughly 400–700 kg. This dominates the vehicle's mass and dynamics.</li>
+      <li>Operating <strong>temperature window</strong>: cells are happiest between about 15 °C and 35 °C. Below 0 °C, fast charging is slow or disabled. Above 45 °C, life degrades quickly.</li>
+      <li><strong>Cycle life</strong>: NMC, ~1000–1500 full cycles to 80% capacity; LFP, ~3000–6000.</li>
+    </ul>
+  </section>
+
+  <!-- ========== SECTION 2: HIGH VOLTAGE ========== -->
+  <section id="sec2">
+    <h2><span class="num">§ II</span>The High-Voltage Circuit</h2>
+    <div class="sec-rule"><div></div></div>
+
+    <p>Everything that moves a lot of energy lives on the HV side. By convention, anything above <strong>60 V DC</strong> is considered high voltage in automotive standards [4]. Modern EV traction systems run at <strong>400 V</strong> (most cars) or <strong>800 V</strong> (Porsche Taycan, Hyundai E-GMP, Lucid, newer GM and Mercedes platforms).</p>
+
+    <p>Why higher voltage? Power equals voltage times current. To move the same power, doubling voltage halves current — which means thinner copper, less I²R loss, faster charging, and smaller, lighter cables. The trade-off is more demanding insulation, more expensive semiconductors, and stricter safety requirements.</p>
+
+    <figure>
+      <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          .hv-line { stroke: #D85A1A; stroke-width: 3; fill: none; }
+          .lv-line { stroke: #2C4F7C; stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; }
+          .box { fill: #F8F1DE; stroke: #1F1A12; stroke-width: 1.5; }
+          .label { font-family: Georgia, serif; font-size: 12px; fill: #1F1A12; font-weight: 600; }
+          .sublabel { font-family: Georgia, serif; font-size: 10px; fill: #6B5D45; font-style: italic; }
+        </style>
+
+        <!-- Battery -->
+        <rect class="box" x="20" y="140" width="110" height="80" rx="4"/>
+        <text class="label" x="75" y="170" text-anchor="middle">HV Battery</text>
+        <text class="sublabel" x="75" y="186" text-anchor="middle">400 / 800 V</text>
+        <text class="sublabel" x="75" y="200" text-anchor="middle">+ BMS</text>
+
+        <!-- Contactors / PDU -->
+        <rect class="box" x="170" y="140" width="90" height="80" rx="4"/>
+        <text class="label" x="215" y="170" text-anchor="middle">PDU</text>
+        <text class="sublabel" x="215" y="186" text-anchor="middle">contactors,</text>
+        <text class="sublabel" x="215" y="200" text-anchor="middle">fuses, sense</text>
+
+        <!-- Inverter -->
+        <rect class="box" x="300" y="60" width="100" height="70" rx="4"/>
+        <text class="label" x="350" y="92" text-anchor="middle">Inverter</text>
+        <text class="sublabel" x="350" y="108" text-anchor="middle">DC → 3-phase AC</text>
+
+        <!-- Motor -->
+        <circle class="box" cx="500" cy="95" r="38"/>
+        <text class="label" x="500" y="92" text-anchor="middle">Motor</text>
+        <text class="sublabel" x="500" y="108" text-anchor="middle">PMSM / IM</text>
+
+        <!-- OBC -->
+        <rect class="box" x="300" y="160" width="100" height="50" rx="4"/>
+        <text class="label" x="350" y="180" text-anchor="middle">OBC</text>
+        <text class="sublabel" x="350" y="195" text-anchor="middle">AC charger</text>
+
+        <!-- DC-DC -->
+        <rect class="box" x="300" y="230" width="100" height="50" rx="4"/>
+        <text class="label" x="350" y="250" text-anchor="middle">DC-DC</text>
+        <text class="sublabel" x="350" y="265" text-anchor="middle">HV → 12 V</text>
+
+        <!-- AC compressor & PTC -->
+        <rect class="box" x="300" y="300" width="100" height="40" rx="4"/>
+        <text class="label" x="350" y="318" text-anchor="middle">A/C + PTC</text>
+        <text class="sublabel" x="350" y="332" text-anchor="middle">heat / cool</text>
+
+        <!-- 12V battery -->
+        <rect class="box" x="450" y="225" width="90" height="60" rx="4" fill="#E8EEF5"/>
+        <text class="label" x="495" y="250" text-anchor="middle" fill="#2C4F7C">12 V Battery</text>
+        <text class="sublabel" x="495" y="265" text-anchor="middle" fill="#2C4F7C">LV loads</text>
+
+        <!-- Charge port -->
+        <rect class="box" x="170" y="310" width="90" height="40" rx="4"/>
+        <text class="label" x="215" y="330" text-anchor="middle">Charge Port</text>
+        <text class="sublabel" x="215" y="344" text-anchor="middle">AC / DC</text>
+
+        <!-- HV wires -->
+        <path class="hv-line" d="M 130 180 L 170 180"/>
+        <path class="hv-line" d="M 260 165 L 290 165 L 290 95 L 300 95"/>
+        <path class="hv-line" d="M 400 95 L 460 95"/>
+        <path class="hv-line" d="M 260 195 L 290 195 L 290 185 L 300 185"/>
+        <path class="hv-line" d="M 260 195 L 290 195 L 290 255 L 300 255"/>
+        <path class="hv-line" d="M 260 195 L 290 195 L 290 320 L 300 320"/>
+        <path class="hv-line" d="M 350 210 L 350 220 M 215 310 L 215 220"/>
+        <path class="hv-line" d="M 215 310 L 215 220 L 215 220"/>
+        <path class="hv-line" d="M 260 220 L 215 220"/>
+
+        <!-- LV wire from DC-DC to 12V batt -->
+        <path class="lv-line" d="M 400 255 L 450 255"/>
+
+        <!-- Legend -->
+        <g transform="translate(540,300)">
+          <line x1="0" y1="0" x2="22" y2="0" class="hv-line"/>
+          <text x="28" y="4" class="sublabel" font-size="11">HV (orange)</text>
+          <line x1="0" y1="18" x2="22" y2="18" class="lv-line"/>
+          <text x="28" y="22" class="sublabel" font-size="11">12 V (dashed)</text>
+        </g>
+
+        <text x="360" y="22" text-anchor="middle" font-family="Georgia" font-size="13" font-style="italic" fill="#6B5D45">A simplified HV electrical architecture</text>
+      </svg>
+      <figcaption><span class="fignum">Fig. 2</span>The high-voltage bus, fanning out from the battery through a Power Distribution Unit (PDU) to every major HV consumer: traction inverter, on-board charger, DC-DC converter, and the climate-control loads.</figcaption>
+    </figure>
+
+    <h3>The components on the HV bus</h3>
+
+    <h4>1. The Power Distribution Unit (PDU)</h4>
+    <p>This is the HV "fuse box." It contains the main <em class="term">contactors</em> (heavy-duty relays rated for hundreds of amps), HV fuses, the current sensor, and a <em class="term">pre-charge circuit</em>. When the car wakes up, the pre-charge resistor slowly brings the bus voltage up to match the battery — otherwise the massive capacitors in the inverter would draw a destructive inrush current the instant contactors close.</p>
+
+    <h4>2. The Traction Inverter</h4>
+    <p>The inverter takes DC from the battery and creates the three-phase AC voltages needed by the motor. It does this by rapidly switching power transistors (IGBTs or, increasingly, <strong>SiC MOSFETs</strong>) tens of thousands of times per second, using <em class="term">Pulse Width Modulation</em>. The inverter is also responsible for running the motor control algorithm — <em>Field-Oriented Control</em> (FOC), with strategies like <em>MTPA</em> (Maximum Torque per Ampere) and <em>field weakening</em> at high speed.</p>
+
+    <h4>3. The Traction Motor</h4>
+    <p>Most modern EVs use a <strong>Permanent Magnet Synchronous Motor</strong> (PMSM) — high power density, high efficiency. Some use <strong>Induction Motors</strong> (no magnets, slightly lower efficiency, but cheaper and robust). Axial-flux designs are emerging in performance applications. The same machine acts as a generator during regenerative braking, sending current back up the HV bus into the battery.</p>
+
+    <h4>4. The On-Board Charger (OBC)</h4>
+    <p>When you plug into a household or Level 2 AC outlet, the AC must be converted to high-voltage DC to charge the pack. The OBC does that, typically at 3.6–22 kW. For <strong>DC fast charging</strong>, the external charger does the conversion and feeds DC directly into the pack through a separate contactor, bypassing the OBC.</p>
+
+    <h4>5. The DC-DC Converter</h4>
+    <p>This is the <em>bridge between the two worlds</em>. It steps the ~400 V HV bus down to about 13–14 V to feed the 12 V system and recharge the 12 V battery. Without it, the LV battery would drain in hours and the car would brick itself.</p>
+
+    <h4>6. HV climate components</h4>
+    <p>The cabin heater (a <strong>PTC heater</strong> or a heat pump) and the <strong>electric A/C compressor</strong> are powered from the HV bus — they need too much power to run from 12 V. This is why running heat in winter eats range so fast: that's literally a 3–7 kW resistor turning battery into warmth.</p>
+
+    <div class="warn">
+      <span class="label">Safety — Read Carefully</span>
+      400 V DC across the chest is, statistically, lethal. HV cables are <strong>colored bright orange</strong> precisely so no one mistakes them. Every HV component has an <em>HVIL</em> (High-Voltage Interlock Loop): a thin signal wire that runs through every HV connector. Unplug any HV connector and the loop breaks; the BMS opens contactors within milliseconds. Never service HV systems without isolation, lockout-tagout, and 1000 V-rated PPE.
+    </div>
+  </section>
+
+  <!-- ========== SECTION 3: LOW VOLTAGE ========== -->
+  <section id="sec3">
+    <h2><span class="num">§ III</span>The Low-Voltage Circuit</h2>
+    <div class="sec-rule"><div></div></div>
+
+    <p>The 12 V system in an EV looks almost identical to the 12 V system in a gasoline car. That's not a coincidence — automotive suppliers have decades of components, harnesses, and ECUs designed for 12 V, and there's no reason to throw that ecosystem away. Some heavy-load vehicles (commercial, performance) use 48 V instead, but 12 V remains the standard.</p>
+
+    <h3>What the 12 V system powers</h3>
+    <p>Everything that doesn't move the car:</p>
+    <ul>
+      <li><strong>All ECUs</strong> — body control, infotainment, instrument cluster, steering, brakes, ADAS, gateway, BMS itself, motor controller's logic side, etc.</li>
+      <li><strong>Lighting</strong> — headlights, tail lights, interior</li>
+      <li><strong>Wipers, windows, mirrors, seats, locks</strong></li>
+      <li><strong>Low-power cooling pumps and fans</strong> (the big ones use HV)</li>
+      <li><strong>Audio, displays, USB ports</strong></li>
+      <li>The <strong>wake-up circuit</strong> itself</li>
+    </ul>
+
+    <figure>
+      <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          .lv-power { stroke: #2C4F7C; stroke-width: 2.5; fill: none; }
+          .lv-signal { stroke: #4A6741; stroke-width: 1.2; fill: none; stroke-dasharray: 3 2; }
+          .box-lv { fill: #E8EEF5; stroke: #1F1A12; stroke-width: 1.4; }
+          .lab { font-family: Georgia, serif; font-size: 12px; fill: #1F1A12; font-weight: 600; }
+          .sublab { font-family: Georgia, serif; font-size: 10px; fill: #6B5D45; font-style: italic; }
+        </style>
+
+        <!-- 12V battery -->
+        <rect class="box-lv" x="30" y="110" width="100" height="70" rx="4"/>
+        <text class="lab" x="80" y="138" text-anchor="middle">12 V Battery</text>
+        <text class="sublab" x="80" y="154" text-anchor="middle">AGM / Li-ion</text>
+        <text class="sublab" x="80" y="168" text-anchor="middle">40–80 Ah</text>
+
+        <!-- DC-DC from HV -->
+        <rect class="box-lv" x="30" y="20" width="100" height="50" rx="4" fill="#FBE8D8"/>
+        <text class="lab" x="80" y="40" text-anchor="middle">DC-DC</text>
+        <text class="sublab" x="80" y="55" text-anchor="middle">from HV bus</text>
+
+        <!-- Fuse box -->
+        <rect class="box-lv" x="180" y="100" width="100" height="90" rx="4"/>
+        <text class="lab" x="230" y="128" text-anchor="middle">Fuse Box</text>
+        <text class="sublab" x="230" y="145" text-anchor="middle">+ relays</text>
+        <text class="sublab" x="230" y="162" text-anchor="middle">+ smart</text>
+        <text class="sublab" x="230" y="176" text-anchor="middle">power switches</text>
+
+        <!-- ECUs -->
+        <rect class="box-lv" x="330" y="20" width="120" height="40" rx="4"/>
+        <text class="lab" x="390" y="45" text-anchor="middle">ECUs (Body, BCM)</text>
+
+        <rect class="box-lv" x="330" y="70" width="120" height="40" rx="4"/>
+        <text class="lab" x="390" y="95" text-anchor="middle">Infotainment</text>
+
+        <rect class="box-lv" x="330" y="120" width="120" height="40" rx="4"/>
+        <text class="lab" x="390" y="145" text-anchor="middle">ADAS &amp; Cluster</text>
+
+        <rect class="box-lv" x="330" y="170" width="120" height="40" rx="4"/>
+        <text class="lab" x="390" y="195" text-anchor="middle">Lights, Wipers</text>
+
+        <rect class="box-lv" x="330" y="220" width="120" height="40" rx="4"/>
+        <text class="lab" x="390" y="245" text-anchor="middle">Pumps, Fans (low)</text>
+
+        <!-- Connections -->
+        <path class="lv-power" d="M 80 70 L 80 110"/>
+        <path class="lv-power" d="M 130 145 L 180 145"/>
+        <path class="lv-power" d="M 280 130 L 310 130 L 310 40 L 330 40"/>
+        <path class="lv-power" d="M 280 140 L 310 140 L 310 90 L 330 90"/>
+        <path class="lv-power" d="M 280 145 L 330 145"/>
+        <path class="lv-power" d="M 280 155 L 310 155 L 310 190 L 330 190"/>
+        <path class="lv-power" d="M 280 165 L 310 165 L 310 240 L 330 240"/>
+
+        <!-- CAN bus signal arrows -->
+        <path class="lv-signal" d="M 460 45 L 540 45 L 540 245 L 460 245"/>
+        <path class="lv-signal" d="M 460 95 L 530 95"/>
+        <path class="lv-signal" d="M 530 95 L 530 245"/>
+        <path class="lv-signal" d="M 460 145 L 520 145"/>
+        <path class="lv-signal" d="M 520 145 L 520 245"/>
+        <path class="lv-signal" d="M 460 195 L 510 195"/>
+
+        <text class="sublab" x="600" y="140" text-anchor="middle">CAN / Ethernet</text>
+        <text class="sublab" x="600" y="155" text-anchor="middle">data network</text>
+
+        <!-- Legend -->
+        <g transform="translate(30,235)">
+          <line x1="0" y1="0" x2="22" y2="0" class="lv-power"/>
+          <text x="28" y="4" class="sublab" font-size="11">12 V power</text>
+          <line x1="0" y1="18" x2="22" y2="18" class="lv-signal"/>
+          <text x="28" y="22" class="sublab" font-size="11">data (CAN)</text>
+        </g>
+      </svg>
+      <figcaption><span class="fignum">Fig. 3</span>The 12 V subsystem. Power flows from DC-DC and battery through fusing to dozens of ECUs and loads; data flows between them on CAN and Ethernet networks.</figcaption>
+    </figure>
+
+    <h3>The 12 V battery is more important than people think</h3>
+    <p>This catches new EV owners off guard. The 12 V battery in an EV is small — often a <strong>lithium-ion auxiliary battery</strong> in newer cars, sometimes still a lead-acid AGM. It doesn't crank an engine, so it doesn't need to be huge. But it has one critical job:</p>
+
+    <p class="pullquote">"If the 12 V battery is dead, the car is dead — even with a full traction pack."</p>
+
+    <p>The reason is the <em class="term">wake-up sequence</em>. To close the HV contactors and bring the HV bus alive, the BMS and gateway ECUs must already be running. Those ECUs run on 12 V. If the 12 V battery is flat, nothing wakes up, nothing tells the contactors to close, and the 100 kWh of energy sitting six inches below your seat is completely inaccessible. This is why EVs have a 12 V <em>jump terminal</em> in the frunk or engine bay — exactly like a gasoline car.</p>
+
+    <div class="field">
+      <span class="label">Practical Note</span>
+      Once running, the DC-DC converter does <em>all</em> the work of keeping the 12 V battery charged. Unlike an alternator, the DC-DC is electronically controlled — it can be commanded to charge harder or softer based on 12 V battery SOC, temperature, and load. Some EVs deliberately keep their 12 V battery at lower SOC (to extend life) and top it up only periodically.
+    </div>
+
+    <h3>Why two networks instead of one?</h3>
+
+    <div class="compare">
+      <div>
+        <h6>High-Voltage Side</h6>
+        <ul>
+          <li>400 V or 800 V DC</li>
+          <li>Carries traction power: tens to hundreds of kW</li>
+          <li>Orange-coded, HVIL-protected, isolated from chassis</li>
+          <li>Few components, big cables, fewer connectors</li>
+          <li>Lethal — strict safety standards (ISO 6469, FMVSS 305)</li>
+        </ul>
+      </div>
+      <div>
+        <h6>Low-Voltage Side</h6>
+        <ul>
+          <li>12 V DC (sometimes 48 V)</li>
+          <li>Powers logic, sensing, lights, comfort: watts to a few kW</li>
+          <li>Black/colored automotive harness, chassis-referenced</li>
+          <li>Dozens of ECUs, hundreds of connectors, CAN/LIN/Ethernet</li>
+          <li>Touch-safe — standard automotive electrical practice</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SECTION 4: TOGETHER ========== -->
+  <section id="sec4">
+    <h2><span class="num">§ IV</span>How They Work Together</h2>
+    <div class="sec-rule"><div></div></div>
+
+    <p>Picture what happens when you press the start button on a cold morning:</p>
+
+    <ol>
+      <li>Your key fob wakes the body control module on <strong>12 V</strong>.</li>
+      <li>The body controller wakes the gateway, the BMS, the motor controller, and the climate controller — all on 12 V via CAN.</li>
+      <li>The BMS checks every cell voltage, every temperature, the insulation resistance to chassis, and the HVIL loop. If all green, it sends a "ready" message.</li>
+      <li>The motor controller commands its pre-charge contactor closed. A small current flows through a resistor, charging the inverter's bus capacitors up to near-battery voltage over a few hundred milliseconds.</li>
+      <li>When the bus voltage matches the battery, the main HV contactors close. The HV bus is now live.</li>
+      <li>The <strong>DC-DC converter</strong> turns on and begins supporting the 12 V system from the HV side. The 12 V battery can now relax.</li>
+      <li>The cabin heater and A/C draw HV power. The motor controller is ready for torque commands.</li>
+      <li>You press the accelerator — the inverter modulates current into the motor — you move.</li>
+    </ol>
+
+    <p>When you stop the car, this happens in reverse: torque ramps to zero, contactors open, the HV bus capacitors are actively discharged through a bleed resistor (within 5 seconds for safety), the DC-DC shuts off, and finally the 12 V ECUs go to sleep.</p>
+  </section>
+
+  <!-- ========== SECTION 5: SAFETY ========== -->
+  <section id="sec5">
+    <h2><span class="num">§ V</span>Safety &amp; Practical Notes</h2>
+    <div class="sec-rule"><div></div></div>
+
+    <h3>For the curious owner</h3>
+    <ul>
+      <li><strong>Don't ignore a flat 12 V battery in an EV.</strong> Jump it from another 12 V source (not from the HV pack — that's not how it works). If your EV has been parked for weeks, plug it in or run it briefly to let the DC-DC top up the 12 V.</li>
+      <li><strong>Range loss in winter is real.</strong> Roughly 20–40% of the loss is the cabin heater pulling kW from the HV bus. Pre-conditioning while plugged in is the cheapest way to fix it.</li>
+      <li><strong>Don't chase 100% SOC every charge</strong> unless your car is LFP. NMC chemistry ages noticeably faster between 80–100% SOC. Most manufacturers default to 80% for daily charging.</li>
+      <li><strong>DC fast charging is hard on cells.</strong> Use it for road trips, not every day. The pack will tell you what it can accept by tapering current at low/high SOC and at temperature extremes.</li>
+    </ul>
+
+    <h3>For the engineer or technician</h3>
+    <ul>
+      <li><strong>HVIL is your friend.</strong> If a connector is keyed and orange, assume it carries HV until proven otherwise. Always confirm zero potential between bus and chassis with a 1000 V-rated meter before touching anything.</li>
+      <li><strong>Isolation monitoring matters.</strong> The BMS continuously measures the resistance between HV+ and chassis, and HV− and chassis. Below ~100 Ω/V (ISO 6469), the system declares an isolation fault. Most "mystery" HV faults start as isolation issues from condensation, abraded harness, or contamination.</li>
+      <li><strong>Pre-charge problems are common.</strong> A failed pre-charge resistor or stuck pre-charge contactor causes contactor weld events — diagnose by looking at the rate of bus voltage rise on the inverter's DC link before the main contactor closes.</li>
+      <li><strong>Don't trust the 12 V "always there."</strong> When CAN comms drop or an ECU misbehaves intermittently, check 12 V quality at the connector — not at the battery. Voltage drop across a corroded ground is the second-most-common automotive fault, after the connector itself.</li>
+    </ul>
+
+    <div class="warn">
+      <span class="label">A final word</span>
+      The HV side of an EV is genuinely dangerous in a way that no part of a gasoline car is. The pack stores enough energy to be its own ignition source in a fault — there's no "battery disconnect" you can do that makes the cells themselves safe. Always work with someone who has formal HV training, and respect what you're working with.
+    </div>
+  </section>
+
+  <!-- ========== REFERENCES ========== -->
+  <section id="refs" class="refs">
+    <h2>References</h2>
+    <ol>
+      <li>Plett, G. L. <em>Battery Management Systems, Volume I: Battery Modeling</em>. Artech House, 2015. — The standard graduate-level reference on Li-ion modeling and BMS algorithms.</li>
+      <li>Plett, G. L. <em>Battery Management Systems, Volume II: Equivalent-Circuit Methods</em>. Artech House, 2016.</li>
+      <li>Pistoia, G. (ed.). <em>Lithium-Ion Batteries: Advances and Applications</em>. Elsevier, 2014. — Broad coverage of chemistry and applications.</li>
+      <li>ISO 6469-3:2021. <em>Electrically propelled road vehicles — Safety specifications — Part 3: Electrical safety.</em> International Organization for Standardization. — Defines HV thresholds (60 V DC / 30 V AC) and isolation requirements. <span class="cite-tag">[iso.org/standard/76414.html]</span></li>
+      <li>SAE J1772. <em>SAE Surface Vehicle Recommended Practice — Electric Vehicle Conductive Charge Coupler.</em> — The North American AC charging standard.</li>
+      <li>FMVSS No. 305. <em>Electric-powered vehicles: Electrolyte spillage and electrical shock protection.</em> U.S. National Highway Traffic Safety Administration.</li>
+      <li>Krause, P. C., Wasynczuk, O., Sudhoff, S. D., &amp; Pekarek, S. <em>Analysis of Electric Machinery and Drive Systems</em>, 3rd ed. Wiley-IEEE Press, 2013. — The classical reference for motor modeling and FOC.</li>
+      <li>Reif, K. (ed.). <em>Automotive Electrics and Automotive Electronics</em>, 5th ed. Bosch Professional Automotive Information. Springer Vieweg, 2014. — Excellent treatment of 12 V vehicle architecture, CAN, fusing, and ECU networks.</li>
+      <li>U.S. Department of Energy, Alternative Fuels Data Center. <em>How Do All-Electric Cars Work?</em> <span class="cite-tag">[afdc.energy.gov/vehicles/how-do-all-electric-cars-work]</span></li>
+      <li>Mercedes-Benz, BMW, Tesla, GM service training documentation — internal HV safety procedures (typical industry practice cited here in summary form, not direct quote).</li>
+      <li>Douglas, B. <em>Control System Lectures</em>. MATLAB Tech Talks, MathWorks. <span class="cite-tag">[mathworks.com/videos/series]</span> — Recommended for motor-control intuition.</li>
+    </ol>
+  </section>
+
+  <div class="colophon">
+    Set in Iowan Old Style · Composed for engineers who like clean explanations
+  </div>
+
+</article>
+</body>
+</html>
