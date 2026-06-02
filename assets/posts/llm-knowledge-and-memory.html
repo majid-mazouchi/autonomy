@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge & Memory in Large Language Models — Expanded</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --cream:#f6f0e4; --cream-2:#efe7d6; --paper:#fbf7ee;
+    --ink:#23201a; --ink-soft:#4a463c; --rule:#cdbfa3;
+    --rust:#9a3b1f; --teal:#1f6b66; --indigo:#2e3a72; --gold:#a8761c; --plum:#6a2c54; --green:#3f6b2e;
+    --shadow:rgba(60,48,28,.16);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;
+    background:
+      radial-gradient(circle at 12% 6%, rgba(168,118,28,.06), transparent 42%),
+      radial-gradient(circle at 88% 94%, rgba(31,107,102,.06), transparent 45%),
+      var(--cream);
+    color:var(--ink);font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");}
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 26px 120px;}
+
+  header.mast{padding:64px 0 30px;border-bottom:3px double var(--rule);margin-bottom:14px;}
+  .kicker{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--rust);margin-bottom:22px;}
+  h1{font-family:'Newsreader',serif;font-weight:600;font-size:clamp(2.4rem,6vw,4rem);line-height:1.02;margin:0 0 18px;letter-spacing:-.015em;}
+  h1 em{font-style:italic;color:var(--rust);}
+  .standfirst{font-size:1.16rem;color:var(--ink-soft);font-style:italic;max-width:64ch;margin:0 0 24px;}
+  .byline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.05em;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .byline .dot{width:4px;height:4px;border-radius:50%;background:var(--gold);}
+
+  .part{margin:64px 0 26px;display:flex;align-items:center;gap:18px;}
+  .part .pn{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.25em;color:var(--rust);white-space:nowrap;}
+  .part h2{font-family:'Newsreader',serif;font-style:italic;font-weight:500;font-size:1.5rem;margin:0;color:var(--ink);white-space:nowrap;}
+  .part .ln{flex:1;height:1px;background:var(--rule);}
+
+  nav.toc{background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:24px 30px;margin:34px 0 50px;box-shadow:0 1px 0 var(--shadow);}
+  nav.toc h2{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--teal);margin:0 0 14px;font-weight:500;}
+  nav.toc ol{margin:0;padding:0;list-style:none;counter-reset:t;columns:2;column-gap:40px;}
+  nav.toc li{counter-increment:t;margin:0 0 8px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;font-size:.92rem;border-bottom:1px solid transparent;transition:.2s;}
+  nav.toc a::before{content:counter(t,decimal-leading-zero);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);margin-right:10px;}
+  nav.toc a:hover{color:var(--rust);border-bottom-color:var(--rust);}
+
+  section{margin:0 0 56px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin:0 0 10px;border-bottom:1px solid var(--rule);padding-bottom:10px;}
+  .sec-num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--rust);letter-spacing:.1em;flex-shrink:0;}
+  h2.sec{font-family:'Newsreader',serif;font-weight:600;font-size:1.9rem;margin:0;letter-spacing:-.01em;}
+  h3{font-family:'Newsreader',serif;font-weight:600;font-size:1.26rem;margin:30px 0 6px;color:var(--indigo);}
+  p{margin:0 0 16px;} .lead{font-size:1.05rem;color:var(--ink-soft);margin-bottom:24px;}
+  strong{font-weight:600;color:var(--ink);} em.term{font-style:italic;color:var(--plum);font-weight:500;}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.84em;background:var(--cream-2);padding:1px 5px;border-radius:2px;color:var(--plum);}
+
+  .pull{font-family:'Newsreader',serif;font-style:italic;font-size:1.32rem;line-height:1.4;color:var(--rust);border-left:3px solid var(--gold);padding:6px 0 6px 22px;margin:28px 0;}
+
+  .card{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--teal);border-radius:3px;padding:20px 24px;margin:0 0 18px;box-shadow:0 1px 0 var(--shadow);}
+  .card.rust{border-left-color:var(--rust);} .card.indigo{border-left-color:var(--indigo);}
+  .card.gold{border-left-color:var(--gold);} .card.plum{border-left-color:var(--plum);}
+  .card h3{margin-top:0;color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border-radius:2px;background:var(--cream-2);color:var(--ink-soft);border:1px solid var(--rule);font-weight:500;}
+  .card p:last-child{margin-bottom:0;}
+  .note{font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.55;color:var(--teal);margin-top:12px;padding-top:12px;border-top:1px dotted var(--rule);}
+  .note b{color:var(--rust);font-weight:500;}
+
+  .scenario{background:linear-gradient(180deg,var(--paper),var(--cream-2));border:1px solid var(--rule);border-left:4px solid var(--rust);border-radius:3px;padding:20px 24px;margin:24px 0;}
+  .scenario .lab{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--rust);margin-bottom:8px;}
+  .scenario p{margin:0;font-size:.98rem;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px;}
+  .vs{background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:16px 18px;}
+  .vs h4{font-family:'Newsreader',serif;font-size:1.08rem;margin:0 0 6px;color:var(--ink);}
+  .vs .win{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;display:block;}
+  .vs p{font-size:.9rem;margin:0;color:var(--ink-soft);}
+
+  figure.fig{margin:30px 0;border:1px solid var(--rule);border-radius:4px;background:var(--paper);overflow:hidden;box-shadow:0 2px 14px var(--shadow);}
+  figure.fig .figbar{background:var(--cream-2);border-bottom:1px solid var(--rule);padding:11px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .figbar .figtag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);}
+  .figbar .fighint{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);}
+  figure.fig .figbody{padding:18px;}
+  figcaption{padding:0 18px 16px;font-size:.85rem;color:var(--ink-soft);font-style:italic;}
+
+  #mapWrap{position:relative;} #axisMap{width:100%;height:auto;display:block;}
+  .mapNode{cursor:pointer;transition:.15s;} .mapNode circle{transition:.15s;}
+  .mapNode:hover circle{stroke:var(--ink);stroke-width:2.5;}
+  .mapNode.active circle{stroke:var(--ink);stroke-width:3;}
+  .mapLabel{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink);pointer-events:none;}
+  .axisText{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink-soft);letter-spacing:.1em;}
+  #mapDetail{margin-top:6px;padding:14px 16px;background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;min-height:62px;font-size:.92rem;}
+  #mapDetail b{color:var(--rust);}
+
+  .stepHead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .stepDots{display:flex;gap:6px;flex:1;flex-wrap:wrap;}
+  .stepDots span{width:24px;height:5px;border-radius:3px;background:var(--rule);transition:.2s;cursor:pointer;}
+  .stepDots span.on{background:var(--rust);}
+  .stepBtn{font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);padding:7px 14px;border-radius:3px;cursor:pointer;transition:.15s;}
+  .stepBtn:hover{background:var(--ink);color:var(--paper);} .stepBtn:disabled{opacity:.35;cursor:not-allowed;}
+  #stepCard{background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;padding:18px 20px;min-height:200px;}
+  #stepCard .sno{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--rust);letter-spacing:.15em;}
+  #stepCard h4{font-family:'Newsreader',serif;font-size:1.28rem;margin:4px 0 10px;color:var(--ink);}
+  #stepCard p{font-size:.95rem;margin:0 0 12px;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:2px;border:1px solid var(--rule);background:var(--paper);}
+  .chip.src{color:var(--teal);border-color:var(--teal);} .chip.mem{color:var(--plum);border-color:var(--plum);}
+  .stepLink{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .stepLink .lk{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);}
+  .miniBtn{font-family:'IBM Plex Mono',monospace;font-size:10px;border:1px solid var(--teal);color:var(--teal);background:transparent;padding:3px 9px;border-radius:2px;cursor:pointer;text-decoration:none;}
+  .miniBtn:hover{background:var(--teal);color:var(--paper);}
+
+  #kgWrap{position:relative;} #kg{width:100%;height:auto;display:block;}
+  .edge{stroke:var(--rule);stroke-width:1.6;transition:.2s;} .edge.hot{stroke:var(--rust);stroke-width:2.6;}
+  .kgNode{cursor:pointer;} .kgNode circle{transition:.18s;stroke:var(--paper);stroke-width:2;}
+  .kgNode:hover circle{filter:brightness(1.08);} .kgNode.dim{opacity:.28;}
+  .kgNode text{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:var(--paper);pointer-events:none;font-weight:500;}
+  .kgNode.lightlabel text{fill:var(--ink);}
+  #kgDetail{margin-top:6px;padding:14px 16px;background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;min-height:74px;font-size:.92rem;}
+  #kgDetail .ktitle{font-family:'Newsreader',serif;font-size:1.1rem;color:var(--ink);margin-bottom:4px;}
+  #kgDetail .kmap{font-family:'IBM Plex Mono',monospace;font-size:11px;margin-top:8px;color:var(--teal);}
+  .kgLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);}
+  .kgLegend span{display:flex;align-items:center;gap:6px;} .kgLegend i{width:11px;height:11px;border-radius:50%;display:inline-block;}
+
+  .fuseCtrls{display:flex;gap:8px;margin-bottom:10px;}
+  .fuseCtrls button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);padding:6px 12px;border-radius:3px;cursor:pointer;}
+  .fuseCtrls button:hover{background:var(--ink);color:var(--paper);}
+  .fuseToggles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .fuseToggles label{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--rule);border-radius:3px;padding:7px 12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;background:var(--cream);transition:.15s;}
+  .fuseToggles label.on{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .fuseToggles input{display:none;}
+  #fuseOut{background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;padding:16px 18px;min-height:150px;}
+  #fuseOut .line{font-size:.9rem;margin:0 0 8px;padding-left:18px;position:relative;}
+  #fuseOut .line::before{content:"›";position:absolute;left:0;color:var(--teal);font-weight:700;}
+  #fuseMeter{height:8px;background:var(--rule);border-radius:4px;overflow:hidden;margin:12px 0 8px;}
+  #fuseMeter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--rust),var(--gold),var(--green));transition:.4s;}
+  #fuseVerdict{font-family:'Newsreader',serif;font-style:italic;font-size:1.05rem;color:var(--ink);}
+
+  /* decision tree */
+  #dtBox{background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;padding:18px 20px;min-height:190px;}
+  #dtPath{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);margin-bottom:12px;min-height:14px;letter-spacing:.04em;}
+  #dtPath b{color:var(--teal);font-weight:500;}
+  .dtQ{font-family:'Newsreader',serif;font-size:1.22rem;color:var(--ink);margin:0 0 14px;}
+  .dtOpts{display:flex;flex-wrap:wrap;gap:10px;}
+  .dtOpts button{font-family:'Spectral',serif;font-size:.95rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);padding:9px 16px;border-radius:3px;cursor:pointer;transition:.15s;}
+  .dtOpts button:hover{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .dtResult .rstore{font-family:'Newsreader',serif;font-size:1.5rem;color:var(--rust);margin:0 0 6px;}
+  .dtResult .rwhy{font-size:.95rem;color:var(--ink-soft);margin:0 0 14px;}
+  .dtRestart{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);padding:7px 14px;border-radius:3px;cursor:pointer;}
+  .dtRestart:hover{background:var(--ink);color:var(--paper);}
+
+  /* writeback */
+  #wb{width:100%;height:auto;display:block;}
+  .wbNode{transition:opacity .5s;} .wbNode.hidden{opacity:0;}
+  .wbNode text{font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--paper);text-anchor:middle;pointer-events:none;}
+  .wbEdge{stroke:var(--green);stroke-width:1.6;transition:opacity .5s;} .wbEdge.hidden{opacity:0;}
+  .wbStats{display:flex;gap:20px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+  .wbStat{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);}
+  .wbStat b{color:var(--rust);font-size:1.3rem;font-family:'Newsreader',serif;display:block;line-height:1.1;}
+  .wbBarWrap{flex:1;min-width:140px;}
+  .wbBar{height:8px;background:var(--rule);border-radius:4px;overflow:hidden;}
+  .wbBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--green),var(--teal));transition:.5s;}
+
+  /* budget */
+  input[type=range]{accent-color:var(--teal);height:4px;}
+  .budgetRow{display:grid;grid-template-columns:130px 1fr 40px;gap:10px;align-items:center;margin-bottom:8px;}
+  .budgetRow label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);}
+  .budgetRow .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);text-align:right;}
+  #budgetBar{display:flex;height:30px;border:1px solid var(--rule);border-radius:3px;overflow:hidden;margin:14px 0 8px;background:var(--cream-2);}
+  #budgetBar div{height:100%;transition:width .25s;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#fff;overflow:hidden;white-space:nowrap;}
+  #budgetStatus{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  #budgetStatus.ok{color:var(--green);} #budgetStatus.warn{color:var(--gold);} #budgetStatus.bad{color:var(--rust);}
+
+  .flowline{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;padding:12px 14px;margin:0 0 16px;line-height:1.9;letter-spacing:.02em;}
+  .flowline b{color:var(--rust);}
+
+  .tbl-wrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--rule);border-radius:3px;}
+  table{border-collapse:collapse;width:100%;background:var(--paper);font-size:.9rem;}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);background:var(--cream-2);font-weight:500;}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{font-weight:600;color:var(--indigo);white-space:nowrap;}
+
+  .facts{background:linear-gradient(180deg,var(--paper),var(--cream-2));border:1px solid var(--rule);border-top:3px solid var(--gold);border-radius:3px;padding:24px 28px;margin:0 0 18px;}
+  .facts h3{margin-top:0;color:var(--gold);} .facts ol{margin:0;padding-left:22px;} .facts li{margin:0 0 12px;padding-left:6px;}
+  .facts li::marker{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--rust);}
+
+  .refs{background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:24px 28px;}
+  .refs ol{margin:0;padding-left:20px;font-size:.9rem;line-height:1.55;color:var(--ink-soft);} .refs li{margin:0 0 11px;}
+  .refs a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--rule);} .refs a:hover{color:var(--rust);border-bottom-color:var(--rust);}
+  .refs .src{font-style:italic;}
+
+  footer{margin-top:60px;padding-top:24px;border-top:3px double var(--rule);font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+
+  @media(max-width:640px){
+    body{font-size:17px;} nav.toc ol{columns:1;} .grid2{grid-template-columns:1fr;}
+    .wrap{padding:0 16px 80px;} .part h2{font-size:1.15rem;} .budgetRow{grid-template-columns:96px 1fr 34px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:24px;">← Back to Autonomy</a>
+    <div class="kicker">A Field Guide to Machine Cognition · Expanded Edition</div>
+    <h1>Knowledge &amp; Memory in <em>Large Language Models</em></h1>
+    <p class="standfirst">The full account: the kinds of knowledge a model draws on, the kinds of memory it operates over, how they trade off, how an agent fuses them through a knowledge graph — and the engineering, failure modes, and governance that make it work in production. Threaded throughout by one example: root-causing a current oscillation in an EV traction drive.</p>
+    <div class="byline">
+      <span>By Majid Mazouchi</span><span class="dot"></span>
+      <span>Knowledge Systems Series</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#overview">The two questions</a></li>
+      <li><a href="#sources">Knowledge sources</a></li>
+      <li><a href="#sources-table">Sources at a glance</a></li>
+      <li><a href="#memory">Types of memory</a></li>
+      <li><a href="#memory-table">Memory at a glance</a></li>
+      <li><a href="#recap">The map: origin × retention</a></li>
+      <li><a href="#benefits">Benefits, head to head</a></li>
+      <li><a href="#decision">Which store? — decide</a></li>
+      <li><a href="#loop">The agentic diagnosis loop</a></li>
+      <li><a href="#skills">Skills: procedural memory</a></li>
+      <li><a href="#fusion">Merging sources into knowledge</a></li>
+      <li><a href="#graph">The knowledge graph as glue</a></li>
+      <li><a href="#writeback">Closing the loop: write-back</a></li>
+      <li><a href="#framework">The hybrid framework</a></li>
+      <li><a href="#context-eng">Context engineering &amp; the budget</a></li>
+      <li><a href="#retrieval">Retrieval mechanics, opened up</a></li>
+      <li><a href="#lifecycle">The memory lifecycle</a></li>
+      <li><a href="#kg-build">Building the knowledge graph</a></li>
+      <li><a href="#temporal">Temporal &amp; versioned knowledge</a></li>
+      <li><a href="#failures">Failure modes &amp; anti-patterns</a></li>
+      <li><a href="#eval">Evaluation</a></li>
+      <li><a href="#governance">Governance &amp; provenance</a></li>
+      <li><a href="#uncertainty">Uncertainty &amp; escalation</a></li>
+      <li><a href="#facts">Takeaways</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ PART ONE ============ -->
+  <div class="part"><span class="pn">PART ONE</span><h2>The Taxonomy</h2><span class="ln"></span></div>
+
+  <section id="overview">
+    <div class="sec-head"><span class="sec-num">§ 01</span><h2 class="sec">The two questions</h2></div>
+    <p class="lead">Every time a model produces an answer, two distinct questions are at play: <em class="term">where did the information come from</em>, and <em class="term">how long does it persist</em>. These are not the same axis, and conflating them is the most common source of confusion in applied LLM work.</p>
+    <p><strong>Knowledge sources</strong> describe the <em>origin</em> of what the model uses: baked into the weights, supplied in the prompt, retrieved from a database, or fetched live from a tool. <strong>Memory</strong> describes the <em>retention</em> of information: a single forward pass, one conversation, or permanently.</p>
+    <p>A retrieved document is a knowledge source <em>and</em> a form of short-term memory while it sits in context. A fine-tuned fact is a knowledge source <em>and</em> long-term parametric memory. Holding both axes in mind keeps system design honest.</p>
+    <p class="pull">A model does not have a single brain. It has a stack of overlapping stores, each with its own latency, cost, freshness, and failure mode.</p>
+    <div class="scenario">
+      <div class="lab">▸ The running case, used throughout</div>
+      <p>A traction inverter reports <strong>current oscillation on driftmode exit at roughly 3000 RPM and 750 Nm</strong>. Nobody hands you the answer. You have control theory in your head, calibration files on a server, live dyno logs behind an API, a stack of past failure reports, and a recalibration procedure that has worked before. Each store below is shown doing its part of this one investigation.</p>
+    </div>
+  </section>
+
+  <section id="sources">
+    <div class="sec-head"><span class="sec-num">§ 02</span><h2 class="sec">Types of knowledge sources</h2></div>
+    <p class="lead">Ordered roughly from most-baked-in to most-external. The trade-off runs along a spine: deeper integration means lower latency but worse freshness and traceability; more external means higher latency but auditable, updatable knowledge.</p>
+    <div class="card rust"><h3>Parametric knowledge <span class="tag">in the weights</span></h3>
+      <p>What the model absorbed during <strong>pretraining</strong> and stored implicitly in its parameters — grammar, world facts, reasoning patterns, code idioms. Fast (no lookup) but frozen at the training cutoff, hard to attribute, and prone to confident error when stretched beyond what it actually saw.</p>
+      <p class="note"><b>Practical:</b> Treat parametric facts as a strong prior, never a citation. Hallucination lives here.</p></div>
+    <div class="card indigo"><h3>In-context knowledge <span class="tag">the prompt</span></h3>
+      <p>Anything you place in the <strong>context window</strong>: the question, system instructions, pasted documents, few-shot examples, prior turns. The highest-fidelity channel — the model treats supplied text as ground truth far more reliably than its own recall.</p>
+      <p class="note"><b>Practical:</b> Long contexts suffer "lost in the middle." Put the most critical material at the edges.</p></div>
+    <div class="card teal"><h3>Retrieval-augmented (RAG) <span class="tag">vector / hybrid search</span></h3>
+      <p>An external corpus is chunked, embedded, and indexed; relevant chunks are retrieved into the prompt at query time. Makes knowledge <strong>updatable, attributable, and unbounded</strong> by the window, without retraining.</p>
+      <p class="note"><b>Practical:</b> Retrieval quality caps answer quality. Section 16 opens the pipeline up.</p></div>
+    <div class="card gold"><h3>Tool / function calling <span class="tag">live, dynamic</span></h3>
+      <p>The model emits a structured call to an external system — search, calculator, SQL, an internal API — and the result returns into context. Covers knowledge that is <strong>live, computed, or impossible to memorize</strong>.</p>
+      <p class="note"><b>Practical:</b> Tools turn "what the model knows" into "what it can find out." Validate and sandbox every call.</p></div>
+    <div class="card plum"><h3>Fine-tuning &amp; adapters <span class="tag">weight updates</span></h3>
+      <p>Continued training on curated data — full fine-tuning or parameter-efficient methods like <em class="term">LoRA</em>. The right tool for <strong>how the model behaves</strong>; a weaker tool for <strong>injecting facts</strong>.</p>
+      <p class="note"><b>Practical:</b> Fine-tune for <b>form and behavior</b>, retrieve for <b>facts</b>.</p></div>
+    <div class="card teal"><h3>Structured knowledge: graphs &amp; databases <span class="tag">symbolic</span></h3>
+      <p>Knowledge graphs, relational tables, and ontologies provide <strong>explicit, queryable relationships</strong> the model traverses via tools (GraphRAG, text-to-SQL). They answer multi-hop and aggregate questions prose chunks cannot. <em>Figure E walks one node by node.</em></p>
+      <p class="note"><b>Practical:</b> Use graphs when relationships and provenance matter as much as content.</p></div>
+    <div class="card indigo"><h3>System prompts &amp; instructions <span class="tag">policy layer</span></h3>
+      <p>A persistent instruction block framing every turn: role, constraints, format, safety rules, durable facts. Technically in-context, but the <strong>highest-authority, most-stable</strong> supplied knowledge in a deployment.</p>
+      <p class="note"><b>Practical:</b> Keep it stable and ordered — constraints first, examples last.</p></div>
+  </section>
+
+  <section id="sources-table">
+    <div class="sec-head"><span class="sec-num">§ 03</span><h2 class="sec">Sources at a glance</h2></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Source</th><th>Freshness</th><th>Updatable?</th><th>Attributable?</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>Parametric</td><td>Frozen at cutoff</td><td>Retrain only</td><td>No</td><td>General reasoning, language, common facts</td></tr>
+        <tr><td>In-context</td><td>As fresh as input</td><td>Per request</td><td>Yes</td><td>Grounding on supplied material</td></tr>
+        <tr><td>RAG</td><td>As fresh as index</td><td>Re-index</td><td>Yes</td><td>Private / large / changing corpora</td></tr>
+        <tr><td>Tools / APIs</td><td>Real-time</td><td>Always live</td><td>Yes</td><td>Live data, computation, actions</td></tr>
+        <tr><td>Fine-tuning</td><td>Frozen at train</td><td>Retrain</td><td>No</td><td>Style, format, behavior, narrow domain</td></tr>
+        <tr><td>Knowledge graph</td><td>As fresh as graph</td><td>Update graph</td><td>Yes</td><td>Multi-hop, relational, provenance</td></tr>
+      </tbody></table></div>
+    <p>The pragmatic stack: <strong>parametric reasoning</strong> + a <strong>stable system prompt</strong> + <strong>RAG</strong> for facts + <strong>tools</strong> for live actions, with fine-tuning reserved for behavior prompting can't pin down.</p>
+  </section>
+
+  <section id="memory">
+    <div class="sec-head"><span class="sec-num">§ 04</span><h2 class="sec">Types of memory</h2></div>
+    <p class="lead">Memory borrows its vocabulary from cognitive science, but the mechanisms are engineered. The dividing line is <em class="term">retention horizon</em>: a single forward pass, one session, or persistence across sessions.</p>
+    <h3>Short-term: the working memory</h3>
+    <div class="card rust"><h3>Context window <span class="tag">working memory</span></h3>
+      <p>The model's only true <strong>working memory</strong>: the token span it can attend to right now. When the conversation outgrows it, the oldest tokens fall off — the model doesn't forget gracefully, it stops seeing them.</p>
+      <p class="note"><b>Practical:</b> Bigger windows aren't free; recall in the middle degrades. Manage the budget — Section 15.</p></div>
+    <div class="card gold"><h3>KV cache <span class="tag">operational</span></h3>
+      <p>The cached key/value tensors of already-processed tokens, so generation doesn't recompute the sequence each step. Invisible to users, but it governs throughput, latency, and prefix caching.</p>
+      <p class="note"><b>Practical:</b> Put stable content (system prompt) at the <b>front</b> so it can be prefix-cached.</p></div>
+    <h3>Long-term: persisted across the model's life or the deployment's</h3>
+    <div class="card plum"><h3>Parametric (semantic) memory <span class="tag">long-term</span></h3>
+      <p>Knowledge frozen into the weights — the model's <strong>long-term semantic memory</strong>. Permanent within a version, not editable per-user, not introspectable. The same store as "parametric knowledge," seen through the memory lens.</p></div>
+    <div class="card teal"><h3>Episodic memory <span class="tag">conversation history</span></h3>
+      <p>A record of <strong>specific past interactions</strong> — what was said, when. Stored as transcripts or summaries and re-injected later. The model has none of this natively; it is an application-layer construct.</p>
+      <p class="note"><b>Practical:</b> Store summaries plus key facts, not raw transcripts. Set a retention/deletion policy up front.</p></div>
+    <div class="card indigo"><h3>Semantic memory store <span class="tag">facts about the user/world</span></h3>
+      <p>Distilled, durable <strong>facts</strong> — preferences, profile, project context — in a structured store, surfaced when relevant. Episodic is "what happened," semantic is "what is true."</p>
+      <p class="note"><b>Practical:</b> Separate <b>extraction</b> from <b>retrieval</b>. The full lifecycle is Section 17.</p></div>
+    <div class="card gold"><h3>Procedural memory <span class="tag">skills &amp; workflows</span></h3>
+      <p>Knowledge of <strong>how to do things</strong> — tool-use patterns, multi-step workflows, learned routines. Partly in weights, partly external artifacts an agent loads when a task recurs. <em>Section 10 develops this as skills.</em></p>
+      <p class="note"><b>Practical:</b> Capture recurring successful procedures as named, reusable artifacts.</p></div>
+    <div class="card rust"><h3>External / scratchpad memory <span class="tag">agentic</span></h3>
+      <p>Workspace memory agents write to and read from during a task: notes, intermediate results, files, a running plan. Decouples reasoning from the window limit, enabling long-horizon tasks.</p>
+      <p class="note"><b>Practical:</b> Persist intermediate state so a long task survives truncation, retries, or a fresh session.</p></div>
+  </section>
+
+  <section id="memory-table">
+    <div class="sec-head"><span class="sec-num">§ 05</span><h2 class="sec">Memory at a glance</h2></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Memory</th><th>Horizon</th><th>Native or built?</th><th>Holds</th></tr></thead>
+      <tbody>
+        <tr><td>Context window</td><td>Single request</td><td>Native</td><td>Active working set of tokens</td></tr>
+        <tr><td>KV cache</td><td>Within a generation</td><td>Native</td><td>Processed-token tensors (speed)</td></tr>
+        <tr><td>Parametric</td><td>Model lifetime</td><td>Native</td><td>General world knowledge</td></tr>
+        <tr><td>Episodic</td><td>Across sessions</td><td>Built</td><td>What happened, when</td></tr>
+        <tr><td>Semantic store</td><td>Across sessions</td><td>Built</td><td>Durable facts &amp; preferences</td></tr>
+        <tr><td>Procedural</td><td>Mixed</td><td>Both</td><td>How to perform tasks</td></tr>
+        <tr><td>External scratchpad</td><td>Task duration+</td><td>Built</td><td>Intermediate state, plans, files</td></tr>
+      </tbody></table></div>
+    <p>The base model ships with only the <em>native</em> rows. Every "memory" feature users notice — remembering preferences, recalling old chats, resuming long tasks — is the <em>built</em> rows, engineered on top.</p>
+  </section>
+
+  <!-- ============ PART TWO ============ -->
+  <div class="part"><span class="pn">PART TWO</span><h2>The Agentic Loop</h2><span class="ln"></span></div>
+
+  <section id="recap">
+    <div class="sec-head"><span class="sec-num">§ 06</span><h2 class="sec">The map: origin × retention</h2></div>
+    <p class="lead"><em class="term">Origin</em> runs from internal (in the weights) to external (fetched at runtime). <em class="term">Retention</em> runs from transient (gone after one request) to permanent. Every store sits somewhere on this plane — and that position predicts its cost, freshness, and failure mode.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure A · Interactive</span><span class="fighint">tap a node</span></div>
+      <div class="figbody">
+        <div id="mapWrap">
+          <svg id="axisMap" viewBox="0 0 720 460" role="img" aria-label="Map of stores by origin and retention">
+            <line x1="70" y1="400" x2="690" y2="400" stroke="#cdbfa3" stroke-width="1.5"/>
+            <line x1="70" y1="40" x2="70" y2="400" stroke="#cdbfa3" stroke-width="1.5"/>
+            <text class="axisText" x="80" y="420">INTERNAL · in the weights</text>
+            <text class="axisText" x="540" y="420">EXTERNAL · fetched</text>
+            <text class="axisText" x="20" y="395" transform="rotate(-90 20 395)">TRANSIENT</text>
+            <text class="axisText" x="20" y="120" transform="rotate(-90 20 120)">PERMANENT</text>
+            <g id="mapNodes"></g>
+          </svg>
+        </div>
+        <div id="mapDetail">Select a store to see what it is, what it costs, and where it shows up in the EV fault case.</div>
+      </div>
+      <figcaption>The same plane holds both knowledge sources and memory stores — they are two readings of the same objects.</figcaption>
+    </figure>
+  </section>
+
+  <section id="benefits">
+    <div class="sec-head"><span class="sec-num">§ 07</span><h2 class="sec">Benefits, head to head</h2></div>
+    <p class="lead">No store is best; each wins a specific contest. The art is knowing which contest you are in.</p>
+    <h3>Parametric vs. Retrieval</h3>
+    <div class="grid2">
+      <div class="vs"><span class="win">Parametric wins</span><h4>Breadth &amp; speed</h4><p>Zero-latency reasoning over general principles. The model already <em>knows</em> differential inductance falls under saturation — no lookup to form the hypothesis.</p></div>
+      <div class="vs"><span class="win">Retrieval wins</span><h4>Specific &amp; current facts</h4><p>The actual PI gains, this motor's flux table, last quarter's failure log — none in the weights. RAG makes them present, citable, updatable.</p></div>
+    </div>
+    <h3>In-context vs. Fine-tuning</h3>
+    <div class="grid2">
+      <div class="vs"><span class="win">In-context wins</span><h4>Facts &amp; flexibility</h4><p>Paste the dyno trace and it's ground truth this turn. Change input, change answer — no training cycle, full traceability.</p></div>
+      <div class="vs"><span class="win">Fine-tuning wins</span><h4>Behavior &amp; form</h4><p>To make every diagnosis emit the same structured report reliably, bend the weights. Form lives better in parameters than in a growing prompt.</p></div>
+    </div>
+    <h3>Tools vs. everything internal</h3>
+    <div class="grid2">
+      <div class="vs"><span class="win">Tools win</span><h4>Live, precise, actionable</h4><p>Today's telemetry, an exact ripple FFT, a SQL count of affected VINs. Time-sensitive or computed → tool call, never recall.</p></div>
+      <div class="vs"><span class="win">Internal wins</span><h4>No round-trip, no dependency</h4><p>Reasoning, framing, well-known physics need no network call. A tool call to recall Ohm's law is latency for nothing.</p></div>
+    </div>
+    <p class="pull">Parametric knowledge forms the hypothesis. Retrieval and tools test it against reality. Memory remembers how it turned out.</p>
+  </section>
+
+  <section id="decision">
+    <div class="sec-head"><span class="sec-num">§ 08</span><h2 class="sec">Which store? — decide</h2></div>
+    <p class="lead">A practical router. Answer a few questions about the information you need and the tree lands on the store that can actually serve it.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure B · Interactive decision tree</span><span class="fighint">answer to walk it</span></div>
+      <div class="figbody">
+        <div id="dtBox"><div id="dtPath"></div><div id="dtBody"></div></div>
+      </div>
+      <figcaption>The same routing discipline an agent applies internally on every sub-question of a task.</figcaption>
+    </figure>
+  </section>
+
+  <section id="loop">
+    <div class="sec-head"><span class="sec-num">§ 09</span><h2 class="sec">The agentic diagnosis loop</h2></div>
+    <p class="lead">A single-shot chat mostly uses parametric + in-context. An <strong>agentic</strong> workflow plans, calls tools, retrieves, reasons, and writes back — touching <em>every</em> store in sequence. Step through the fault investigation; each step names its source and memory and lights up the matching nodes in the graph (Figure E).</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure C · Interactive walkthrough</span><span class="fighint">wired to Figure E ↓</span></div>
+      <div class="figbody">
+        <div class="stepHead">
+          <button class="stepBtn" id="prevStep" disabled>‹ Prev</button>
+          <div class="stepDots" id="stepDots"></div>
+          <button class="stepBtn" id="nextStep">Next ›</button>
+        </div>
+        <div id="stepCard"></div>
+      </div>
+      <figcaption>The loop is what distinguishes an agent from a chatbot: it doesn't answer from one store, it orchestrates all of them.</figcaption>
+    </figure>
+    <p><strong>Internal stores frame the problem, external stores ground it, and memory closes the loop</strong> by retaining the resolved case so the next investigation starts smarter. Skip retrieval and tools and you get a fluent guess; skip the write-back and the agent never learns.</p>
+  </section>
+
+  <section id="skills">
+    <div class="sec-head"><span class="sec-num">§ 10</span><h2 class="sec">Skills: the procedural memory</h2></div>
+    <p class="lead">A <em class="term">skill</em> is reusable know-how — a named, packaged procedure the agent loads when a task type recurs. Semantic memory holds <strong>facts</strong>, episodic holds <strong>what happened</strong>, procedural holds <strong>how to act</strong>.</p>
+    <p>In the EV case, step seven of the loop doesn't reinvent a fix. It invokes a skill — call it <code>recal-saturation-instability</code> — that encodes a validated procedure: re-measure the flux map at high current, smooth the table edges, refit the PI gains against the <em>saturated</em> differential inductance rather than the nominal value, check the discretization margin <code>ωe·Ta</code>, and re-run the dyno point.</p>
+    <h3>Why a skill, and not just a prompt?</h3>
+    <p>Three benefits. <strong>Reliability</strong> — the procedure ran and worked, so reuse removes a class of reasoning errors. <strong>Composability</strong> — skills call tools, pull retrieval, and invoke other skills, so a complex job becomes an orchestration of trusted units. <strong>Economy</strong> — loading a tested playbook beats burning context and tokens re-deriving the workflow every run.</p>
+    <p>A skill is partly in the weights (the model broadly knows FOC tuning) and partly external (the version-controlled playbook). That split is exactly why procedural memory sits mid-origin: learned <em>and</em> stored.</p>
+  </section>
+
+  <section id="fusion">
+    <div class="sec-head"><span class="sec-num">§ 11</span><h2 class="sec">Merging sources into knowledge</h2></div>
+    <p class="lead"><strong>Knowledge is what you get when sources are fused.</strong> Toggle inputs to build a diagnosis up from nothing — or hit <em>Select all</em> and remove one to run a <em class="term">fault-injection</em>: watch which removal breaks the conclusion.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure D · Interactive fusion / fault injection</span><span class="fighint">toggle, or break it</span></div>
+      <div class="figbody">
+        <div class="fuseCtrls"><button id="fuseAll">Select all</button><button id="fuseNone">Clear</button></div>
+        <div class="fuseToggles" id="fuseToggles">
+          <label><input type="checkbox" data-k="param"> Parametric</label>
+          <label><input type="checkbox" data-k="context"> In-context</label>
+          <label><input type="checkbox" data-k="tool"> Tool / telemetry</label>
+          <label><input type="checkbox" data-k="rag"> RAG / calibration</label>
+          <label><input type="checkbox" data-k="episodic"> Episodic memory</label>
+          <label><input type="checkbox" data-k="graph"> Knowledge graph</label>
+          <label><input type="checkbox" data-k="skill"> Skill</label>
+        </div>
+        <div id="fuseOut">
+          <div id="fuseLines"><p class="line" style="color:var(--ink-soft)">No sources selected — the agent has nothing to reason over.</p></div>
+          <div id="fuseMeter"><i></i></div>
+          <div id="fuseVerdict">Diagnostic confidence: 0%</div>
+        </div>
+      </div>
+      <figcaption>Fusion has a grammar: tools without framing return uninterpretable numbers; a graph without evidence is an empty schema; a skill without a confirmed cause is a fix in search of a problem.</figcaption>
+    </figure>
+  </section>
+
+  <section id="graph">
+    <div class="sec-head"><span class="sec-num">§ 12</span><h2 class="sec">The knowledge graph as glue</h2></div>
+    <p class="lead">A knowledge graph is where fusion becomes <em>structure</em>. Symptoms, operating points, subsystems, causes, evidence, physics, history, and fixes become typed <strong>nodes</strong>; relationships become traversable <strong>edges</strong>. <strong>Each node is sourced from a different store</strong> — the graph doesn't replace them, it <em>indexes</em> them. Click a node, or step the loop above to see it drive this graph.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure E · Interactive graph</span><span class="fighint">click a node</span></div>
+      <div class="figbody">
+        <div id="kgWrap">
+          <svg id="kg" viewBox="0 0 860 540" role="img" aria-label="Knowledge graph for the EV fault root cause">
+            <g id="kgEdges"></g><g id="kgNodes"></g>
+          </svg>
+        </div>
+        <div id="kgDetail"><div class="ktitle">The fault graph</div>Click a node to trace its role and see which store populates it.</div>
+        <div class="kgLegend">
+          <span><i style="background:#9a3b1f"></i> symptom / state</span>
+          <span><i style="background:#2e3a72"></i> structure</span>
+          <span><i style="background:#6a2c54"></i> candidate cause</span>
+          <span><i style="background:#1f6b66"></i> evidence (tool/RAG)</span>
+          <span><i style="background:#a8761c"></i> physics (parametric)</span>
+          <span><i style="background:#3f6b2e"></i> fix (skill)</span>
+        </div>
+      </div>
+      <figcaption>Plain RAG retrieves a paragraph that mentions saturation; the graph traverses from a live symptom, through the physics that explains it, to the procedure that resolved a past case — carrying provenance the whole way.</figcaption>
+    </figure>
+  </section>
+
+  <section id="writeback">
+    <div class="sec-head"><span class="sec-num">§ 13</span><h2 class="sec">Closing the loop: write-back</h2></div>
+    <p class="lead">An agent that never records what it learned re-solves the same fault forever. <strong>Write-back</strong> is how today's investigation becomes tomorrow's head start: each resolved case adds a node to the graph and an entry to memory, and the next similar diagnosis starts further along.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure F · Interactive</span><span class="fighint">run diagnoses, watch memory grow</span></div>
+      <div class="figbody">
+        <svg id="wb" viewBox="0 0 360 280" role="img" aria-label="Knowledge base growing with resolved cases">
+          <g id="wbEdges"></g><g id="wbNodes"></g>
+        </svg>
+        <div class="wbStats">
+          <div class="wbStat">CASES LEARNED<b id="wbCount">0</b></div>
+          <div class="wbStat" style="flex:1;min-width:160px;">TIME TO FIRST HYPOTHESIS<div class="wbBarWrap"><div class="wbBar"><i id="wbBar"></i></div></div></div>
+          <button class="stepBtn" id="wbRunBtn">Run diagnosis ›</button>
+          <button class="dtRestart" id="wbReset">Reset</button>
+        </div>
+        <div id="wbMsg" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:10px;">A cold knowledge base reasons every case from scratch.</div>
+      </div>
+      <figcaption>Returns diminish — memory isn't free to grow. Consolidation (merge near-duplicates) and decay (retire stale cases) keep it useful, not just large.</figcaption>
+    </figure>
+    <p>The discipline matters as much as the mechanism: write back <em>distilled</em> outcomes, not raw transcripts; reconcile a new case against existing nodes rather than appending blindly; and let low-value memories decay so retrieval stays sharp.</p>
+  </section>
+
+  <section id="framework">
+    <div class="sec-head"><span class="sec-num">§ 14</span><h2 class="sec">The hybrid framework</h2></div>
+    <p class="lead">Put it together and a capable diagnostic agent is a small society of stores with clear roles. None is sufficient; the architecture is the value.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Layer</th><th>Store</th><th>Role in the loop</th><th>EV case</th></tr></thead>
+      <tbody>
+        <tr><td>Reasoning</td><td>Parametric</td><td>Forms hypotheses from principles</td><td>Knows L<sub>diff</sub> drops under saturation</td></tr>
+        <tr><td>Framing</td><td>System prompt / in-context</td><td>Sets role, constraints, the live query</td><td>"You are a VHM diagnostic agent"</td></tr>
+        <tr><td>Evidence</td><td>Tools</td><td>Pulls live, precise, computed data</td><td>Dyno log, current FFT, VIN count</td></tr>
+        <tr><td>Facts</td><td>RAG</td><td>Grounds in calibration &amp; docs</td><td>PI gains, flux table, prior reports</td></tr>
+        <tr><td>Structure</td><td>Knowledge graph</td><td>Fuses sources into a causal chain</td><td>Symptom→cause→physics→fix</td></tr>
+        <tr><td>Recall</td><td>Episodic memory</td><td>Surfaces analogous past cases</td><td>Prior YASA NVH signature</td></tr>
+        <tr><td>Action</td><td>Procedural / skill</td><td>Executes validated remediation</td><td>Recalibration playbook</td></tr>
+        <tr><td>Working set</td><td>Context window</td><td>Holds the active investigation</td><td>All of the above, this turn</td></tr>
+      </tbody></table></div>
+    <p>The hybrid pattern in vehicle-health and similar high-stakes domains layers these deliberately: a <strong>physics layer</strong> (parametric + structured models) proposes mechanisms, an <strong>ML/data layer</strong> (tools + retrieval over telemetry) tests them against measurement, and an <strong>LLM layer</strong> orchestrates — planning, fusing, narrating, and writing memory back. The LLM is the conductor, not the whole orchestra.</p>
+    <p class="pull">An agent's intelligence is less about any one store than about the discipline of routing each question to the store that can actually answer it.</p>
+  </section>
+
+  <!-- ============ PART THREE ============ -->
+  <div class="part"><span class="pn">PART THREE</span><h2>Engineering, Failure &amp; Governance</h2><span class="ln"></span></div>
+
+  <section id="context-eng">
+    <div class="sec-head"><span class="sec-num">§ 15</span><h2 class="sec">Context engineering &amp; the budget</h2></div>
+    <p class="lead">The context window is a finite resource shared by every in-context source. <strong>Context engineering</strong> is the craft of allocating it: what to include, what to compress, what to drop, and what to offload — so the model has room left to actually reason.</p>
+    <p>Four moves recur. <strong>Prioritize</strong>: put the highest-value material at the edges, where recall is best. <strong>Compact</strong>: replace old turns with rolling summaries so history costs less. <strong>Evict</strong>: drop the least-relevant retrieved chunks rather than stuffing the top-50. <strong>Offload</strong>: move bulky intermediate state to a scratchpad and pull it back on demand. Underneath, the <strong>KV cache</strong> rewards keeping the stable prefix fixed so it can be reused.</p>
+    <figure class="fig">
+      <div class="figbar"><span class="figtag">Figure G · Interactive budget</span><span class="fighint">drag to reallocate</span></div>
+      <div class="figbody">
+        <div id="budgetRows"></div>
+        <div id="budgetBar"></div>
+        <div id="budgetStatus" class="ok"></div>
+      </div>
+      <figcaption>Headroom is the room the model has to think. Spend the whole window on inputs and there is nothing left for reasoning — the silent cause of many "it ignored half my context" complaints.</figcaption>
+    </figure>
+    <p>The failure this prevents is quiet: an over-full window doesn't error, it truncates or buries — so the model simply stops attending to material you assumed it had.</p>
+  </section>
+
+  <section id="retrieval">
+    <div class="sec-head"><span class="sec-num">§ 16</span><h2 class="sec">Retrieval mechanics, opened up</h2></div>
+    <p class="lead">"RAG" hides a pipeline, and every stage caps the quality of the next. The LLM at the end can only be as good as what reaches it.</p>
+    <div class="flowline">query &rarr; <b>rewrite</b> (expand, disambiguate) &rarr; <b>embed</b> &rarr; <b>hybrid search</b> (dense + BM25) &rarr; <b>rerank</b> (cross-encoder) &rarr; top-k chunks &rarr; <b>context</b> &rarr; generate + cite</div>
+    <p><strong>Chunking</strong> decides what a "unit of knowledge" is — too small and you lose context, too large and you dilute relevance; semantic or structure-aware splitting beats fixed windows for technical documents like calibration specs. <strong>Embeddings</strong> must match the domain: a general model may not separate "differential inductance" from "leakage inductance" the way a motor-control corpus needs. <strong>Hybrid search</strong> pairs dense vectors (meaning) with keyword/BM25 (exact terms, part numbers, symbols) so a query for <code>Ld</code> doesn't get lost. <strong>Reranking</strong> with a cross-encoder reorders the shortlist by true relevance before it spends context budget. <strong>Query rewriting</strong> (and HyDE-style hypothetical answers) bridges the gap between how a user asks and how the corpus is written.</p>
+    <p>The live debate: with long context windows, why retrieve at all? Because retrieval is cheaper, fresher, and citable — and dumping a whole corpus into context invites "lost in the middle" and cost blowups. <em class="term">Cache-augmented generation</em> (preloading a small, stable corpus into the cached prefix) is a middle path when the knowledge is bounded and rarely changes.</p>
+  </section>
+
+  <section id="lifecycle">
+    <div class="sec-head"><span class="sec-num">§ 17</span><h2 class="sec">The memory lifecycle</h2></div>
+    <p class="lead">Memory types (Section 4) describe what's stored; the lifecycle describes how it lives. A store that only grows becomes noise.</p>
+    <p><strong>Formation</strong> — distill raw interaction into clean facts or cases (extraction), not verbatim dumps. <strong>Storage</strong> — write to the right place: a fact to the semantic store, a case to episodic, a procedure to a skill, a relationship to the graph. <strong>Retrieval</strong> — surface the right item at the right moment, the same precision problem as RAG. <strong>Conflict resolution</strong> — when a new fact contradicts an old one ("gains were retuned in the April release"), decide which wins, usually the most recent and best-sourced. <strong>Decay</strong> — let low-value, stale, or superseded memories fade so retrieval stays sharp. <strong>Correction</strong> — give users and the system a way to fix or delete a wrong memory; a confidently stored error is worse than a gap.</p>
+    <div class="scenario">
+      <div class="lab">▸ Lifecycle in the EV case</div>
+      <p>The resolved oscillation becomes a distilled case (formation), filed to episodic memory and a graph node (storage). Months later a similar signature retrieves it (retrieval). But the calibration has since changed — so the agent must reconcile the old fix against the new gains (conflict), retire the obsolete detail (decay), and update the record when an engineer corrects a misattributed cause (correction).</p>
+    </div>
+  </section>
+
+  <section id="kg-build">
+    <div class="sec-head"><span class="sec-num">§ 18</span><h2 class="sec">Building the knowledge graph</h2></div>
+    <p class="lead">The graph in Figure E doesn't materialize by itself. It's built — and the build choices decide whether it helps or just adds latency.</p>
+    <p><strong>Schema / ontology</strong> comes first: define the node types (symptom, subsystem, cause, evidence, physics, fix) and the edge types (localizes-to, explained-by, evidenced-by, resolved-by). A loose schema yields a graph you can't query; an over-strict one rejects real-world messiness. <strong>Extraction</strong> populates it — increasingly LLM-assisted, reading reports and specs to propose entities and relations, with human or rule-based validation on high-stakes edges. <strong>Linking</strong> resolves that "magnetic saturation" in one report and "core saturation" in another are the same node. <strong>Maintenance</strong> keeps it current as new cases write back.</p>
+    <p>When is the graph worth it over plain RAG? Use the rule: if your questions are <em>lookup</em> ("what are the gains for motor X"), vector RAG suffices. If they're <em>multi-hop or relational</em> ("which faults share a root cause with this one, and what fixed them"), the graph earns its cost. Many systems run both — RAG for passages, the graph for structure — which is exactly the GraphRAG pattern.</p>
+  </section>
+
+  <section id="temporal">
+    <div class="sec-head"><span class="sec-num">§ 19</span><h2 class="sec">Temporal &amp; versioned knowledge</h2></div>
+    <p class="lead">Most knowledge has a clock. Treating facts as timeless is a quiet, dangerous bug in any diagnostic or operational system.</p>
+    <p>A useful distinction is <em class="term">valid time</em> (when a fact was true in the world) versus <em class="term">ingestion time</em> (when the system learned it). The PI gains in effect at the moment of the fault may differ from the gains in the latest calibration release — and answering "why did it oscillate" requires the <em>then</em>-current values, not today's. Point-in-time queries ("what did we know, and what was deployed, as of the fault timestamp") are essential, and they require stamping retrieved facts and graph edges with versions, not just storing the latest.</p>
+    <p>This reaches back into memory too: episodic cases should record the configuration under which they happened, so a retrieved fix isn't applied to a vehicle whose calibration has since moved on. Versioning is what lets the system reason about change instead of being silently wrong about it.</p>
+  </section>
+
+  <section id="failures">
+    <div class="sec-head"><span class="sec-num">§ 20</span><h2 class="sec">Failure modes &amp; anti-patterns</h2></div>
+    <p class="lead">Each store fails in a characteristic way. Knowing the signature is half the mitigation.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Store</th><th>Failure mode</th><th>Symptom</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Parametric</td><td>Hallucination</td><td>Fluent, confident, wrong — esp. on niche or post-cutoff facts</td><td>Ground with retrieval/tools; never cite the weights</td></tr>
+        <tr><td>In-context</td><td>Lost in the middle</td><td>Ignores material buried mid-prompt</td><td>Put key content at the edges; trim noise</td></tr>
+        <tr><td>RAG</td><td>Retrieval miss / poison</td><td>Wrong or irrelevant chunks; injected text in a doc</td><td>Better chunking + rerank; sanitize and bound retrieved content</td></tr>
+        <tr><td>Tools</td><td>Bad arguments / blind trust</td><td>Malformed call, or output trusted without checks</td><td>Validate args; sandbox; verify results</td></tr>
+        <tr><td>Fine-tuning</td><td>Brittle facts / drift</td><td>Memorized facts can't update; behavior over-fits</td><td>Fine-tune for form; keep facts in retrieval</td></tr>
+        <tr><td>Knowledge graph</td><td>Schema rot</td><td>Stale edges, duplicate nodes, broken links</td><td>Linking + validation + maintenance on write-back</td></tr>
+        <tr><td>Memory (any)</td><td>Stale / conflicting / leaky</td><td>Confidently wrong recall; cross-user bleed</td><td>Conflict resolution, decay, correction, isolation</td></tr>
+        <tr><td>System prompt</td><td>Instruction conflict</td><td>Contradictory rules degrade reliability</td><td>Order constraints first; keep coherent</td></tr>
+      </tbody></table></div>
+    <p>One cross-cutting threat deserves naming: <strong>indirect prompt injection</strong>. Hostile text can arrive <em>through</em> a retrieved document or a tool result and hijack the agent. Treat all retrieved and tool-returned content as untrusted input, not as instructions.</p>
+  </section>
+
+  <section id="eval">
+    <div class="sec-head"><span class="sec-num">§ 21</span><h2 class="sec">Evaluation: did it use the right source?</h2></div>
+    <p class="lead">A correct-sounding answer from the wrong source is a latent failure. Evaluation has to test the <em>plumbing</em>, not just the prose.</p>
+    <p>Four measures matter. <strong>Groundedness / faithfulness</strong>: is every claim supported by the retrieved evidence, or did the model wander back into parametric guessing? <strong>Attribution accuracy</strong>: do the citations actually point to the sentences that support the claim? <strong>Retrieval quality</strong>: precision and recall of the chunks fetched, measured independently of the generator — because a perfect model can't fix a bad retrieval. <strong>Answer correctness</strong>: the end-to-end result against a trusted reference. Pipelines like RAGAS operationalize the first three so you can tell <em>which stage</em> failed.</p>
+    <p>For an agent, add <strong>trajectory evaluation</strong>: did it call the right tools, retrieve the right facts, and route each sub-question to the appropriate store? In the EV case, an answer that names the right fix but skipped the dyno log got lucky, not right — and luck doesn't generalize.</p>
+  </section>
+
+  <section id="governance">
+    <div class="sec-head"><span class="sec-num">§ 22</span><h2 class="sec">Governance &amp; provenance</h2></div>
+    <p class="lead">In a high-stakes domain, an answer you can't trace is an answer you can't trust. Governance is what makes the stack auditable.</p>
+    <p><strong>Provenance</strong>: tag every retrieved chunk, graph edge, and memory with where it came from and when, so any conclusion can be traced to its sources. <strong>Access control</strong>: retrieval and memory must respect permissions — a diagnostic agent should surface only the data and documents the requester is cleared for, enforced at the row/document level, not by hoping the prompt holds. <strong>PII &amp; data handling</strong>: minimize what you store, honor deletion, and keep export-controlled or personal data out of stores that weren't designed for it. <strong>Audit trail</strong>: log what was retrieved, which tools ran with what arguments, and what was written back — both for debugging and for accountability.</p>
+    <p>These aren't bolt-ons. Provenance is also what powers attribution; access control is also what prevents the cross-user memory leak in Section 20; the audit trail is also your evaluation dataset. Good governance and good engineering are the same investment seen twice.</p>
+  </section>
+
+  <section id="uncertainty">
+    <div class="sec-head"><span class="sec-num">§ 23</span><h2 class="sec">Uncertainty &amp; escalation</h2></div>
+    <p class="lead">The hardest skill is knowing when not to answer. A confident root cause built on thin evidence is the most expensive kind of wrong.</p>
+    <p>Signal of confidence comes largely from <strong>agreement across stores</strong> — the fusion meter in Figure D made this concrete: parametric hypothesis confirmed by live telemetry, grounded in retrieved calibration, structured into a causal chain, and matched to a prior case is a strong answer; the same hypothesis with no data behind it is a guess. When the sources don't converge, the right move is to <strong>abstain or escalate</strong>: say what is and isn't supported, request the missing measurement, or hand off to a human.</p>
+    <p>Design for it explicitly: thresholds below which the agent refuses to recommend an action, a clear "insufficient evidence" path, and a handoff that carries the assembled graph and evidence so the human starts where the agent left off. An agent that escalates well is more trustworthy than one that always has an answer.</p>
+    <p class="pull">Calibrated doubt is a feature. The store that says "I don't have enough to call this" has done its job.</p>
+  </section>
+
+  <!-- ============ CLOSE ============ -->
+  <section id="facts">
+    <div class="sec-head"><span class="sec-num">§ 24</span><h2 class="sec">Takeaways</h2></div>
+    <div class="facts">
+      <h3>What holds up in practice</h3>
+      <ol>
+        <li><strong>Origin and retention are the two real axes.</strong> Locate any store on that plane and its cost, freshness, and failure mode follow.</li>
+        <li><strong>Parametric proposes, external disposes.</strong> Weights form hypotheses; tools and retrieval decide whether they survive contact with data. Never cite the weights.</li>
+        <li><strong>Supplied text beats recalled text</strong> — but only if the model can see it. Manage the context budget so there's headroom left to reason.</li>
+        <li><strong>Fine-tune for behavior, retrieve for facts.</strong> Memorizing a knowledge base in the weights is usually the expensive wrong answer.</li>
+        <li><strong>RAG is a pipeline, not a step.</strong> Chunking, embeddings, hybrid search, and reranking cap quality more than the LLM does.</li>
+        <li><strong>Agentic ≠ a bigger prompt.</strong> The defining move is routing each sub-question to the store that can answer it, in a loop.</li>
+        <li><strong>Skills are procedural memory you can trust</strong> — reliability, composability, economy from packaging a validated workflow once.</li>
+        <li><strong>The knowledge graph indexes; it doesn't replace.</strong> Use it when questions are multi-hop or relational; carry provenance on every edge.</li>
+        <li><strong>Close the loop, then keep it clean.</strong> Write back distilled outcomes; reconcile, decay, and correct — a store that only grows becomes noise.</li>
+        <li><strong>Knowledge has a clock.</strong> Version facts and cases so you answer with what was true <em>then</em>, not just what's latest.</li>
+        <li><strong>Treat retrieved and tool content as untrusted.</strong> Indirect prompt injection arrives through the data, not the user.</li>
+        <li><strong>Evaluate the plumbing and know when to stop.</strong> Test groundedness and trajectory, not just the prose; abstain or escalate when the sources don't converge.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="refs">
+    <div class="sec-head"><span class="sec-num">§ 25</span><h2 class="sec">References</h2></div>
+    <div class="refs"><ol>
+      <li>Lewis, P. et al. (2020). <span class="src">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.</span> NeurIPS. <a href="https://arxiv.org/abs/2005.11401">arXiv:2005.11401</a></li>
+      <li>Liu, N. F. et al. (2023). <span class="src">Lost in the Middle: How Language Models Use Long Contexts.</span> TACL. <a href="https://arxiv.org/abs/2307.03172">arXiv:2307.03172</a></li>
+      <li>Hu, E. et al. (2021). <span class="src">LoRA: Low-Rank Adaptation of Large Language Models.</span> <a href="https://arxiv.org/abs/2106.09685">arXiv:2106.09685</a></li>
+      <li>Schick, T. et al. (2023). <span class="src">Toolformer: Language Models Can Teach Themselves to Use Tools.</span> <a href="https://arxiv.org/abs/2302.04761">arXiv:2302.04761</a></li>
+      <li>Yao, S. et al. (2022). <span class="src">ReAct: Synergizing Reasoning and Acting in Language Models.</span> <a href="https://arxiv.org/abs/2210.03629">arXiv:2210.03629</a></li>
+      <li>Park, J. S. et al. (2023). <span class="src">Generative Agents: Interactive Simulacra of Human Behavior.</span> <a href="https://arxiv.org/abs/2304.03442">arXiv:2304.03442</a></li>
+      <li>Edge, D. et al. (2024). <span class="src">From Local to Global: A Graph RAG Approach to Query-Focused Summarization.</span> <a href="https://arxiv.org/abs/2404.16130">arXiv:2404.16130</a></li>
+      <li>Khattab, O. &amp; Zaharia, M. (2020). <span class="src">ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction.</span> <a href="https://arxiv.org/abs/2004.12832">arXiv:2004.12832</a></li>
+      <li>Gao, L. et al. (2022). <span class="src">Precise Zero-Shot Dense Retrieval without Relevance Labels (HyDE).</span> <a href="https://arxiv.org/abs/2212.10496">arXiv:2212.10496</a></li>
+      <li>Es, S. et al. (2023). <span class="src">RAGAS: Automated Evaluation of Retrieval Augmented Generation.</span> <a href="https://arxiv.org/abs/2309.15217">arXiv:2309.15217</a></li>
+      <li>Greshake, K. et al. (2023). <span class="src">Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection.</span> <a href="https://arxiv.org/abs/2302.12173">arXiv:2302.12173</a></li>
+      <li>Kwon, W. et al. (2023). <span class="src">Efficient Memory Management for LLM Serving with PagedAttention (vLLM).</span> <a href="https://arxiv.org/abs/2309.06180">arXiv:2309.06180</a></li>
+      <li>Wang, L. et al. (2024). <span class="src">A Survey on Large Language Model based Autonomous Agents.</span> Frontiers of Computer Science. <a href="https://arxiv.org/abs/2308.11432">arXiv:2308.11432</a></li>
+    </ol></div>
+  </section>
+
+  <footer>
+    <span>By Majid Mazouchi</span>
+    <span>Knowledge &amp; Memory in LLMs · expanded edition</span>
+  </footer>
+
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+
+/* ===== FIG A — axis map ===== */
+const mapData=[
+  {id:'param',x:150,y:120,c:'#6a2c54',label:'Parametric',d:'<b>Parametric knowledge.</b> In the weights, permanent within a version, near-zero latency — but frozen and un-citable. Supplies the principle that differential inductance falls under saturation. Internal · Permanent.'},
+  {id:'ctx',x:430,y:330,c:'#2e3a72',label:'In-context',d:'<b>In-context.</b> The most trusted channel, but transient — gone after the request. Holds the pasted fault report. External input · Transient.'},
+  {id:'rag',x:520,y:200,c:'#1f6b66',label:'RAG',d:'<b>Retrieval (RAG).</b> External corpus, updatable and citable, persists in its index. Supplies this motor\'s PI gains and flux table. External · Semi-permanent.'},
+  {id:'tool',x:610,y:340,c:'#a8761c',label:'Tools',d:'<b>Tools / function calls.</b> Most external, fully live, result transient in context. Pulls the dyno log, computes the ripple FFT. External · Transient result.'},
+  {id:'kg',x:380,y:160,c:'#3f6b2e',label:'Knowledge graph',d:'<b>Knowledge graph.</b> A structured external store fusing the others into a traversable causal chain. Persists and grows. External · Permanent.'},
+  {id:'epi',x:250,y:230,c:'#9a3b1f',label:'Episodic mem',d:'<b>Episodic memory.</b> Records of past cases, re-injected when relevant. Surfaces the prior YASA NVH signature. Built · Persists across sessions.'},
+  {id:'skill',x:300,y:90,c:'#1f6b66',label:'Skill (procedural)',d:'<b>Procedural memory / skill.</b> Reusable know-how — the recalibration playbook. Partly learned, partly stored. Mixed · Persistent.'},
+  {id:'ctxwin',x:480,y:380,c:'#2e3a72',label:'Context window',d:'<b>Context window.</b> The only native working memory — the active token span. Everything converges here for one turn. Internal mechanism · Transient.'},
+];
+const mapNodes=document.getElementById('mapNodes'), mapDetail=document.getElementById('mapDetail');
+mapData.forEach(n=>{
+  const g=document.createElementNS(NS,'g'); g.setAttribute('class','mapNode'); g.dataset.id=n.id;
+  g.innerHTML=`<circle cx="${n.x}" cy="${n.y}" r="13" fill="${n.c}" stroke="#fbf7ee" stroke-width="2"/><text class="mapLabel" x="${n.x+18}" y="${n.y+4}">${n.label}</text>`;
+  g.addEventListener('click',()=>{document.querySelectorAll('#mapNodes .mapNode').forEach(e=>e.classList.remove('active'));g.classList.add('active');mapDetail.innerHTML=n.d;});
+  mapNodes.appendChild(g);
+});
+
+/* ===== FIG B — decision tree ===== */
+const dtree={
+  start:{q:'Does the information change over time or depend on something live?',opts:[['Yes — live / time-sensitive','q_precise'],['No — stable','q_private']]},
+  q_precise:{q:'Is it a precise value or a computation (a number, a query result)?',opts:[['Yes','r_tool'],['No — live text / news','r_search']]},
+  q_private:{q:'Is it specific to your private or internal data (not general world knowledge)?',opts:[['Yes','q_multihop'],['No','q_behavior']]},
+  q_multihop:{q:'Do relationships and multi-hop links matter (A → B → C)?',opts:[['Yes','r_graph'],['No','r_rag']]},
+  q_behavior:{q:'Are you changing HOW the model behaves or formats, not WHAT it knows?',opts:[['Yes','r_ft'],['No','q_known']]},
+  q_known:{q:'Is it general knowledge or reasoning the model very likely already has?',opts:[['Yes','r_param'],['No / unsure','r_context']]},
+  r_tool:{store:'Tools / function calling',why:'Live, precise, or computed values are fetched at runtime, never recalled. EV case: pull the dyno log, compute the ripple FFT.'},
+  r_search:{store:'Tools → search into context',why:'Current text belongs in a live retrieval call whose result lands in the prompt.'},
+  r_graph:{store:'Knowledge graph / GraphRAG',why:'Connected, multi-hop questions need traversable structure with provenance. EV case: symptom → physics → prior fix.'},
+  r_rag:{store:'RAG (vector retrieval)',why:'Private, large, or changing facts — updatable and citable without retraining. EV case: this motor\'s gains and flux table.'},
+  r_ft:{store:'Fine-tuning / adapters',why:'Behavior, format, and tone live better in the weights than in a growing prompt.'},
+  r_param:{store:'Parametric (just ask)',why:'General principles need no lookup. EV case: that differential inductance falls under saturation.'},
+  r_context:{store:'In-context (put it in the prompt)',why:'When in doubt, supply it directly — the most trusted, most traceable channel for one turn.'},
+};
+const dtBody=document.getElementById('dtBody'), dtPath=document.getElementById('dtPath');
+let dtTrail=[];
+function dtRender(id){
+  const node=dtree[id];
+  dtPath.innerHTML = dtTrail.length? dtTrail.map(t=>`<b>${t}</b>`).join('  ›  ') : '&nbsp;';
+  if(node.store){
+    dtBody.innerHTML=`<div class="dtResult"><div class="rstore">→ ${node.store}</div><p class="rwhy">${node.why}</p><button class="dtRestart" id="dtRestart">↺ Start over</button></div>`;
+    document.getElementById('dtRestart').addEventListener('click',()=>{dtTrail=[];dtRender('start');});
+    return;
+  }
+  dtBody.innerHTML=`<div class="dtQ">${node.q}</div><div class="dtOpts">${node.opts.map((o,i)=>`<button data-go="${o[1]}" data-lab="${o[0]}">${o[0]}</button>`).join('')}</div>`;
+  dtBody.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{dtTrail.push(b.dataset.lab);dtRender(b.dataset.go);}));
+}
+
+/* ===== FIG E — knowledge graph (built before stepper highlights it) ===== */
+const kgNodes=[
+  {id:'sym',x:410,y:270,r:30,c:'#9a3b1f',label:['CURRENT','OSCILLATION'],title:'Symptom · Current oscillation',src:'Source: In-context report, confirmed by live telemetry (tool).',d:'Iq/Id oscillation on driftmode exit at ~3000 RPM, ~750 Nm. The root node everything else explains.'},
+  {id:'loop',x:235,y:185,r:24,c:'#2e3a72',label:['FOC','LOOP'],title:'Structure · FOC current loop',src:'Source: Knowledge graph node (system model).',d:'The subsystem that localizes the fault — the field-oriented current regulator.'},
+  {id:'op',x:235,y:360,r:24,c:'#2e3a72',label:['OP','POINT'],title:'State · Operating point',src:'Source: In-context (the live query state).',d:'~3000 RPM, ~750 Nm, driftmode exit — the condition under which the fault appears.'},
+  {id:'dyno',x:95,y:185,r:22,c:'#1f6b66',label:['DYNO','LOG'],title:'Evidence · Dyno telemetry',src:'Source: Tool / function call (live data).',d:'Raw current traces and the computed ripple FFT confirming the symptom.'},
+  {id:'flux',x:95,y:360,r:22,c:'#1f6b66',label:['FLUX','MAP'],title:'Evidence · Flux linkage map',src:'Source: RAG over the calibration store.',d:'The motor\'s flux table — reveals noisy high-current edges, feeds the saturation analysis.'},
+  {id:'sat',x:600,y:95,r:24,c:'#6a2c54',label:['MAGNETIC','SATURATION'],title:'Cause · Deep magnetic saturation',src:'Source: Parametric + RAG (flux map).',d:'At high current the iron saturates; the dominant driver of the instability chain.'},
+  {id:'gain',x:610,y:215,r:24,c:'#6a2c54',label:['PI','GAINS'],title:'Cause · Aggressive PI gains',src:'Source: RAG (calibration records).',d:'Gains tuned on NOMINAL differential inductance become too hot once saturation lowers it.'},
+  {id:'edge',x:610,y:335,r:24,c:'#6a2c54',label:['TABLE','NOISE'],title:'Cause · Noisy flux-table edges',src:'Source: Tool (data inspection) + RAG.',d:'Numerical noise at the high-current edges of the flux table adds excitation to the loop.'},
+  {id:'euler',x:600,y:450,r:24,c:'#6a2c54',label:['EULER','MARGIN'],title:'Cause · Forward-Euler instability',src:'Source: Parametric (control theory).',d:'Discretization margin marginal at ωe·Ta ≈ 0.79, pushing the digital loop toward instability.'},
+  {id:'phys',x:790,y:95,r:22,c:'#a8761c',label:['Ldiff','↓'],light:true,title:'Physics · Inductance collapse',src:'Source: Parametric knowledge.',d:'Differential inductance falls under saturation — the mechanism linking saturation to over-aggressive effective gain.'},
+  {id:'hist',x:790,y:270,r:22,c:'#1f6b66',label:['PRIOR','CASE'],title:'History · Prior NVH case',src:'Source: Episodic memory + RAG over reports.',d:'A past case with a matching signature; points toward a known-good remediation.'},
+  {id:'fix',x:780,y:450,r:26,c:'#3f6b2e',label:['RECAL','FIX'],title:'Fix · Recalibration skill',src:'Source: Procedural memory / skill.',d:'Refit gains on saturated inductance, smooth table edges, verify discretization margin, re-run the point.'},
+];
+const kgEdges=[['dyno','sym'],['flux','loop'],['flux','sat'],['loop','sym'],['op','loop'],['sym','sat'],['sym','gain'],['sym','edge'],['sym','euler'],['sat','phys'],['phys','gain'],['hist','fix'],['sat','fix'],['gain','fix'],['euler','fix']];
+const adj={}; kgEdges.forEach(([a,b])=>{(adj[a]=adj[a]||[]).push(b);(adj[b]=adj[b]||[]).push(a);});
+const eG=document.getElementById('kgEdges'), nG=document.getElementById('kgNodes');
+const pos=Object.fromEntries(kgNodes.map(n=>[n.id,n]));
+kgEdges.forEach(([a,b])=>{const l=document.createElementNS(NS,'line');l.setAttribute('x1',pos[a].x);l.setAttribute('y1',pos[a].y);l.setAttribute('x2',pos[b].x);l.setAttribute('y2',pos[b].y);l.setAttribute('class','edge');l.dataset.a=a;l.dataset.b=b;eG.appendChild(l);});
+const kgDetail=document.getElementById('kgDetail');
+kgNodes.forEach(n=>{
+  const g=document.createElementNS(NS,'g'); g.setAttribute('class','kgNode'+(n.light?' lightlabel':'')); g.dataset.id=n.id;
+  const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',n.r);c.setAttribute('fill',n.c); g.appendChild(c);
+  n.label.forEach((ln,k)=>{const t=document.createElementNS(NS,'text');t.setAttribute('x',n.x);t.setAttribute('y',n.y+4+(k-(n.label.length-1)/2)*11);t.setAttribute('text-anchor','middle');t.textContent=ln;g.appendChild(t);});
+  g.addEventListener('click',()=>selectKg(n.id));
+  nG.appendChild(g);
+});
+function kgHighlight(idSet,within){
+  document.querySelectorAll('#kgNodes .kgNode').forEach(g=>g.classList.toggle('dim',!idSet.has(g.dataset.id)));
+  document.querySelectorAll('#kgEdges .edge').forEach(l=>{const a=l.dataset.a,b=l.dataset.b;l.classList.toggle('hot', within?(idSet.has(a)&&idSet.has(b)):(idSet.has(a)||idSet.has(b)));});
+}
+function selectKg(id){
+  const neigh=new Set([id,...(adj[id]||[])]); kgHighlight(neigh,false);
+  const n=pos[id]; kgDetail.innerHTML=`<div class="ktitle">${n.title}</div>${n.d}<div class="kmap">${n.src}</div>`;
+}
+
+/* ===== FIG C — stepper (wired to Fig E) ===== */
+const steps=[
+  {t:'Intake & framing',p:'The agent receives the fault report under a system prompt defining its role as a vehicle-health diagnostic agent. It restates the problem and plans the investigation.',src:'In-context · System prompt',mem:'Context window',nodes:['sym','op']},
+  {t:'Recall the subsystem model',p:'From training it knows the FOC current-loop structure; from the graph it loads this motor\'s topology and operating point. The hypothesis space narrows to the current regulator.',src:'Parametric · Knowledge graph',mem:'Parametric · Semantic store',nodes:['loop','op']},
+  {t:'Pull live telemetry',p:'A tool call to the dyno-log service retrieves the current traces at the operating point and computes an FFT of the ripple. The numbers land in context.',src:'Tool / function call',mem:'Context window (result)',nodes:['dyno','sym']},
+  {t:'Retrieve calibration & history',p:'RAG returns the PI gains and the flux table; RAG over past reports surfaces a prior NVH case with a matching signature. Episodic memory flags it as analogous.',src:'RAG · Episodic memory',mem:'Retrieval index · Episodic',nodes:['flux','gain','hist']},
+  {t:'Reason from physics',p:'Parametric knowledge supplies the mechanism: differential inductance collapses under saturation, so nominal-tuned gains become too aggressive; forward-Euler is marginal at ωe·Ta ≈ 0.79; noisy table edges add excitation.',src:'Parametric',mem:'Context window',nodes:['phys','sat','euler']},
+  {t:'Fuse into the graph',p:'The agent assembles symptom → subsystem → candidate causes → physics → evidence into a causal chain with provenance on every edge. The dominant path is identified.',src:'Knowledge graph',mem:'Structured store',nodes:['sym','sat','gain','edge','euler']},
+  {t:'Invoke the skill',p:'With the cause confirmed, it loads the recalibration playbook, fills its parameters from retrieved calibration and live telemetry, and executes the procedure.',src:'Procedural / skill',mem:'Procedural',nodes:['fix','sat','gain','euler']},
+  {t:'Write back & close the loop',p:'On success it records a new episodic case, adds a resolved-fault node to the graph, and updates the skill\'s success log. The next investigation starts stronger.',src:'Memory write',mem:'Episodic · Semantic · Graph',nodes:['fix','hist','sym']},
+];
+let si=0;
+const stepCard=document.getElementById('stepCard'), stepDots=document.getElementById('stepDots');
+const prevB=document.getElementById('prevStep'), nextB=document.getElementById('nextStep');
+steps.forEach((_,i)=>{const s=document.createElement('span');s.addEventListener('click',()=>{si=i;renderStep();});stepDots.appendChild(s);});
+function renderStep(){
+  const s=steps[si];
+  const nodeLabels=s.nodes.map(id=>pos[id].label.join(' ')).join(' · ');
+  stepCard.innerHTML=`<div class="sno">STEP ${String(si+1).padStart(2,'0')} / ${String(steps.length).padStart(2,'0')}</div>
+    <h4>${s.t}</h4><p>${s.p}</p>
+    <div class="chips"><span class="chip src">SOURCE · ${s.src}</span><span class="chip mem">MEMORY · ${s.mem}</span></div>
+    <div class="stepLink"><span class="lk">▸ lights up in Figure E:</span> <span class="lk" style="color:var(--rust)">${nodeLabels}</span> <a class="miniBtn" href="#graph">Show in graph ↓</a></div>`;
+  [...stepDots.children].forEach((d,i)=>d.classList.toggle('on',i<=si));
+  prevB.disabled=si===0; nextB.disabled=si===steps.length-1;
+  kgHighlight(new Set(s.nodes),true);
+}
+prevB.addEventListener('click',()=>{if(si>0){si--;renderStep();}});
+nextB.addEventListener('click',()=>{if(si<steps.length-1){si++;renderStep();}});
+
+/* ===== FIG D — fusion / fault injection ===== */
+const fuseInfo={
+  param:{w:12,t:'Parametric framing: oscillations near field-weakening often involve an inductance–gain interaction. (Hypothesis only — no data yet.)'},
+  context:{w:10,t:'Query framed: Iq/Id oscillation, driftmode exit, ~3000 RPM, ~750 Nm.'},
+  tool:{w:20,t:'Live dyno log retrieved and FFT computed: oscillation confirmed at the stated operating point.'},
+  rag:{w:20,t:'Calibration retrieved: PI gains tuned on nominal differential inductance; flux table shows noisy high-current edges.'},
+  episodic:{w:13,t:'Episodic match: a prior YASA NVH case with the same signature was resolved before.'},
+  graph:{w:15,t:'Causal chain assembled: saturation → Ldiff collapse → effective gain too high → loop instability, forward-Euler marginal at ωe·Ta ≈ 0.79.'},
+  skill:{w:10,t:'Recalibration skill ready: refit gains on saturated inductance, smooth table edges, verify discretization margin, re-run the point.'},
+};
+const order=['context','param','tool','rag','episodic','graph','skill'];
+const linesEl=document.getElementById('fuseLines'), meterEl=document.querySelector('#fuseMeter i'), verdictEl=document.getElementById('fuseVerdict');
+const active=new Set();
+function fuseVerdict(has){
+  if(active.size===0) return 'No sources selected — the agent has nothing to reason over.';
+  if(has('skill')&&has('graph')&&has('tool')&&has('rag')) return 'Root cause identified and a validated fix is ready. Act on it.';
+  if(has('graph')&&has('tool')) return 'Root cause established — remediation not yet specified.';
+  if(has('tool')||has('rag')) return 'Symptom grounded in real data; cause still uncertain.';
+  return 'Plausible but ungrounded — high hallucination risk.';
+}
+function renderFuse(){
+  let conf=0; order.forEach(k=>{if(active.has(k))conf+=fuseInfo[k].w;}); conf=Math.min(conf,100);
+  const has=k=>active.has(k);
+  linesEl.innerHTML = active.size===0 ? '<p class="line" style="color:var(--ink-soft)">No sources selected — the agent has nothing to reason over.</p>'
+    : order.filter(k=>active.has(k)).map(k=>`<p class="line">${fuseInfo[k].t}</p>`).join('');
+  meterEl.style.width=conf+'%';
+  verdictEl.innerHTML=`Diagnostic confidence: <strong>${conf}%</strong> — ${fuseVerdict(has)}`;
+}
+function setFuse(k,on){const inp=document.querySelector(`#fuseToggles input[data-k="${k}"]`);inp.checked=on;const lab=inp.closest('label');if(on){active.add(k);lab.classList.add('on');}else{active.delete(k);lab.classList.remove('on');}}
+document.querySelectorAll('#fuseToggles input').forEach(inp=>inp.addEventListener('change',()=>{setFuse(inp.dataset.k,inp.checked);renderFuse();}));
+document.getElementById('fuseAll').addEventListener('click',()=>{order.forEach(k=>setFuse(k,true));renderFuse();});
+document.getElementById('fuseNone').addEventListener('click',()=>{order.forEach(k=>setFuse(k,false));renderFuse();});
+
+/* ===== FIG F — write-back ===== */
+const wbCx=180, wbCy=140;
+const wbSlots=[[300,70],[315,180],[230,250],[130,250],[45,180],[60,70]];
+const wbMax=wbSlots.length;
+let wbRun=0;
+const wbE=document.getElementById('wbEdges'), wbN=document.getElementById('wbNodes');
+(function wbBuild(){
+  // central KB node
+  const kb=document.createElementNS(NS,'g'); kb.setAttribute('class','wbNode');
+  kb.innerHTML=`<circle cx="${wbCx}" cy="${wbCy}" r="36" fill="#2e3a72" stroke="#fbf7ee" stroke-width="2"/><text x="${wbCx}" y="${wbCy-2}">KNOWLEDGE</text><text x="${wbCx}" y="${wbCy+10}">BASE</text>`;
+  wbN.appendChild(kb);
+  wbSlots.forEach(([x,y],i)=>{
+    const e=document.createElementNS(NS,'line'); e.setAttribute('x1',wbCx);e.setAttribute('y1',wbCy);e.setAttribute('x2',x);e.setAttribute('y2',y);e.setAttribute('class','wbEdge hidden');e.dataset.i=i; wbE.appendChild(e);
+    const g=document.createElementNS(NS,'g'); g.setAttribute('class','wbNode hidden'); g.dataset.i=i;
+    g.innerHTML=`<circle cx="${x}" cy="${y}" r="20" fill="#3f6b2e" stroke="#fbf7ee" stroke-width="2"/><text x="${x}" y="${y+3}">CASE ${i+1}</text>`;
+    wbN.appendChild(g);
+  });
+})();
+const wbCount=document.getElementById('wbCount'), wbBar=document.getElementById('wbBar'), wbMsg=document.getElementById('wbMsg');
+function wbRender(){
+  wbCount.textContent=wbRun;
+  const cost=Math.max(18,100-wbRun*15);
+  wbBar.style.width=cost+'%';
+  if(wbRun===0) wbMsg.textContent='A cold knowledge base reasons every case from scratch.';
+  else if(wbRun<wbMax) wbMsg.textContent='Each resolved case is written back — the next similar fault retrieves it and starts faster.';
+  else wbMsg.textContent='Memory saturating: returns diminish. Now consolidate near-duplicates and decay stale cases.';
+  document.getElementById('wbRunBtn').disabled = wbRun>=wbMax;
+}
+document.getElementById('wbRunBtn').addEventListener('click',()=>{
+  if(wbRun>=wbMax) return;
+  document.querySelector(`.wbNode[data-i="${wbRun}"]`).classList.remove('hidden');
+  document.querySelector(`.wbEdge[data-i="${wbRun}"]`).classList.remove('hidden');
+  wbRun++; wbRender();
+});
+document.getElementById('wbReset').addEventListener('click',()=>{
+  wbRun=0; document.querySelectorAll('.wbNode[data-i]').forEach(n=>n.classList.add('hidden'));
+  document.querySelectorAll('.wbEdge').forEach(e=>e.classList.add('hidden')); wbRender();
+});
+
+/* ===== FIG G — context budget ===== */
+const comps=[['system','System prompt','#2e3a72',10],['retrieval','Retrieved chunks','#1f6b66',38],['history','Conversation history','#6a2c54',24],['scratch','Scratchpad','#a8761c',10]];
+const bRows=document.getElementById('budgetRows'), bBar=document.getElementById('budgetBar'), bStatus=document.getElementById('budgetStatus');
+const bVals={};
+comps.forEach(([k,label,col,def])=>{
+  bVals[k]=def;
+  const row=document.createElement('div'); row.className='budgetRow';
+  row.innerHTML=`<label style="color:${col}">${label}</label><input type="range" min="0" max="60" value="${def}" data-k="${k}"><span class="val" id="bv_${k}">${def}</span>`;
+  bRows.appendChild(row);
+});
+bRows.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{bVals[inp.dataset.k]=+inp.value;document.getElementById('bv_'+inp.dataset.k).textContent=inp.value;renderBudget();}));
+function renderBudget(){
+  const used=comps.reduce((s,[k])=>s+bVals[k],0);
+  const headroom=100-used; const barTotal=Math.max(100,used);
+  let html='';
+  comps.forEach(([k,label,col])=>{const w=bVals[k]/barTotal*100; html+=`<div style="width:${w}%;background:${col}">${w>9?label.split(' ')[0]:''}</div>`;});
+  if(headroom>0){const w=headroom/barTotal*100; html+=`<div style="width:${w}%;background:var(--cream-2);color:var(--ink)">${w>12?'headroom':''}</div>`;}
+  bBar.innerHTML=html;
+  if(used>100){bStatus.className='bad';bStatus.textContent=`Window overflow by ${used-100}% — oldest content will be truncated and silently lost.`;}
+  else if(headroom<15){bStatus.className='warn';bStatus.textContent=`Reasoning headroom thin (${headroom}%) — the model may run out of room to think.`;}
+  else{bStatus.className='ok';bStatus.textContent=`Healthy: ${headroom}% headroom left for the model to reason.`;}
+}
+
+/* ===== init ===== */
+dtRender('start');
+renderStep();
+renderFuse();
+wbRender();
+renderBudget();
+</script>
+</body>
+</html>

@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XGBoost & the Boosting Family — An Interactive Monograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4ECD6;
+  --paper-soft:#EFE6CB;
+  --paper-deep:#E6DBB8;
+  --ink:#1F1A12;
+  --ink-soft:#3B3424;
+  --ink-mute:#6B6045;
+  --rule:#9C8B5E;
+  --oxblood:#8A2A1B;
+  --forest:#2E5E3A;
+  --navy:#1E3A5F;
+  --mustard:#C28B2F;
+  --plum:#5A3F6B;
+  --teal:#1F6E73;
+  --shadow: rgba(31,26,18,0.12);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+html{scroll-behavior:smooth;}
+
+body{
+  background: var(--paper);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(194,139,47,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(138,42,27,0.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.10 0 0 0 0 0.07 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+.container{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 40px 120px;
+}
+
+/* ========== HEADER ========== */
+header.masthead{
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 30px;
+  margin-bottom: 50px;
+  position: relative;
+}
+
+.masthead::before{
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.eyebrow{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--oxblood);
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eyebrow .ornament{ color: var(--ink-mute); }
+
+h1.title{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: clamp(42px, 6vw, 78px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  margin-bottom: 16px;
+}
+
+h1.title .amp{
+  font-style: italic;
+  color: var(--oxblood);
+  font-weight: 500;
+}
+
+.subtitle{
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+  max-width: 720px;
+  margin-bottom: 24px;
+}
+
+.byline{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-mute);
+  letter-spacing: 0.1em;
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+/* ========== TABLE OF CONTENTS ========== */
+.toc{
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+  padding: 28px 36px;
+  margin: 40px 0 60px;
+  position: relative;
+}
+
+.toc::before{
+  content: "§";
+  position: absolute;
+  top: -14px;
+  left: 24px;
+  background: var(--paper);
+  padding: 0 8px;
+  font-size: 22px;
+  color: var(--oxblood);
+}
+
+.toc h3{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+.toc ol{
+  list-style: none;
+  counter-reset: toc;
+  columns: 2;
+  column-gap: 40px;
+}
+
+.toc li{
+  counter-increment: toc;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--rule);
+  display: flex;
+  justify-content: space-between;
+  break-inside: avoid;
+}
+
+.toc li::before{
+  content: counter(toc, upper-roman) ".";
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  color: var(--oxblood);
+  margin-right: 10px;
+  min-width: 28px;
+}
+
+.toc a{
+  color: var(--ink);
+  text-decoration: none;
+  flex: 1;
+  font-size: 17px;
+}
+
+.toc a:hover{ color: var(--oxblood); }
+
+/* ========== SECTIONS ========== */
+section{
+  margin-bottom: 80px;
+  scroll-margin-top: 30px;
+}
+
+.section-mark{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--oxblood);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+h2{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 44px;
+  line-height: 1.05;
+  margin-bottom: 24px;
+  letter-spacing: -0.005em;
+}
+
+h2 .num{
+  font-style: italic;
+  color: var(--oxblood);
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+h3{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 28px;
+  margin: 36px 0 14px;
+  color: var(--ink);
+}
+
+h4{
+  font-family: 'EB Garamond', serif;
+  font-weight: 600;
+  font-size: 21px;
+  margin: 24px 0 10px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+p{ margin-bottom: 16px; }
+
+p .dropcap{
+  float: left;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 76px;
+  line-height: 0.85;
+  padding: 8px 10px 0 0;
+  color: var(--oxblood);
+}
+
+em{ color: var(--ink-soft); }
+strong{ font-weight: 600; color: var(--ink); }
+
+a{ color: var(--oxblood); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover{ color: var(--ink); }
+
+code, .mono{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+/* ========== MARGINALIA / SIDENOTES ========== */
+.sidenote{
+  background: var(--paper-soft);
+  border-left: 3px solid var(--mustard);
+  padding: 16px 20px;
+  margin: 24px 0;
+  font-size: 17px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.sidenote::before{
+  content: "Aside.";
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-style: normal;
+  color: var(--oxblood);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ========== FIGURES ========== */
+.figure{
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+  padding: 28px;
+  margin: 36px 0;
+  position: relative;
+}
+
+.figure-label{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--oxblood);
+  margin-bottom: 4px;
+}
+
+.figure-title{
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 20px;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+
+.figure-caption{
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-mute);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dotted var(--rule);
+  line-height: 1.5;
+}
+
+.controls{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin: 14px 0;
+  padding: 12px 14px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  font-size: 14px;
+}
+
+.controls label{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls input[type="range"]{
+  width: 130px;
+  accent-color: var(--oxblood);
+}
+
+.controls .value{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--oxblood);
+  background: var(--paper);
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  min-width: 40px;
+  text-align: center;
+}
+
+button.btn{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button.btn:hover{ background: var(--oxblood); }
+button.btn.secondary{ background: var(--paper); color: var(--ink); border: 1px solid var(--ink); }
+button.btn.secondary:hover{ background: var(--ink); color: var(--paper); }
+
+svg.canvas, canvas.canvas{
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+/* ========== METRICS ========== */
+.metrics{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.metric{
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 10px 14px;
+}
+
+.metric .label{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.metric .val{
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  color: var(--oxblood);
+  font-weight: 600;
+}
+
+/* ========== EQUATION ========== */
+.equation{
+  background: var(--paper-soft);
+  border-left: 3px solid var(--oxblood);
+  padding: 18px 24px;
+  margin: 20px 0;
+  font-family: 'EB Garamond', serif;
+  font-size: 19px;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.equation .label{
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  text-align: right;
+  margin-top: 8px;
+  font-style: normal;
+}
+
+.eq{ font-style: italic; font-size: 1.2em; }
+.eq sub, .eq sup{ font-size: 0.7em; }
+
+/* ========== TABLES ========== */
+table{
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 16px;
+}
+
+table th, table td{
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+table th{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  background: var(--paper-soft);
+  font-weight: 500;
+  border-bottom: 2px solid var(--ink);
+}
+
+table tr:hover{ background: var(--paper-soft); }
+
+/* ========== PRACTICAL NOTES ========== */
+.note-card{
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+  padding: 20px 24px;
+  margin: 16px 0;
+  position: relative;
+  padding-left: 50px;
+}
+
+.note-card::before{
+  content: "✦";
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  font-size: 22px;
+  color: var(--oxblood);
+}
+
+.note-card .title{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 19px;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+/* ========== ALGORITHM COMPARISON CARDS ========== */
+.algo-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.algo-card{
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+  padding: 22px;
+  position: relative;
+}
+
+.algo-card .name{
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--oxblood);
+  margin-bottom: 2px;
+}
+
+.algo-card .year{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-mute);
+  letter-spacing: 0.2em;
+  margin-bottom: 12px;
+}
+
+.algo-card p{
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.algo-card .tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.tag{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--paper);
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+/* ========== REFERENCES ========== */
+.refs{
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.refs li{
+  list-style: none;
+  margin-bottom: 14px;
+  padding-left: 32px;
+  text-indent: -32px;
+  counter-increment: ref;
+}
+
+.refs li::before{
+  content: "[" counter(ref) "]";
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--oxblood);
+  margin-right: 10px;
+}
+
+.refs{ counter-reset: ref; padding-left: 0; }
+
+.refs .authors{ font-variant: small-caps; letter-spacing: 0.02em; }
+.refs .ref-title{ font-style: italic; }
+.refs .venue{ color: var(--ink-mute); }
+
+/* ========== FOOTER ========== */
+footer.colophon{
+  border-top: 2px solid var(--ink);
+  margin-top: 80px;
+  padding-top: 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+  text-align: center;
+}
+
+footer.colophon::before{
+  content: "❦";
+  display: block;
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: var(--oxblood);
+}
+
+/* ========== TREE VISUAL ========== */
+.tree-node{ fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.tree-node.leaf-pos{ fill: var(--oxblood); }
+.tree-node.leaf-neg{ fill: var(--navy); }
+.tree-label{ font-family: 'EB Garamond', serif; font-size: 13px; fill: var(--ink); text-anchor: middle; }
+.tree-leaf-text{ font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: var(--paper); text-anchor: middle; }
+.tree-edge{ stroke: var(--ink); stroke-width: 1.2; fill: none; }
+.tree-edge-label{ font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--ink-mute); }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 700px){
+  .container{ padding: 40px 24px 80px; }
+  body{ font-size: 17px; }
+  h1.title{ font-size: 42px; }
+  h2{ font-size: 32px; }
+  h3{ font-size: 22px; }
+  .toc ol{ columns: 1; }
+  .controls{ flex-direction: column; align-items: stretch; }
+  .controls label{ justify-content: space-between; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ========== MASTHEAD ========== -->
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--oxblood);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:18px;">← Back to Autonomy</a>
+  <div class="eyebrow">
+    <span>An Interactive Monograph</span>
+    <span class="ornament">⁂</span>
+    <span>Vol. I · No. 1</span>
+  </div>
+  <h1 class="title">XGBoost <span class="amp">&amp;</span> the Boosting Family</h1>
+  <p class="subtitle">A plain-language tour of gradient-boosted decision trees — from a single split to industrial-scale ensembles — with interactive figures, working examples, and field notes for the practitioner.</p>
+  <div class="byline">
+    <span>By Majid Mazouchi</span>
+    <span>Field of Study · Machine Learning</span>
+    <span>Reading Time · ~30 min</span>
+    <span>Prerequisites · None</span>
+  </div>
+</header>
+
+<!-- ========== TABLE OF CONTENTS ========== -->
+<nav class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#intro">What is XGBoost?</a></li>
+    <li><a href="#trees">The Decision Tree</a></li>
+    <li><a href="#ensemble">Why Ensembles Win</a></li>
+    <li><a href="#bagging-vs-boosting">Bagging vs. Boosting</a></li>
+    <li><a href="#gradient-boosting">Gradient Boosting</a></li>
+    <li><a href="#xgboost">XGBoost: The Engineering</a></li>
+    <li><a href="#playground">Hyperparameter Playground</a></li>
+    <li><a href="#family">The Modern Family</a></li>
+    <li><a href="#practical">Practical Notes</a></li>
+    <li><a href="#references">References</a></li>
+  </ol>
+</nav>
+
+<!-- ========== SECTION I: INTRODUCTION ========== -->
+<section id="intro">
+  <div class="section-mark">§ I</div>
+  <h2><span class="num">I.</span> What is XGBoost?</h2>
+
+  <p><span class="dropcap">I</span>f you have spent any time in applied machine learning, you have heard the name. <strong>XGBoost</strong> — short for <em>eXtreme Gradient Boosting</em> — is a library, an algorithm, and (if certain Kaggle leaderboards are to be believed) something approaching a folk hero. Released by Tianqi Chen in 2014, it dominated competitions for the better part of a decade and remains the default first model many data scientists reach for on tabular data.</p>
+
+  <p>But "XGBoost" is really the polished end of a long ancestry: <em>decision trees</em> assembled by <em>boosting</em>, optimized with <em>gradient descent</em> on a <em>regularized objective</em>, and made tractable by a half-dozen clever engineering tricks. This monograph walks the whole staircase, one step at a time, with a working figure at each landing.</p>
+
+  <div class="sidenote">
+    The promise of this document: by the end, you should be able to explain — to a colleague, in plain words — what a gradient boosting model is actually doing on each iteration, why XGBoost is fast, when it is the right tool, and when it is not.
+  </div>
+</section>
+
+<!-- ========== SECTION II: DECISION TREES ========== -->
+<section id="trees">
+  <div class="section-mark">§ II</div>
+  <h2><span class="num">II.</span> The Decision Tree</h2>
+
+  <p>Every member of the boosting family is built from one stubbornly simple part: the <strong>decision tree</strong>. A decision tree is a flowchart of yes/no questions. It looks at a data point, asks a question (<em>"is age &gt; 30?"</em>), follows the branch, asks another, and eventually arrives at a leaf with a prediction.</p>
+
+  <p>The single interesting question is: <em>which question should we ask first?</em> The answer is — whichever one most cleanly separates the data into purer groups. To measure "purity" we use a score like <strong>Gini impurity</strong> or <strong>entropy</strong> for classification, or <strong>variance</strong> for regression. The algorithm tries every possible split on every feature and keeps the one that reduces impurity the most. Then it repeats the process inside each child.</p>
+
+  <div class="figure">
+    <div class="figure-label">Figure II.1 · Interactive</div>
+    <div class="figure-title">Finding the best split on a single feature</div>
+    <p style="font-size:15px;margin-bottom:10px;">Below, two classes of points (●&nbsp;ruby and ●&nbsp;navy) live on a number line. Drag the slider to move the split threshold. The bars show how impure each side becomes — the tree picks the threshold that <em>minimizes</em> the weighted impurity.</p>
+
+    <svg id="splitSvg" class="canvas" viewBox="0 0 700 280" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <div class="controls">
+      <label>Threshold <input type="range" id="splitSlider" min="0" max="100" value="50"/><span class="value" id="splitVal">5.0</span></label>
+      <button class="btn" id="splitOptimal">Find optimal</button>
+      <button class="btn secondary" id="splitReshuffle">New data</button>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Left Gini</div><div class="val" id="giniL">—</div></div>
+      <div class="metric"><div class="label">Right Gini</div><div class="val" id="giniR">—</div></div>
+      <div class="metric"><div class="label">Weighted</div><div class="val" id="giniW">—</div></div>
+      <div class="metric"><div class="label">Gain</div><div class="val" id="giniGain">—</div></div>
+    </div>
+    <div class="figure-caption">Gini impurity for a node with classes of proportion p and 1−p is 2p(1−p). It hits zero when the node is pure. The "gain" is how much impurity dropped versus the parent — and the higher the gain, the better the split.</div>
+  </div>
+
+  <h4>Trees are flexible but unstable</h4>
+  <p>A single tree is wonderfully interpretable — you can literally read the rules off it. It handles numbers and categories, missing values, and nonlinear interactions without breaking a sweat. The trouble is that one tree is jittery: change the training data slightly and a different split wins, the children change, and the whole tree shifts. This is the classic <em>high variance</em> problem, and it is the entire motivation for ensembles.</p>
+</section>
+
+<!-- ========== SECTION III: ENSEMBLES ========== -->
+<section id="ensemble">
+  <div class="section-mark">§ III</div>
+  <h2><span class="num">III.</span> Why Ensembles Win</h2>
+
+  <p>Suppose a single tree is right 60% of the time and wrong 40% of the time, more-or-less at random. If you grow many such trees, each making independent-ish mistakes, and let them <em>vote</em>, the majority will be right far more often than any individual. This is sometimes called the <em>wisdom of crowds</em> — but it is really a statement about how independent errors cancel.</p>
+
+  <p>There are two main recipes for combining models into an ensemble:</p>
+
+  <div class="algo-grid">
+    <div class="algo-card">
+      <div class="name">Bagging</div>
+      <div class="year">Bootstrap Aggregating</div>
+      <p>Train many trees <em>in parallel</em>, each on a random subsample of the data (with replacement). Average their predictions. <strong>Random Forest</strong> adds the trick of also subsampling features at each split.</p>
+      <p style="margin-top:8px;"><em>Reduces variance.</em> Trees are independent; failures cancel.</p>
+      <div class="tags"><span class="tag">parallel</span><span class="tag">low variance</span><span class="tag">robust</span></div>
+    </div>
+    <div class="algo-card">
+      <div class="name">Boosting</div>
+      <div class="year">Sequential Correction</div>
+      <p>Train trees <em>one after another</em>, where each new tree focuses on the mistakes of the trees that came before it. Predictions are added together (weighted).</p>
+      <p style="margin-top:8px;"><em>Reduces bias and variance.</em> Each tree pushes the ensemble closer to truth.</p>
+      <div class="tags"><span class="tag">sequential</span><span class="tag">low bias</span><span class="tag">tunable</span></div>
+    </div>
+  </div>
+
+  <p>XGBoost lives firmly in the boosting camp. To understand it, we need to look at how that sequential correction works.</p>
+</section>
+
+<!-- ========== SECTION IV: BAGGING VS BOOSTING ========== -->
+<section id="bagging-vs-boosting">
+  <div class="section-mark">§ IV</div>
+  <h2><span class="num">IV.</span> Bagging vs. Boosting, Visually</h2>
+
+  <p>The clearest way to feel the difference is to watch each method approach the same target. Below, both ensembles try to fit the same wavy curve. Bagging averages many noisy trees at once; boosting adds small corrections one at a time.</p>
+
+  <div class="figure">
+    <div class="figure-label">Figure IV.1 · Interactive</div>
+    <div class="figure-title">Two recipes converging on the same truth</div>
+    <svg id="bagBoostSvg" class="canvas" viewBox="0 0 700 320" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="controls">
+      <label>Trees in ensemble <input type="range" id="bagN" min="1" max="50" value="10"/><span class="value" id="bagNVal">10</span></label>
+      <button class="btn secondary" id="bagToggle">Toggle method</button>
+    </div>
+    <div class="figure-caption" id="bagCaption">Currently showing: <strong>bagging</strong>. Each gray line is one tree's prediction; the bold orange line is their average.</div>
+  </div>
+</section>
+
+<!-- ========== SECTION V: GRADIENT BOOSTING ========== -->
+<section id="gradient-boosting">
+  <div class="section-mark">§ V</div>
+  <h2><span class="num">V.</span> Gradient Boosting, In Three Acts</h2>
+
+  <p>Gradient boosting is the engine inside XGBoost. The name sounds intimidating but the idea is wonderfully concrete. Here it is in plain words:</p>
+
+  <h4>Act 1 — Start with a dumb guess</h4>
+  <p>For regression, the initial prediction is just the average of the target. Call this <em>F</em><sub>0</sub>(x). It is wrong almost everywhere, and that is fine.</p>
+
+  <h4>Act 2 — Measure how wrong you are</h4>
+  <p>Compute the <strong>residuals</strong>: how far off each prediction is from the true value. For squared-error loss these are simply <em>y − F(x)</em>. These residuals are the <em>direction we wish we could move</em> at each point — the negative gradient of the loss.</p>
+
+  <h4>Act 3 — Fit a small tree to the residuals, and add it</h4>
+  <p>Train a shallow tree whose job is to predict the residuals. Then update the prediction by adding (a small fraction of) this tree's output:</p>
+
+  <div class="equation">
+    <span class="eq">F<sub>m</sub>(x) = F<sub>m−1</sub>(x) + η · h<sub>m</sub>(x)</span>
+    <span class="label">Eq. V.1 — boosting update with learning rate η</span>
+  </div>
+
+  <p>Repeat. Each tree nudges the ensemble closer to the truth, taking a careful step in the direction of steepest descent of the loss. The "gradient" in "gradient boosting" is exactly the gradient of the loss with respect to the current prediction — boosting is gradient descent in <em>function space</em>.</p>
+
+  <div class="sidenote">
+    Why fit residuals instead of the labels themselves? Because the residual is what the ensemble has not yet learned. The earlier trees handled the easy patterns; the new tree only has to mop up what they missed.
+  </div>
+
+  <div class="figure">
+    <div class="figure-label">Figure V.1 · Interactive</div>
+    <div class="figure-title">Watch gradient boosting build up, one tree at a time</div>
+    <p style="font-size:15px;margin-bottom:10px;">A noisy sinusoid lurks in the data (dotted curve). Click <strong>Add tree</strong> to fit one more shallow regression tree to the current residuals. Watch the orange prediction crawl toward the truth and the residual plot below it shrink.</p>
+
+    <svg id="gbSvg" class="canvas" viewBox="0 0 700 380" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <div class="controls">
+      <button class="btn" id="gbAdd">Add tree</button>
+      <button class="btn" id="gbAdd10">+10 trees</button>
+      <button class="btn secondary" id="gbReset">Reset</button>
+      <label>Learning rate η <input type="range" id="gbLR" min="5" max="100" value="30"/><span class="value" id="gbLRVal">0.30</span></label>
+      <label>Max depth <input type="range" id="gbDepth" min="1" max="4" value="2"/><span class="value" id="gbDepthVal">2</span></label>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Iteration</div><div class="val" id="gbIter">0</div></div>
+      <div class="metric"><div class="label">Train RMSE</div><div class="val" id="gbRMSE">—</div></div>
+      <div class="metric"><div class="label">Trees added</div><div class="val" id="gbCount">0</div></div>
+    </div>
+    <div class="figure-caption">Top panel: the data (●), the true signal (--), and the running prediction (orange). Bottom panel: residuals after the current ensemble — gradient boosting tries to drive these to zero.</div>
+  </div>
+</section>
+
+<!-- ========== SECTION VI: XGBOOST ========== -->
+<section id="xgboost">
+  <div class="section-mark">§ VI</div>
+  <h2><span class="num">VI.</span> XGBoost: The Engineering</h2>
+
+  <p>Gradient boosting as described above had existed for over a decade before XGBoost. So why did one library run away with the field? The answer is a stack of careful improvements, some statistical and some computational. The five most important:</p>
+
+  <h3>1. A regularized objective</h3>
+  <p>Plain gradient boosting tries to minimize <em>just</em> the training loss. XGBoost adds a penalty for tree complexity right into the objective:</p>
+
+  <div class="equation">
+    <span class="eq">Obj = Σ L(y<sub>i</sub>, ŷ<sub>i</sub>) + Σ Ω(f<sub>k</sub>)</span>
+    <span class="eq" style="display:block;margin-top:8px;">Ω(f) = γT + ½λ·Σ w<sub>j</sub><sup>2</sup></span>
+    <span class="label">Eq. VI.1 — loss plus regularization</span>
+  </div>
+
+  <p>Here T is the number of leaves and w<sub>j</sub> are the leaf weights. The <strong>γ</strong> term penalizes growing more leaves; the <strong>λ</strong> term shrinks leaf weights toward zero. Together they keep trees small and predictions tame — a built-in defense against overfitting that older gradient boosting had to bolt on by hand.</p>
+
+  <h3>2. A second-order Taylor expansion</h3>
+  <p>Older gradient boosting used only the first derivative of the loss (the gradient). XGBoost uses both the first and second derivatives — gradient and <em>Hessian</em>. With this information it can write down the <em>exact optimal leaf weight</em> in closed form, and a similarly exact gain score for any candidate split:</p>
+
+  <div class="equation">
+    <span class="eq">w<sub>j</sub><sup>*</sup> = − G<sub>j</sub> / (H<sub>j</sub> + λ)</span>
+    <span class="eq" style="display:block;margin-top:8px;">Gain = ½[ G<sub>L</sub><sup>2</sup>/(H<sub>L</sub>+λ) + G<sub>R</sub><sup>2</sup>/(H<sub>R</sub>+λ) − G<sup>2</sup>/(H+λ) ] − γ</span>
+    <span class="label">Eq. VI.2 — closed-form optimal weight and split gain</span>
+  </div>
+
+  <p>G and H are sums of gradients and Hessians falling into a node. The split-finding routine simply maximizes the gain expression. This makes XGBoost both faster (no inner optimization loops per leaf) and better-calibrated than first-order methods.</p>
+
+  <h3>3. Sparsity-aware splitting</h3>
+  <p>Real-world data is full of missing values and zeros. XGBoost learns a <em>default direction</em> at every split — when a value is missing, it sends the example down whichever branch makes the ensemble loss smaller. No imputation needed, and it is dramatically faster on sparse matrices.</p>
+
+  <h3>4. Histogram-based split finding</h3>
+  <p>Instead of evaluating every possible split point exactly, XGBoost (with <code>tree_method='hist'</code>) buckets each feature into ~256 bins and only considers bin boundaries as candidate splits. This is approximate, but the loss in accuracy is small and the speedup is enormous — and it is the basis of how LightGBM, CatBoost, and modern XGBoost all run.</p>
+
+  <h3>5. System engineering</h3>
+  <p>Parallelized split finding across features, cache-aware memory access patterns, out-of-core computation for datasets larger than RAM, and GPU support. None of these change the math, but together they made XGBoost orders of magnitude faster than the gradient boosting code that came before it.</p>
+
+  <div class="sidenote">
+    The original XGBoost paper (Chen &amp; Guestrin, 2016) is one of the most cited applied ML papers of the decade — and it is also unusually readable. If you take only one reference from this monograph, take that one.
+  </div>
+</section>
+
+<!-- ========== SECTION VII: HYPERPARAMETER PLAYGROUND ========== -->
+<section id="playground">
+  <div class="section-mark">§ VII</div>
+  <h2><span class="num">VII.</span> Hyperparameter Playground</h2>
+
+  <p>The fastest way to develop intuition for XGBoost is to twist its knobs and watch what happens. Below is a small classification problem. Adjust the hyperparameters and watch the decision boundary, train accuracy, and (most importantly) validation accuracy respond.</p>
+
+  <div class="figure">
+    <div class="figure-label">Figure VII.1 · Interactive</div>
+    <div class="figure-title">A small classifier under your command</div>
+
+    <canvas id="pgCanvas" class="canvas" width="700" height="400"></canvas>
+
+    <div class="controls">
+      <label>n_estimators <input type="range" id="pgN" min="1" max="200" value="50"/><span class="value" id="pgNVal">50</span></label>
+      <label>max_depth <input type="range" id="pgD" min="1" max="8" value="3"/><span class="value" id="pgDVal">3</span></label>
+      <label>learning_rate <input type="range" id="pgLR" min="2" max="100" value="30"/><span class="value" id="pgLRVal">0.30</span></label>
+      <label>min_child <input type="range" id="pgMC" min="1" max="20" value="2"/><span class="value" id="pgMCVal">2</span></label>
+    </div>
+    <div class="controls">
+      <button class="btn" id="pgFit">Re-fit</button>
+      <button class="btn secondary" id="pgDataset">New dataset</button>
+      <label>Dataset <span class="value" id="pgDsName">moons</span></label>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Train Acc</div><div class="val" id="pgTrain">—</div></div>
+      <div class="metric"><div class="label">Validation Acc</div><div class="val" id="pgVal">—</div></div>
+      <div class="metric"><div class="label">Gap (overfit)</div><div class="val" id="pgGap">—</div></div>
+      <div class="metric"><div class="label">Total leaves</div><div class="val" id="pgLeaves">—</div></div>
+    </div>
+    <div class="figure-caption">Watch the validation accuracy carefully. Pushing <em>n_estimators</em> and <em>max_depth</em> upward will keep improving training accuracy long after validation accuracy has peaked — the classic overfitting signature. A lower <em>learning_rate</em> with more trees almost always generalizes better than a high learning rate with few.</div>
+  </div>
+
+  <h4>A field guide to the most important knobs</h4>
+  <table>
+    <thead>
+      <tr><th>Parameter</th><th>What it controls</th><th>Typical range</th><th>Effect of increasing</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>n_estimators</code></td><td>Number of boosting rounds (trees)</td><td>100 – 2000</td><td>More capacity → more overfit risk</td></tr>
+      <tr><td><code>learning_rate</code> (η)</td><td>Shrinkage on each tree's contribution</td><td>0.01 – 0.3</td><td>Faster fit, more overfit risk</td></tr>
+      <tr><td><code>max_depth</code></td><td>Maximum depth of each tree</td><td>3 – 8</td><td>Captures higher-order interactions, more overfit</td></tr>
+      <tr><td><code>min_child_weight</code></td><td>Minimum sum of Hessians in a leaf</td><td>1 – 10</td><td>Stronger pruning, less overfit</td></tr>
+      <tr><td><code>subsample</code></td><td>Row fraction sampled per tree</td><td>0.6 – 1.0</td><td>(lower) more variance reduction, like bagging</td></tr>
+      <tr><td><code>colsample_bytree</code></td><td>Column fraction sampled per tree</td><td>0.6 – 1.0</td><td>(lower) decorrelates trees, often helps</td></tr>
+      <tr><td><code>reg_alpha</code> (α)</td><td>L1 penalty on leaf weights</td><td>0 – 10</td><td>Sparser leaves, mild shrinkage</td></tr>
+      <tr><td><code>reg_lambda</code> (λ)</td><td>L2 penalty on leaf weights</td><td>0 – 10</td><td>Smoother, smaller weights</td></tr>
+      <tr><td><code>gamma</code> (γ)</td><td>Minimum loss reduction to split</td><td>0 – 5</td><td>More conservative splitting</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== SECTION VIII: THE FAMILY ========== -->
+<section id="family">
+  <div class="section-mark">§ VIII</div>
+  <h2><span class="num">VIII.</span> The Modern Family</h2>
+
+  <p>XGBoost is no longer alone. Two major siblings deserve to be in your toolbox; both build on the same gradient-boosted-trees foundation but make different engineering bets.</p>
+
+  <div class="algo-grid">
+    <div class="algo-card">
+      <div class="name">XGBoost</div>
+      <div class="year">2014 · Tianqi Chen</div>
+      <p>The reference implementation. Level-wise tree growth (all nodes at a depth split together), histograms, regularized objective, sparsity-aware. Mature, well-tuned, plays nicely with everything.</p>
+      <div class="tags"><span class="tag">level-wise</span><span class="tag">mature</span><span class="tag">gpu</span></div>
+    </div>
+    <div class="algo-card">
+      <div class="name">LightGBM</div>
+      <div class="year">2017 · Microsoft</div>
+      <p>Leaf-wise tree growth — splits whichever leaf will lower the loss most, regardless of depth. Faster on large datasets, especially with many features. Two clever tricks: <em>GOSS</em> (sample large-gradient examples) and <em>EFB</em> (bundle mutually-exclusive sparse features).</p>
+      <div class="tags"><span class="tag">leaf-wise</span><span class="tag">fast</span><span class="tag">big data</span></div>
+    </div>
+    <div class="algo-card">
+      <div class="name">CatBoost</div>
+      <div class="year">2017 · Yandex</div>
+      <p>Built around <strong>categorical features</strong>. Uses ordered target encoding to avoid target leakage, and <em>ordered boosting</em> to fight the prediction shift problem. Often wins on datasets dominated by high-cardinality categoricals (user IDs, geo, products).</p>
+      <div class="tags"><span class="tag">categorical</span><span class="tag">ordered</span><span class="tag">low-tune</span></div>
+    </div>
+    <div class="algo-card">
+      <div class="name">scikit-learn HistGradientBoosting</div>
+      <div class="year">2019 · sklearn</div>
+      <p>A native sklearn implementation inspired by LightGBM. Histogram-based, fast, well-integrated with the sklearn pipeline ecosystem. Often the easiest choice when you don't need maximum raw performance.</p>
+      <div class="tags"><span class="tag">native</span><span class="tag">simple</span><span class="tag">pipeline-friendly</span></div>
+    </div>
+  </div>
+
+  <h4>Older relatives worth knowing</h4>
+  <p><strong>AdaBoost</strong> (1995) was the first widely successful boosting algorithm. It re-weights training examples so the next learner focuses on misclassified points. It is a special case of gradient boosting with an exponential loss — historically important, today mostly of pedagogical interest.</p>
+
+  <p><strong>Random Forest</strong> (2001) is the canonical bagging method: hundreds of deep trees trained on bootstrap samples with random feature subsets, then averaged. Random Forest is harder to overfit, slightly less accurate when well-tuned, and is a strong baseline to compare against.</p>
+
+  <p><strong>GBM</strong> (Friedman, 2001) is the original gradient boosting machine — the direct conceptual ancestor of everything in this section.</p>
+</section>
+
+<!-- ========== SECTION IX: PRACTICAL NOTES ========== -->
+<section id="practical">
+  <div class="section-mark">§ IX</div>
+  <h2><span class="num">IX.</span> Practical Notes from the Field</h2>
+
+  <div class="note-card">
+    <div class="title">When XGBoost (and friends) are the right tool</div>
+    <p>Tabular data with a mix of numeric and categorical features. Sample sizes from thousands to tens of millions. Problems where features have meaningful structure but interactions are unknown. Tasks where you need to understand which features mattered (feature importance, SHAP).</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">When to reach for something else</div>
+    <p>Pure images, audio, or text — use deep learning. Very small datasets (under a few hundred rows) — a regularized linear model is often better. Strict latency budgets at inference time — even a fast boosted ensemble of 1000 trees may be too slow; consider distilling to a smaller model.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">A sensible tuning order</div>
+    <p>Set a low learning rate (≈ 0.05) and a large <code>n_estimators</code> with early stopping. Then tune <code>max_depth</code> and <code>min_child_weight</code> together. Then <code>subsample</code> and <code>colsample_bytree</code>. Only then worry about <code>gamma</code>, <code>reg_alpha</code>, and <code>reg_lambda</code>. Finally, drop learning_rate further and double n_estimators for a small final lift.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">Always use early stopping</div>
+    <p>Pass a validation set and let the library halt training when the validation metric stops improving for some number of rounds (often 50). This makes <code>n_estimators</code> nearly self-tuning and prevents the most common form of overfitting.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">Trust feature importance, but verify with SHAP</div>
+    <p>The default <code>feature_importances_</code> attribute counts split-frequency, which is biased toward high-cardinality features. <strong>SHAP values</strong> (a game-theoretic attribution method that integrates beautifully with tree ensembles) give a far more honest picture, both globally and per-prediction.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">Categorical handling</div>
+    <p>XGBoost gained native categorical support in version 1.5; LightGBM has had it for years; CatBoost was built around it. If you have meaningful categoricals, prefer native handling over one-hot encoding — it produces shallower trees and often better results, especially for high-cardinality features.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">Class imbalance</div>
+    <p>For binary classification with rare positives, set <code>scale_pos_weight</code> ≈ (#negatives / #positives). Do <em>not</em> oversample your training set as a first response — it usually hurts calibration. If you do oversample, calibrate the probabilities afterwards.</p>
+  </div>
+
+  <div class="note-card">
+    <div class="title">Reproducibility</div>
+    <p>Set <code>random_state</code> (or <code>seed</code>), pin the library version, and pin your data preprocessing pipeline. Subtle changes in any of the three can move scores by enough to confuse future-you.</p>
+  </div>
+
+  <h3>A minimal working example</h3>
+  <pre style="background:var(--paper-soft);border:1px solid var(--rule);padding:18px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5;"><span style="color:var(--ink-mute);"># Tabular classification with XGBoost — a sensible starting point</span>
+<span style="color:var(--oxblood);">import</span> xgboost <span style="color:var(--oxblood);">as</span> xgb
+<span style="color:var(--oxblood);">from</span> sklearn.model_selection <span style="color:var(--oxblood);">import</span> train_test_split
+<span style="color:var(--oxblood);">from</span> sklearn.metrics <span style="color:var(--oxblood);">import</span> roc_auc_score
+
+X_tr, X_va, y_tr, y_va = train_test_split(X, y, stratify=y, random_state=<span style="color:var(--navy);">42</span>)
+
+model = xgb.XGBClassifier(
+    n_estimators=<span style="color:var(--navy);">2000</span>,
+    learning_rate=<span style="color:var(--navy);">0.05</span>,
+    max_depth=<span style="color:var(--navy);">5</span>,
+    min_child_weight=<span style="color:var(--navy);">2</span>,
+    subsample=<span style="color:var(--navy);">0.8</span>,
+    colsample_bytree=<span style="color:var(--navy);">0.8</span>,
+    reg_lambda=<span style="color:var(--navy);">1.0</span>,
+    objective=<span style="color:var(--forest);">"binary:logistic"</span>,
+    eval_metric=<span style="color:var(--forest);">"auc"</span>,
+    early_stopping_rounds=<span style="color:var(--navy);">50</span>,
+    tree_method=<span style="color:var(--forest);">"hist"</span>,
+    random_state=<span style="color:var(--navy);">42</span>,
+)
+
+model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=<span style="color:var(--navy);">False</span>)
+<span style="color:var(--oxblood);">print</span>(<span style="color:var(--forest);">"AUC:"</span>, roc_auc_score(y_va, model.predict_proba(X_va)[:, <span style="color:var(--navy);">1</span>]))</pre>
+</section>
+
+<!-- ========== SECTION X: REFERENCES ========== -->
+<section id="references">
+  <div class="section-mark">§ X</div>
+  <h2><span class="num">X.</span> References &amp; Further Reading</h2>
+
+  <ol class="refs">
+    <li><span class="authors">Chen, T. &amp; Guestrin, C.</span> (2016). <span class="ref-title">XGBoost: A Scalable Tree Boosting System.</span> <span class="venue">Proceedings of KDD '16.</span> — The canonical paper. Read this first.</li>
+    <li><span class="authors">Friedman, J. H.</span> (2001). <span class="ref-title">Greedy Function Approximation: A Gradient Boosting Machine.</span> <span class="venue">Annals of Statistics, 29(5).</span> — The paper that defined modern gradient boosting.</li>
+    <li><span class="authors">Friedman, J. H.</span> (2002). <span class="ref-title">Stochastic Gradient Boosting.</span> <span class="venue">Computational Statistics &amp; Data Analysis, 38(4).</span> — Introduces subsampling, the trick behind <code>subsample</code>.</li>
+    <li><span class="authors">Ke, G. et al.</span> (2017). <span class="ref-title">LightGBM: A Highly Efficient Gradient Boosting Decision Tree.</span> <span class="venue">NeurIPS 2017.</span> — GOSS, EFB, and leaf-wise growth.</li>
+    <li><span class="authors">Prokhorenkova, L. et al.</span> (2018). <span class="ref-title">CatBoost: Unbiased Boosting with Categorical Features.</span> <span class="venue">NeurIPS 2018.</span> — Ordered boosting and target encoding done right.</li>
+    <li><span class="authors">Breiman, L.</span> (2001). <span class="ref-title">Random Forests.</span> <span class="venue">Machine Learning, 45(1).</span> — The bagging classic, for contrast.</li>
+    <li><span class="authors">Freund, Y. &amp; Schapire, R.</span> (1997). <span class="ref-title">A Decision-Theoretic Generalization of On-Line Learning and an Application to Boosting.</span> <span class="venue">Journal of Computer and System Sciences.</span> — AdaBoost, the original.</li>
+    <li><span class="authors">Lundberg, S. &amp; Lee, S.</span> (2017). <span class="ref-title">A Unified Approach to Interpreting Model Predictions.</span> <span class="venue">NeurIPS 2017.</span> — The SHAP paper.</li>
+    <li><span class="authors">XGBoost documentation.</span> <span class="ref-title">xgboost.readthedocs.io</span> — The reference, with excellent tutorials and parameter notes.</li>
+    <li><span class="authors">Hastie, T., Tibshirani, R., &amp; Friedman, J.</span> (2009). <span class="ref-title">The Elements of Statistical Learning</span>, Ch. 10. <span class="venue">Springer.</span> — The textbook treatment of boosting.</li>
+  </ol>
+</section>
+
+<footer class="colophon">
+  Set in EB Garamond, Cormorant Garamond, and JetBrains Mono.<br>
+  Interactive figures rendered with vanilla JavaScript and SVG.<br>
+  <span style="margin-top:10px;display:inline-block;">— end of monograph —</span>
+</footer>
+
+</div>
+
+<!-- ================== SCRIPTS ================== -->
+<script>
+/* ============================================================
+   FIGURE II.1 — Split finder with Gini impurity
+   ============================================================ */
+(function(){
+  const svg = document.getElementById('splitSvg');
+  const slider = document.getElementById('splitSlider');
+  const valEl = document.getElementById('splitVal');
+  const giniLEl = document.getElementById('giniL');
+  const giniREl = document.getElementById('giniR');
+  const giniWEl = document.getElementById('giniW');
+  const giniGainEl = document.getElementById('giniGain');
+  const optBtn = document.getElementById('splitOptimal');
+  const shuffBtn = document.getElementById('splitReshuffle');
+
+  let data = [];
+
+  function generateData(){
+    data = [];
+    // Class 0: tends to be lower x
+    for(let i=0;i<14;i++){
+      data.push({x: 1 + Math.random()*4 + Math.random()*1.5, c: 0});
+    }
+    // Class 1: tends to be higher x
+    for(let i=0;i<14;i++){
+      data.push({x: 4 + Math.random()*4 + Math.random()*1.5, c: 1});
+    }
+    // Some noise crossings
+    data.push({x: 6.5, c: 0});
+    data.push({x: 3.5, c: 1});
+  }
+
+  function gini(arr){
+    if(arr.length===0) return 0;
+    let p1 = arr.filter(d=>d.c===1).length / arr.length;
+    return 2*p1*(1-p1);
+  }
+
+  function render(){
+    const W = 700, H = 280;
+    const padL=40, padR=40, padT=40, padB=80;
+    const w = W - padL - padR;
+    svg.innerHTML = '';
+
+    // Axes
+    const axis = document.createElementNS('http://www.w3.org/2000/svg','line');
+    axis.setAttribute('x1', padL); axis.setAttribute('x2', W-padR);
+    axis.setAttribute('y1', H-padB); axis.setAttribute('y2', H-padB);
+    axis.setAttribute('stroke', '#1F1A12'); axis.setAttribute('stroke-width', '1.5');
+    svg.appendChild(axis);
+
+    // Ticks
+    for(let i=0;i<=10;i++){
+      const x = padL + (i/10)*w;
+      const t = document.createElementNS('http://www.w3.org/2000/svg','line');
+      t.setAttribute('x1', x); t.setAttribute('x2', x);
+      t.setAttribute('y1', H-padB); t.setAttribute('y2', H-padB+5);
+      t.setAttribute('stroke','#1F1A12'); t.setAttribute('stroke-width','1');
+      svg.appendChild(t);
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x', x); lbl.setAttribute('y', H-padB+18);
+      lbl.setAttribute('text-anchor','middle');
+      lbl.setAttribute('font-family','JetBrains Mono, monospace');
+      lbl.setAttribute('font-size','10'); lbl.setAttribute('fill','#6B6045');
+      lbl.textContent = i.toString();
+      svg.appendChild(lbl);
+    }
+
+    // Axis label
+    const xlbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    xlbl.setAttribute('x', W/2); xlbl.setAttribute('y', H-padB+45);
+    xlbl.setAttribute('text-anchor','middle');
+    xlbl.setAttribute('font-family','EB Garamond, serif');
+    xlbl.setAttribute('font-size','13'); xlbl.setAttribute('fill','#3B3424');
+    xlbl.setAttribute('font-style','italic');
+    xlbl.textContent = 'feature value →';
+    svg.appendChild(xlbl);
+
+    // Points
+    data.forEach(d=>{
+      const cx = padL + (d.x/10)*w;
+      const cy = H - padB - 10 - (Math.random()*30);
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+      c.setAttribute('r', 7);
+      c.setAttribute('fill', d.c===1 ? '#8A2A1B' : '#1E3A5F');
+      c.setAttribute('stroke', '#1F1A12');
+      c.setAttribute('stroke-width', '1');
+      c.setAttribute('opacity', '0.85');
+      svg.appendChild(c);
+    });
+
+    // Threshold line
+    const thr = parseFloat(slider.value)/10;
+    const tx = padL + (thr/10)*w;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', tx); line.setAttribute('x2', tx);
+    line.setAttribute('y1', padT); line.setAttribute('y2', H-padB);
+    line.setAttribute('stroke','#C28B2F'); line.setAttribute('stroke-width','2.5');
+    line.setAttribute('stroke-dasharray', '6 4');
+    svg.appendChild(line);
+
+    // Threshold label
+    const thrLbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    thrLbl.setAttribute('x', tx); thrLbl.setAttribute('y', padT-8);
+    thrLbl.setAttribute('text-anchor','middle');
+    thrLbl.setAttribute('font-family','JetBrains Mono, monospace');
+    thrLbl.setAttribute('font-size','11'); thrLbl.setAttribute('fill','#C28B2F');
+    thrLbl.textContent = 'split @ ' + thr.toFixed(2);
+    svg.appendChild(thrLbl);
+
+    // Calculate Gini
+    const left = data.filter(d=>d.x <= thr);
+    const right = data.filter(d=>d.x > thr);
+    const gL = gini(left), gR = gini(right);
+    const N = data.length;
+    const gW = (left.length/N)*gL + (right.length/N)*gR;
+    const gParent = gini(data);
+    const gain = gParent - gW;
+
+    valEl.textContent = thr.toFixed(1);
+    giniLEl.textContent = gL.toFixed(3);
+    giniREl.textContent = gR.toFixed(3);
+    giniWEl.textContent = gW.toFixed(3);
+    giniGainEl.textContent = gain.toFixed(3);
+  }
+
+  slider.addEventListener('input', render);
+  shuffBtn.addEventListener('click', ()=>{ generateData(); render(); });
+  optBtn.addEventListener('click', ()=>{
+    // Try every candidate split
+    let bestThr = 0, bestGain = -Infinity;
+    const gP = gini(data);
+    for(let t=5; t<=95; t++){
+      const thr = t/10;
+      const L = data.filter(d=>d.x<=thr);
+      const R = data.filter(d=>d.x>thr);
+      const gW = (L.length/data.length)*gini(L) + (R.length/data.length)*gini(R);
+      const gain = gP - gW;
+      if(gain > bestGain){ bestGain = gain; bestThr = t; }
+    }
+    slider.value = bestThr;
+    render();
+  });
+
+  generateData();
+  render();
+})();
+
+/* ============================================================
+   FIGURE IV.1 — Bagging vs Boosting on a 1D curve
+   ============================================================ */
+(function(){
+  const svg = document.getElementById('bagBoostSvg');
+  const slider = document.getElementById('bagN');
+  const nVal = document.getElementById('bagNVal');
+  const toggle = document.getElementById('bagToggle');
+  const cap = document.getElementById('bagCaption');
+
+  let mode = 'bagging';
+
+  // Generate noisy data from a wavy function
+  const truth = x => Math.sin(x*1.8) * 1.2 + Math.cos(x*0.7)*0.6;
+  const N_POINTS = 40;
+  const data = [];
+  for(let i=0;i<N_POINTS;i++){
+    const x = -3 + (6*i)/(N_POINTS-1);
+    data.push({x, y: truth(x) + (Math.random()-0.5)*0.7});
+  }
+
+  // Tiny regression tree (1D, depth-controlled)
+  function fitStumpRegression(pts, maxDepth){
+    function build(p, depth){
+      if(p.length<=2 || depth===0){
+        const mean = p.reduce((s,d)=>s+d.y,0)/p.length;
+        return {leaf:true, val: mean};
+      }
+      let best = {gain:-Infinity};
+      const sorted = [...p].sort((a,b)=>a.x-b.x);
+      const totalMean = sorted.reduce((s,d)=>s+d.y,0)/sorted.length;
+      const totalVar = sorted.reduce((s,d)=>s+(d.y-totalMean)**2,0);
+      for(let i=1;i<sorted.length;i++){
+        const L = sorted.slice(0,i), R = sorted.slice(i);
+        const mL = L.reduce((s,d)=>s+d.y,0)/L.length;
+        const mR = R.reduce((s,d)=>s+d.y,0)/R.length;
+        const vL = L.reduce((s,d)=>s+(d.y-mL)**2,0);
+        const vR = R.reduce((s,d)=>s+(d.y-mR)**2,0);
+        const gain = totalVar - vL - vR;
+        const thr = (sorted[i-1].x + sorted[i].x)/2;
+        if(gain > best.gain){ best = {gain, thr, L, R}; }
+      }
+      return {
+        leaf: false,
+        thr: best.thr,
+        left: build(best.L, depth-1),
+        right: build(best.R, depth-1),
+      };
+    }
+    return build(pts, maxDepth);
+  }
+
+  function predict(tree, x){
+    if(tree.leaf) return tree.val;
+    return x <= tree.thr ? predict(tree.left, x) : predict(tree.right, x);
+  }
+
+  function render(){
+    const W=700, H=320;
+    const padL=40, padR=20, padT=20, padB=40;
+    const w = W-padL-padR, h = H-padT-padB;
+    svg.innerHTML='';
+
+    const xmin=-3, xmax=3, ymin=-2.5, ymax=2.5;
+    const sx = x => padL + ((x-xmin)/(xmax-xmin))*w;
+    const sy = y => padT + h - ((y-ymin)/(ymax-ymin))*h;
+
+    // Axes
+    const ax = document.createElementNS('http://www.w3.org/2000/svg','line');
+    ax.setAttribute('x1', padL); ax.setAttribute('x2', W-padR);
+    ax.setAttribute('y1', sy(0)); ax.setAttribute('y2', sy(0));
+    ax.setAttribute('stroke', '#9C8B5E'); ax.setAttribute('stroke-width', '1');
+    ax.setAttribute('stroke-dasharray','2 3');
+    svg.appendChild(ax);
+
+    // True curve
+    let truthPath = '';
+    for(let xi=0;xi<=200;xi++){
+      const x = xmin + (xmax-xmin)*xi/200;
+      const y = truth(x);
+      truthPath += (xi===0?'M':'L') + sx(x) + ',' + sy(y);
+    }
+    const tp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    tp.setAttribute('d', truthPath);
+    tp.setAttribute('stroke','#1F1A12'); tp.setAttribute('stroke-width','1.5');
+    tp.setAttribute('fill','none'); tp.setAttribute('stroke-dasharray','4 4');
+    tp.setAttribute('opacity','0.5');
+    svg.appendChild(tp);
+
+    const nTrees = parseInt(slider.value);
+    const trees = [];
+
+    if(mode==='bagging'){
+      // Bag of deep trees on bootstrap samples
+      for(let t=0;t<nTrees;t++){
+        const bs = [];
+        for(let i=0;i<data.length;i++){
+          bs.push(data[Math.floor(Math.random()*data.length)]);
+        }
+        trees.push(fitStumpRegression(bs, 4));
+      }
+      // Draw each tree's prediction faintly
+      trees.forEach(tree=>{
+        let p = '';
+        for(let xi=0;xi<=200;xi++){
+          const x = xmin + (xmax-xmin)*xi/200;
+          const y = predict(tree, x);
+          p += (xi===0?'M':'L') + sx(x) + ',' + sy(y);
+        }
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', p);
+        path.setAttribute('stroke','#1F1A12'); path.setAttribute('stroke-width','0.6');
+        path.setAttribute('fill','none'); path.setAttribute('opacity', Math.min(0.25, 5/nTrees));
+        svg.appendChild(path);
+      });
+      // Average
+      let avgP = '';
+      for(let xi=0;xi<=200;xi++){
+        const x = xmin + (xmax-xmin)*xi/200;
+        let s = 0;
+        trees.forEach(t=> s += predict(t, x));
+        const y = s/trees.length;
+        avgP += (xi===0?'M':'L') + sx(x) + ',' + sy(y);
+      }
+      const ap = document.createElementNS('http://www.w3.org/2000/svg','path');
+      ap.setAttribute('d', avgP);
+      ap.setAttribute('stroke','#8A2A1B'); ap.setAttribute('stroke-width','2.5');
+      ap.setAttribute('fill','none');
+      svg.appendChild(ap);
+    } else {
+      // Boosting: sequential shallow trees on residuals
+      let preds = data.map(d=>0);
+      const LR = 0.3;
+      for(let t=0;t<nTrees;t++){
+        const residPts = data.map((d,i)=>({x:d.x, y: d.y - preds[i]}));
+        const tree = fitStumpRegression(residPts, 2);
+        trees.push(tree);
+        preds = data.map((d,i)=> preds[i] + LR*predict(tree, d.x));
+      }
+      // Final prediction
+      let finalP = '';
+      for(let xi=0;xi<=200;xi++){
+        const x = xmin + (xmax-xmin)*xi/200;
+        let s = 0;
+        trees.forEach(t=> s += LR*predict(t, x));
+        finalP += (xi===0?'M':'L') + sx(x) + ',' + sy(s);
+      }
+      const fp = document.createElementNS('http://www.w3.org/2000/svg','path');
+      fp.setAttribute('d', finalP);
+      fp.setAttribute('stroke','#8A2A1B'); fp.setAttribute('stroke-width','2.5');
+      fp.setAttribute('fill','none');
+      svg.appendChild(fp);
+
+      // Draw intermediate cumulative predictions faintly
+      let cum = new Array(201).fill(0);
+      trees.forEach((tree, idx)=>{
+        const showThis = (idx === 0) || (idx === Math.floor(trees.length/2)) || (idx === trees.length-1);
+        if(showThis && idx < trees.length-1){
+          let p = '';
+          for(let xi=0;xi<=200;xi++){
+            const x = xmin + (xmax-xmin)*xi/200;
+            cum[xi] += LR*predict(tree, x);
+            p += (xi===0?'M':'L') + sx(x) + ',' + sy(cum[xi]);
+          }
+          const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+          path.setAttribute('d', p);
+          path.setAttribute('stroke','#1F1A12'); path.setAttribute('stroke-width','0.8');
+          path.setAttribute('fill','none'); path.setAttribute('opacity', 0.3);
+          svg.appendChild(path);
+        } else {
+          for(let xi=0;xi<=200;xi++){
+            const x = xmin + (xmax-xmin)*xi/200;
+            cum[xi] += LR*predict(tree, x);
+          }
+        }
+      });
+    }
+
+    // Data points
+    data.forEach(d=>{
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', sx(d.x)); c.setAttribute('cy', sy(d.y));
+      c.setAttribute('r', 3.5);
+      c.setAttribute('fill', '#1F1A12'); c.setAttribute('opacity','0.7');
+      svg.appendChild(c);
+    });
+
+    // Legend
+    const lg = document.createElementNS('http://www.w3.org/2000/svg','g');
+    lg.innerHTML = `
+      <line x1="${W-180}" y1="${padT+5}" x2="${W-155}" y2="${padT+5}" stroke="#1F1A12" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5"/>
+      <text x="${W-150}" y="${padT+9}" font-family="JetBrains Mono" font-size="10" fill="#3B3424">true signal</text>
+      <line x1="${W-180}" y1="${padT+22}" x2="${W-155}" y2="${padT+22}" stroke="#8A2A1B" stroke-width="2.5"/>
+      <text x="${W-150}" y="${padT+26}" font-family="JetBrains Mono" font-size="10" fill="#3B3424">ensemble</text>
+    `;
+    svg.appendChild(lg);
+
+    nVal.textContent = nTrees;
+    cap.innerHTML = mode==='bagging'
+      ? 'Currently showing: <strong>bagging</strong>. Each gray line is one tree on a bootstrap sample; the orange line is their average. Notice how the average is smooth even though individual trees are jagged.'
+      : 'Currently showing: <strong>boosting</strong>. Trees are added sequentially; each new tree fits the residual errors of the previous ensemble. The gray traces show the prediction at intermediate iterations.';
+  }
+
+  slider.addEventListener('input', render);
+  toggle.addEventListener('click', ()=>{ mode = mode==='bagging' ? 'boosting' : 'bagging'; render(); });
+  render();
+})();
+
+/* ============================================================
+   FIGURE V.1 — Gradient boosting iteration viewer
+   ============================================================ */
+(function(){
+  const svg = document.getElementById('gbSvg');
+  const addBtn = document.getElementById('gbAdd');
+  const add10Btn = document.getElementById('gbAdd10');
+  const resetBtn = document.getElementById('gbReset');
+  const lrSlider = document.getElementById('gbLR');
+  const lrVal = document.getElementById('gbLRVal');
+  const depthSlider = document.getElementById('gbDepth');
+  const depthVal = document.getElementById('gbDepthVal');
+  const iterEl = document.getElementById('gbIter');
+  const rmseEl = document.getElementById('gbRMSE');
+  const countEl = document.getElementById('gbCount');
+
+  const truth = x => Math.sin(x*2) * 1.5 + 0.4*x;
+  const data = [];
+  for(let i=0;i<40;i++){
+    const x = -3 + (6*i)/39;
+    data.push({x, y: truth(x) + (Math.random()-0.5)*0.6});
+  }
+
+  let predictions = data.map(()=> data.reduce((s,d)=>s+d.y,0)/data.length );
+  let trees = [];
+  let initVal = data.reduce((s,d)=>s+d.y,0)/data.length;
+
+  function fitTree(pts, maxDepth){
+    function build(p, depth){
+      if(p.length<=2 || depth===0){
+        const mean = p.reduce((s,d)=>s+d.y,0)/p.length;
+        return {leaf:true, val: mean};
+      }
+      let best = {gain:-Infinity};
+      const sorted = [...p].sort((a,b)=>a.x-b.x);
+      const totalMean = sorted.reduce((s,d)=>s+d.y,0)/sorted.length;
+      const totalVar = sorted.reduce((s,d)=>s+(d.y-totalMean)**2,0);
+      for(let i=1;i<sorted.length;i++){
+        const L = sorted.slice(0,i), R = sorted.slice(i);
+        const mL = L.reduce((s,d)=>s+d.y,0)/L.length;
+        const mR = R.reduce((s,d)=>s+d.y,0)/R.length;
+        const vL = L.reduce((s,d)=>s+(d.y-mL)**2,0);
+        const vR = R.reduce((s,d)=>s+(d.y-mR)**2,0);
+        const gain = totalVar - vL - vR;
+        const thr = (sorted[i-1].x + sorted[i].x)/2;
+        if(gain > best.gain){ best = {gain, thr, L, R}; }
+      }
+      if(best.gain === -Infinity){
+        const mean = p.reduce((s,d)=>s+d.y,0)/p.length;
+        return {leaf:true, val: mean};
+      }
+      return {
+        leaf: false,
+        thr: best.thr,
+        left: build(best.L, depth-1),
+        right: build(best.R, depth-1),
+      };
+    }
+    return build(pts, maxDepth);
+  }
+
+  function predict(tree, x){
+    if(tree.leaf) return tree.val;
+    return x <= tree.thr ? predict(tree.left, x) : predict(tree.right, x);
+  }
+
+  function addOne(){
+    const lr = parseInt(lrSlider.value)/100;
+    const depth = parseInt(depthSlider.value);
+    const residPts = data.map((d,i)=>({x:d.x, y: d.y - predictions[i]}));
+    const tree = fitTree(residPts, depth);
+    trees.push({tree, lr});
+    predictions = data.map((d,i)=> predictions[i] + lr*predict(tree, d.x));
+    render();
+  }
+
+  function reset(){
+    initVal = data.reduce((s,d)=>s+d.y,0)/data.length;
+    predictions = data.map(()=> initVal );
+    trees = [];
+    render();
+  }
+
+  function predictX(x){
+    let v = initVal;
+    trees.forEach(t=> v += t.lr * predict(t.tree, x));
+    return v;
+  }
+
+  function render(){
+    const W=700, H=380;
+    const padL=40, padR=20, padT=20, padB=20;
+    const splitY = 220;
+    const h1 = splitY - padT - padB;
+    const h2 = H - splitY - padB - padT;
+    const w = W - padL - padR;
+    svg.innerHTML='';
+
+    const xmin=-3, xmax=3, ymin=-2.5, ymax=2.5;
+    const sx = x => padL + ((x-xmin)/(xmax-xmin))*w;
+    const sy1 = y => padT + h1 - ((y-ymin)/(ymax-ymin))*h1;
+    const sy2 = y => splitY + padT + h2/2 - (y/2.5)*(h2/2);
+
+    // Panel labels
+    const lbl1 = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl1.setAttribute('x', padL); lbl1.setAttribute('y', padT+12);
+    lbl1.setAttribute('font-family','JetBrains Mono, monospace');
+    lbl1.setAttribute('font-size','10'); lbl1.setAttribute('fill','#6B6045');
+    lbl1.textContent = 'PREDICTION';
+    svg.appendChild(lbl1);
+
+    const lbl2 = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl2.setAttribute('x', padL); lbl2.setAttribute('y', splitY+padT-4);
+    lbl2.setAttribute('font-family','JetBrains Mono, monospace');
+    lbl2.setAttribute('font-size','10'); lbl2.setAttribute('fill','#6B6045');
+    lbl2.textContent = 'RESIDUALS';
+    svg.appendChild(lbl2);
+
+    // Divider
+    const div = document.createElementNS('http://www.w3.org/2000/svg','line');
+    div.setAttribute('x1', padL); div.setAttribute('x2', W-padR);
+    div.setAttribute('y1', splitY); div.setAttribute('y2', splitY);
+    div.setAttribute('stroke','#9C8B5E'); div.setAttribute('stroke-width','0.5');
+    svg.appendChild(div);
+
+    // True curve
+    let tp = '';
+    for(let xi=0;xi<=200;xi++){
+      const x = xmin + (xmax-xmin)*xi/200;
+      const y = truth(x);
+      tp += (xi===0?'M':'L') + sx(x) + ',' + sy1(y);
+    }
+    const truthPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+    truthPath.setAttribute('d', tp);
+    truthPath.setAttribute('stroke','#1F1A12'); truthPath.setAttribute('stroke-width','1.2');
+    truthPath.setAttribute('fill','none'); truthPath.setAttribute('stroke-dasharray','3 3');
+    truthPath.setAttribute('opacity','0.5');
+    svg.appendChild(truthPath);
+
+    // Prediction curve
+    let pp = '';
+    for(let xi=0;xi<=200;xi++){
+      const x = xmin + (xmax-xmin)*xi/200;
+      const y = predictX(x);
+      pp += (xi===0?'M':'L') + sx(x) + ',' + sy1(y);
+    }
+    const predPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+    predPath.setAttribute('d', pp);
+    predPath.setAttribute('stroke','#8A2A1B'); predPath.setAttribute('stroke-width','2.5');
+    predPath.setAttribute('fill','none');
+    svg.appendChild(predPath);
+
+    // Data points (top panel)
+    data.forEach(d=>{
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', sx(d.x)); c.setAttribute('cy', sy1(d.y));
+      c.setAttribute('r', 3.5);
+      c.setAttribute('fill', '#1F1A12'); c.setAttribute('opacity','0.7');
+      svg.appendChild(c);
+    });
+
+    // Residual axis line
+    const resAx = document.createElementNS('http://www.w3.org/2000/svg','line');
+    resAx.setAttribute('x1', padL); resAx.setAttribute('x2', W-padR);
+    resAx.setAttribute('y1', sy2(0)); resAx.setAttribute('y2', sy2(0));
+    resAx.setAttribute('stroke','#9C8B5E'); resAx.setAttribute('stroke-width','1');
+    resAx.setAttribute('stroke-dasharray','2 3');
+    svg.appendChild(resAx);
+
+    // Residuals (bottom panel)
+    data.forEach((d,i)=>{
+      const r = d.y - predictions[i];
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', sx(d.x)); c.setAttribute('cy', sy2(r));
+      c.setAttribute('r', 3.5);
+      c.setAttribute('fill', r > 0 ? '#8A2A1B' : '#1E3A5F');
+      c.setAttribute('opacity','0.75');
+      svg.appendChild(c);
+
+      // Residual stem
+      const stem = document.createElementNS('http://www.w3.org/2000/svg','line');
+      stem.setAttribute('x1', sx(d.x)); stem.setAttribute('x2', sx(d.x));
+      stem.setAttribute('y1', sy2(0)); stem.setAttribute('y2', sy2(r));
+      stem.setAttribute('stroke', r>0 ? '#8A2A1B' : '#1E3A5F');
+      stem.setAttribute('stroke-width','1'); stem.setAttribute('opacity','0.4');
+      svg.appendChild(stem);
+    });
+
+    // Metrics
+    iterEl.textContent = trees.length;
+    countEl.textContent = trees.length;
+    const rmse = Math.sqrt(data.reduce((s,d,i)=> s + (d.y-predictions[i])**2, 0) / data.length);
+    rmseEl.textContent = rmse.toFixed(3);
+    lrVal.textContent = (parseInt(lrSlider.value)/100).toFixed(2);
+    depthVal.textContent = depthSlider.value;
+  }
+
+  addBtn.addEventListener('click', addOne);
+  add10Btn.addEventListener('click', ()=>{ for(let i=0;i<10;i++) addOne(); });
+  resetBtn.addEventListener('click', reset);
+  lrSlider.addEventListener('input', ()=>{ lrVal.textContent = (parseInt(lrSlider.value)/100).toFixed(2); });
+  depthSlider.addEventListener('input', ()=>{ depthVal.textContent = depthSlider.value; });
+
+  reset();
+})();
+
+/* ============================================================
+   FIGURE VII.1 — Hyperparameter playground (2D classifier)
+   ============================================================ */
+(function(){
+  const canvas = document.getElementById('pgCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const padL=40, padR=20, padT=20, padB=40;
+
+  const nEl = document.getElementById('pgN'), nVal = document.getElementById('pgNVal');
+  const dEl = document.getElementById('pgD'), dVal = document.getElementById('pgDVal');
+  const lrEl = document.getElementById('pgLR'), lrVal = document.getElementById('pgLRVal');
+  const mcEl = document.getElementById('pgMC'), mcVal = document.getElementById('pgMCVal');
+  const fitBtn = document.getElementById('pgFit');
+  const dsBtn = document.getElementById('pgDataset');
+  const dsName = document.getElementById('pgDsName');
+  const trainEl = document.getElementById('pgTrain'),
+        valEl = document.getElementById('pgVal'),
+        gapEl = document.getElementById('pgGap'),
+        leavesEl = document.getElementById('pgLeaves');
+
+  let dataset = 'moons';
+  let train = [], val = [];
+
+  function makeMoons(n, noise){
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const cls = i % 2;
+      const t = Math.PI * (i / (n/2));
+      if(cls===0){
+        pts.push({x: Math.cos(t)*1 + (Math.random()-0.5)*noise, y: Math.sin(t)*1 + (Math.random()-0.5)*noise, c: 0});
+      } else {
+        pts.push({x: 1 - Math.cos(t)*1 + (Math.random()-0.5)*noise, y: 0.5 - Math.sin(t)*1 + (Math.random()-0.5)*noise, c: 1});
+      }
+    }
+    return pts;
+  }
+  function makeCircles(n, noise){
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const cls = i % 2;
+      const r = cls===0 ? 0.7 : 1.5;
+      const t = Math.random()*2*Math.PI;
+      pts.push({x: r*Math.cos(t)+(Math.random()-0.5)*noise, y: r*Math.sin(t)+(Math.random()-0.5)*noise, c: cls});
+    }
+    return pts;
+  }
+  function makeXor(n, noise){
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const x = Math.random()*3-1.5;
+      const y = Math.random()*3-1.5;
+      const c = ((x>0)^(y>0)) ? 1 : 0;
+      pts.push({x: x+(Math.random()-0.5)*noise, y: y+(Math.random()-0.5)*noise, c});
+    }
+    return pts;
+  }
+  function makeBlobs(n, noise){
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const cls = i % 2;
+      const cx = cls===0 ? -0.9 : 0.9;
+      pts.push({x: cx + (Math.random()-0.5)*1.4, y: (Math.random()-0.5)*1.8, c: cls});
+    }
+    return pts;
+  }
+
+  function genData(){
+    let fn;
+    if(dataset==='moons') fn = makeMoons;
+    else if(dataset==='circles') fn = makeCircles;
+    else if(dataset==='xor') fn = makeXor;
+    else fn = makeBlobs;
+    train = fn(140, 0.25);
+    val = fn(140, 0.25);
+  }
+
+  // Tiny gradient boosting classifier for 2D
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+  function fitTreeReg(pts, maxDepth, minChild){
+    // pts: {x, y, g, h} for gradients/hessians
+    function build(p, depth){
+      if(p.length < minChild*2 || depth===0){
+        const G = p.reduce((s,d)=>s+d.g,0);
+        const Hh = p.reduce((s,d)=>s+d.h,0);
+        return {leaf:true, val: -G/(Hh+1.0)}; // lambda=1
+      }
+      let best = {gain:-Infinity};
+      ['x','y'].forEach(feat=>{
+        const sorted = [...p].sort((a,b)=>a[feat]-b[feat]);
+        let GL=0, HL=0;
+        const Gtot = sorted.reduce((s,d)=>s+d.g,0);
+        const Htot = sorted.reduce((s,d)=>s+d.h,0);
+        for(let i=1;i<sorted.length;i++){
+          GL += sorted[i-1].g; HL += sorted[i-1].h;
+          if(i < minChild || (sorted.length-i) < minChild) continue;
+          const GR = Gtot-GL, HR = Htot-HL;
+          const gain = 0.5*(GL*GL/(HL+1) + GR*GR/(HR+1) - Gtot*Gtot/(Htot+1));
+          const thr = (sorted[i-1][feat] + sorted[i][feat])/2;
+          if(gain > best.gain){
+            best = {gain, feat, thr,
+              L: sorted.slice(0,i), R: sorted.slice(i)};
+          }
+        }
+      });
+      if(best.gain <= 0){
+        const G = p.reduce((s,d)=>s+d.g,0);
+        const Hh = p.reduce((s,d)=>s+d.h,0);
+        return {leaf:true, val: -G/(Hh+1.0)};
+      }
+      return {
+        leaf:false, feat: best.feat, thr: best.thr,
+        left: build(best.L, depth-1),
+        right: build(best.R, depth-1),
+      };
+    }
+    return build(pts, maxDepth);
+  }
+
+  function predictTree(tree, x, y){
+    if(tree.leaf) return tree.val;
+    const v = tree.feat==='x' ? x : y;
+    return v <= tree.thr ? predictTree(tree.left, x, y) : predictTree(tree.right, x, y);
+  }
+
+  function countLeaves(tree){
+    if(tree.leaf) return 1;
+    return countLeaves(tree.left) + countLeaves(tree.right);
+  }
+
+  let model = {trees: [], init: 0};
+
+  function fitModel(){
+    const N = parseInt(nEl.value);
+    const D = parseInt(dEl.value);
+    const LR = parseInt(lrEl.value)/100;
+    const MC = parseInt(mcEl.value);
+
+    const pos = train.filter(p=>p.c===1).length;
+    const init = Math.log(pos/(train.length-pos+1e-6));
+    let preds = train.map(()=>init);
+    const trees = [];
+
+    for(let t=0;t<N;t++){
+      const augmented = train.map((p,i)=>{
+        const ŷ = sigmoid(preds[i]);
+        return {x:p.x, y:p.y, g: ŷ - p.c, h: ŷ*(1-ŷ)};
+      });
+      const tree = fitTreeReg(augmented, D, MC);
+      trees.push(tree);
+      preds = train.map((p,i)=> preds[i] + LR*predictTree(tree, p.x, p.y));
+    }
+    model = {trees, init, LR};
+  }
+
+  function predict(x, y){
+    let v = model.init;
+    model.trees.forEach(t=> v += model.LR*predictTree(t, x, y));
+    return sigmoid(v);
+  }
+
+  function accuracy(pts){
+    let ok = 0;
+    pts.forEach(p=>{ if(((predict(p.x,p.y)>0.5)?1:0) === p.c) ok++; });
+    return ok/pts.length;
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+
+    // Background fill
+    ctx.fillStyle = '#F4ECD6';
+    ctx.fillRect(0,0,W,H);
+
+    const xmin=-2.5, xmax=2.5, ymin=-2.2, ymax=2.2;
+    const w = W-padL-padR, h = H-padT-padB;
+    const sx = x => padL + ((x-xmin)/(xmax-xmin))*w;
+    const sy = y => padT + h - ((y-ymin)/(ymax-ymin))*h;
+
+    // Decision boundary as heatmap
+    const step = 8;
+    for(let px=padL; px<W-padR; px+=step){
+      for(let py=padT; py<H-padB; py+=step){
+        const x = xmin + ((px-padL)/w)*(xmax-xmin);
+        const y = ymax - ((py-padT)/h)*(ymax-ymin);
+        const p = predict(x, y);
+        const r = Math.round(244 - (244-138)*p);
+        const g = Math.round(236 - (236-42)*p + (58-236)*(1-p));
+        // Blend: navy for 0, oxblood for 1, paper for 0.5
+        let r2, g2, b2;
+        if(p > 0.5){
+          const t = (p-0.5)*2;
+          r2 = Math.round(244 + (138-244)*t*0.5);
+          g2 = Math.round(236 + (42-236)*t*0.5);
+          b2 = Math.round(214 + (27-214)*t*0.5);
+        } else {
+          const t = (0.5-p)*2;
+          r2 = Math.round(244 + (30-244)*t*0.5);
+          g2 = Math.round(236 + (58-236)*t*0.5);
+          b2 = Math.round(214 + (95-214)*t*0.5);
+        }
+        ctx.fillStyle = `rgba(${r2},${g2},${b2},0.55)`;
+        ctx.fillRect(px, py, step, step);
+      }
+    }
+
+    // Decision boundary line at p=0.5
+    ctx.strokeStyle = '#1F1A12';
+    ctx.lineWidth = 1.5;
+    for(let px=padL; px<W-padR; px++){
+      for(let py=padT; py<H-padB; py+=2){
+        const x = xmin + ((px-padL)/w)*(xmax-xmin);
+        const y = ymax - ((py-padT)/h)*(ymax-ymin);
+        const y2 = ymax - ((py-padT+2)/h)*(ymax-ymin);
+        const p1 = predict(x, y), p2 = predict(x, y2);
+        if((p1 > 0.5) !== (p2 > 0.5)){
+          ctx.fillStyle = '#1F1A12';
+          ctx.fillRect(px, py, 1, 2);
+        }
+      }
+    }
+
+    // Points: train
+    train.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(sx(p.x), sy(p.y), 4, 0, 2*Math.PI);
+      ctx.fillStyle = p.c===1 ? '#8A2A1B' : '#1E3A5F';
+      ctx.strokeStyle = '#1F1A12';
+      ctx.lineWidth = 0.8;
+      ctx.fill();
+      ctx.stroke();
+    });
+    // Points: validation (smaller, ringed)
+    val.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(sx(p.x), sy(p.y), 3, 0, 2*Math.PI);
+      ctx.fillStyle = 'rgba(244,236,214,0.95)';
+      ctx.strokeStyle = p.c===1 ? '#8A2A1B' : '#1E3A5F';
+      ctx.lineWidth = 1.5;
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    // Border
+    ctx.strokeStyle = '#1F1A12';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(padL, padT, w, h);
+
+    // Legend
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#3B3424';
+    ctx.fillText('● filled = train   ○ hollow = validation', padL, H-12);
+
+    // Metrics
+    const tA = accuracy(train), vA = accuracy(val);
+    trainEl.textContent = (tA*100).toFixed(1) + '%';
+    valEl.textContent = (vA*100).toFixed(1) + '%';
+    gapEl.textContent = ((tA-vA)*100).toFixed(1) + 'pp';
+    leavesEl.textContent = model.trees.reduce((s,t)=> s+countLeaves(t), 0);
+  }
+
+  function refit(){
+    fitModel();
+    render();
+    nVal.textContent = nEl.value;
+    dVal.textContent = dEl.value;
+    lrVal.textContent = (parseInt(lrEl.value)/100).toFixed(2);
+    mcVal.textContent = mcEl.value;
+  }
+
+  [nEl, dEl, lrEl, mcEl].forEach(el => el.addEventListener('input', refit));
+  fitBtn.addEventListener('click', refit);
+  dsBtn.addEventListener('click', ()=>{
+    const names = ['moons','circles','xor','blobs'];
+    dataset = names[(names.indexOf(dataset)+1) % names.length];
+    dsName.textContent = dataset;
+    genData();
+    refit();
+  });
+
+  genData();
+  refit();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Architecture Design — A Practical Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f0e2;
+    --paper-2:#efe7d4;
+    --ink:#23201a;
+    --ink-soft:#4a463c;
+    --rule:#d8cdb2;
+    --accent:#9a3412;       /* burnt sienna */
+    --accent-2:#1d6b5f;     /* deep teal */
+    --accent-3:#3b5b8c;     /* indigo */
+    --gold:#a9821f;
+    --maxw:820px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(169,130,31,.05), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(29,107,95,.05), transparent 45%);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;
+    font-size:19px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* faint paper grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:0 26px 120px;}
+
+  /* ---- Masthead ---- */
+  header.mast{padding:70px 0 30px;border-bottom:3px double var(--rule);margin-bottom:14px;}
+  .kicker{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);margin:0 0 18px;}
+  h1{
+    font-family:"Fraunces",serif;font-weight:600;font-size:clamp(38px,7vw,62px);
+    line-height:1.04;letter-spacing:-.015em;margin:0 0 18px;
+  }
+  .standfirst{font-size:21px;color:var(--ink-soft);font-style:italic;max-width:64ch;margin:0;}
+  .byline{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.12em;color:var(--ink-soft);margin-top:26px;text-transform:uppercase;opacity:.75;}
+
+  /* ---- TOC ---- */
+  nav.toc{
+    margin:34px 0 50px;padding:24px 28px;background:var(--paper-2);
+    border:1px solid var(--rule);border-radius:3px;
+  }
+  nav.toc h2{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin:0 0 14px;color:var(--ink-soft);}
+  nav.toc ol{margin:0;padding-left:0;list-style:none;counter-reset:toc;column-count:2;column-gap:34px;}
+  nav.toc li{counter-increment:toc;font-size:16px;margin:0 0 9px;break-inside:avoid;}
+  nav.toc li::before{content:counter(toc,decimal-leading-zero);font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent);margin-right:10px;}
+  nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent;}
+  nav.toc a:hover{border-bottom-color:var(--accent);}
+
+  /* ---- Sections ---- */
+  section{margin:0 0 56px;scroll-margin-top:24px;}
+  .sec-num{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.2em;color:var(--accent);}
+  h2.sec{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(27px,4.5vw,36px);line-height:1.12;margin:6px 0 18px;letter-spacing:-.01em;}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin:30px 0 8px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .lead{font-size:20px;}
+  a.link{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--rule);}
+  a.link:hover{border-bottom-color:var(--accent);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--accent-2);}
+
+  ul.clean{margin:14px 0 18px;padding-left:0;list-style:none;}
+  ul.clean li{position:relative;padding-left:26px;margin-bottom:11px;}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:13px;width:7px;height:7px;background:var(--accent);transform:rotate(45deg);}
+
+  /* ---- Practical note callout ---- */
+  .note{
+    margin:22px 0;padding:18px 22px 18px 24px;background:var(--paper-2);
+    border-left:4px solid var(--accent-2);border-radius:0 3px 3px 0;font-size:17px;
+  }
+  .note .tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-2);display:block;margin-bottom:6px;}
+  .note.warn{border-left-color:var(--accent);}
+  .note.warn .tag{color:var(--accent);}
+  .note p:last-child{margin-bottom:0;}
+
+  /* ---- Pattern cards ---- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:22px 0;}
+  .card{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:18px 20px;}
+  .card h4{font-family:"Fraunces",serif;font-size:19px;margin:0 0 6px;font-weight:600;}
+  .card .meta{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-3);margin:0 0 10px;}
+  .card p{font-size:15.5px;line-height:1.5;margin:0 0 8px;color:var(--ink-soft);}
+  .card .use{font-size:14px;color:var(--ink);}
+  .card .use b{color:var(--accent-2);font-weight:600;}
+
+  /* ---- Quality attribute grid ---- */
+  table.q{width:100%;border-collapse:collapse;margin:20px 0;font-size:16px;}
+  table.q th,table.q td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  table.q th{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
+  table.q td:first-child{font-weight:600;color:var(--accent);font-family:"Fraunces",serif;width:32%;}
+
+  code{font-family:"JetBrains Mono",monospace;font-size:.82em;background:var(--paper-2);padding:2px 6px;border-radius:3px;border:1px solid var(--rule);}
+
+  /* ---- ASCII diagram ---- */
+  .diagram{
+    font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.5;
+    background:var(--ink);color:#e8dfc8;padding:22px 24px;border-radius:5px;
+    overflow-x:auto;margin:22px 0;white-space:pre;letter-spacing:.02em;
+  }
+  .diagram .c1{color:#e0a96d;}
+  .diagram .c2{color:#7fc7b8;}
+  .diagram .c3{color:#9bb3e0;}
+
+  /* ---- Steps ---- */
+  ol.steps{counter-reset:step;list-style:none;padding-left:0;margin:20px 0;}
+  ol.steps li{counter-increment:step;position:relative;padding:4px 0 18px 52px;border-left:1px solid var(--rule);margin-left:16px;}
+  ol.steps li::before{
+    content:counter(step);position:absolute;left:-16px;top:0;width:32px;height:32px;
+    background:var(--accent);color:var(--paper);border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:500;
+  }
+  ol.steps li:last-child{border-left-color:transparent;}
+  ol.steps b{font-family:"Fraunces",serif;font-size:18px;}
+
+  /* ---- References ---- */
+  .refs{margin-top:18px;}
+  .refs li{font-size:16px;margin-bottom:13px;padding-left:24px;text-indent:-24px;line-height:1.5;}
+  .refs a{color:var(--accent-3);}
+
+  hr.rule{border:none;border-top:1px solid var(--rule);margin:48px 0;}
+  footer{border-top:3px double var(--rule);padding-top:24px;font-size:14px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;letter-spacing:.05em;}
+  footer .sig{font-family:"Fraunces",serif;font-style:italic;font-size:16px;letter-spacing:0;color:var(--ink);}
+
+  @media(max-width:620px){
+    body{font-size:18px;}
+    nav.toc ol{column-count:1;}
+    .diagram{font-size:11px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:18px;">← Back to Autonomy</a>
+    <p class="kicker">A Practical Primer · Software Engineering</p>
+    <h1>System Architecture Design</h1>
+    <p class="standfirst">The decisions you make early, that are expensive to change later — and how to make them well.</p>
+    <p class="byline">By Majid Mazouchi</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#what">What architecture actually is</a></li>
+      <li><a href="#why">Why it matters</a></li>
+      <li><a href="#principles">Core design principles</a></li>
+      <li><a href="#quality">Quality attributes (the "-ilities")</a></li>
+      <li><a href="#styles">Common architectural styles</a></li>
+      <li><a href="#concerns">Cross-cutting concerns</a></li>
+      <li><a href="#tradeoffs">Trade-offs &amp; reality</a></li>
+      <li><a href="#document">Documenting the design</a></li>
+      <li><a href="#process">A practical process</a></li>
+      <li><a href="#mistakes">Common mistakes</a></li>
+      <li><a href="#agents">Architecting with coding agents</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="what">
+    <span class="sec-num">§ 01</span>
+    <h2 class="sec">What architecture actually is</h2>
+    <p class="lead">Software architecture is the set of <strong>structures</strong> needed to reason about a system — the components, what they do, how they relate, and the principles governing their design and evolution.</p>
+    <p>A useful working definition: architecture is made up of the decisions that are <em class="term">hard to change later</em>. Choosing a button color is not architecture. Choosing whether your system is a single deployable unit or fifty independent services <em>is</em> — because reversing it costs months.</p>
+    <p>It sits one level above code. Code answers "how does this function work?" Architecture answers "what are the major pieces, who owns what, how do they talk, and what happens when one fails?"</p>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>A good test for whether something is "architectural": ask <em>"If we got this wrong, how painful is the fix six months from now?"</em> The more painful, the more deliberate your decision should be — and the more it deserves to be written down.</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="why">
+    <span class="sec-num">§ 02</span>
+    <h2 class="sec">Why it matters</h2>
+    <p>Every system has an architecture whether or not anyone designed it on purpose. The question is only whether it was <strong>intentional</strong> or <strong>accidental</strong>. Accidental architecture is the slow accumulation of expedient choices that eventually make every new feature harder than the last.</p>
+    <ul class="clean">
+      <li><strong>It governs the qualities you can't easily retrofit.</strong> Performance, security, and scalability are mostly won or lost at the architecture stage, not in clever code.</li>
+      <li><strong>It shapes how teams work.</strong> System boundaries become team boundaries (and vice-versa — see Conway's Law below).</li>
+      <li><strong>It manages risk and cost.</strong> Catching a structural flaw on a whiteboard costs a meeting; catching it in production costs a rewrite.</li>
+    </ul>
+    <div class="note">
+      <span class="tag">Conway's Law</span>
+      <p>Organizations design systems that mirror their own communication structure. If you have four teams building a compiler, you'll get a four-pass compiler. Design your team boundaries and your component boundaries together — they're the same problem.</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="principles">
+    <span class="sec-num">§ 03</span>
+    <h2 class="sec">Core design principles</h2>
+    <p>These are the load-bearing ideas. Almost every good architectural decision is one of these applied in context.</p>
+
+    <h3>Separation of concerns</h3>
+    <p>Each part of the system should address one distinct responsibility. Keep business logic out of the UI, keep data access out of business logic. When concerns are tangled, a change to one forces changes to the others.</p>
+
+    <h3>High cohesion, low coupling</h3>
+    <p><em class="term">Cohesion</em> = things that change together live together. <em class="term">Coupling</em> = how much one module must know about another. The goal is always the same: maximize cohesion <em>within</em> a module, minimize coupling <em>between</em> modules. This single sentence explains most of microservices, layering, and clean architecture.</p>
+
+    <h3>Abstraction &amp; encapsulation</h3>
+    <p>Expose <em>what</em> a component does through a stable interface; hide <em>how</em> it does it. Callers depend on the contract, not the implementation, so the implementation can change freely.</p>
+
+    <h3>Modularity</h3>
+    <p>Build from replaceable parts with clear boundaries. A module you can understand, test, and deploy in isolation is a module you can reason about.</p>
+
+    <div class="note">
+      <span class="tag">SOLID — at architectural scale</span>
+      <p>The SOLID principles scale up from classes to whole components. The most architecturally important is <strong>Dependency Inversion</strong>: high-level policy should not depend on low-level detail; both depend on abstractions. This is what lets you swap a database, a message broker, or an external API without rewriting your core logic.</p>
+    </div>
+
+    <h3>Don't over-engineer</h3>
+    <p><strong>KISS</strong> (keep it simple), <strong>YAGNI</strong> (you aren't gonna need it), and <strong>DRY</strong> (don't repeat yourself) are guardrails against complexity. The most common failure of inexperienced architects is not too little structure — it's too much, added too early, for problems they don't yet have.</p>
+    <div class="note warn">
+      <span class="tag">Caution</span>
+      <p>DRY is about <em>knowledge</em>, not text. Two pieces of code that look identical but represent different business rules should stay separate — merging them couples concepts that will diverge. Premature DRY creates the worst coupling: invisible coupling between unrelated features.</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="quality">
+    <span class="sec-num">§ 04</span>
+    <h2 class="sec">Quality attributes — the "-ilities"</h2>
+    <p>Functional requirements say <em>what</em> the system does. <strong>Quality attributes</strong> (non-functional requirements) say <em>how well</em> — and these are what architecture exists to deliver. You cannot maximize all of them; you choose which matter for <em>this</em> system.</p>
+    <table class="q">
+      <thead><tr><th>Attribute</th><th>The question it answers</th></tr></thead>
+      <tbody>
+        <tr><td>Scalability</td><td>Can it handle 10× the load by adding resources?</td></tr>
+        <tr><td>Availability</td><td>What fraction of the time is it actually working?</td></tr>
+        <tr><td>Reliability</td><td>Does it produce correct results, and recover from faults?</td></tr>
+        <tr><td>Performance</td><td>How fast does it respond, and at what throughput?</td></tr>
+        <tr><td>Security</td><td>Can it protect data and resist misuse?</td></tr>
+        <tr><td>Maintainability</td><td>How cheaply can we change and extend it?</td></tr>
+        <tr><td>Testability</td><td>Can we verify behavior in isolation?</td></tr>
+        <tr><td>Observability</td><td>Can we tell what it's doing in production?</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Make quality attributes <em>measurable</em> before you design for them. "Fast" is useless; "95th-percentile response under 200&nbsp;ms at 1,000 requests/sec" is a target you can architect toward and test against. These concrete statements are called <em>quality attribute scenarios</em>.</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="styles">
+    <span class="sec-num">§ 05</span>
+    <h2 class="sec">Common architectural styles</h2>
+    <p>Styles are reusable solution shapes. You'll often combine several. None is "best" — each trades complexity for some quality attribute.</p>
+    <div class="cards">
+      <div class="card">
+        <h4>Layered (n-tier)</h4>
+        <p class="meta">Presentation · Logic · Data</p>
+        <p>Organize code into horizontal layers, each only calling the one below it.</p>
+        <p class="use"><b>Use when:</b> most business apps; the safe, well-understood default.</p>
+      </div>
+      <div class="card">
+        <h4>Monolith</h4>
+        <p class="meta">Single deployable</p>
+        <p>One codebase, one deployment. Simple to build, test, and reason about early on.</p>
+        <p class="use"><b>Use when:</b> starting out, small teams. <b>Start here.</b></p>
+      </div>
+      <div class="card">
+        <h4>Microservices</h4>
+        <p class="meta">Independent services</p>
+        <p>Small services, each owning its data, deployed independently, talking over the network.</p>
+        <p class="use"><b>Use when:</b> large orgs needing independent scaling &amp; release. <b>Costly early.</b></p>
+      </div>
+      <div class="card">
+        <h4>Event-driven</h4>
+        <p class="meta">Producers · Brokers · Consumers</p>
+        <p>Components react to events asynchronously instead of calling each other directly.</p>
+        <p class="use"><b>Use when:</b> high decoupling, real-time flows, spiky load.</p>
+      </div>
+      <div class="card">
+        <h4>Client–Server</h4>
+        <p class="meta">Request · Response</p>
+        <p>Clients request, a server provides. The backbone of the web.</p>
+        <p class="use"><b>Use when:</b> almost any networked application.</p>
+      </div>
+      <div class="card">
+        <h4>Hexagonal / Ports &amp; Adapters</h4>
+        <p class="meta">Core · Adapters</p>
+        <p>Pure domain core surrounded by adapters for the DB, UI, and external systems.</p>
+        <p class="use"><b>Use when:</b> you want the core insulated and testable.</p>
+      </div>
+    </div>
+    <div class="diagram"><span class="c1">CLIENT</span>  ──HTTP──▶  <span class="c2">API GATEWAY</span>  ──┬──▶  <span class="c3">Service A</span> ──▶ DB A
+                                  ├──▶  <span class="c3">Service B</span> ──▶ DB B
+                                  └──▶  <span class="c3">Service C</span> ──▶ DB C
+                                          │
+                                          ▼
+                                    <span class="c2">EVENT BUS</span>  (async, decoupled)
+    </div>
+    <div class="note warn">
+      <span class="tag">The microservices trap</span>
+      <p>Microservices solve <em>organizational</em> scaling problems by trading code complexity for <em>operational</em> complexity (networking, distributed transactions, monitoring, deployment). Most systems should begin as a well-structured <strong>modular monolith</strong> and extract services only when a real, measured pressure demands it. "We might need to scale" is not that pressure.</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="concerns">
+    <span class="sec-num">§ 06</span>
+    <h2 class="sec">Cross-cutting concerns</h2>
+    <p>These touch every part of the system and must be designed once, centrally — not bolted on per-feature.</p>
+    <ul class="clean">
+      <li><strong>Data management.</strong> Where does state live? Which database type fits the access pattern (relational vs. document vs. key-value vs. time-series)? Who owns each piece of data?</li>
+      <li><strong>Communication.</strong> Synchronous (REST/gRPC) vs. asynchronous (queues/events). Sync is simpler to reason about; async is more resilient and decoupled.</li>
+      <li><strong>Security.</strong> Authentication (who are you), authorization (what may you do), encryption in transit and at rest, secrets management. Design it in; it cannot be sprinkled on later.</li>
+      <li><strong>Error handling &amp; resilience.</strong> Timeouts, retries with backoff, circuit breakers, graceful degradation. Assume every remote call will fail eventually.</li>
+      <li><strong>Observability.</strong> Logging, metrics, distributed tracing. If you can't see it in production, you can't operate it.</li>
+      <li><strong>Caching.</strong> The classic speed-vs-freshness trade. Powerful and dangerous — invalidation is famously one of the hard problems.</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="tradeoffs">
+    <span class="sec-num">§ 07</span>
+    <h2 class="sec">Trade-offs &amp; reality</h2>
+    <p class="lead">There are no right answers in architecture — only trade-offs. The mature mindset is not "what's the best pattern?" but "what are we optimizing for, and what are we willing to give up?"</p>
+    <h3>The CAP theorem</h3>
+    <p>In a distributed system, when a network partition happens you must choose between <em class="term">Consistency</em> (every read sees the latest write) and <em class="term">Availability</em> (every request gets a response). You cannot have both during a partition — and partitions <em>will</em> happen. Banking leans consistent; a social feed leans available.</p>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Every architecture decision should name what it costs. Microservices buy independent deployment at the price of operational complexity. Caching buys speed at the price of staleness. Strong consistency buys correctness at the price of latency. Write the cost down next to the benefit — that record is worth more than the decision itself.</p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section id="document">
+    <span class="sec-num">§ 08</span>
+    <h2 class="sec">Documenting the design</h2>
+    <p>An architecture that lives only in one person's head is a liability. Two lightweight, high-leverage tools:</p>
+    <h3>The C4 model</h3>
+    <p>Diagram the system at four zoom levels, like a map: <strong>Context</strong> (system + users + external systems) → <strong>Containers</strong> (apps, services, databases) → <strong>Components</strong> (inside a container) → <strong>Code</strong> (rarely needed). Most conversations only need the first two levels.</p>
+    <h3>Architecture Decision Records (ADRs)</h3>
+    <p>A short markdown file per significant decision, capturing the <strong>context</strong>, the <strong>decision</strong>, and the <strong>consequences</strong>. Cheap to write, invaluable in eighteen months when someone asks "why on earth did we do it this way?"</p>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Diagrams document <em>structure</em>; ADRs document <em>reasoning</em>. You need both. The reasoning is what's actually scarce — anyone can redraw a box, but no one can recover the trade-off discussion that produced it.</p>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section id="process">
+    <span class="sec-num">§ 09</span>
+    <h2 class="sec">A practical process</h2>
+    <p>Architecture is iterative, not a one-time upfront phase. A workable loop:</p>
+    <ol class="steps">
+      <li><b>Understand the drivers.</b> Gather functional requirements, the key quality-attribute scenarios, and the real constraints (budget, team skills, deadlines, existing systems).</li>
+      <li><b>Identify the hard parts.</b> Find the decisions that are expensive to reverse and the highest technical risks. Spend your design energy here.</li>
+      <li><b>Sketch candidate structures.</b> Decompose into components; pick styles; define how they communicate. Produce two or three options, not one.</li>
+      <li><b>Evaluate against the scenarios.</b> Walk each candidate through your quality-attribute scenarios. Where does it strain? Make the trade-offs explicit.</li>
+      <li><b>Decide and record.</b> Choose, and write an ADR. The record matters as much as the choice.</li>
+      <li><b>Validate early.</b> Build a thin vertical slice or a spike to test the riskiest assumption before committing the whole team.</li>
+      <li><b>Evolve.</b> Revisit as you learn. Good architecture is designed to absorb change, not to predict it perfectly.</li>
+    </ol>
+  </section>
+
+  <!-- 10 -->
+  <section id="mistakes">
+    <span class="sec-num">§ 10</span>
+    <h2 class="sec">Common mistakes</h2>
+    <ul class="clean">
+      <li><strong>Over-engineering for imagined scale.</strong> Building for a million users you don't have, while the design collapses under the hundred you do.</li>
+      <li><strong>Big-design-up-front.</strong> Trying to specify everything before writing code, when the riskiest assumptions are only testable by building.</li>
+      <li><strong>Ignoring quality attributes</strong> until they fail in production — then discovering they needed structural support all along.</li>
+      <li><strong>Distributed monolith.</strong> Splitting into services that are so tightly coupled they must be deployed together — all the cost of microservices, none of the benefit.</li>
+      <li><strong>No documented reasoning.</strong> Decisions made, never recorded, then re-litigated forever.</li>
+      <li><strong>Resume-driven design.</strong> Choosing technology because it's exciting, not because the problem calls for it.</li>
+    </ul>
+    <div class="note">
+      <span class="tag">The throughline</span>
+      <p>Nearly every mistake above is a failure of <em>matching the architecture to the actual problem</em> — either too much structure for the problem at hand, or too little attention to the qualities that problem genuinely demands. Architecture is the discipline of fitting the solution to the real constraints, then writing down why.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- 11 -->
+  <section id="agents">
+    <span class="sec-num">§ 11</span>
+    <h2 class="sec">Architecting with coding agents</h2>
+    <p class="lead">When an AI agent writes much of the code, architecture becomes <strong>more</strong> important, not less. The bottleneck moves from typing code to <em class="term">specifying intent and verifying output</em> — and both of those are architectural acts.</p>
+    <p>A coding agent (Claude Code, Cursor, Copilot, and the like) is a fast, tireless, literal junior engineer with no long-term memory and an unjustified confidence. It will produce plausible code at speed. Your job shifts from author to <strong>architect, reviewer, and verifier</strong>. The principles in the earlier sections don't change — cohesion, coupling, clear boundaries, documented decisions — but they now do double duty: they're also what makes the agent <em>effective</em>, because a well-bounded codebase is one the agent can navigate without loading everything at once.</p>
+
+    <h3>The mental shift</h3>
+    <ul class="clean">
+      <li><strong>The repo is the agent's memory.</strong> An agent remembers nothing between sessions. Whatever isn't written down — conventions, decisions, structure — doesn't exist to it. Your READMEs, ADRs, and a project conventions file (e.g. <code>CLAUDE.md</code> / <code>AGENTS.md</code> / rules files) <em>are</em> the agent's brain.</li>
+      <li><strong>Specification is the new scarce skill.</strong> The hard part is no longer writing the loop; it's stating precisely what you want, including the constraints a human would infer. Vague prompts get confidently wrong code.</li>
+      <li><strong>Modularity pays double.</strong> Small, well-isolated modules fit in a context window and can be changed without side effects. Agents amplify whatever structure they're given — clean or tangled.</li>
+    </ul>
+
+    <h3>A procedure for agent-assisted architecture</h3>
+    <ol class="steps">
+      <li><b>You own the architecture; the agent owns the typing.</b> Make the structural and irreversible decisions yourself — the styles, the boundaries, the data ownership, the trade-offs. Delegate implementation <em>within</em> those boundaries, not the boundaries themselves.</li>
+      <li><b>Write the ground truth first.</b> Before generating code, put the architecture, conventions, tech stack, and constraints into files the agent reads on every task. This is the single highest-leverage thing you can do for output quality.</li>
+      <li><b>Plan before code.</b> Ask the agent to produce a plan or design — files it will touch, interfaces, approach — and review <em>that</em> before any implementation. Catching a wrong approach in a plan costs a sentence; catching it in a 600-line diff costs an afternoon.</li>
+      <li><b>Fix the contracts, then fill them.</b> Define types, function signatures, API schemas, and tests first. Let the agent implement against a frozen interface. Stable contracts keep its freedom productive instead of chaotic.</li>
+      <li><b>Decompose into agent-sized tasks.</b> Small, bounded, independently verifiable units — exactly the high-cohesion / low-coupling decomposition you'd want anyway. One clear task beats one sprawling instruction.</li>
+      <li><b>Build the verification harness.</b> Tests, type checks, linters, and CI are not optional here — they are how you contain "confidently wrong" output. The test suite is the spec the agent is effectively optimizing against, so make it real.</li>
+      <li><b>Keep diffs small and review every one.</b> Atomic, reviewable changes. Speed of generation is worthless if the change is too large to scrutinize. Trust nothing you haven't read or tested.</li>
+      <li><b>Lock decisions in ADRs.</b> Use the agent to explore options and generate spikes — then record the chosen decision and its reasoning so the next session (human or agent) doesn't relitigate it.</li>
+    </ol>
+
+    <div class="diagram"><span class="c3">HUMAN</span>  decides architecture, contracts, trade-offs
+   │
+   ▼  (spec + conventions files = ground truth)
+<span class="c1">AGENT</span>  plans ──▶ you review plan ──▶ implements within bounds
+   │
+   ▼
+<span class="c2">HARNESS</span>  tests · types · lint · CI   ◀── the real guardrail
+   │
+   ▼
+<span class="c3">HUMAN</span>  reviews small diff ──▶ merge ──▶ record ADR
+    </div>
+
+    <h3>Practical notes</h3>
+    <div class="note">
+      <span class="tag">Context is a budget</span>
+      <p>Agents degrade as their context fills with noise. Point them at the specific files that matter rather than the whole repo, keep tasks narrow, and start a fresh session when a thread gets long and muddled. A focused agent on three files beats a confused one on three hundred.</p>
+    </div>
+    <div class="note warn">
+      <span class="tag">Confidently wrong</span>
+      <p>Generated code compiles and reads well and can still violate your intent, silently mishandle an edge case, or quietly break an invariant elsewhere. Treat every output as a pull request from a stranger: verify against tests and the actual requirement, never against how convincing it looks.</p>
+    </div>
+    <div class="note warn">
+      <span class="tag">Security &amp; dependencies</span>
+      <p>Review anything an agent pulls in. Watch for invented or unvetted packages, secrets pasted into code, missing input validation, and over-broad permissions. The agent optimizes for "make it work," not "make it safe" — that judgment stays with you. (Relevant when moving between tools and enterprise environments with their own export-control and compliance constraints.)</p>
+    </div>
+    <div class="note">
+      <span class="tag">Consistency drift</span>
+      <p>Left alone, agents introduce subtly different patterns for the same problem across the codebase. Enforce style through formatters, linters, and a conventions file so consistency is mechanical rather than a thing you police by hand in review.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Where agents shine vs. where they don't</span>
+      <p><strong>Strong:</strong> well-specified implementation, boilerplate, test generation, refactors within clear boundaries, exploring several options quickly, explaining unfamiliar code. <strong>Weak / keep human-led:</strong> cross-cutting architectural changes, novel trade-off decisions, anything where being subtly wrong is expensive and hard to detect.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- refs -->
+  <section id="refs">
+    <span class="sec-num">§ 12</span>
+    <h2 class="sec">References &amp; further reading</h2>
+    <ul class="clean refs">
+      <li>Bass, Clements &amp; Kazman — <em>Software Architecture in Practice</em> (4th ed., 2021). The canonical academic text; origin of quality-attribute scenarios.</li>
+      <li>Richards &amp; Ford — <em>Fundamentals of Software Architecture</em> (O'Reilly, 2020). The best modern, practical starting point.</li>
+      <li>Robert C. Martin — <em>Clean Architecture</em> (2017). SOLID, dependency inversion, and boundaries.</li>
+      <li>Martin Kleppmann — <em>Designing Data-Intensive Applications</em> (2017). Essential on data, consistency, and distributed trade-offs.</li>
+      <li>Sam Newman — <em>Building Microservices</em> (2nd ed., 2021). Honest about both the upsides and the costs.</li>
+      <li>Simon Brown — the C4 model: <a class="link" href="https://c4model.com">c4model.com</a>.</li>
+      <li>Architecture Decision Records — <a class="link" href="https://adr.github.io">adr.github.io</a>.</li>
+      <li>Martin Fowler's architecture guide — <a class="link" href="https://martinfowler.com/architecture/">martinfowler.com/architecture</a>.</li>
+      <li>Anthropic — Claude Code best practices &amp; engineering blog: <a class="link" href="https://www.anthropic.com/engineering">anthropic.com/engineering</a>.</li>
+      <li>Andrej Karpathy — on coding agents and the changing role of the engineer (talks &amp; essays); a useful frame for "specification as the bottleneck."</li>
+      <li>Birgitta Böckeler / Thoughtworks — writing on GenAI-assisted software engineering practices: <a class="link" href="https://martinfowler.com/articles/exploring-gen-ai.html">martinfowler.com/articles/exploring-gen-ai</a>.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p class="sig">Develop faster. Cost less. Ship smarter.</p>
+    <p>System Architecture Design — A Practical Primer · By Majid Mazouchi</p>
+  </footer>
+
+</div>
+</body>
+</html>

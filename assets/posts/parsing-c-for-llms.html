@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feeding C to a Reasoning Machine — Parsing C Source for LLMs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,420&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5edd9;
+    --paper-2:#efe4cb;
+    --paper-3:#ece0c2;
+    --ink:#221d16;
+    --ink-soft:#4b4334;
+    --ink-faint:#7a6f59;
+    --rust:#b1432a;
+    --rust-deep:#8c3220;
+    --teal:#176a6e;
+    --gold:#bb8722;
+    --green:#4a6b2f;
+    --line:rgba(34,29,22,0.14);
+    --line-strong:rgba(34,29,22,0.30);
+    --shadow:rgba(60,44,20,0.14);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(187,135,34,0.07), transparent 38%),
+      radial-gradient(circle at 88% 78%, rgba(23,106,110,0.06), transparent 42%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;
+    font-size:19px;
+    line-height:1.68;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* faint paper grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 26px 120px;}
+
+  /* ---------- Masthead ---------- */
+  header.masthead{padding:74px 0 30px;border-bottom:3px double var(--line-strong);margin-bottom:46px;}
+  .kicker{
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:0.32em;
+    text-transform:uppercase;color:var(--rust);font-weight:700;margin-bottom:22px;
+  }
+  h1{
+    font-family:"Fraunces",serif;font-weight:900;font-size:clamp(2.5rem,7vw,4.5rem);
+    line-height:0.98;letter-spacing:-0.018em;margin:0 0 18px;color:var(--ink);
+  }
+  h1 .em{font-style:italic;font-weight:500;color:var(--rust);}
+  .standfirst{font-size:1.24rem;color:var(--ink-soft);max-width:42ch;font-style:italic;
+    border-left:none;}
+  .byline{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:0.06em;
+    color:var(--ink-faint);margin-top:30px;padding-top:18px;border-top:1px solid var(--line);
+  }
+
+  /* ---------- Headings ---------- */
+  h2{
+    font-family:"Fraunces",serif;font-weight:900;font-size:clamp(1.7rem,4vw,2.4rem);
+    letter-spacing:-0.01em;margin:74px 0 6px;line-height:1.05;
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .num{
+    font-family:"JetBrains Mono",monospace;font-size:0.82rem;font-weight:700;color:var(--rust);
+    letter-spacing:0.05em;flex:0 0 auto;transform:translateY(-0.35em);
+  }
+  h2 + .dek{color:var(--ink-faint);font-style:italic;margin:0 0 26px;font-size:1.06rem;}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:1.32rem;margin:38px 0 8px;color:var(--rust-deep);letter-spacing:-0.005em;}
+  p{margin:0 0 18px;}
+  a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(23,106,110,0.4);}
+  a:hover{color:var(--rust);border-color:var(--rust);}
+  strong{font-weight:600;color:var(--ink);}
+  em.term{font-style:normal;font-weight:600;color:var(--rust-deep);}
+  .lead{font-size:1.16rem;color:var(--ink-soft);}
+
+  /* drop cap on first para */
+  .opening::first-letter{
+    font-family:"Fraunces",serif;font-weight:900;float:left;font-size:4.4rem;line-height:0.74;
+    padding:8px 12px 0 0;color:var(--rust);
+  }
+
+  code{font-family:"JetBrains Mono",monospace;font-size:0.82em;background:var(--paper-3);
+    padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--rust-deep);}
+
+  /* ---------- Code blocks ---------- */
+  pre{
+    font-family:"JetBrains Mono",monospace;font-size:13.5px;line-height:1.62;
+    background:#211d16;color:#ece0c2;padding:22px 22px;border-radius:10px;overflow-x:auto;
+    margin:22px 0;box-shadow:0 10px 26px var(--shadow);border:1px solid #3a3225;
+  }
+  pre .c{color:#9c8e6d;font-style:italic;}      /* comment */
+  pre .k{color:#e0894e;}                          /* keyword */
+  pre .s{color:#9ec27a;}                          /* string */
+  pre .f{color:#6fc0c4;}                          /* func */
+  pre .n{color:#d6a94a;}                          /* number/type */
+  pre .p{color:#cfc3a2;}                          /* plain */
+
+  /* ---------- Callouts ---------- */
+  .note{
+    background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--gold);
+    padding:18px 22px;border-radius:0 8px 8px 0;margin:26px 0;font-size:0.99rem;
+  }
+  .note .tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--gold);font-weight:700;display:block;margin-bottom:6px;}
+  .note.gotcha{border-left-color:var(--rust);}
+  .note.gotcha .tag{color:var(--rust);}
+  .note.tip{border-left-color:var(--teal);}
+  .note.tip .tag{color:var(--teal);}
+
+  /* ---------- Interactive: tab widget ---------- */
+  .panel{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:12px;
+    margin:30px 0;overflow:hidden;box-shadow:0 6px 20px var(--shadow);
+  }
+  .panel-head{
+    padding:12px 16px;border-bottom:1px solid var(--line);background:var(--paper-3);
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:0.2em;
+    text-transform:uppercase;color:var(--ink-faint);font-weight:700;
+  }
+  .tabs{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--line);background:var(--paper-3);}
+  .tab{
+    font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:500;
+    padding:11px 16px;cursor:pointer;border:none;background:transparent;color:var(--ink-faint);
+    border-bottom:3px solid transparent;transition:all .18s;letter-spacing:0.02em;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{color:var(--rust);border-bottom-color:var(--rust);background:var(--paper-2);}
+  .tab-body{padding:6px 20px 18px;display:none;}
+  .tab-body.active{display:block;animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .tab-body pre{margin-top:16px;}
+
+  /* ---------- C-to-tree demo ---------- */
+  .demo-toggle{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px;}
+  .pill{
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:500;cursor:pointer;
+    padding:8px 14px;border-radius:999px;border:1.5px solid var(--line-strong);
+    background:transparent;color:var(--ink-soft);transition:all .18s;
+  }
+  .pill:hover{border-color:var(--rust);color:var(--rust);}
+  .pill.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .stage{display:none;}
+  .stage.active{display:block;animation:fade .3s ease;}
+  .ar-stage{display:none;}
+  .ar-stage.active{display:block;animation:fade .3s ease;}
+  .diagram{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.8;
+    background:#211d16;color:#cfc3a2;border-radius:10px;padding:18px 20px;margin:18px 0;
+    box-shadow:0 10px 26px var(--shadow);overflow-x:auto;}
+  .diagram .hl{color:#6fc0c4;}
+  .diagram .wr{color:#e0894e;}
+  .diagram .dim{color:#9c8e6d;font-style:italic;}
+  .tree{font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.85;
+    background:#211d16;color:#ece0c2;border-radius:10px;padding:20px 22px;margin-top:14px;
+    box-shadow:0 10px 26px var(--shadow);overflow-x:auto;}
+  .tree .node{color:#6fc0c4;}
+  .tree .leaf{color:#d6a94a;}
+  .tree .lit{color:#9ec27a;}
+  .tree .dim{color:#9c8e6d;}
+
+  /* ---------- Pipeline stepper ---------- */
+  .stepper{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;}
+  .step-btn{
+    flex:1 1 110px;text-align:left;cursor:pointer;border:1px solid var(--line-strong);
+    background:var(--paper-2);border-radius:9px;padding:12px 13px;transition:all .18s;
+  }
+  .step-btn:hover{border-color:var(--rust);transform:translateY(-2px);}
+  .step-btn.active{background:var(--ink);border-color:var(--ink);}
+  .step-btn.active .s-no,.step-btn.active .s-name{color:var(--paper);}
+  .s-no{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;color:var(--rust);letter-spacing:0.1em;}
+  .s-name{font-family:"Fraunces",serif;font-weight:600;font-size:0.96rem;color:var(--ink);display:block;margin-top:3px;line-height:1.15;}
+  .step-detail{
+    margin-top:16px;background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    padding:20px 22px;min-height:120px;
+  }
+  .step-detail h4{font-family:"Fraunces",serif;font-size:1.18rem;margin:0 0 8px;color:var(--rust-deep);}
+  .step-detail p{margin:0 0 10px;font-size:0.98rem;}
+  .step-detail .tools{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);
+    letter-spacing:0.03em;border-top:1px dashed var(--line-strong);padding-top:10px;margin-top:6px;}
+
+  /* ---------- Chunking demo ---------- */
+  .chunk-wrap{display:grid;grid-template-columns:1fr;gap:0;margin-top:14px;}
+  .codeblock{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.7;
+    background:#211d16;border-radius:10px;padding:6px 0;overflow:hidden;box-shadow:0 10px 26px var(--shadow);}
+  .codeline{padding:1px 20px;color:#cfc3a2;white-space:pre;display:block;}
+  .codeline .c{color:#9c8e6d;font-style:italic;}
+  .codeline .k{color:#e0894e;}
+  .codeline .f{color:#6fc0c4;}
+  .codeline .s{color:#9ec27a;}
+  /* chunk coloring variants */
+  .ck0{box-shadow:inset 3px 0 0 #b1432a;background:rgba(177,67,42,0.10);}
+  .ck1{box-shadow:inset 3px 0 0 #176a6e;background:rgba(23,106,110,0.12);}
+  .ck2{box-shadow:inset 3px 0 0 #bb8722;background:rgba(187,135,34,0.12);}
+  .split{box-shadow:inset 3px 0 0 #b1432a;background:rgba(177,67,42,0.10);position:relative;}
+  .splitmark{box-shadow:inset 0 -2px 0 #b1432a, inset 3px 0 0 #b1432a;background:rgba(177,67,42,0.10);}
+
+  /* ---------- Comparison table ---------- */
+  .tablewrap{overflow-x:auto;margin:26px 0;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 20px var(--shadow);}
+  table{border-collapse:collapse;width:100%;background:var(--paper-2);font-size:0.92rem;min-width:640px;}
+  th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--paper);background:var(--ink);font-weight:700;}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{font-weight:600;color:var(--rust-deep);font-family:"Fraunces",serif;font-size:1rem;}
+  tbody tr:hover{background:var(--paper-3);}
+  .yes{color:var(--green);font-weight:700;}
+  .no{color:var(--rust);font-weight:700;}
+  .mid{color:var(--gold);font-weight:700;}
+
+  /* ---------- Checklist ---------- */
+  .checklist{list-style:none;padding:0;margin:24px 0;}
+  .checklist li{
+    background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--green);
+    border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:10px;cursor:pointer;
+    transition:all .18s;display:flex;gap:13px;align-items:flex-start;font-size:0.98rem;
+  }
+  .checklist li:hover{transform:translateX(4px);border-left-color:var(--rust);}
+  .checklist .box{flex:0 0 auto;width:20px;height:20px;border:2px solid var(--ink-faint);border-radius:5px;
+    margin-top:3px;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;transition:all .18s;}
+  .checklist li.done .box{background:var(--green);border-color:var(--green);color:var(--paper);}
+  .checklist li.done span.txt{color:var(--ink-faint);}
+
+  /* ---------- References ---------- */
+  .refs{font-size:0.9rem;color:var(--ink-soft);counter-reset:ref;}
+  .refs li{margin-bottom:13px;line-height:1.5;}
+  .refs li::marker{font-family:"JetBrains Mono",monospace;color:var(--rust);font-size:0.85rem;}
+
+  hr.rule{border:none;border-top:1px solid var(--line);margin:60px 0;}
+  .endmark{text-align:center;margin:70px 0 0;color:var(--rust);font-size:1.6rem;font-family:"Fraunces",serif;}
+
+  ul.clean{padding-left:1.3em;}
+  ul.clean li{margin-bottom:8px;}
+
+  @media(max-width:560px){
+    body{font-size:18px;}
+    .wrap{padding:0 18px 90px;}
+    .opening::first-letter{font-size:3.6rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="kicker">A Working Monograph · Code → Tokens → Trees → Reasoning</div>
+    <h1>Feeding C to a<br><span class="em">Reasoning Machine</span></h1>
+    <p class="standfirst">How to take a raw <code>.c</code> file and turn it into something a large language model can actually think about — explained plainly, with the alternatives laid side by side.</p>
+    <div class="byline">By Majid Mazouchi · Interactive — tap the demos</div>
+  </header>
+
+  <!-- ============ THE PROBLEM ============ -->
+  <h2><span class="num">01</span> The problem in one breath</h2>
+  <p class="dek">An LLM reads text. Source code is text. So why isn't this trivial?</p>
+
+  <p class="opening lead">Because a C file is not really a sequence of characters — it only <em class="term">looks</em> like one. Underneath the text lives structure: functions, types, scopes, who-calls-whom, which header pulls in which definition. If you paste the raw file into a model, you hand it the words but throw away the grammar. For one small file that's fine; the model will infer the rest. For anything real, three problems bite at once.</p>
+
+  <ul class="clean">
+    <li><strong>The context window is finite.</strong> A model can only "see" so many tokens. A serious codebase is far larger than that window, so you cannot show it everything.</li>
+    <li><strong>Raw text loses relationships.</strong> The fact that <code>foc_update()</code> calls <code>clarke_transform()</code> in another file is invisible if you only paste one file.</li>
+    <li><strong>The C preprocessor lies about what the code says.</strong> <code>#define</code>, <code>#include</code>, and <code>#ifdef</code> mean the text on disk is not the text the compiler sees.</li>
+  </ul>
+
+  <p>So "parsing C for an LLM" really means a small pipeline: <strong>understand the structure, slice along its natural seams, keep the relationships, and feed the model only the relevant pieces — within budget.</strong> The middle of this page builds that pipeline one layer at a time and lists every common method so you can pick. The <em>final</em> sections then turn to <strong>AUTOSAR</strong> — where embedded C stops being plain C and quietly breaks half the assumptions this pipeline rests on.</p>
+
+  <!-- ============ THE LADDER ============ -->
+  <h2><span class="num">02</span> A ladder of representations</h2>
+  <p class="dek">From "just the text" up to "a queryable graph." Each rung adds meaning — and cost.</p>
+
+  <p>Think of it as a ladder. The higher you climb, the more the machine <em>understands</em> rather than merely <em>reads</em> — but every rung costs more tooling and time. Most real systems stop somewhere in the middle and combine a couple of rungs.</p>
+
+  <div class="panel">
+    <div class="panel-head">The representation ladder — tap a rung</div>
+    <div class="stepper" id="ladder">
+      <div class="step-btn active" data-d="0"><span class="s-no">RUNG 0</span><span class="s-name">Raw text</span></div>
+      <div class="step-btn" data-d="1"><span class="s-no">RUNG 1</span><span class="s-name">Tokens</span></div>
+      <div class="step-btn" data-d="2"><span class="s-no">RUNG 2</span><span class="s-name">Syntax tree</span></div>
+      <div class="step-btn" data-d="3"><span class="s-no">RUNG 3</span><span class="s-name">Semantic model</span></div>
+      <div class="step-btn" data-d="4"><span class="s-no">RUNG 4</span><span class="s-name">Code graph</span></div>
+    </div>
+    <div class="step-detail" id="ladder-detail"></div>
+  </div>
+
+  <!-- ============ LEXING ============ -->
+  <h2><span class="num">03</span> Step one: chopping into tokens</h2>
+  <p class="dek">Lexing — the simplest structural step, and the foundation of everything above it.</p>
+
+  <p>Before any tree exists, a <em class="term">lexer</em> (or tokenizer) sweeps the characters and groups them into meaningful atoms: keywords, identifiers, numbers, string literals, operators, punctuation. Whitespace and comments are usually tagged or dropped. It answers "what are the words?" but not "how do they fit together?"</p>
+
+  <p>You rarely build a lexer by hand for LLM work — the parser below does it for you — but it's worth seeing, because tokens are also what the model's own tokenizer (and your token-budget math) operate on.</p>
+
+  <pre><span class="c">// input</span>
+<span class="k">int</span> sum(<span class="k">int</span> a, <span class="k">int</span> b) { <span class="k">return</span> a + b; }
+
+<span class="c">// tokens (kind : text)</span>
+<span class="p">keyword:int  ident:sum  punct:(  keyword:int  ident:a  punct:,</span>
+<span class="p">keyword:int  ident:b  punct:)  punct:{  keyword:return</span>
+<span class="p">ident:a  op:+  ident:b  punct:;  punct:}</span></pre>
+
+  <!-- ============ PARSING TO A TREE ============ -->
+  <h2><span class="num">04</span> Step two: building the tree</h2>
+  <p class="dek">This is the heart of it. A parser turns the flat token stream into a tree that mirrors the code's grammar.</p>
+
+  <p>A <em class="term">syntax tree</em> captures nesting: a function <em>contains</em> a body, which <em>contains</em> statements, which <em>contain</em> expressions. Two flavors exist. A <strong>Concrete Syntax Tree (CST)</strong> keeps every detail including punctuation and exact positions — great for tooling that must map back to the source. An <strong>Abstract Syntax Tree (AST)</strong> drops the noise and keeps the meaning — cleaner to reason over. People often say "AST" loosely for both.</p>
+
+  <p>Watch the same snippet move up the ladder:</p>
+
+  <div class="panel">
+    <div class="panel-head">From text to tree — tap a view</div>
+    <div style="padding:16px 20px 4px;">
+      <div class="demo-toggle" id="treeToggle">
+        <button class="pill active" data-s="0">Source</button>
+        <button class="pill" data-s="1">Tokens</button>
+        <button class="pill" data-s="2">Syntax tree (CST)</button>
+        <button class="pill" data-s="3">Semantic tree (typed)</button>
+      </div>
+
+      <div class="stage active" data-stage="0">
+        <pre><span class="k">float</span> clamp(<span class="k">float</span> x, <span class="k">float</span> lo, <span class="k">float</span> hi) {
+  <span class="k">if</span> (x &lt; lo) <span class="k">return</span> lo;
+  <span class="k">return</span> x &gt; hi ? hi : x;
+}</pre>
+      </div>
+
+      <div class="stage" data-stage="1">
+        <pre><span class="p">kw:float  id:clamp  (  kw:float id:x , kw:float id:lo , kw:float id:hi )</span>
+<span class="p">{  kw:if  (  id:x  &lt;  id:lo  )  kw:return id:lo ;</span>
+<span class="p">kw:return id:x &gt; id:hi ? id:hi : id:x ;  }</span></pre>
+      </div>
+
+      <div class="stage" data-stage="2">
+        <div class="tree"><span class="node">function_definition</span>
+├─ type: <span class="leaf">float</span>
+├─ declarator: <span class="node">function_declarator</span>
+│   ├─ name: <span class="leaf">clamp</span>
+│   └─ parameters: <span class="leaf">x:float, lo:float, hi:float</span>
+└─ body: <span class="node">compound_statement</span>
+    ├─ <span class="node">if_statement</span>
+    │   ├─ condition: <span class="node">binary_expr</span> (<span class="leaf">x</span> <span class="dim">&lt;</span> <span class="leaf">lo</span>)
+    │   └─ then: <span class="node">return</span> → <span class="leaf">lo</span>
+    └─ <span class="node">return_statement</span>
+        └─ <span class="node">conditional_expr</span> (<span class="leaf">x&gt;hi</span> <span class="dim">?</span> <span class="leaf">hi</span> <span class="dim">:</span> <span class="leaf">x</span>)</div>
+      </div>
+
+      <div class="stage" data-stage="3">
+        <div class="tree"><span class="dim">// a semantic parser also resolves types & symbols</span>
+<span class="node">FunctionDecl</span> <span class="leaf">clamp</span> <span class="dim">'float (float, float, float)'</span>
+├─ ParmVarDecl <span class="leaf">x</span>  <span class="dim">'float'</span>
+├─ ParmVarDecl <span class="leaf">lo</span> <span class="dim">'float'</span>
+├─ ParmVarDecl <span class="leaf">hi</span> <span class="dim">'float'</span>
+└─ CompoundStmt
+    ├─ IfStmt
+    │   └─ BinaryOperator <span class="lit">'&lt;'</span> <span class="dim">'_Bool'</span>
+    │       ├─ DeclRefExpr <span class="leaf">x</span>  <span class="dim">→ ParmVarDecl x</span>
+    │       └─ DeclRefExpr <span class="leaf">lo</span> <span class="dim">→ ParmVarDecl lo</span>
+    └─ ReturnStmt → ConditionalOperator <span class="dim">'float'</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p>Notice the jump from view three to four: the syntax tree only knows <em>shapes</em>, while the semantic tree has resolved that the <code>x</code> in the comparison <em>is the same variable</em> as the parameter <code>x</code>, and that the whole expression has type <code>float</code>. That resolution is exactly what separates the two main tools.</p>
+
+  <h3>The three tools you'll actually reach for</h3>
+
+  <div class="panel">
+    <div class="tabs" id="toolTabs">
+      <button class="tab active" data-t="ts">Tree-sitter</button>
+      <button class="tab" data-t="cl">libclang / Clang</button>
+      <button class="tab" data-t="pc">pycparser</button>
+    </div>
+
+    <div class="tab-body active" data-body="ts">
+      <p style="margin-top:14px;"><strong>Tree-sitter</strong> is the workhorse of modern code tooling. It's a fast, incremental parser that builds a CST, tolerates broken or half-written code, and has a ready-made C grammar. It does <em>not</em> run the preprocessor or resolve types — it parses the text as written, which is usually what you want for chunking and search.</p>
+      <pre><span class="c"># pip install tree-sitter tree-sitter-c</span>
+<span class="k">from</span> tree_sitter <span class="k">import</span> Language, Parser
+<span class="k">import</span> tree_sitter_c <span class="k">as</span> tsc
+
+C = Language(tsc.language())
+parser = Parser(C)
+
+src = <span class="s">b"float clamp(float x){ return x; }"</span>
+tree = parser.parse(src)
+<span class="f">print</span>(tree.root_node)        <span class="c"># walk .children, .type, .text</span>
+<span class="c"># query with S-expressions to grab every function:</span>
+q = C.query(<span class="s">"(function_definition) @fn"</span>)</pre>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);"><strong>Reach for it when:</strong> you want fast, language-agnostic, error-tolerant structure for chunking, symbol extraction, or repo maps. It's what Aider, many IDEs, and most code-RAG pipelines use under the hood.</p>
+    </div>
+
+    <div class="tab-body" data-body="cl">
+      <p style="margin-top:14px;"><strong>libclang</strong> exposes the real Clang C/C++ compiler frontend through Python (<code>clang.cindex</code>). Because it <em>is</em> a compiler, it runs the preprocessor, resolves <code>#include</code>s, expands macros, and assigns types. That's the semantic tree from view four. The price: it needs the right include paths and compile flags to work, ideally from a <code>compile_commands.json</code>.</p>
+      <pre><span class="c"># needs libclang installed; pip install libclang</span>
+<span class="k">from</span> clang <span class="k">import</span> cindex
+idx = cindex.Index.create()
+tu = idx.parse(<span class="s">"motor.c"</span>, args=[<span class="s">"-I./inc"</span>, <span class="s">"-std=c11"</span>])
+
+<span class="k">def</span> <span class="f">walk</span>(node):
+    <span class="k">if</span> node.kind == cindex.CursorKind.FUNCTION_DECL:
+        <span class="f">print</span>(node.spelling, node.result_type.spelling)
+    <span class="k">for</span> ch <span class="k">in</span> node.get_children(): <span class="f">walk</span>(ch)
+<span class="f">walk</span>(tu.cursor)</pre>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);"><strong>Reach for it when:</strong> you need ground truth — exact types, resolved macros, real call targets, cross-file symbols. Heavier to set up, unbeatable on accuracy.</p>
+    </div>
+
+    <div class="tab-body" data-body="pc">
+      <p style="margin-top:14px;"><strong>pycparser</strong> is a pure-Python C99 parser — no compiler dependency, easy to embed, gives you a clean AST you can walk with a visitor. The catch: it cannot handle the preprocessor itself, so you must feed it <em>already-preprocessed</em> code (run <code>gcc -E</code> first, or use its fake-headers trick).</p>
+      <pre><span class="c"># pip install pycparser ; preprocess first!</span>
+<span class="c"># gcc -E -I./inc motor.c &gt; motor.i</span>
+<span class="k">from</span> pycparser <span class="k">import</span> parse_file, c_ast
+
+ast = parse_file(<span class="s">"motor.i"</span>, use_cpp=<span class="k">False</span>)
+
+<span class="k">class</span> <span class="f">FuncVisitor</span>(c_ast.NodeVisitor):
+    <span class="k">def</span> <span class="f">visit_FuncDef</span>(self, node):
+        <span class="f">print</span>(node.decl.name)
+FuncVisitor().<span class="f">visit</span>(ast)</pre>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);"><strong>Reach for it when:</strong> you want a lightweight, dependency-free AST for clean preprocessed C and full control of the walk — common in research and small tools.</p>
+    </div>
+  </div>
+
+  <!-- ============ PREPROCESSOR GOTCHA ============ -->
+  <h2><span class="num">05</span> The C-only landmine: the preprocessor</h2>
+  <p class="dek">This is the trap that surprises people coming from Python or JavaScript tooling.</p>
+
+  <p>In C, what's on disk is not what compiles. The preprocessor runs <em>first</em> — splicing in headers, expanding macros, and deleting whole branches behind <code>#ifdef</code>. So a function call like <code>MAX(a, b)</code> might be a macro that vanishes, and a type might only exist after a header is pasted in.</p>
+
+  <div class="note gotcha">
+    <span class="tag">Gotcha</span>
+    Tree-sitter and pycparser parse the <em>unexpanded</em> text, so macros and conditional code can confuse them. libclang expands everything correctly — but only if you give it the same include paths and flags the build uses.
+  </div>
+
+  <p>The practical resolution depends on your goal:</p>
+  <ul class="clean">
+    <li><strong>For chunking and search</strong>, parse the raw text with Tree-sitter. You <em>want</em> the macro names preserved, because the model and the developer both recognize them.</li>
+    <li><strong>For exact analysis</strong> (call graphs, types, "what does this actually compile to"), use libclang with a real <code>compile_commands.json</code>. Tools like <a href="https://github.com/rizsotto/Bear">Bear</a> or CMake's <code>CMAKE_EXPORT_COMPILE_COMMANDS</code> generate that file so the parser sees the project exactly as the compiler does.</li>
+  </ul>
+
+  <!-- ============ SEMANTIC ENRICHMENT ============ -->
+  <h2><span class="num">06</span> Step three: capturing relationships</h2>
+  <p class="dek">A tree describes one file. Reasoning over a system needs the wiring between files.</p>
+
+  <p>Once you have trees, you extract the connective tissue: which functions exist, where they're defined, and who references whom. These artifacts are what let a model answer "if I change this, what breaks?"</p>
+
+  <ul class="clean">
+    <li><strong>Symbol table</strong> — every name (function, struct, typedef, global) mapped to where it's defined and its type.</li>
+    <li><strong>Call graph</strong> — a directed graph of "function A calls function B." Build it from the AST, or generate it with <a href="https://www.gnu.org/software/cflow/">cflow</a> or <a href="https://www.doxygen.nl/">Doxygen</a> (with Graphviz).</li>
+    <li><strong>Cross-references</strong> — fast "where is this used / defined" indexes from <a href="https://ctags.io/">universal-ctags</a>, <a href="https://cscope.sourceforge.net/">cscope</a>, or <a href="https://www.gnu.org/software/global/">GNU Global</a>.</li>
+    <li><strong>Control- and data-flow graphs</strong> — finer-grained "what runs after what / what value flows where," for deeper static reasoning.</li>
+    <li><strong>Language Server (LSP)</strong> — <a href="https://clangd.llvm.org/">clangd</a> serves go-to-definition, find-references, and hover types programmatically. A clean way to feed structured facts to an agent on demand.</li>
+  </ul>
+
+  <div class="note tip">
+    <span class="tag">Why this matters for LLMs</span>
+    A model reasons far better when, alongside the function you're asking about, you also hand it the signatures of its callers and callees. The call graph is how you decide <em>which</em> extra pieces to include without dumping the whole repo.
+  </div>
+
+  <!-- ============ CHUNKING ============ -->
+  <h2><span class="num">07</span> Step four: slicing for the context window</h2>
+  <p class="dek">The single most important practical decision: where do you cut?</p>
+
+  <p>You can't show the model everything, so you split the code into <em class="term">chunks</em> that fit the window. The naive way — cut every N lines — is a quiet disaster: it slices functions in half, so neither chunk is a valid, self-contained unit. The fix is <strong>structure-aware chunking</strong>: cut along the tree's natural seams, so each chunk is a whole function, struct, or declaration. Tap to compare:</p>
+
+  <div class="panel">
+    <div class="panel-head">Same file, two ways to cut it</div>
+    <div style="padding:16px 20px 18px;">
+      <div class="demo-toggle" id="chunkToggle">
+        <button class="pill" data-c="naive">✂ Naive (fixed lines)</button>
+        <button class="pill active" data-c="ast">✓ AST-aware (by function)</button>
+      </div>
+      <div class="codeblock" id="chunkCode"></div>
+      <p style="margin:14px 0 0;font-size:0.94rem;color:var(--ink-soft);" id="chunkNote"></p>
+    </div>
+  </div>
+
+  <p>You don't have to build this yourself. Two popular libraries do structure-aware splitting for C out of the box:</p>
+
+  <pre><span class="c"># LangChain — code-aware separators per language</span>
+<span class="k">from</span> langchain_text_splitters <span class="k">import</span> (
+    RecursiveCharacterTextSplitter, Language)
+splitter = RecursiveCharacterTextSplitter.from_language(
+    language=Language.C, chunk_size=1200, chunk_overlap=150)
+
+<span class="c"># LlamaIndex — true tree-sitter chunking</span>
+<span class="k">from</span> llama_index.core.node_parser <span class="k">import</span> CodeSplitter
+splitter = CodeSplitter(language=<span class="s">"c"</span>, chunk_lines=40,
+                        chunk_lines_overlap=10, max_chars=1500)</pre>
+
+  <div class="note">
+    <span class="tag">Always attach metadata</span>
+    Whatever cuts you make, tag each chunk with its <strong>file path, line range, function name, and signature</strong>. That metadata is what lets the model (and you) trace an answer back to the exact place in the source — and it's what retrieval ranks on.
+  </div>
+
+  <!-- ============ RETRIEVAL ============ -->
+  <h2><span class="num">08</span> Step five: showing only what matters</h2>
+  <p class="dek">For anything bigger than the window, you need to retrieve the relevant chunks per question.</p>
+
+  <p>Now you have a pile of clean, tagged chunks. For a real repo there are thousands. The job at query time is to surface the handful that actually bear on the question. Three families of methods, often combined:</p>
+
+  <h3>Semantic retrieval (RAG)</h3>
+  <p>Convert each chunk into a vector with a code-aware embedding model, store the vectors, and at query time fetch the chunks whose vectors sit nearest the question. This is classic <em class="term">retrieval-augmented generation</em>. It's great at "find code that does X" even when the wording differs. Research like the <a href="https://arxiv.org/abs/2506.15655">cAST</a> work shows that embedding AST-aligned chunks beats embedding arbitrary line slices.</p>
+
+  <h3>Structural retrieval (graphs)</h3>
+  <p>Walk the call/include graph instead of (or alongside) vectors: given the target function, pull its direct callers and callees. Encoding the codebase as a graph and traversing it — sometimes called <em class="term">GraphRAG</em> — captures relationships that pure text similarity misses.</p>
+
+  <h3>The repo-map trick — a worked example</h3>
+  <p>The cleanest real-world synthesis is <a href="https://aider.chat/docs/repomap.html">Aider's repository map</a>. <span> It parses every file with Tree-sitter to extract definitions and references, builds a graph where files and symbols are nodes, then ranks them with a <strong>PageRank-style algorithm</strong> — the same idea Google used for web pages.</span> A symbol called by many important functions scores high. It then emits just the top-ranked signatures, trimmed to fit the token budget. The model gets a compact map of the whole codebase's skeleton without ever seeing every line.</p>
+
+  <div class="note tip">
+    <span class="tag">The unifying idea</span>
+    Importance is relational. The best context-selection methods — PageRank repo maps, graph traversal, embedding similarity — all answer the same question: <em>given limited room, which pieces of this codebase most help reason about the thing being asked?</em>
+  </div>
+
+  <!-- ============ SERIALIZATION ============ -->
+  <h2><span class="num">09</span> How to actually hand it to the model</h2>
+  <p class="dek">A subtle point that trips people up: don't over-engineer the format.</p>
+
+  <p>It's tempting to dump the full AST as JSON and feed that to the model. Usually a mistake — AST dumps are enormously verbose and burn tokens, and modern models reason on source text quite well already. The structure you worked so hard to extract is best used to <em>decide what to include and how to label it</em>, not to replace the source.</p>
+
+  <p>A reliable format for each retrieved piece:</p>
+  <pre><span class="c">// file: src/foc.c  ·  lines 88–121  ·  fn: foc_update</span>
+<span class="c">// calls: clarke_transform, park_transform, pi_step</span>
+<span class="k">void</span> foc_update(MotorState *m, <span class="k">float</span> i_a, <span class="k">float</span> i_b) {
+    <span class="c">// ... the real, unmodified source ...</span>
+}</pre>
+  <p>That is: <strong>the original source, preceded by a short metadata header and a one-line summary of its dependencies.</strong> Keep comments and the real identifier names — they carry most of the semantic signal the model uses. Only fall back to richer encodings (typed signatures, flow facts) when a task genuinely needs them.</p>
+
+  <!-- ============ THE PIPELINE ============ -->
+  <h2><span class="num">10</span> The whole pipeline, end to end</h2>
+  <p class="dek">Tap each stage. This is the recipe most production code-RAG systems follow.</p>
+
+  <div class="panel">
+    <div class="panel-head">A reference pipeline — tap a stage</div>
+    <div class="stepper" id="pipe">
+      <div class="step-btn active" data-p="0"><span class="s-no">STAGE 1</span><span class="s-name">Collect</span></div>
+      <div class="step-btn" data-p="1"><span class="s-no">STAGE 2</span><span class="s-name">Decide on macros</span></div>
+      <div class="step-btn" data-p="2"><span class="s-no">STAGE 3</span><span class="s-name">Parse</span></div>
+      <div class="step-btn" data-p="3"><span class="s-no">STAGE 4</span><span class="s-name">Extract</span></div>
+      <div class="step-btn" data-p="4"><span class="s-no">STAGE 5</span><span class="s-name">Link</span></div>
+      <div class="step-btn" data-p="5"><span class="s-no">STAGE 6</span><span class="s-name">Chunk + tag</span></div>
+      <div class="step-btn" data-p="6"><span class="s-no">STAGE 7</span><span class="s-name">Index</span></div>
+      <div class="step-btn" data-p="7"><span class="s-no">STAGE 8</span><span class="s-name">Assemble</span></div>
+    </div>
+    <div class="step-detail" id="pipe-detail"></div>
+  </div>
+
+  <!-- ============ COMPARISON ============ -->
+  <h2><span class="num">11</span> Every method, side by side</h2>
+  <p class="dek">The "other available methods" in one matrix, so you can pick by constraint.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Method</th><th>What it gives</th><th>Resolves macros/types</th><th>Effort</th><th>Best for</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Raw paste</td><td>The text</td><td><span class="no">No</span></td><td><span class="yes">Trivial</span></td><td>One small file</td></tr>
+        <tr><td>Regex / heuristics</td><td>Rough function splits</td><td><span class="no">No</span></td><td><span class="yes">Low</span></td><td>Quick hacks; fragile</td></tr>
+        <tr><td>Tree-sitter</td><td>CST, error-tolerant</td><td><span class="no">No</span></td><td><span class="mid">Low–med</span></td><td>Chunking, search, repo maps</td></tr>
+        <tr><td>libclang / Clang</td><td>Typed semantic AST</td><td><span class="yes">Yes</span></td><td><span class="no">High</span></td><td>Exact analysis, call graphs</td></tr>
+        <tr><td>pycparser</td><td>Clean C99 AST</td><td><span class="mid">Pre-process first</span></td><td><span class="mid">Medium</span></td><td>Lightweight tooling/research</td></tr>
+        <tr><td>ctags / cscope / Global</td><td>Symbol & xref index</td><td><span class="mid">Partial</span></td><td><span class="yes">Low</span></td><td>Fast "where defined/used"</td></tr>
+        <tr><td>clangd (LSP)</td><td>On-demand semantic facts</td><td><span class="yes">Yes</span></td><td><span class="mid">Medium</span></td><td>Agents querying live</td></tr>
+        <tr><td>Doxygen / cflow</td><td>Call graphs, docs</td><td><span class="mid">Partial</span></td><td><span class="mid">Medium</span></td><td>Visual structure, summaries</td></tr>
+        <tr><td>Embedding RAG</td><td>Semantic chunk search</td><td><span class="no">N/A</span></td><td><span class="mid">Medium</span></td><td>Large repos, fuzzy queries</td></tr>
+        <tr><td>GraphRAG / repo map</td><td>Ranked structural context</td><td><span class="mid">Depends</span></td><td><span class="no">High</span></td><td>Whole-codebase reasoning</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ PRACTICAL NOTES ============ -->
+  <h2><span class="num">12</span> Practical notes — the things that bite</h2>
+  <p class="dek">Hard-won gotchas. Tap to check them off as you build.</p>
+
+  <ul class="checklist" id="checks">
+    <li><span class="box">✓</span><span class="txt"><strong>Handle the preprocessor deliberately.</strong> Decide up front: keep macros (Tree-sitter) or expand them (libclang + compile flags). Don't drift between the two by accident.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Keep line numbers and file paths in every chunk.</strong> Without them, the model can't cite locations and you can't verify its claims.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Preserve comments and real identifier names.</strong> They're the richest semantic signal the model has — stripping them hurts more than it saves.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Don't dump full ASTs into the prompt.</strong> They're token-hungry and rarely beat well-chosen source. Use structure to <em>select</em>, not to <em>replace</em>.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Chunk on function/struct boundaries, never fixed lines.</strong> A half-function chunk is worse than useless for retrieval.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Add a little overlap between chunks.</strong> A few shared lines keep context continuous across cuts.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>For multi-file reasoning, the call/include graph beats perfect per-file ASTs.</strong> Relationships matter more than completeness.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Pin your tool and grammar versions.</strong> Tree-sitter grammars and library APIs change; pin them so your pipeline is reproducible.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Tree-sitter's error tolerance is a feature.</strong> It parses incomplete or broken code where a real compiler would bail — ideal for editor and agent loops.</span></li>
+    <li><span class="box">✓</span><span class="txt"><strong>Budget tokens explicitly.</strong> Rank candidate chunks, then fill the window highest-importance-first until it's full.</span></li>
+  </ul>
+
+  <hr class="rule">
+
+  <!-- ============ AUTOSAR — DIFFERENCES ============ -->
+  <h2><span class="num">13</span> When the C is just an artifact: AUTOSAR</h2>
+  <p class="dek">AUTOSAR Classic turns C into generated glue around a configuration. The meaning moves out of the file.</p>
+
+  <p>Everything above quietly assumes one thing: that <strong>the file is the unit of meaning</strong>. Read the function, parse the tree, follow the calls, and you understand the code. AUTOSAR Classic breaks that assumption. Here the C is mostly <em>generated</em> from a configuration (ARXML) by tools like DaVinci, EB tresos, or model generators such as TargetLink. The source of truth is the configuration; the C is one of its projections. Hand-written logic survives only inside the runnables of software components — everything around it is machinery.</p>
+
+  <p>The cleanest way to feel the difference is to see the <em>same</em> logic in both worlds:</p>
+
+  <div class="panel">
+    <div class="panel-head">The same function, two worlds — tap to switch</div>
+    <div style="padding:16px 20px 18px;">
+      <div class="demo-toggle" id="worldToggle">
+        <button class="pill active" data-w="g">General C</button>
+        <button class="pill" data-w="a">AUTOSAR Classic C</button>
+      </div>
+
+      <div class="ar-stage active" data-arstage="g">
+        <pre><span class="c">// plain C — self-contained, says what it means</span>
+<span class="k">float</span> <span class="f">pi_step</span>(PI *c, <span class="k">float</span> err) {
+    c->i += err * c->ki;
+    <span class="k">return</span> c->kp * err + c->i;   <span class="c">// caller links directly</span>
+}</pre>
+      </div>
+
+      <div class="ar-stage" data-arstage="a">
+        <pre><span class="c">// AUTOSAR Classic — the same math, as generated glue</span>
+<span class="k">#define</span> PiCtrl_START_SEC_CODE
+<span class="k">#include</span> <span class="s">"PiCtrl_MemMap.h"</span>        <span class="c">// re-included, no include guard</span>
+
+FUNC(<span class="k">void</span>, PiCtrl_CODE) <span class="f">PiCtrl_Step</span>(<span class="k">void</span>) {     <span class="c">// a runnable</span>
+    VAR(float32, AUTOMATIC) err, out;
+    (<span class="k">void</span>)<span class="f">Rte_Read_PiCtrl_Err_val</span>(&err);        <span class="c">// input via RTE</span>
+    out = c_kp*err + /* ... integral ... */;
+    (<span class="k">void</span>)<span class="f">Rte_Write_PiCtrl_Out_val</span>(out);        <span class="c">// output via RTE</span>
+}
+
+<span class="k">#define</span> PiCtrl_STOP_SEC_CODE
+<span class="k">#include</span> <span class="s">"PiCtrl_MemMap.h"</span></pre>
+      </div>
+
+      <p style="margin:14px 0 0;font-size:0.94rem;color:var(--ink-soft);">Four things changed and none are cosmetic: the signature is wrapped in <code>FUNC</code>/<code>VAR</code> macros from the compiler-abstraction layer; the parameters and return value are gone because data flows through the <strong>RTE</strong>, not the call; the body is bracketed by <code>MemMap</code> includes that place it in a linker section; and — most important — <em>who supplies <code>Err</code> and who consumes <code>Out</code> is nowhere in this file.</em> It lives in the ARXML connectors.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="tag">The core inversion</span>
+    In general C, behavior is in the code and configuration is incidental. In AUTOSAR Classic, behavior is in the configuration and the C is its output. Parse the C alone and you have the verbs without the sentence.
+  </div>
+
+  <h3>The RTE makes call graphs lie</h3>
+  <p>Components never call each other directly. They read and write through generated <code>Rte_*</code> stubs, and the wiring — which writer feeds which reader, which runnable is triggered by which event — is defined by ARXML connectors and the RTE event mapping. A call graph built from the C shows the stub, not the partner:</p>
+
+  <div class="diagram"><span class="hl">SWC: SensorCal</span>                              <span class="hl">SWC: PiCtrl</span>
+   <span class="wr">Rte_Write_…_val</span>  ──┐                  ┌──►  <span class="wr">Rte_Read_…_val</span>
+                     │                  │
+                     └───  <span class="dim">[ ARXML connector ]</span>  ───┘
+   <span class="dim">↑ this edge is the real data path — and it exists</span>
+   <span class="dim">  only in configuration, never as a C call.</span></div>
+
+  <div class="note gotcha">
+    <span class="tag">Gotcha · MemMap</span>
+    Those <code>#include "Xxx_MemMap.h"</code> lines re-include the <em>same</em> header repeatedly with no include guard, toggled by section macros, to place symbols in linker sections. A naive chunker mishandles the repetition, and a semantic parser errors unless the section macros are defined and the MemMap headers are present — an idiom you essentially never meet in general C.
+  </div>
+
+  <h3>A more constrained, more regular language</h3>
+  <p>AUTOSAR C is a disciplined subset: MISRA-C compliance, no dynamic memory in the classic platform, restricted pointers, strict <code>&lt;Module&gt;_&lt;Function&gt;</code> naming, platform types (<code>uint8</code>, <code>sint16</code>, <code>float32</code>, <code>boolean</code>) instead of native ones, and large regions gated on configuration, e.g. <code>#if (PiCtrl_DEV_ERROR_DETECT == STD_ON)</code>. The regularity can <em>help</em> a model pattern-match — but the idioms differ sharply from the open-source C it mostly trained on.</p>
+
+  <div class="note tip">
+    <span class="tag">Classic vs Adaptive</span>
+    Everything here is <strong>Classic</strong> AUTOSAR (C, statically configured, for ECUs). <strong>Adaptive</strong> AUTOSAR is a different beast: C++14/17 on POSIX, service-oriented over SOME/IP and <code>ara::com</code>, dynamically deployed — closer to general C++ tooling, with its own challenges.
+  </div>
+
+  <!-- ============ AUTOSAR — BOTTLENECKS ============ -->
+  <h2><span class="num">14</span> Why AUTOSAR resists reasoning</h2>
+  <p class="dek">Each peculiarity above maps to a concrete bottleneck for an LLM. Tap to explore the seven.</p>
+
+  <div class="panel">
+    <div class="panel-head">The seven bottlenecks — tap one</div>
+    <div class="stepper" id="bottleneck">
+      <div class="step-btn active"><span class="s-no">B1</span><span class="s-name">Meaning in ARXML</span></div>
+      <div class="step-btn"><span class="s-no">B2</span><span class="s-name">Graphs that lie</span></div>
+      <div class="step-btn"><span class="s-no">B3</span><span class="s-name">Boilerplate bloat</span></div>
+      <div class="step-btn"><span class="s-no">B4</span><span class="s-name">Preprocess dilemma</span></div>
+      <div class="step-btn"><span class="s-no">B5</span><span class="s-name">Many artifacts</span></div>
+      <div class="step-btn"><span class="s-no">B6</span><span class="s-name">Thin priors</span></div>
+      <div class="step-btn"><span class="s-no">B7</span><span class="s-name">Variant-dependent</span></div>
+    </div>
+    <div class="step-detail" id="bottleneck-detail"></div>
+  </div>
+
+  <h3>What actually helps</h3>
+  <p>The fixes all follow from one move: <strong>stop treating the C as the whole input.</strong></p>
+  <ul class="clean">
+    <li><strong>Make ARXML a first-class source.</strong> Parse it, resolve its UUID references to names at index time, and build the SWC → port → signal → reader/writer/event graph. Then <em>fuse</em> that graph with the C call graph so structural retrieval follows the real communication paths — not just the <code>Rte_*</code> stubs.</li>
+    <li><strong>Preprocess selectively.</strong> Use libclang with the generated config headers to recover the true signatures behind the macros — but keep the <code>Rte_Write_*</code> / <code>Rte_Read_*</code> names as <em>metadata</em> rather than expanding them away, since those names carry the meaning.</li>
+    <li><strong>Skeletonize generated code.</strong> Don't embed <code>Rte.c</code> or MCAL internals; reduce them to signatures, or replace them entirely with the config-derived contract (port → signal → who reads / who writes). Spend the budget on hand-written runnable logic instead.</li>
+    <li><strong>Carry provenance on every chunk.</strong> In an ISO 26262 workflow a confident-but-wrong claim is a hazard, so each piece of context — and each answer — must be traceable back to the artifact it came from.</li>
+  </ul>
+
+  <div class="note tip">
+    <span class="tag">The mental shift</span>
+    For general C the file is the unit of meaning. For AUTOSAR the <em>configuration</em> is the unit of meaning, and the C is one of its projections. Build the pipeline around the config — fuse ARXML with the code — and the C falls into place.
+  </div>
+
+  <hr class="rule">
+
+  <!-- ============ REFERENCES ============ -->
+  <h2><span class="num">15</span> References &amp; further reading</h2>
+  <p class="dek">Primary docs first, then the research and worked examples cited above.</p>
+
+  <ol class="refs">
+    <li><strong>Tree-sitter</strong> — official docs &amp; the "Using Parsers" guide. <a href="https://tree-sitter.github.io/tree-sitter/">tree-sitter.github.io</a>; Python bindings: <a href="https://github.com/tree-sitter/py-tree-sitter">github.com/tree-sitter/py-tree-sitter</a> (current API: <code>Language(tsc.language())</code>, <code>Parser(LANG)</code>).</li>
+    <li><strong>Clang / libclang</strong> — the LibClang C interface and Python <code>clang.cindex</code> bindings. <a href="https://clang.llvm.org/docs/Tooling.html">clang.llvm.org/docs/Tooling.html</a>.</li>
+    <li><strong>pycparser</strong> — pure-Python C99 parser by Eli Bendersky. <a href="https://github.com/eliben/pycparser">github.com/eliben/pycparser</a> (see the notes on preprocessing and fake headers).</li>
+    <li><strong>Bear</strong> — generates <code>compile_commands.json</code> so semantic parsers see your real build. <a href="https://github.com/rizsotto/Bear">github.com/rizsotto/Bear</a>.</li>
+    <li><strong>clangd</strong> — Language Server providing semantic queries over C/C++. <a href="https://clangd.llvm.org/">clangd.llvm.org</a>.</li>
+    <li><strong>universal-ctags</strong>, <strong>cscope</strong>, <strong>GNU Global</strong> — symbol and cross-reference indexers. <a href="https://ctags.io/">ctags.io</a> · <a href="https://www.gnu.org/software/global/">gnu.org/software/global</a>.</li>
+    <li><strong>Doxygen</strong> &amp; <strong>cflow</strong> — documentation and call-graph extraction. <a href="https://www.doxygen.nl/">doxygen.nl</a> · <a href="https://www.gnu.org/software/cflow/">gnu.org/software/cflow</a>.</li>
+    <li><strong>LangChain text splitters</strong> — <code>RecursiveCharacterTextSplitter.from_language(Language.C)</code>. <a href="https://docs.langchain.com/oss/python/integrations/splitters">docs.langchain.com</a>.</li>
+    <li><strong>LlamaIndex CodeSplitter</strong> — Tree-sitter-backed code chunking. <a href="https://developers.llamaindex.ai/python/framework/module_guides/loading/node_parsers/modules/">developers.llamaindex.ai</a>.</li>
+    <li><strong>Aider repository map</strong> — Tree-sitter + PageRank-ranked, token-budgeted context. <a href="https://aider.chat/docs/repomap.html">aider.chat/docs/repomap.html</a>.</li>
+    <li><strong>cAST: Structural Chunking via Abstract Syntax Tree</strong> (2025) — evidence that AST-aware chunks improve code retrieval &amp; RAG. <a href="https://arxiv.org/abs/2506.15655">arXiv:2506.15655</a>.</li>
+    <li><strong>AUTOSAR Classic Platform specifications</strong> — the Software Specifications (SWS) for the RTE, Compiler Abstraction, Platform Types, and Memory Mapping define the <code>Rte_*</code> APIs, <code>FUNC</code>/<code>P2VAR</code> macros, platform types, and the MemMap idiom discussed above. <a href="https://www.autosar.org/standards/classic-platform">autosar.org/standards/classic-platform</a>.</li>
+    <li><strong>MISRA C</strong> — the coding-standard subset AUTOSAR C is written against. <a href="https://misra.org.uk/">misra.org.uk</a>.</li>
+    <li><strong>ISO 26262</strong> — road-vehicle functional safety; the ASIL context that makes provenance and traceability non-optional for any reasoning over this code. <a href="https://www.iso.org/standard/68383.html">iso.org · ISO 26262</a>.</li>
+  </ol>
+
+  <p style="font-size:0.85rem;color:var(--ink-faint);margin-top:30px;font-style:italic;">Library APIs and grammar versions move quickly — treat the code snippets as current-as-of-2026 patterns and check each project's docs before pinning versions.</p>
+
+  <div class="endmark">❧</div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Ladder ---------- */
+  var ladderData = [
+    {h:"Rung 0 · Raw text",p:"Hand the model the file as-is. Zero tooling. Works for a single short file where the model can infer structure — but loses every cross-file relationship and overruns the context window fast."},
+    {h:"Rung 1 · Tokens",p:"Chop characters into meaningful atoms (keywords, identifiers, literals, operators). The foundation of everything above, and what your token-budget math is measured in. On its own it adds little for reasoning."},
+    {h:"Rung 2 · Syntax tree",p:"Parse tokens into a tree that mirrors the grammar: functions contain bodies contain statements. This is where you gain real structure — and the natural seams you'll cut along when chunking. Tree-sitter lives here."},
+    {h:"Rung 3 · Semantic model",p:"Resolve names and types: this 'x' is that parameter; this call targets that definition; macros and includes are expanded. Ground truth, but it needs a real compiler frontend (libclang) with build flags."},
+    {h:"Rung 4 · Code graph",p:"Lift per-file trees into a whole-system graph: nodes are symbols/files, edges are calls/includes/type-uses. Rank it (e.g. PageRank) to pick the most relevant context for any question within a token budget."}
+  ];
+  function wireStepper(btnSel, detailId, data){
+    var btns = document.querySelectorAll(btnSel),
+        detail = document.getElementById(detailId);
+    function render(i){
+      detail.innerHTML = "<h4>"+data[i].h+"</h4><p>"+data[i].p+"</p>"+
+        (data[i].tools?"<div class='tools'>Tools: "+data[i].tools+"</div>":"");
+    }
+    btns.forEach(function(b,i){
+      b.addEventListener("click",function(){
+        btns.forEach(function(x){x.classList.remove("active");});
+        b.classList.add("active"); render(i);
+      });
+    });
+    render(0);
+  }
+  wireStepper("#ladder .step-btn","ladder-detail",ladderData);
+
+  /* ---------- Pipeline ---------- */
+  var pipeData = [
+    {h:"1 · Collect",p:"Gather the source files in scope. Respect .gitignore; skip generated and vendored code unless it's relevant.",tools:"git, file walkers"},
+    {h:"2 · Decide on macros",p:"Choose your contract with the preprocessor: keep macros as written (for chunking/search) or expand them via the compiler (for exact analysis). This choice shapes everything downstream.",tools:"gcc -E, Bear, compile_commands.json"},
+    {h:"3 · Parse",p:"Turn each file into a tree. Tree-sitter for fast, error-tolerant structure; libclang when you need resolved types and macros.",tools:"tree-sitter, libclang, pycparser"},
+    {h:"4 · Extract",p:"Pull entities from the trees: functions, structs, typedefs, globals, macros, includes — each with its file, line range, and signature.",tools:"tree-sitter queries, cindex walk"},
+    {h:"5 · Link",p:"Build relationships across files: the call graph, include graph, and type-usage graph. This is what enables multi-file reasoning.",tools:"call-graph build, ctags, clangd"},
+    {h:"6 · Chunk + tag",p:"Slice along entity boundaries (never fixed lines), with light overlap, and attach metadata: path, lines, name, dependencies.",tools:"CodeSplitter, from_language(C)"},
+    {h:"7 · Index",p:"Embed chunks into a vector store for semantic search, and/or persist the graph for structural traversal. Often both.",tools:"vector DB, code embeddings, graph store"},
+    {h:"8 · Assemble",p:"At query time, retrieve the most relevant chunks, rank by importance, and fill the context window highest-first — source plus metadata headers.",tools:"RAG, PageRank repo map, token budgeter"}
+  ];
+  wireStepper("#pipe .step-btn","pipe-detail",pipeData);
+
+  /* ---------- Tree-to-text toggle ---------- */
+  var treePills = document.querySelectorAll("#treeToggle .pill"),
+      stages = document.querySelectorAll(".stage");
+  treePills.forEach(function(p){
+    p.addEventListener("click",function(){
+      treePills.forEach(function(x){x.classList.remove("active");});
+      p.classList.add("active");
+      var s = p.getAttribute("data-s");
+      stages.forEach(function(st){
+        st.classList.toggle("active", st.getAttribute("data-stage")===s);
+      });
+    });
+  });
+
+  /* ---------- Tool tabs ---------- */
+  var tabs = document.querySelectorAll("#toolTabs .tab"),
+      bodies = document.querySelectorAll("[data-body]");
+  tabs.forEach(function(t){
+    t.addEventListener("click",function(){
+      tabs.forEach(function(x){x.classList.remove("active");});
+      t.classList.add("active");
+      var key = t.getAttribute("data-t");
+      bodies.forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-body")===key);
+      });
+    });
+  });
+
+  /* ---------- Chunking demo ---------- */
+  // shared source lines
+  var lines = [
+    {t:'<span class="c">// pi controller</span>',k:0},
+    {t:'<span class="k">float</span> <span class="f">pi_step</span>(PI *c, <span class="k">float</span> err) {',k:0},
+    {t:'  c->i += err * c->ki;',k:0},
+    {t:'  <span class="k">return</span> c->kp*err + c->i;',k:0},
+    {t:'}',k:0},
+    {t:'<span class="c">// clarke transform</span>',k:1},
+    {t:'<span class="k">void</span> <span class="f">clarke</span>(<span class="k">float</span> a, <span class="k">float</span> b, AB *o){',k:1},
+    {t:'  o->al = a;',k:1},
+    {t:'  o->be = (a + 2*b)*0.5773f;',k:1},
+    {t:'}',k:1},
+    {t:'<span class="c">// saturate</span>',k:2},
+    {t:'<span class="k">float</span> <span class="f">sat</span>(<span class="k">float</span> x, <span class="k">float</span> lim){',k:2},
+    {t:'  <span class="k">return</span> x&gt;lim?lim:(x&lt;-lim?-lim:x);',k:2},
+    {t:'}',k:2}
+  ];
+  var chunkCode = document.getElementById("chunkCode"),
+      chunkNote = document.getElementById("chunkNote"),
+      chunkPills = document.querySelectorAll("#chunkToggle .pill");
+
+  function renderChunks(mode){
+    var html = "";
+    lines.forEach(function(ln, idx){
+      var cls = "codeline ";
+      if(mode==="ast"){
+        cls += "ck"+ln.k;
+      } else {
+        // naive: split every 5 lines regardless of structure
+        var grp = Math.floor(idx/5);
+        cls += "ck"+(grp%3);
+        // mark the lines where a cut lands mid-function
+        if(idx===5 || idx===10){ cls += " splitmark"; }
+      }
+      html += '<span class="'+cls+'">'+ln.t+'</span>';
+    });
+    chunkCode.innerHTML = html;
+    chunkNote.innerHTML = (mode==="ast")
+      ? "Each color is one chunk — and each chunk is a <strong>complete function</strong>. Retrieval returns whole, valid units the model can reason about directly."
+      : "Cutting every 5 lines (the colors) <strong>slices through clarke() and sat()</strong> at the red underlines. Now no chunk is a self-contained function — retrieval returns fragments.";
+  }
+  chunkPills.forEach(function(p){
+    p.addEventListener("click",function(){
+      chunkPills.forEach(function(x){x.classList.remove("active");});
+      p.classList.add("active");
+      renderChunks(p.getAttribute("data-c"));
+    });
+  });
+  renderChunks("ast");
+
+  /* ---------- AUTOSAR: general vs AUTOSAR world toggle ---------- */
+  var worldPills = document.querySelectorAll("#worldToggle .pill"),
+      arStages = document.querySelectorAll(".ar-stage");
+  worldPills.forEach(function(p){
+    p.addEventListener("click",function(){
+      worldPills.forEach(function(x){x.classList.remove("active");});
+      p.classList.add("active");
+      var w = p.getAttribute("data-w");
+      arStages.forEach(function(st){
+        st.classList.toggle("active", st.getAttribute("data-arstage")===w);
+      });
+    });
+  });
+
+  /* ---------- AUTOSAR: bottleneck explorer ---------- */
+  var bottleneckData = [
+    {h:"B1 · The meaning lives in ARXML",p:"The C gives you the runnable's body; the contract — ports, connectors, runnable-to-event mapping — lives in ARXML: verbose, deeply nested XML full of UUID references. Reasoning needs the C and the ARXML fused, and raw ARXML is token-catastrophic until those UUIDs are resolved to names. → Fix: parse ARXML as a first-class source and resolve references at index time."},
+    {h:"B2 · Naive call graphs lie",p:"A tree-sitter or clang call graph shows Rte_Read_X(), never 'reads what SensorCal writes.' The real communication graph is in the connectors, so the structural-retrieval methods from earlier are incomplete until you build the RTE/connector graph from config and fuse it with the code graph."},
+    {h:"B3 · Generated boilerplate burns the budget",p:"Rte.c, generated COM, and MCAL run to tens of thousands of low-information-density lines. Embed them as-is and you spend the context window on mechanical glue. → Fix: reduce generated code to signatures or replace it with the config-derived contract."},
+    {h:"B4 · The preprocessing dilemma",p:"Readable signatures need libclang with the full set of generated config headers, -D defines, and include paths — hard to assemble for one SWC out of context. But expand the macros and you recover types while losing the meaningful Rte_* names and bloating the code. MemMap's guard-less re-includes trip parsers either way."},
+    {h:"B5 · Context spans files and artifact types",p:"Reasoning about one runnable pulls in the SWC .c, the RTE and interface headers, the _Cfg/_PBcfg files, and the ARXML. Retrieval has to be multi-file and multi-artifact, resolving references across two entirely different formats — code and XML."},
+    {h:"B6 · Thin training priors, high cost of error",p:"AUTOSAR code is overwhelmingly proprietary, so models have far weaker priors than for general C. They pattern-match the systematic naming on the surface while misunderstanding RTE/BSW semantics — and in an ISO 26262 / ASIL workflow a confidently wrong claim is a hazard, not a nuisance. Grounding and provenance become mandatory."},
+    {h:"B7 · Configuration-variant dependence",p:"The same C behaves differently across pre-compile, link-time, and post-build configuration variants. Without knowing which variant is active — itself encoded in the _Cfg/_PBcfg artifacts — the model cannot soundly reason about runtime behavior."}
+  ];
+  wireStepper("#bottleneck .step-btn","bottleneck-detail",bottleneckData);
+
+  /* ---------- Checklist ---------- */
+  document.querySelectorAll("#checks li").forEach(function(li){
+    li.addEventListener("click",function(){ li.classList.toggle("done"); });
+  });
+
+})();
+</script>
+</body>
+</html>

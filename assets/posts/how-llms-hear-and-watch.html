@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How LLMs Hear &amp; Watch — Sound and Video as Tokens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecdb;--paper-2:#efe5cf;--card:#fbf6ea;--ink:#221c16;--ink-soft:#5a4f41;
+    --rule:#d8cab0;--vermilion:#c1440e;--teal:#1d6a6a;--ochre:#bb8412;--indigo:#33456e;
+    --plum:#7a3b62;--shadow:rgba(60,45,25,.16);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.66;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 16% 10%, rgba(29,106,106,.05), transparent 42%),
+      radial-gradient(circle at 86% 80%, rgba(122,59,98,.05), transparent 46%);}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;}
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 26px 120px}
+  ::selection{background:var(--teal);color:#fff}
+
+  header.masthead{padding:64px 0 30px;border-bottom:3px double var(--ink)}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--teal);margin:0 0 18px}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(38px,7.6vw,72px);
+    line-height:.98;letter-spacing:-.018em;margin:0 0 18px}
+  h1 em{font-style:italic;font-weight:500;color:var(--plum)}
+  .dek{font-size:21px;color:var(--ink-soft);max-width:650px;margin:0 0 22px}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.06em;
+    color:var(--ink-soft);border-top:1px solid var(--rule);padding-top:14px}
+  .companion{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:8px}
+
+  h2{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(26px,4.4vw,38px);
+    line-height:1.05;letter-spacing:-.01em;margin:62px 0 6px;scroll-margin-top:20px}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--teal);letter-spacing:.2em;display:block;margin-bottom:2px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:23px;margin:34px 0 6px}
+  p{margin:14px 0}
+  a{color:var(--vermilion);text-underline-offset:3px;text-decoration-thickness:1px}
+  strong{font-weight:600}
+  .lead::first-letter{font-family:"Fraunces",serif;font-weight:900;float:left;font-size:74px;
+    line-height:.72;padding:8px 12px 0 0;color:var(--teal);}
+  .mono{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:var(--paper-2);
+    padding:1px 6px;border-radius:4px;border:1px solid var(--rule)}
+
+  nav.toc{margin:36px 0 0;padding:20px 24px;background:var(--card);border:1px solid var(--rule);
+    border-radius:10px;box-shadow:0 2px 0 var(--rule)}
+  nav.toc h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px}
+  nav.toc ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+  nav.toc a{display:block;font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--ink);
+    text-decoration:none;padding:5px 0;border-bottom:1px dotted var(--rule)}
+  nav.toc a:hover{color:var(--teal);padding-left:6px;transition:.18s}
+  nav.toc a span{color:var(--teal);margin-right:8px}
+
+  .note{background:var(--card);border-left:4px solid var(--teal);border-radius:0 8px 8px 0;
+    padding:16px 20px;margin:26px 0;font-size:17.5px}
+  .note.warn{border-left-color:var(--vermilion)} .note.key{border-left-color:var(--ochre)}
+  .note .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--teal);display:block;margin-bottom:4px}
+  .note.warn .lbl{color:var(--vermilion)} .note.key .lbl{color:var(--ochre)}
+
+  .demo{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:24px;
+    margin:30px 0;box-shadow:0 10px 30px -18px var(--shadow)}
+  .demo .demo-head{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;display:flex;align-items:center;gap:10px}
+  .demo .demo-head::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 0 3px rgba(29,106,106,.18)}
+
+  .controls{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:center;margin:6px 0 18px}
+  .ctl{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+  .ctl label{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.05em;
+    color:var(--ink-soft);display:flex;justify-content:space-between}
+  .ctl label b{color:var(--teal);font-weight:600}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;
+    background:var(--paper-2);outline:none;border:1px solid var(--rule)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:var(--teal);cursor:pointer;border:2px solid var(--card);box-shadow:0 1px 4px var(--shadow)}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--teal);
+    cursor:pointer;border:2px solid var(--card)}
+  input[type=number]{font-family:"IBM Plex Mono",monospace;font-size:15px;padding:8px 10px;
+    border:1px solid var(--rule);border-radius:7px;background:var(--paper);color:var(--ink);width:100%}
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--paper)}
+  .seg button{font-family:"IBM Plex Mono",monospace;font-size:12.5px;border:0;background:transparent;
+    color:var(--ink-soft);padding:9px 14px;cursor:pointer;letter-spacing:.03em}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+  .btn{font-family:"IBM Plex Mono",monospace;font-size:12.5px;cursor:pointer;background:var(--teal);
+    color:#fff;border:0;border-radius:8px;padding:10px 18px;letter-spacing:.04em}
+
+  /* waveform + spectrogram */
+  .wave-box{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px;margin-bottom:10px}
+  #wave{width:100%;height:90px;display:block}
+  .spec{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:8px;
+    overflow:hidden;margin-top:4px}
+  .spec div{width:100%;aspect-ratio:1/.8}
+  .axis{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;margin-top:6px}
+
+  .flowdiag{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0;
+    font-family:"IBM Plex Mono",monospace;font-size:12px}
+  .node{background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:8px 11px;text-align:center}
+  .node.hot{background:var(--ochre);color:#fff;border-color:var(--ochre)}
+  .node.audio{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .arrow{color:var(--vermilion);font-weight:700}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px;min-height:28px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:4px 8px;border-radius:5px;color:#fff}
+
+  .vec{font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--paper);border:1px solid var(--rule);
+    border-radius:8px;padding:12px 14px;margin-top:12px;word-break:break-word;line-height:1.9}
+  .vec .hl{color:var(--teal)} .vec .hl2{color:var(--plum)}
+
+  /* rvq stack */
+  .rvq{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .rvq-row{display:flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:11px}
+  .rvq-row .cb{flex:1;display:flex;gap:4px}
+  .rvq-row .cb span{flex:1;text-align:center;padding:6px 0;border-radius:4px;background:var(--indigo);color:#fff}
+
+  /* fps timeline */
+  .timeline{position:relative;height:62px;background:var(--paper);border:1px solid var(--rule);
+    border-radius:8px;margin:6px 0;overflow:hidden}
+  .tl-frame{position:absolute;top:8px;width:30px;height:30px;border-radius:4px;
+    background:linear-gradient(135deg,#bcdcef,#3f6b54);border:1px solid rgba(0,0,0,.2);transform:translateX(-50%)}
+  .tl-axis{position:absolute;bottom:4px;left:0;right:0;font-family:"IBM Plex Mono",monospace;
+    font-size:9.5px;color:var(--ink-soft);display:flex;justify-content:space-between;padding:0 6px}
+
+  /* tubelet */
+  .tube-wrap{display:flex;gap:14px;justify-content:center;align-items:center;margin:8px 0;flex-wrap:wrap}
+  .tube-slice{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;width:96px}
+  .tube-slice div{aspect-ratio:1;background:#9cc6e6;border-radius:2px;transition:.3s}
+  .tube-slice.tag{position:relative}
+  .tube-cap{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ink-soft);text-align:center;margin-top:4px}
+
+  /* stats */
+  .stat-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+  .stat{background:var(--paper);border:1px solid var(--rule);border-radius:9px;padding:10px 16px;text-align:center;min-width:96px}
+  .stat .v{font-family:"Fraunces",serif;font-weight:900;font-size:25px;color:var(--teal);line-height:1}
+  .stat .v.plum{color:var(--plum)} .stat .v.ochre{color:var(--ochre)}
+  .stat .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--ink-soft);text-transform:uppercase;margin-top:5px}
+
+  .calc-out{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+  .calc-card{flex:1;min-width:140px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:16px;text-align:center}
+  .calc-card .big{font-family:"Fraunces";font-weight:900;font-size:34px;color:var(--teal);line-height:1}
+  .calc-card.v2 .big{color:var(--plum)} .calc-card.v3 .big{color:var(--ochre)}
+  .calc-card .lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-top:6px}
+
+  table.cmp{width:100%;border-collapse:collapse;margin:20px 0;font-size:15px}
+  table.cmp th,table.cmp td{border:1px solid var(--rule);padding:10px 12px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--paper-2);font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  table.cmp td:first-child{font-weight:600}
+
+  .tradeoff{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .tradeoff div{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px}
+  .tradeoff .t{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .tradeoff .pro .t{color:var(--teal)} .tradeoff .con .t{color:var(--vermilion)}
+  .tradeoff ul{margin:0;padding-left:18px;font-size:15.5px}
+
+  .fail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+  .fail-card{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--vermilion);
+    border-radius:0 9px 9px 0;padding:13px 15px}
+  .fail-card .ic{font-size:20px;line-height:1}
+  .fail-card .ti{font-family:"Fraunces",serif;font-weight:600;font-size:17px;margin:6px 0 3px}
+  .fail-card p{margin:0;font-size:14.5px;color:var(--ink-soft);line-height:1.45}
+
+  .term{border-bottom:1.5px dotted var(--plum);cursor:help;position:relative}
+  .term:hover,.term:focus{color:var(--plum)}
+  .term .pop{position:absolute;left:50%;bottom:135%;transform:translateX(-50%) translateY(4px);width:230px;
+    background:var(--ink);color:var(--paper);font-family:"Newsreader",serif;font-size:13.5px;line-height:1.45;
+    padding:10px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:.18s;z-index:30;box-shadow:0 8px 24px var(--shadow)}
+  .term .pop::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--ink)}
+  .term:hover .pop,.term:focus .pop{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  ol.refs{font-family:"Newsreader";font-size:15.5px;color:var(--ink-soft);padding-left:22px}
+  ol.refs li{margin:9px 0}
+  footer{margin-top:70px;border-top:3px double var(--ink);padding-top:22px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+
+  @media(max-width:600px){
+    body{font-size:18px}
+    nav.toc ol{grid-template-columns:1fr}
+    .tradeoff,.fail-grid{grid-template-columns:1fr}
+    .wrap{padding:0 18px 90px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:18px;">← Back to Autonomy</a>
+    <p class="kicker">A Visual Field Guide · Multimodal Models</p>
+    <h1>How LLMs<br><em>Hear</em> &amp; <em>Watch</em></h1>
+    <p class="dek">Sound is a wiggling line. Video is a stack of pictures with a clock attached. Neither can enter a language model as-is — both get translated into the same currency as words: <strong>tokens</strong>. Here's how a waveform and a film reel become something a transformer can read.</p>
+    <p class="byline">By Majid Mazouchi · Interactive monograph</p>
+    <p class="companion">Companion to “How LLMs See an Image.” Same idea — pixels, samples, and frames all end up as tokens.</p>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents · <span class="term">dotted terms<span class="pop">are tappable — hover or tap for a plain-language definition</span></span> are tappable</h4>
+    <ol>
+      <li><a href="#one"><span>01</span>The one shared trick</a></li>
+      <li><a href="#wave"><span>02</span>Sound is a wave</a></li>
+      <li><a href="#spec"><span>03</span>The spectrogram move</a></li>
+      <li><a href="#audtok"><span>04</span>Two kinds of audio token</a></li>
+      <li><a href="#audin"><span>05</span>Plugging audio into the LLM</a></li>
+      <li><a href="#makesound"><span>06</span>Making sound back</a></li>
+      <li><a href="#video"><span>07</span>Video = frames + time + sound</a></li>
+      <li><a href="#frames"><span>08</span>Sampling frames</a></li>
+      <li><a href="#tube"><span>09</span>Tokens across space &amp; time</a></li>
+      <li><a href="#flood"><span>10</span>Taming the token flood</a></li>
+      <li><a href="#cost"><span>11</span>What it costs</a></li>
+      <li><a href="#fail"><span>12</span>Where it breaks</a></li>
+      <li><a href="#notes"><span>13</span>Practical notes</a></li>
+      <li><a href="#refs"><span>14</span>References</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <h2 id="one"><span class="sec-no">§ 01</span>The one shared trick</h2>
+  <p class="lead">A language model only really knows how to do one thing: take a sequence of <strong>tokens</strong> — points in a high-dimensional space — and predict what comes next. Text, images, sound, and video all reach it through the same back door. Each modality has its own little translator that chops the raw signal into pieces, turns each piece into a vector, and lines those vectors up next to the words.</p>
+
+  <p>For images, the pieces are square <em>patches</em>. For sound, they're slices of <strong>time</strong>. For video, they're slices of time <em>and</em> space at once. The shape of the chopping changes; the destination — a row of tokens in the context window — never does.</p>
+
+  <div class="vec">
+    <span class="hl2">[word] [word]</span>
+    <span class="hl">[audio] [audio] [audio] …</span>
+    <span style="color:var(--plum)">[frame▸patches] [frame▸patches] …</span>
+    <span class="hl2">[word] ?</span>
+  </div>
+
+  <div class="note key">
+    <span class="lbl">Mental model</span>
+    Every modality is a translator with the same target language: token vectors. Learn the chopping rule for each, and you understand the whole thing.
+  </div>
+
+  <!-- 02 -->
+  <h2 id="wave"><span class="sec-no">§ 02</span>Sound is a wave — and that's the problem</h2>
+  <p>A microphone records sound as <strong>amplitude over time</strong>: one number, many thousands of times a second. Speech is usually <span class="term">sampled<span class="pop">Measuring the wave's height at fixed intervals. 16 kHz means 16,000 measurements per second.</span></span> at 16,000 samples per second. So a mere ten seconds of audio is 160,000 raw numbers — far too long and too low-level to feed an attention mechanism directly, the same way raw pixels are hopeless for images.</p>
+
+  <p>Worse, a single sample carries almost no meaning on its own. What matters is <em>patterns of frequencies over time</em> — that's what makes an "ee" sound different from an "oo," or a violin from a snare. So step one is almost never the raw wave.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · a raw waveform</p>
+    <div class="wave-box"><svg id="wave" viewBox="0 0 600 90" preserveAspectRatio="none"></svg></div>
+    <div class="controls" style="margin-bottom:0">
+      <div class="ctl"><label>Wiggliness (frequency) <b id="freqV">medium</b></label>
+        <input type="range" id="freq" min="1" max="5" step="1" value="3"></div>
+    </div>
+    <p style="font-size:14.5px;color:var(--ink-soft);margin:12px 0 0">That's all sound is to a computer: a list of heights. Meaning lives in how those heights <em>change</em>, which is hard to read off the wiggle directly.</p>
+  </div>
+
+  <!-- 03 -->
+  <h2 id="spec"><span class="sec-no">§ 03</span>The spectrogram move: turn sound into a picture</h2>
+  <p>The trick that unlocks almost everything: slice the wave into short overlapping windows (say 25&nbsp;ms wide, stepping 10&nbsp;ms at a time) and, for each window, measure <em>how much energy sits at each pitch</em>. Stack those slices side by side and you get a <strong>spectrogram</strong> — time on the horizontal axis, frequency on the vertical, brightness for loudness. Sound has become a 2-D image.</p>
+
+  <p>Two refinements make it model-friendly. The frequency axis is squeezed onto the <span class="term">mel scale<span class="pop">A warped frequency axis that matches human pitch perception, emphasising the ~0–8 kHz range where speech lives.</span></span>, which mimics human hearing, and the loudness is run through a logarithm so a whisper and a shout sit in a similar numeric range. The result — a <strong>log-mel spectrogram</strong> — is exactly what Whisper and most speech systems consume. From here, the playbook is the image playbook: a small convolutional front end turns the spectrogram into a sequence of embeddings, then a transformer takes over.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · waveform → log-mel spectrogram</p>
+    <div class="wave-box"><svg id="wave2" viewBox="0 0 600 70" preserveAspectRatio="none"></svg></div>
+    <button class="btn" id="specBtn">▶ Compute the spectrogram</button>
+    <div class="spec" id="spec" style="margin-top:14px"></div>
+    <div class="axis"><span>time →</span><span id="specLabel">press play</span></div>
+    <p style="font-size:14.5px;color:var(--ink-soft);margin:12px 0 0">Vertical = pitch (mel bins, low at the bottom). Horizontal = time. Bright cells = strong energy. The curving bright bands are the kind of pattern that distinguishes one vowel from another.</p>
+  </div>
+
+  <div class="demo">
+    <p class="demo-head">Whisper's pipeline, schematically</p>
+    <div class="flowdiag">
+      <span class="node">16 kHz wave</span><span class="arrow">→</span>
+      <span class="node audio">log-mel<br>80 × 3000</span><span class="arrow">→</span>
+      <span class="node hot">conv stem<br>(↓ 2×)</span><span class="arrow">→</span>
+      <span class="node">~1500 audio<br>frames</span><span class="arrow">→</span>
+      <span class="node">transformer</span>
+    </div>
+    <p style="font-size:14px;color:var(--ink-soft);margin:0">A 30-second chunk becomes an 80×3000 grid (80 mel bins, one column per 10&nbsp;ms), which the conv stem halves to about 1500 feature frames before the encoder. Big reduction, meaning preserved.</p>
+  </div>
+
+  <!-- 04 -->
+  <h2 id="audtok"><span class="sec-no">§ 04</span>Two kinds of audio token</h2>
+  <p>When audio is turned into <em>discrete</em> tokens (rather than soft vectors), there's a fork that shapes everything downstream — and it mirrors the soft-vs-discrete split from the images guide. The two families answer different questions.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · semantic vs. acoustic tokens</p>
+    <div class="seg" id="audSeg">
+      <button class="on" data-a="sem">Semantic tokens</button>
+      <button data-a="aco">Acoustic tokens</button>
+    </div>
+    <div id="audBody"></div>
+  </div>
+
+  <p>The cleverest systems use <em>both</em>: <span class="term">AudioLM<span class="pop">A Google model that generates audio by first laying down semantic tokens for structure, then filling in acoustic tokens for fidelity.</span></span> lays down semantic tokens for long-range structure, then conditions acoustic-token generation on them — coherence and fidelity at once. Newer codecs like SpeechTokenizer even fold semantics into the first layer of the acoustic stack.</p>
+
+  <!-- 05 -->
+  <h2 id="audin"><span class="sec-no">§ 05</span>Plugging audio into the language model</h2>
+  <p>Two routes dominate, and they're the audio twins of the image methods.</p>
+  <table class="cmp">
+    <thead><tr><th>Route</th><th>How audio enters</th><th>Best for</th><th>Seen in</th></tr></thead>
+    <tbody>
+      <tr><td>Encoder + projector</td><td>An audio encoder (Whisper-style) makes soft features; a small projector maps them into the LLM's token space, interleaved with text</td><td>Understanding — transcription, Q&amp;A, reasoning about sound</td><td>Qwen-Audio, SALMONN, Audio Flamingo</td></tr>
+      <tr><td>Discrete codec tokens</td><td>A neural codec turns audio into integer codebook tokens in a shared vocabulary, predicted like words</td><td>Generation — speech, music, full-duplex voice</td><td>AudioLM, VALL-E, MusicGen, Moshi</td></tr>
+    </tbody>
+  </table>
+  <p>The first keeps the rich continuous detail and is simplest to bolt onto an existing text LLM. The second makes the model able to <em>speak</em>, because emitting an audio token is the same operation as emitting a word — at the cost of quantization blur and longer sequences.</p>
+
+  <!-- 06 -->
+  <h2 id="makesound"><span class="sec-no">§ 06</span>Making sound back</h2>
+  <p>Generation runs the pipeline in reverse, and there are two common exits. A model can predict a <strong>spectrogram</strong> and then hand it to a <span class="term">vocoder<span class="pop">A neural network that converts a spectrogram back into an audible waveform — the inverse of the spectrogram step.</span></span> — a network that reconstructs the actual waveform from the frequency picture. Or, in codec-based systems, the model predicts a stream of <strong>codec tokens</strong> and the codec's decoder turns them straight back into sound. Either way: tokens in, waveform out, by inverting the same translator that read the audio in the first place.</p>
+
+  <!-- 07 -->
+  <h2 id="video"><span class="sec-no">§ 07</span>Video = frames + time + sound</h2>
+  <p>Video looks intimidating but it's just three things you've already met, bundled: a <strong>sequence of images</strong> (frames), a <strong>clock</strong> telling you when each frame happens, and usually an <strong>audio track</strong>. The audio is handled exactly as in §02–§06. The frames are handled as images. The genuinely new ingredient is <em>time</em> — and time is what makes video expensive.</p>
+
+  <div class="note">
+    <span class="lbl">The core tension</span>
+    A single 1080p frame can be hundreds of image tokens. A one-minute clip at 30 frames per second is 1,800 frames. Multiply it out and a short video would swamp the entire context window. Every video model is, at heart, a strategy for <strong>not</strong> doing that.
+  </div>
+
+  <!-- 08 -->
+  <h2 id="frames"><span class="sec-no">§ 08</span>Sampling frames: the first economy</h2>
+  <p>The simplest economy is to throw most frames away. Consecutive frames are nearly identical, so models <strong>sub-sample</strong> — many default to about <strong>one frame per second</strong> (Gemini's default, for instance). Each kept frame is encoded into image tokens; the rest are discarded. Slide the rate and watch the frame count — and the token bill — move.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · frame sampling over a 10-second clip</p>
+    <div class="controls" style="margin-bottom:8px">
+      <div class="ctl"><label>Sampling rate <b id="fpsV">1 fps</b></label>
+        <input type="range" id="fps" min="1" max="8" step="1" value="1"></div>
+    </div>
+    <div class="timeline" id="timeline"><div class="tl-axis"><span>0s</span><span>5s</span><span>10s</span></div></div>
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="frameN">10</div><div class="k">frames kept</div></div>
+      <div class="stat"><div class="v plum" id="vtokN">2,580</div><div class="k">≈ visual tokens</div></div>
+    </div>
+    <p style="font-size:14px;color:var(--ink-soft);text-align:center;margin:12px 0 0;font-family:'IBM Plex Mono',monospace">tokens ≈ frames × (~258 tokens/frame) · illustrative</p>
+  </div>
+  <p>Low rates are fine for "what's happening in this video?" but disastrous for fast motion — a tennis serve or a diving routine lives between the sampled frames. That's why research pushes toward higher frame rates (16&nbsp;fps and beyond) paired with aggressive compression, rather than just sampling sparsely.</p>
+
+  <!-- 09 -->
+  <h2 id="tube"><span class="sec-no">§ 09</span>Tokens across space and time</h2>
+  <p>Treating each frame independently throws away motion. A richer idea — from video transformers like ViViT and VideoMAE — is the <span class="term">tubelet<span class="pop">A small 3-D patch spanning a few pixels wide, a few tall, AND a few frames deep — one token that captures a bit of motion.</span></span>: instead of a flat 2-D patch, you cut a little 3-D block that spans a few pixels <em>and</em> a few frames. Each tubelet becomes one token that already encodes a sliver of movement, not just a still.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · a tubelet spans frames</p>
+    <div class="tube-wrap" id="tubeWrap">
+      <div><div class="tube-slice" data-t="0"></div><div class="tube-cap">t = 0</div></div>
+      <div style="color:var(--ink-soft)">+</div>
+      <div><div class="tube-slice" data-t="1"></div><div class="tube-cap">t = 1</div></div>
+      <div style="color:var(--ink-soft)">+</div>
+      <div><div class="tube-slice" data-t="2"></div><div class="tube-cap">t = 2</div></div>
+      <div class="arrow" style="font-family:'IBM Plex Mono'">→</div>
+      <div><div style="width:48px;height:48px;border-radius:6px;background:var(--plum);display:flex;
+        align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Mono';font-size:10px">1 token</div>
+        <div class="tube-cap">one tubelet</div></div>
+    </div>
+    <button class="btn" id="tubeBtn" style="margin-top:6px">Highlight a tubelet</button>
+    <p style="font-size:14px;color:var(--ink-soft);margin:12px 0 0">The highlighted cells — same spot, three moments — collapse into a single token. The model gets motion baked in, and the token count drops versus encoding every frame in full.</p>
+  </div>
+  <p>Alongside the spatial position from §03 of the images guide, each of these tokens also carries a <strong>temporal position</strong> — which moment it came from — so the model can reason about order and timing.</p>
+
+  <!-- 10 -->
+  <h2 id="flood"><span class="sec-no">§ 10</span>Taming the token flood</h2>
+  <p>Even with sampling and tubelets, video produces an avalanche of tokens. The remaining tools should look familiar from the images guide, now aimed at the time axis too:</p>
+  <div class="tradeoff">
+    <div class="pro"><div class="t">Compression tactics</div><ul>
+      <li><strong>Pooling / merging</strong> nearby tokens that look alike</li>
+      <li><strong>Resampler / Q-Former</strong> to a fixed budget per frame or clip</li>
+      <li><strong>Keyframe selection</strong> — keep only frames that change</li>
+    </ul></div>
+    <div class="con"><div class="t">What you trade</div><ul>
+      <li>Aggressive merging can drop the one detail a question needs</li>
+      <li>Fixed budgets blur dense or fast scenes</li>
+      <li>Tuning the retention ratio is its own art</li>
+    </ul></div>
+  </div>
+  <p>The numbers are striking: recent work shows you can keep only a small fraction of video tokens and retain most of the understanding performance — proof of just how redundant raw frames are.</p>
+
+  <!-- 11 -->
+  <h2 id="cost"><span class="sec-no">§ 11</span>What audio and video actually cost</h2>
+  <p>Both bill by their natural unit — <strong>seconds of audio</strong> and <strong>sampled frames of video</strong> — and a long clip adds up fast. Estimate the order of magnitude below. (Rates follow common provider defaults and are illustrative; check current docs for exact numbers.)</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · audio + video token estimator</p>
+    <div class="seg" id="costSeg" style="margin-bottom:14px">
+      <button class="on" data-c="audio">Audio only</button>
+      <button data-c="video">Video (frames + audio)</button>
+    </div>
+    <div class="controls">
+      <div class="ctl" style="max-width:170px"><label>Length (seconds)</label><input type="number" id="dur" value="60" min="1"></div>
+      <div class="ctl" id="fpsCtl" style="max-width:170px;display:none"><label>Frame rate (fps)</label><input type="number" id="vfps" value="1" min="1"></div>
+    </div>
+    <div class="calc-out">
+      <div class="calc-card v2"><div class="big" id="cFrames">—</div><div class="lbl" id="cFramesL">frames sampled</div></div>
+      <div class="calc-card"><div class="big" id="cTok">1,920</div><div class="lbl">total tokens</div></div>
+      <div class="calc-card v3"><div class="big" id="cCtx">1.5%</div><div class="lbl">of a 128k window</div></div>
+    </div>
+    <p id="cEx" style="font-size:14px;color:var(--ink-soft);margin:16px 0 0;font-family:'IBM Plex Mono',monospace;line-height:1.7"></p>
+  </div>
+  <div class="note warn"><span class="lbl">Gotcha</span>
+    Video cost is dominated by frame rate, not resolution. Doubling fps doubles the bill; an hour of footage at even 1&nbsp;fps is thousands of frames. When you only need the gist, sample sparsely and lean on the audio track — speech is far cheaper per second than pictures.</div>
+
+  <!-- 12 -->
+  <h2 id="fail"><span class="sec-no">§ 12</span>Where hearing and watching break</h2>
+  <p>As with images, the failures fall out of the pipeline.</p>
+  <div class="fail-grid">
+    <div class="fail-card"><div class="ic">🎞️</div><div class="ti">Between the frames</div><p>Sub-sampling means anything that happens between sampled frames — a quick gesture, a fast ball — simply isn't in the tokens.</p></div>
+    <div class="fail-card"><div class="ic">⏱️</div><div class="ti">Precise timing</div><p>"At what second does X happen?" is shaky: temporal positions are coarse, especially after pooling and merging.</p></div>
+    <div class="fail-card"><div class="ic">🗣️</div><div class="ti">Overlapping speakers</div><p>A spectrogram mixes everyone together. Separating two voices or speech-in-noise stresses the encoder hard.</p></div>
+    <div class="fail-card"><div class="ic">🌫️</div><div class="ti">Codec blur</div><p>Discrete acoustic tokens round away fine texture, so generated audio can sound slightly synthetic or lose subtle detail.</p></div>
+    <div class="fail-card"><div class="ic">🔇</div><div class="ti">Sync &amp; modality bias</div><p>Lip-sync and "who said what when" demand tight audio–video alignment that loose fusion can miss; models may over-trust one stream.</p></div>
+    <div class="fail-card"><div class="ic">🧩</div><div class="ti">Long-context drift</div><p>An hour of video is a huge token sequence; details from the opening minutes fade by the end, just like long text.</p></div>
+  </div>
+
+  <!-- 13 -->
+  <h2 id="notes"><span class="sec-no">§ 13</span>Practical notes for builders</h2>
+  <h3>Pick your frame rate deliberately</h3>
+  <p>It's the master dial for video cost and capability. Gist and dialogue? Sample low. Sports, sign language, anything fast? Push the rate up and budget for it, or use a model built for high-fps clips.</p>
+  <h3>Don't ignore the audio track</h3>
+  <p>For lectures, meetings, and interviews, the speech carries most of the meaning at a fraction of the token cost of the picture. Transcribe-then-reason is often cheaper and better than watching every frame.</p>
+  <h3>Match the token type to the task</h3>
+  <p>Understanding wants soft encoder features (Whisper-style). Generation wants discrete codec tokens. Mixing the right semantic and acoustic streams is what makes voice models both coherent and natural.</p>
+  <h3>Pre-trim and pre-segment</h3>
+  <p>Clip to the relevant window before sending, and split very long media so the important parts don't drown in a sea of redundant frames or minutes of silence.</p>
+  <div class="note key"><span class="lbl">One-line summary</span>
+    Sound → spectrogram or codec tokens; video → sampled frames (or tubelets) + audio + time. Chop, embed, add position, feed alongside text. Same recipe, new axes.</div>
+
+  <!-- 14 -->
+  <h2 id="refs"><span class="sec-no">§ 14</span>References &amp; further reading</h2>
+  <ol class="refs">
+    <li>Radford et&nbsp;al., <em>Robust Speech Recognition via Large-Scale Weak Supervision</em> (Whisper), 2022. arXiv:2212.04356.</li>
+    <li>Zeghidour et&nbsp;al., <em>SoundStream: An End-to-End Neural Audio Codec</em>, 2021. arXiv:2107.03312.</li>
+    <li>Défossez et&nbsp;al., <em>High Fidelity Neural Audio Compression</em> (EnCodec), 2022. arXiv:2210.13438.</li>
+    <li>Borsos et&nbsp;al., <em>AudioLM: a Language Modeling Approach to Audio Generation</em>, 2022. arXiv:2209.03143.</li>
+    <li>Hsu et&nbsp;al., <em>HuBERT: Self-Supervised Speech Representation Learning</em>, 2021. arXiv:2106.07447.</li>
+    <li>Wang et&nbsp;al., <em>Neural Codec Language Models are Zero-Shot TTS Synthesizers</em> (VALL-E), 2023. arXiv:2301.02111.</li>
+    <li>Chu et&nbsp;al., <em>Qwen-Audio</em>, 2023. arXiv:2311.07919; Tang et&nbsp;al., <em>SALMONN</em>, 2023. arXiv:2310.13289.</li>
+    <li>Arnab et&nbsp;al., <em>ViViT: A Video Vision Transformer</em>, 2021. arXiv:2103.15691.</li>
+    <li>Tong et&nbsp;al., <em>VideoMAE</em>, 2022. arXiv:2203.12602.</li>
+    <li>Zhang et&nbsp;al., <em>Video-LLaMA</em>, 2023. arXiv:2306.02858.</li>
+    <li>Li et&nbsp;al., <em>Improving LLM Video Understanding with 16 Frames Per Second</em> (F-16), 2025. arXiv:2503.13956.</li>
+    <li>Google, <em>Gemini API — audio &amp; video understanding</em> documentation (default 1 fps video sampling). ai.google.dev.</li>
+  </ol>
+
+  <footer>
+    HOW LLMS HEAR &amp; WATCH · interactive monograph · figures &amp; rates illustrative ·<br>
+    By Majid Mazouchi · verify provider token math against current docs
+  </footer>
+
+</div>
+
+<script>
+// §02 + §03 waveforms
+function drawWave(svg, freqMul, amp, pts, H){
+  const W=600, mid=H/2; let d='';
+  for(let i=0;i<=pts;i++){
+    const x=i/pts*W;
+    const y=mid - amp*( Math.sin(i*0.13*freqMul)*0.6 + Math.sin(i*0.31*freqMul+1)*0.3 + Math.sin(i*0.07*freqMul)*0.25 );
+    d+=(i===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1)+' ';
+  }
+  svg.innerHTML='<path d="'+d+'" fill="none" stroke="#1d6a6a" stroke-width="2"/>';
+}
+(function(){
+  const svg=document.getElementById('wave'), freq=document.getElementById('freq'), fv=document.getElementById('freqV');
+  const names=['very low','low','medium','high','very high'];
+  function up(){const f=+freq.value; fv.textContent=names[f-1]; drawWave(svg,f,30,300,90);}
+  freq.addEventListener('input',up); up();
+  const svg2=document.getElementById('wave2'); if(svg2) drawWave(svg2,3,22,300,70);
+})();
+
+// §03 spectrogram
+(function(){
+  const btn=document.getElementById('specBtn'), spec=document.getElementById('spec'), lab=document.getElementById('specLabel');
+  if(!spec)return;
+  const COLS=44, ROWS=14; spec.style.gridTemplateColumns='repeat('+COLS+',1fr)';
+  let built=false;
+  function intensity(r,c){
+    // r=0 top (high pitch). Use mel-ish bands: two moving formants + low energy band
+    const t=c/COLS;
+    const f1=ROWS-3 - 3*Math.sin(t*6.2);   // low formant near bottom
+    const f2=ROWS-7 - 4*Math.sin(t*4.0+1); // higher formant
+    const band = Math.exp(-Math.pow(r-f1,2)/2.2) + 0.8*Math.exp(-Math.pow(r-f2,2)/2.0);
+    const low = (r>ROWS-3)?0.5:0;
+    const v=Math.min(1, band+low) * (0.55+0.45*Math.sin(t*9+r)); // slight texture
+    return Math.max(0,v);
+  }
+  function build(){
+    spec.innerHTML='';
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const v=intensity(r,c); const d=document.createElement('div');
+      // warm-to-bright colormap on cream
+      const hot=Math.round(v*255);
+      d.style.background='rgb('+ (40+hot*0.75|0) +','+ (30+hot*0.45|0) +','+ (60+ (1-v)*40|0) +')';
+      d.style.opacity='0'; d.style.transition='opacity .5s'; d.style.transitionDelay=(c*10)+'ms';
+      spec.appendChild(d);
+    }
+    requestAnimationFrame(()=>{[...spec.children].forEach(x=>x.style.opacity='1');});
+    lab.textContent='mel bins × time';
+  }
+  btn.addEventListener('click',()=>{build();built=true;});
+  if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&!built){build();built=true;io.disconnect();}});},{threshold:.4});io.observe(spec);}
+})();
+
+// §04 semantic vs acoustic
+(function(){
+  const seg=document.getElementById('audSeg'), body=document.getElementById('audBody');
+  if(!body)return;
+  const data={
+    sem:{html:'<div class="vec">1 s of speech → <span class="hl">[ph_42] [ph_07] [ph_42] [ph_19]</span><br><span style="color:var(--ink-soft)">few tokens · captures <b>what was said</b> (phonetic/linguistic content)</span></div>',
+      note:'<strong>Semantic tokens</strong> (from self-supervised models like HuBERT or w2v-BERT) compress speech into its linguistic content and long-range structure. Great for understanding and coherence; you cannot rebuild the exact voice from them.'},
+    aco:{html:'<div class="rvq"><div class="rvq-row">codebook 1<div class="cb"><span>#812</span><span>#77</span><span>#640</span><span>#5</span></div></div>'+
+      '<div class="rvq-row">+ codebook 2<div class="cb"><span>#19</span><span>#403</span><span>#88</span><span>#260</span></div></div>'+
+      '<div class="rvq-row">+ codebook 3<div class="cb"><span>#7</span><span>#511</span><span>#33</span><span>#190</span></div></div></div>',
+      note:'<strong>Acoustic tokens</strong> come from a neural codec (SoundStream, EnCodec, DAC) using <span class="term">residual vector quantization<span class="pop">Several codebooks stacked: the first captures a coarse approximation, each next one encodes the leftover error, refining fidelity.</span></span> — several codebooks per time step. They preserve fine timbre for high-quality synthesis, at the cost of many more tokens.'}
+  };
+  function render(k){body.innerHTML=data[k].html+'<p style="font-size:15.5px;color:var(--ink-soft);margin:12px 0 0">'+data[k].note+'</p>';}
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    [...seg.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.dataset.a);});
+  render('sem');
+})();
+
+// §08 frame sampling
+(function(){
+  const fps=document.getElementById('fps'), fv=document.getElementById('fpsV'), tl=document.getElementById('timeline');
+  const fn=document.getElementById('frameN'), vt=document.getElementById('vtokN');
+  if(!tl)return;
+  const SECS=10, TPF=258;
+  function up(){
+    const r=+fps.value; fv.textContent=r+(r===1?' fps':' fps');
+    [...tl.querySelectorAll('.tl-frame')].forEach(x=>x.remove());
+    const n=SECS*r;
+    for(let i=0;i<n;i++){
+      const f=document.createElement('div'); f.className='tl-frame';
+      f.style.left=((i+0.5)/n*100)+'%';
+      if(n>40)f.style.width='6px';
+      tl.appendChild(f);
+    }
+    fn.textContent=n; vt.textContent=(n*TPF).toLocaleString();
+  }
+  fps.addEventListener('input',up); up();
+})();
+
+// §09 tubelet
+(function(){
+  const slices=[...document.querySelectorAll('.tube-slice')], btn=document.getElementById('tubeBtn');
+  if(!slices.length)return;
+  const palette=['#9cc6e6','#7fb0d8','#5f9a52','#4d8a44','#e9a23b','#c1440e'];
+  slices.forEach((s,si)=>{for(let i=0;i<16;i++){const d=document.createElement('div');
+    d.style.background=palette[(i+si)%palette.length]; d.style.opacity='.55'; s.appendChild(d);}});
+  let on=false; const TARGET=5; // same cell index across slices
+  btn.addEventListener('click',()=>{
+    on=!on;
+    slices.forEach(s=>{[...s.children].forEach((c,i)=>{
+      if(i===TARGET){c.style.outline=on?'3px solid var(--plum)':'';c.style.opacity=on?'1':'.55';c.style.transform=on?'scale(1.08)':'';}
+      else c.style.opacity=on?'.25':'.55';
+    });});
+    btn.textContent=on?'Reset':'Highlight a tubelet';
+  });
+})();
+
+// §11 cost estimator
+(function(){
+  const seg=document.getElementById('costSeg'), dur=document.getElementById('dur'), vfps=document.getElementById('vfps');
+  const fpsCtl=document.getElementById('fpsCtl');
+  const cF=document.getElementById('cFrames'), cFL=document.getElementById('cFramesL'),
+        cT=document.getElementById('cTok'), cC=document.getElementById('cCtx'), cEx=document.getElementById('cEx');
+  let mode='audio'; const ATPS=32, TPF=258;
+  function up(){
+    const D=Math.max(1,+dur.value||1);
+    let frames=0, tokens=0, ex='';
+    if(mode==='audio'){
+      tokens=Math.round(D*ATPS); frames=0;
+      cF.textContent='—'; cFL.textContent='(audio only)';
+      ex='tokens ≈ seconds × ~'+ATPS+' audio tokens/s = '+D+' × '+ATPS+' = '+tokens.toLocaleString()+'.';
+    }else{
+      const r=Math.max(1,+vfps.value||1);
+      frames=D*r; const vis=frames*TPF; const aud=Math.round(D*ATPS);
+      tokens=vis+aud; cF.textContent=frames.toLocaleString(); cFL.textContent='frames sampled';
+      ex='visual ≈ '+frames.toLocaleString()+' frames × ~'+TPF+' = '+vis.toLocaleString()+' ; audio ≈ '+D+' × '+ATPS+' = '+aud.toLocaleString()+' ; total = '+tokens.toLocaleString()+'.';
+    }
+    cT.textContent=tokens.toLocaleString();
+    cC.textContent=((tokens/128000)*100).toFixed(tokens/128000<0.01?2:1)+'%';
+    cEx.textContent=ex;
+  }
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    [...seg.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    mode=b.dataset.c; fpsCtl.style.display=(mode==='video')?'flex':'none'; up();});
+  dur.addEventListener('input',up); vfps.addEventListener('input',up); up();
+})();
+</script>
+</body>
+</html>

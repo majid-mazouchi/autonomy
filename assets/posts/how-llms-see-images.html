@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How LLMs See Images — A Visual Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecdb;
+    --paper-2:#efe5cf;
+    --card:#fbf6ea;
+    --ink:#221c16;
+    --ink-soft:#5a4f41;
+    --rule:#d8cab0;
+    --vermilion:#c1440e;
+    --teal:#1d6a6a;
+    --ochre:#bb8412;
+    --indigo:#33456e;
+    --plum:#7a3b62;
+    --shadow:rgba(60,45,25,.16);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.66;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(193,68,14,.05), transparent 42%),
+      radial-gradient(circle at 84% 78%, rgba(29,106,106,.05), transparent 46%);
+  }
+  /* faint paper grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 26px 120px}
+  ::selection{background:var(--ochre);color:#fff}
+
+  /* ---------- masthead ---------- */
+  header.masthead{padding:64px 0 30px;border-bottom:3px double var(--ink)}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--vermilion);margin:0 0 18px}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(40px,8vw,76px);
+    line-height:.98;letter-spacing:-.018em;margin:0 0 18px}
+  h1 em{font-style:italic;font-weight:500;color:var(--teal)}
+  .dek{font-size:21px;color:var(--ink-soft);max-width:640px;margin:0 0 22px}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.06em;
+    color:var(--ink-soft);border-top:1px solid var(--rule);padding-top:14px}
+
+  /* ---------- structural type ---------- */
+  h2{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(27px,4.4vw,38px);
+    line-height:1.05;letter-spacing:-.01em;margin:62px 0 6px;scroll-margin-top:20px}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--vermilion);
+    letter-spacing:.2em;display:block;margin-bottom:2px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:23px;margin:34px 0 6px}
+  p{margin:14px 0}
+  a{color:var(--vermilion);text-underline-offset:3px;text-decoration-thickness:1px}
+  strong{font-weight:600}
+  .lead::first-letter{
+    font-family:"Fraunces",serif;font-weight:900;float:left;font-size:74px;line-height:.72;
+    padding:8px 12px 0 0;color:var(--vermilion);
+  }
+  .mono{font-family:"IBM Plex Mono",monospace;font-size:.82em;
+    background:var(--paper-2);padding:1px 6px;border-radius:4px;border:1px solid var(--rule)}
+
+  /* ---------- TOC ---------- */
+  nav.toc{margin:36px 0 0;padding:20px 24px;background:var(--card);
+    border:1px solid var(--rule);border-radius:10px;box-shadow:0 2px 0 var(--rule)}
+  nav.toc h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.25em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px}
+  nav.toc ol{margin:0;padding:0;list-style:none;
+    display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+  nav.toc a{display:block;font-family:"IBM Plex Mono",monospace;font-size:13.5px;
+    color:var(--ink);text-decoration:none;padding:5px 0;border-bottom:1px dotted var(--rule)}
+  nav.toc a:hover{color:var(--vermilion);padding-left:6px;transition:.18s}
+  nav.toc a span{color:var(--vermilion);margin-right:8px}
+
+  /* ---------- callouts ---------- */
+  .note{background:var(--card);border-left:4px solid var(--teal);border-radius:0 8px 8px 0;
+    padding:16px 20px;margin:26px 0;font-size:17.5px}
+  .note.warn{border-left-color:var(--vermilion)}
+  .note.key{border-left-color:var(--ochre)}
+  .note .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--teal);display:block;margin-bottom:4px}
+  .note.warn .lbl{color:var(--vermilion)}
+  .note.key .lbl{color:var(--ochre)}
+
+  /* ---------- interactive shell ---------- */
+  .demo{background:var(--card);border:1px solid var(--rule);border-radius:14px;
+    padding:24px;margin:30px 0;box-shadow:0 10px 30px -18px var(--shadow)}
+  .demo .demo-head{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;display:flex;
+    align-items:center;gap:10px}
+  .demo .demo-head::before{content:"";width:9px;height:9px;border-radius:50%;
+    background:var(--vermilion);box-shadow:0 0 0 3px rgba(193,68,14,.18)}
+
+  /* sliders + controls */
+  .controls{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:center;margin:6px 0 18px}
+  .ctl{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+  .ctl label{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.05em;
+    color:var(--ink-soft);display:flex;justify-content:space-between}
+  .ctl label b{color:var(--vermilion);font-weight:600}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;
+    background:var(--paper-2);outline:none;border:1px solid var(--rule)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+    border-radius:50%;background:var(--vermilion);cursor:pointer;border:2px solid var(--card);
+    box-shadow:0 1px 4px var(--shadow)}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
+    background:var(--vermilion);cursor:pointer;border:2px solid var(--card)}
+  input[type=number]{font-family:"IBM Plex Mono",monospace;font-size:15px;padding:8px 10px;
+    border:1px solid var(--rule);border-radius:7px;background:var(--paper);color:var(--ink);width:100%}
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--paper)}
+  .seg button{font-family:"IBM Plex Mono",monospace;font-size:12.5px;border:0;
+    background:transparent;color:var(--ink-soft);padding:9px 14px;cursor:pointer;letter-spacing:.03em}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+
+  /* patch demo canvas */
+  .scene-wrap{position:relative;width:288px;max-width:100%;margin:6px auto;aspect-ratio:1;
+    border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:#dfeaf2}
+  #grid{position:absolute;inset:0;pointer-events:none}
+  .grid-line{position:absolute;background:rgba(34,28,22,.5)}
+  .stat-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+  .stat{background:var(--paper);border:1px solid var(--rule);border-radius:9px;
+    padding:10px 16px;text-align:center;min-width:96px}
+  .stat .v{font-family:"Fraunces",serif;font-weight:900;font-size:26px;color:var(--vermilion);line-height:1}
+  .stat .v.teal{color:var(--teal)} .stat .v.indigo{color:var(--indigo)}
+  .stat .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+    color:var(--ink-soft);text-transform:uppercase;margin-top:5px}
+
+  /* token chips for pipeline */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px;min-height:30px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:4px 8px;border-radius:5px;
+    background:var(--indigo);color:#fff;opacity:0;transform:translateY(6px) scale(.8);
+    animation:pop .4s forwards}
+  @keyframes pop{to{opacity:1;transform:none}}
+
+  /* method explorer */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .tabs button{font-family:"IBM Plex Mono",monospace;font-size:12.5px;cursor:pointer;
+    background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:8px 15px;
+    color:var(--ink-soft);transition:.15s}
+  .tabs button.on{background:var(--vermilion);color:#fff;border-color:var(--vermilion)}
+  .panel{display:none;padding-top:18px;border-top:1px solid var(--rule);margin-top:14px}
+  .panel.on{display:block;animation:fade .3s}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .panel h4{font-family:"Fraunces";font-weight:600;font-size:21px;margin:0 0 4px}
+  .panel .who{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--teal);
+    letter-spacing:.04em;margin-bottom:10px}
+  .flowdiag{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0;
+    font-family:"IBM Plex Mono",monospace;font-size:12px}
+  .node{background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:8px 11px;text-align:center}
+  .node.hot{background:var(--ochre);color:#fff;border-color:var(--ochre)}
+  .node.frozen{background:var(--paper-2);color:var(--ink-soft)}
+  .node.frozen::after{content:" ❄";font-size:10px}
+  .arrow{color:var(--vermilion);font-weight:700}
+  .tradeoff{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .tradeoff div{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px}
+  .tradeoff .t{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;margin-bottom:6px}
+  .tradeoff .pro .t{color:var(--teal)} .tradeoff .con .t{color:var(--vermilion)}
+  .tradeoff ul{margin:0;padding-left:18px;font-size:15.5px}
+
+  /* calculator */
+  .calc-out{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+  .calc-card{flex:1;min-width:150px;background:var(--paper);border:1px solid var(--rule);
+    border-radius:10px;padding:16px;text-align:center}
+  .calc-card .big{font-family:"Fraunces";font-weight:900;font-size:38px;color:var(--vermilion);line-height:1}
+  .calc-card .lbl{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-soft);margin-top:6px}
+  .calc-card .sub{font-size:13.5px;color:var(--ink-soft);margin-top:8px;font-family:"IBM Plex Mono",monospace}
+  .preset{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .preset button{font-family:"IBM Plex Mono",monospace;font-size:11.5px;cursor:pointer;
+    background:var(--paper);border:1px dashed var(--rule);border-radius:6px;padding:6px 10px;color:var(--ink-soft)}
+  .preset button:hover{border-style:solid;color:var(--vermilion)}
+
+  /* continuous vs discrete */
+  .vec{font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--paper);
+    border:1px solid var(--rule);border-radius:8px;padding:12px 14px;margin-top:12px;
+    word-break:break-word;line-height:1.9}
+  .vec .hl{color:var(--vermilion)}
+  .vec .hl2{color:var(--teal)}
+
+  /* references */
+  ol.refs{font-family:"Newsreader";font-size:15.5px;color:var(--ink-soft);padding-left:22px}
+  ol.refs li{margin:9px 0}
+  ol.refs a{word-break:break-word}
+  footer{margin-top:70px;border-top:3px double var(--ink);padding-top:22px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+
+  table.cmp{width:100%;border-collapse:collapse;margin:20px 0;font-size:15px}
+  table.cmp th,table.cmp td{border:1px solid var(--rule);padding:10px 12px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--paper-2);font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  table.cmp td:first-child{font-weight:600}
+
+  /* ---------- base64 pipeline ---------- */
+  .b64flow{display:flex;align-items:stretch;gap:8px;margin-top:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}
+  .b64node{flex:1;min-width:128px;opacity:.35;filter:saturate(.4);transition:.45s}
+  .b64node.live{opacity:1;filter:none}
+  .b64node.spent{opacity:.5}
+  .b64cap{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.03em;
+    color:var(--ink-soft);margin-bottom:7px;line-height:1.5;min-height:30px}
+  .b64cap .tag{display:inline-block;font-size:9px;padding:1px 6px;border-radius:4px;
+    margin-left:4px;letter-spacing:.05em;vertical-align:middle}
+  .tag.text{background:var(--indigo);color:#fff}
+  .tag.drop{background:var(--vermilion);color:#fff}
+  .tag.img{background:var(--teal);color:#fff}
+  .tag.tok{background:var(--ochre);color:#fff}
+  .b64box{background:var(--paper);border:1px solid var(--rule);border-radius:8px;
+    padding:10px;height:96px;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+  .b64box code{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--indigo);
+    word-break:break-all;line-height:1.7;opacity:1;transition:.5s}
+  .b64node.spent .b64box code{opacity:.12}
+  .b64box.door{align-items:center;text-align:center;position:relative;border-style:dashed}
+  .b64door-txt{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--vermilion);font-weight:600}
+  .b64trash{font-size:10px;color:var(--ink-soft);margin-top:8px;opacity:0;transition:.4s}
+  .b64node.live .b64trash{opacity:1}
+  .b64sub{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ink-soft);
+    margin-top:7px;text-align:center;line-height:1.4}
+  .b64arrow{align-self:center;color:var(--vermilion);font-weight:700;font-size:18px;opacity:.3;transition:.4s}
+  .b64arrow.live{opacity:1}
+  .b64chip{font-family:"IBM Plex Mono",monospace;font-size:9px;background:var(--ochre);
+    color:#fff;padding:2px 5px;border-radius:3px}
+  .b64compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+  .b64cmp{border-radius:10px;padding:14px 16px;border:1px solid var(--rule)}
+  .b64cmp.myth{background:rgba(193,68,14,.07);border-color:rgba(193,68,14,.35)}
+  .b64cmp.real{background:rgba(29,106,106,.07);border-color:rgba(29,106,106,.35)}
+  .b64cmp .t{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;margin-bottom:6px}
+  .b64cmp.myth .t{color:var(--vermilion)} .b64cmp.real .t{color:var(--teal)}
+  .b64cmp .v{font-family:"Fraunces",serif;font-weight:900;font-size:30px;line-height:1}
+  .b64cmp.myth .v{color:var(--vermilion)} .b64cmp.real .v{color:var(--teal)}
+  .b64cmp .s{font-size:12.5px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
+
+  /* ---------- glossary tooltip ---------- */
+  .term{border-bottom:1.5px dotted var(--teal);cursor:help;position:relative}
+  .term:hover, .term:focus{color:var(--teal)}
+  .term .pop{position:absolute;left:50%;bottom:135%;transform:translateX(-50%) translateY(4px);
+    width:230px;background:var(--ink);color:var(--paper);font-family:"Newsreader",serif;
+    font-size:13.5px;line-height:1.45;padding:10px 12px;border-radius:8px;opacity:0;
+    pointer-events:none;transition:.18s;z-index:30;box-shadow:0 8px 24px var(--shadow)}
+  .term .pop::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--ink)}
+  .term:hover .pop,.term:focus .pop{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- 2D vs 1D positions ---------- */
+  .posgrid{display:grid;gap:3px;margin:6px auto;width:min(260px,80%)}
+  .poscell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;font-size:10px;color:#fff;background:var(--indigo);
+    transition:.3s}
+  .posrow{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+  .posrow .poscell{width:34px;height:34px;aspect-ratio:auto}
+
+  /* ---------- attention demo ---------- */
+  .attn-words{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+  .attn-words button{font-family:"IBM Plex Mono",monospace;font-size:13px;cursor:pointer;
+    background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:6px 11px;color:var(--ink)}
+  .attn-words button.on{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .attn-stage{position:relative;width:288px;max-width:100%;margin:0 auto;aspect-ratio:1;
+    border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:#dfeaf2}
+  #attnGrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(6,1fr)}
+  #attnGrid div{outline:.5px solid rgba(255,255,255,.25);transition:.4s}
+
+  /* ---------- anyres ---------- */
+  .anyres{display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0}
+  .anyres .ar-orig{position:relative;width:150px;height:150px;border:2px solid var(--ink);border-radius:6px;
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;overflow:hidden}
+  .anyres .ar-orig div{outline:1px dashed rgba(255,255,255,.6);display:flex;align-items:center;
+    justify-content:center;font-family:"IBM Plex Mono",monospace;font-size:10px;color:#fff}
+  .anyres .ar-set{display:flex;flex-direction:column;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:11.5px}
+  .anyres .ar-tile{display:flex;align-items:center;gap:8px}
+  .anyres .ar-sw{width:30px;height:30px;border-radius:5px;border:1px solid var(--rule)}
+
+  /* ---------- generation toggle ---------- */
+  .gen-track{position:relative;height:54px;margin:16px 0;display:flex;align-items:center;gap:6px}
+  .gen-step{flex:1;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#fff;text-align:center;transition:.4s}
+
+  /* ---------- failure cards ---------- */
+  .fail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+  .fail-card{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--vermilion);
+    border-radius:0 9px 9px 0;padding:13px 15px}
+  .fail-card .ic{font-size:20px;line-height:1}
+  .fail-card .ti{font-family:"Fraunces",serif;font-weight:600;font-size:17px;margin:6px 0 3px}
+  .fail-card p{margin:0;font-size:14.5px;color:var(--ink-soft);line-height:1.45}
+
+  /* ---------- decision tree ---------- */
+  .dt-q{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin-bottom:12px}
+  .dt-opts{display:flex;flex-wrap:wrap;gap:8px}
+  .dt-opts button{font-family:"IBM Plex Mono",monospace;font-size:12.5px;cursor:pointer;
+    background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;color:var(--ink);text-align:left}
+  .dt-opts button:hover{border-color:var(--vermilion);color:var(--vermilion)}
+  .dt-answer{margin-top:16px;padding:16px;border-radius:10px;background:rgba(29,106,106,.08);
+    border:1px solid rgba(29,106,106,.3);display:none}
+  .dt-answer.on{display:block;animation:fade .3s}
+  .dt-answer .pick{font-family:"Fraunces",serif;font-weight:900;font-size:21px;color:var(--teal);margin-bottom:4px}
+
+  /* ---------- upload dropzone ---------- */
+  .drop{border:2px dashed var(--rule);border-radius:12px;padding:20px;text-align:center;
+    cursor:pointer;transition:.2s;background:var(--paper);margin-bottom:18px}
+  .drop:hover,.drop.over{border-color:var(--vermilion);background:rgba(193,68,14,.04)}
+  .drop .dz-ic{font-size:26px} .drop .dz-t{font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+    color:var(--ink-soft);margin-top:6px}
+  .uprev{position:relative;margin:0 auto 14px;max-width:100%;display:none}
+  .uprev.on{display:block}
+  .uprev canvas{max-width:100%;border:1px solid var(--rule);border-radius:8px;display:block;margin:0 auto}
+  .uprev .ucap{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);
+    text-align:center;margin-top:8px}
+
+  @media(max-width:600px){
+    body{font-size:18px}
+    nav.toc ol{grid-template-columns:1fr}
+    .tradeoff{grid-template-columns:1fr}
+    .wrap{padding:0 18px 90px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--vermilion);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:18px;">← Back to Autonomy</a>
+    <p class="kicker">A Visual Field Guide · Multimodal Models</p>
+    <h1>How LLMs<br><em>See</em> an Image</h1>
+    <p class="dek">Language models never read your pixels. Before a single word is predicted, a picture is quietly turned into <strong>tokens</strong> — little vectors that sit shoulder to shoulder with text. Here is how that happens, in plain language, with things you can poke.</p>
+    <p class="byline">By Majid Mazouchi · Interactive monograph</p>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents · terms with a <span class="term">dotted underline<span class="pop">like this — tap or hover for a definition</span></span> are tappable</h4>
+    <ol>
+      <li><a href="#big"><span>01</span>The big idea</a></li>
+      <li><a href="#patch"><span>02</span>Cutting into patches</a></li>
+      <li><a href="#pos"><span>03</span>Giving patches a place</a></li>
+      <li><a href="#methods"><span>04</span>Four ways to plug vision in</a></li>
+      <li><a href="#attn"><span>05</span>What the model looks at</a></li>
+      <li><a href="#soft"><span>06</span>Soft vs. discrete tokens</a></li>
+      <li><a href="#calc"><span>07</span>What an image costs</a></li>
+      <li><a href="#anyres"><span>08</span>Reading high-resolution</a></li>
+      <li><a href="#claude"><span>09</span>How Claude sees images</a></li>
+      <li><a href="#b64"><span>10</span>The base64 envelope</a></li>
+      <li><a href="#gen"><span>11</span>The reverse: making images</a></li>
+      <li><a href="#fail"><span>12</span>Where vision breaks</a></li>
+      <li><a href="#choose"><span>13</span>Choosing an approach</a></li>
+      <li><a href="#notes"><span>14</span>Practical notes</a></li>
+      <li><a href="#refs"><span>15</span>References</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 01 ============ -->
+  <h2 id="big"><span class="sec-no">§ 01</span>The big idea, in one breath</h2>
+  <p class="lead">When you attach a photo to a chatbot, it feels like the model is "looking" at it. Mechanically, something more interesting is going on. The raw image — or its base64 string — is <strong>never fed to the language model as text</strong>. It is intercepted first, run through a separate vision pipeline, and converted into a compact handful of <strong>visual tokens</strong>: vectors of numbers that live in the same context window as your words.</p>
+
+  <p>So the transformer that writes the answer doesn't see pixels and it doesn't see characters. It sees a sequence like:</p>
+
+  <div class="vec">
+    <span class="hl2">[word] [word] [word]</span>
+    <span class="hl">[img] [img] [img] [img] … [img]</span>
+    <span class="hl2">[word] [word] ?</span>
+  </div>
+
+  <p>The text tokens and the image tokens are the same <em>kind</em> of object — points in a high-dimensional space — so the model's attention can mix freely between "the word <span class="mono">cat</span>" and "the part of the picture that looks like a cat." Everything below is just different machinery for producing those <span class="hl" style="color:var(--vermilion)">[img]</span> slots.</p>
+
+  <div class="note key">
+    <span class="lbl">Mental model</span>
+    A vision system is a <strong>translator</strong>. Its only job is to turn a grid of pixels into the language model's native currency: token vectors.
+  </div>
+
+  <!-- ============ 02 ============ -->
+  <h2 id="patch"><span class="sec-no">§ 02</span>Step one, almost always: cut it into patches</h2>
+  <p>Pixels can't go in directly. A modest 224×224 image is ~50,000 pixels, and attention compares every element to every other element — that's billions of comparisons, hopeless. The <strong>Vision Transformer (ViT)</strong> trick is to chop the image into a grid of fixed-size <strong>patches</strong> (say 16×16 pixels each), flatten each patch into a vector, and run a learned <strong>linear projection</strong> that maps it into a tidy embedding. Each patch becomes one token.</p>
+
+  <p>Because attention has no built-in sense of order, a <strong>positional embedding</strong> is added so the model knows the top-left patch from the bottom-right. Drag the slider and watch the patch grid — and the token count — change.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · Patchification</p>
+    <div class="controls">
+      <div class="ctl">
+        <label>Image resolution <b id="resV">224 px</b></label>
+        <input type="range" id="res" min="112" max="448" step="56" value="224">
+      </div>
+      <div class="ctl">
+        <label>Patch size <b id="patchV">16 px</b></label>
+        <input type="range" id="patch" min="8" max="56" step="8" value="16">
+      </div>
+    </div>
+
+    <div class="scene-wrap">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#bcdcef"/><stop offset="1" stop-color="#e7d6a8"/>
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" fill="url(#sky)"/>
+        <circle cx="74" cy="26" r="11" fill="#e9a23b"/>
+        <path d="M0 78 L26 44 L46 70 L60 50 L100 82 L100 100 L0 100 Z" fill="#3f6b54"/>
+        <path d="M40 80 L62 52 L86 80 Z" fill="#2c4f3f"/>
+        <path d="M0 100 L100 100 L100 86 Q60 76 40 84 Q18 92 0 84 Z" fill="#1d6a6a"/>
+      </svg>
+      <div id="grid"></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="patchCount">196</div><div class="k">patches</div></div>
+      <div class="stat"><div class="v teal" id="tokCount">196</div><div class="k">image tokens</div></div>
+      <div class="stat"><div class="v indigo" id="dimVal">×768</div><div class="k">dims / token</div></div>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <p style="font-size:14.5px;color:var(--ink-soft);text-align:center;margin:14px 0 0;font-family:'IBM Plex Mono',monospace">
+      patches = (resolution ÷ patch&nbsp;size)²&nbsp;&nbsp;·&nbsp;&nbsp;each → one projected token vector
+    </p>
+  </div>
+
+  <p>Notice the tension: <strong>smaller patches = more detail but more tokens</strong> (and quadratically more compute). This single dial — patch size versus token budget — echoes through every design decision that follows.</p>
+
+  <!-- ============ 03  positions ============ -->
+  <h2 id="pos"><span class="sec-no">§ 03</span>Giving each patch a place</h2>
+  <p>Here's a subtlety. <span class="term">Attention<span class="pop">The mechanism that lets every token compare itself to every other token and decide what to focus on. It has no built-in sense of order.</span></span> treats its inputs as an unordered bag — shuffle the patches and the raw math gives the same answer. For text that's already a problem (word order matters); for a 2-D image it's worse, because a patch has both a <em>row</em> and a <em>column</em>. So each patch token gets a <strong>positional embedding</strong> added to it, encoding where it sat in the grid.</p>
+
+  <p>Text positions are a single line of numbers. Image positions are two-dimensional — and when you feed an image at a new resolution, those position codes often have to be stretched (interpolated) to fit. Hover the cells to see the difference.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · 1-D text vs 2-D image positions</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin:0 0 6px">TEXT · one index per token</p>
+    <div class="posrow" id="posText"></div>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin:18px 0 6px">IMAGE · a (row, col) pair per patch</p>
+    <div class="posgrid" id="posImg" style="grid-template-columns:repeat(5,1fr)"></div>
+    <p style="font-size:14.5px;color:var(--ink-soft);text-align:center;margin:14px 0 0">
+      Same patch contents, different position → the model can tell sky-blue (top) from water-blue (bottom).
+    </p>
+  </div>
+
+  <!-- ============ 04 ============ -->
+  <h2 id="methods"><span class="sec-no">§ 04</span>Four ways to plug vision into the language model</h2>
+  <p>Now we have visual tokens. How do they actually reach the LLM? There are four families. The first dominates today's chat models; the others are worth knowing because they reveal the trade-offs. Tap to explore.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · Method explorer</p>
+    <div class="tabs" id="tabs">
+      <button class="on" data-p="m1">① Projector (interleave)</button>
+      <button data-p="m2">② Resampler / Q-Former</button>
+      <button data-p="m3">③ Cross-attention</button>
+      <button data-p="m4">④ Discrete tokens</button>
+    </div>
+
+    <!-- method 1 -->
+    <div class="panel on" id="m1">
+      <h4>Projector — splice visual tokens straight into the prompt</h4>
+      <div class="who">LLaVA · most modern open VLMs · the default</div>
+      <p>A frozen image encoder (usually a CLIP Vision Transformer) reads the image and outputs patch features. A small trainable <strong>projector</strong> — often just a two-layer MLP — reshapes those features so they land in the LLM's own word-embedding space. The result is a row of visual tokens that get <em>interleaved with the text tokens</em> and fed in as one sequence. This is "early fusion": the model treats picture and prose as one stream.</p>
+      <div class="flowdiag">
+        <span class="node">image</span><span class="arrow">→</span>
+        <span class="node frozen">CLIP encoder</span><span class="arrow">→</span>
+        <span class="node hot">projector (MLP)</span><span class="arrow">→</span>
+        <span class="node">visual tokens</span><span class="arrow">↘</span>
+        <span class="node frozen">LLM</span>
+      </div>
+      <div class="tradeoff">
+        <div class="pro"><div class="t">Strengths</div><ul><li>Dead simple; cheap to train (often only the projector)</li><li>Reuses powerful off-the-shelf encoders + LLMs</li></ul></div>
+        <div class="con"><div class="t">Costs</div><ul><li>Visual tokens eat your context window</li><li>High-res images blow up the token count fast</li></ul></div>
+      </div>
+    </div>
+
+    <!-- method 2 -->
+    <div class="panel" id="m2">
+      <h4>Resampler — squeeze many patches into a fixed few</h4>
+      <div class="who">Flamingo (Perceiver Resampler) · BLIP-2 (Q-Former)</div>
+      <p>A high-res image can yield hundreds of patch features. A <strong>resampler</strong> introduces a small set of learnable "query" tokens — say 32 or 64 — that use attention to pull the salient information out of all those features and pack it into a <em>fixed</em> token budget, no matter how big the image was. Flamingo's Perceiver Resampler does this blind; BLIP-2's Q-Former also peeks at the text query, so it can keep the bits relevant to your question.</p>
+      <div class="flowdiag">
+        <span class="node">many features</span><span class="arrow">→</span>
+        <span class="node hot">64 learned queries<br>(attention)</span><span class="arrow">→</span>
+        <span class="node">64 fixed tokens</span><span class="arrow">→</span>
+        <span class="node frozen">LLM</span>
+      </div>
+      <div class="tradeoff">
+        <div class="pro"><div class="t">Strengths</div><ul><li>Constant token cost — great for video / many images</li><li>Throttles redundancy in big inputs</li></ul></div>
+        <div class="con"><div class="t">Costs</div><ul><li>Compression can drop fine detail</li><li>Extra module to train and tune</li></ul></div>
+      </div>
+    </div>
+
+    <!-- method 3 -->
+    <div class="panel" id="m3">
+      <h4>Cross-attention — keep vision on the side, peek when needed</h4>
+      <div class="who">Flamingo (gated xattn-dense)</div>
+      <p>Instead of inserting visual tokens into the input stream, the image features stay separate and the LLM <em>reaches out</em> to them through new <strong>cross-attention</strong> layers slotted between its frozen blocks. A clever detail: each new layer starts behind a <strong>tanh gate initialized at zero</strong>, so at the very beginning the model behaves exactly like the original text-only LLM and only gradually learns to let vision in — protecting its language skills.</p>
+      <div class="flowdiag">
+        <span class="node frozen">LLM block</span><span class="arrow">→</span>
+        <span class="node hot">gated cross-attn ❄→🔥</span><span class="arrow">→</span>
+        <span class="node frozen">LLM block</span>
+        <span style="width:100%;height:0"></span>
+        <span class="node" style="margin-top:6px">↑ image features attended as keys/values</span>
+      </div>
+      <div class="tradeoff">
+        <div class="pro"><div class="t">Strengths</div><ul><li>Doesn't consume input token slots</li><li>Gating preserves the base model's fluency</li></ul></div>
+        <div class="con"><div class="t">Costs</div><ul><li>Adds many new parameters inside the LLM</li><li>Largely set aside in newer VLMs for the simpler projector</li></ul></div>
+      </div>
+    </div>
+
+    <!-- method 4 -->
+    <div class="panel" id="m4">
+      <h4>Discrete tokens — make pixels literally part of the vocabulary</h4>
+      <div class="who">Chameleon · VQ-VAE / VQGAN tokenizers · "native" multimodal</div>
+      <p>The most radical option. A <strong>VQ-VAE</strong>-style tokenizer maps each image region to the nearest entry in a learned <strong>codebook</strong>, turning the picture into a sequence of <em>discrete</em> integer tokens — exactly like words in a dictionary. Now one transformer can be trained from scratch to predict text and image tokens with the same machinery, which is what unlocks models that <em>generate</em> images token by token, not just read them.</p>
+      <div class="flowdiag">
+        <span class="node">image patch</span><span class="arrow">→</span>
+        <span class="node hot">nearest codebook entry</span><span class="arrow">→</span>
+        <span class="node">token #4827</span><span class="arrow">→</span>
+        <span class="node frozen">one shared transformer</span>
+      </div>
+      <div class="tradeoff">
+        <div class="pro"><div class="t">Strengths</div><ul><li>Unifies understanding + generation in one model</li><li>Images obey the same autoregressive rules as text</li></ul></div>
+        <div class="con"><div class="t">Costs</div><ul><li>Quantization throws away detail (information bottleneck)</li><li>Often needs many tokens per image; codebooks are finicky to train</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <table class="cmp">
+    <thead><tr><th>Method</th><th>Where vision enters</th><th>Token cost</th><th>Seen in</th></tr></thead>
+    <tbody>
+      <tr><td>Projector</td><td>Interleaved in the input</td><td>Scales with image size</td><td>LLaVA, most chat VLMs</td></tr>
+      <tr><td>Resampler</td><td>Input, but fixed-length</td><td>Constant (e.g. 64)</td><td>Flamingo, BLIP-2</td></tr>
+      <tr><td>Cross-attention</td><td>Inside the LLM layers</td><td>Off the input budget</td><td>Flamingo</td></tr>
+      <tr><td>Discrete tokens</td><td>Shared vocabulary</td><td>Many per image</td><td>Chameleon</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============ 05  attention ============ -->
+  <h2 id="attn"><span class="sec-no">§ 05</span>What the model actually looks at</h2>
+  <p>Once visual and text tokens share a sequence, attention lets a word "reach into" the picture. When the model processes the word <span class="mono">sun</span>, the patches covering the bright disc light up; on <span class="mono">grass</span>, the green foreground dominates. This is a stylised mock-up — real attention is messier and spread across many heads and layers — but the intuition holds. Tap a word.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · word → patch attention (illustrative)</p>
+    <div class="attn-words" id="attnWords">
+      <button class="on" data-k="sun">"sun"</button>
+      <button data-k="mountain">"mountain"</button>
+      <button data-k="grass">"grass"</button>
+      <button data-k="sky">"sky"</button>
+    </div>
+    <div class="attn-stage">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+        <rect width="100" height="100" fill="#bcdcef"/>
+        <circle cx="74" cy="26" r="11" fill="#e9a23b"/>
+        <path d="M0 78 L26 44 L46 70 L60 50 L100 82 L100 100 L0 100 Z" fill="#3f6b54"/>
+        <path d="M40 80 L62 52 L86 80 Z" fill="#2c4f3f"/>
+        <path d="M0 100 L100 100 L100 86 Q60 76 40 84 Q18 92 0 84 Z" fill="#3f6b54"/>
+      </svg>
+      <div id="attnGrid"></div>
+    </div>
+    <p style="font-size:14.5px;color:var(--ink-soft);text-align:center;margin:14px 0 0">
+      Brighter cells = higher attention weight from that word onto that patch.
+    </p>
+  </div>
+
+  <!-- ============ 06 ============ -->
+  <h2 id="soft"><span class="sec-no">§ 06</span>Soft tokens vs. discrete tokens</h2>
+  <p>The word "token" hides an important fork. Most vision-language models that <em>read</em> images use <strong>continuous (soft) tokens</strong>: each is a raw vector of floats, never rounded to anything. Models built to also <em>create</em> images often use <strong>discrete tokens</strong>: each patch is snapped to one integer ID from a fixed codebook, just like a word. Toggle to feel the difference.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · Two flavours of "token"</p>
+    <div class="seg" id="flavor">
+      <button class="on" data-f="soft">Continuous (soft)</button>
+      <button data-f="disc">Discrete (codebook)</button>
+    </div>
+    <div class="vec" id="vecOut"></div>
+    <p id="flavorNote" style="font-size:15.5px;color:var(--ink-soft);margin:12px 0 0"></p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Why it matters</span>
+    Soft tokens preserve more nuance and are easier for <em>understanding</em>. Discrete tokens are clumsier (quantization loses detail) but let a single model treat image generation as "predict the next token," which is why they show up in native image-generating systems.
+  </div>
+
+  <!-- ============ 05 ============ -->
+  <h2 id="calc"><span class="sec-no">§ 07</span>What an image actually costs you</h2>
+  <p>Because images become tokens, they cost money and context space — sometimes a lot. Different providers count differently, usually by <strong>tiling</strong> the image and charging per tile (Claude is the exception — it uses a smooth area formula). <strong>Drop in your own image</strong> to read its real dimensions, see the tile grid, and compare. (Figures follow each provider's published method; always re-check current docs.)</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · Image token calculator</p>
+
+    <div class="drop" id="drop">
+      <div class="dz-ic">🖼️</div>
+      <div class="dz-t">Tap to choose an image — or drag one here. (Stays on your device; nothing is uploaded.)</div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+    <div class="uprev" id="uprev">
+      <canvas id="ucanvas"></canvas>
+      <div class="ucap" id="ucap"></div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl" style="max-width:150px">
+        <label>Width (px)</label>
+        <input type="number" id="w" value="1024" min="1">
+      </div>
+      <div class="ctl" style="max-width:150px">
+        <label>Height (px)</label>
+        <input type="number" id="h" value="1024" min="1">
+      </div>
+      <div class="ctl" style="flex:0">
+        <label>Model family</label>
+        <div class="seg" id="model">
+          <button class="on" data-m="gpt">GPT-4o style</button>
+          <button data-m="gem">Gemini style</button>
+          <button data-m="claude">Claude style</button>
+        </div>
+      </div>
+    </div>
+    <div class="preset">
+      <button data-w="640" data-h="480">VGA 640×480</button>
+      <button data-w="1024" data-h="1024">Square 1024</button>
+      <button data-w="1920" data-h="1080">FHD 1920×1080</button>
+      <button data-w="4000" data-h="6000">DSLR 4000×6000</button>
+      <button data-w="300" data-h="300">Thumb 300×300</button>
+    </div>
+
+    <div class="calc-out">
+      <div class="calc-card">
+        <div class="big" id="tokOut">765</div>
+        <div class="lbl">image tokens</div>
+        <div class="sub" id="tileOut">4 tiles × 170 + 85</div>
+      </div>
+      <div class="calc-card">
+        <div class="big" id="ctxOut">0.6%</div>
+        <div class="lbl">of a 128k window</div>
+        <div class="sub" id="costOut">≈ $0.0077 in</div>
+      </div>
+    </div>
+    <p id="calcExplain" style="font-size:14.5px;color:var(--ink-soft);margin:16px 0 0;font-family:'IBM Plex Mono',monospace;line-height:1.7"></p>
+  </div>
+
+  <div class="note warn">
+    <span class="lbl">Gotcha</span>
+    Some models (GPT-4o, Claude) <strong>auto-downscale</strong> large images before counting, so pre-resizing mostly saves <em>latency</em>, not tokens. Others (notably Gemini) count more literally, so shrinking a giant photo there can cut the bill dramatically.
+  </div>
+
+  <!-- ============ 08  anyres ============ -->
+  <h2 id="anyres"><span class="sec-no">§ 08</span>Reading high-resolution: dynamic tiling</h2>
+  <p>A single fixed grid of patches is fine for a snapshot, but it smears the fine print on a receipt or the labels on a dashboard. The modern fix — used by LLaVA-NeXT, InternVL and others, often called <span class="term">AnyRes<span class="pop">"Any resolution": split a big image into several high-res sub-tiles plus one shrunk global view, encode each, and concatenate all their tokens.</span></span> — is to look <em>twice</em>: once at a shrunk <strong>global thumbnail</strong> for overall layout, and again at several full-resolution <strong>sub-tiles</strong> for detail. Each piece is encoded separately and all their tokens are concatenated.</p>
+
+  <div class="demo">
+    <p class="demo-head">Dynamic high-res, schematically</p>
+    <div class="anyres">
+      <div class="ar-orig" aria-hidden="true">
+        <div style="background:#9cc6e6">1</div><div style="background:#7fb0d8">2</div>
+        <div style="background:#5f9a52">3</div><div style="background:#4d8a44">4</div>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;color:var(--vermilion);font-size:22px">→</div>
+      <div class="ar-set">
+        <div class="ar-tile"><span class="ar-sw" style="background:linear-gradient(135deg,#bcdcef,#3f6b54)"></span> global thumbnail — gist &amp; layout</div>
+        <div class="ar-tile"><span class="ar-sw" style="background:#9cc6e6"></span> sub-tile 1 — full detail</div>
+        <div class="ar-tile"><span class="ar-sw" style="background:#7fb0d8"></span> sub-tile 2 — full detail</div>
+        <div class="ar-tile"><span class="ar-sw" style="background:#5f9a52"></span> sub-tile 3 — full detail</div>
+        <div class="ar-tile"><span class="ar-sw" style="background:#4d8a44"></span> sub-tile 4 — full detail</div>
+      </div>
+    </div>
+    <p style="font-size:14.5px;color:var(--ink-soft);text-align:center;margin:14px 0 0;font-family:'IBM Plex Mono',monospace">
+      tokens(global) + Σ tokens(sub-tiles) → fine text becomes legible, at a higher token bill
+    </p>
+  </div>
+  <p>This is exactly why a high-resolution screenshot can cost several times the tokens of a casual photo: you're paying for the thumbnail <em>plus</em> every detail tile. It's the resolution-versus-budget dial from §02, scaled up to whole images.</p>
+
+  <!-- ============ 09  claude ============ -->
+  <h2 id="claude"><span class="sec-no">§ 09</span>How Claude sees an image, concretely</h2>
+  <p>To ground all of this in one real system: when you send Claude an image through its API, the bytes are decoded, the picture is resized if it's large, and then it's turned into visual tokens. Claude's published estimate skips per-tile arithmetic and uses a clean area formula:</p>
+
+  <div class="vec" style="text-align:center;font-size:16px">
+    image tokens ≈ <span class="hl">(width&nbsp;px × height&nbsp;px) ÷ 750</span>
+  </div>
+
+  <p>Two practical rules come with it. First, if the image's <strong>long edge is over ~1568&nbsp;px</strong> (roughly 1.15 megapixels), Claude scales it down first, preserving aspect ratio — so sending a giant file mostly adds upload latency, not fidelity. (Newer Opus models can keep more pixels and therefore spend more tokens for sharper detail when you want it.) Second, the picture is padded slightly so its dimensions are a multiple of 28&nbsp;px, which matters if you ask Claude for pixel coordinates — they come back relative to the resized image. Some worked numbers:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Image size</th><th>Megapixels</th><th>≈ tokens</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>200 × 200</td><td>0.04 MP</td><td>~54</td><td>tiny — may lose detail</td></tr>
+      <tr><td>1000 × 1000</td><td>1.0 MP</td><td>~1,334</td><td>no resize needed</td></tr>
+      <tr><td>1092 × 1092</td><td>1.19 MP</td><td>~1,590</td><td>near the sweet spot</td></tr>
+      <tr><td>3000 × 2000</td><td>6.0 MP</td><td>capped after resize</td><td>scaled to ≤1568 long edge first</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:14px;color:var(--ink-soft)">Try the calculator in §07 with the <span class="mono">Claude style</span> setting to reproduce these. Figures track Anthropic's vision documentation; verify current numbers there before quoting them.</p>
+
+  <!-- ============ 10  base64 ============ -->
+  <h2 id="b64"><span class="sec-no">§ 10</span>The base64 envelope</h2>
+  <p>When you hand an image to an API instead of a URL, you usually inline it as a <strong>base64</strong> string — the image's raw bytes rewritten using 64 plain-text characters (<span class="mono">A–Z a–z 0–9 + /</span>). It isn't compression and it isn't encryption; it's just a way to smuggle binary data through text-only channels like a JSON body. Which raises the famous worry: <em>does that giant string get counted as text tokens?</em></p>
+
+  <p>It does not. The base64 is <strong>transport, not content</strong>. At the door, the server decodes it back into image bytes, hands the pixels to the vision pipeline, and the string itself is discarded before the language model ever runs. Press play and watch the box get unwrapped and thrown away.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · base64 → bytes → tokens</p>
+    <button id="b64run" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;cursor:pointer;background:var(--vermilion);color:#fff;border:0;border-radius:8px;padding:10px 18px;letter-spacing:.04em">▶ Run the pipeline</button>
+
+    <div id="b64stage" style="margin-top:22px">
+      <div class="b64flow">
+        <!-- stage 1 -->
+        <div class="b64node" data-s="1">
+          <div class="b64cap">1 · base64 string <span class="tag text">"text"</span></div>
+          <div class="b64box">
+            <code id="b64txt">/9j/4AAQSkZJRgABAQ…<br>AAD/2wBDAAYEBQYFBAY…<br>GBwYIChAKDQ8WFRESF…</code>
+          </div>
+          <div class="b64sub">~33% bigger than the file · pure ASCII</div>
+        </div>
+        <div class="b64arrow">→</div>
+
+        <!-- stage 2 door -->
+        <div class="b64node" data-s="2">
+          <div class="b64cap">2 · decode at the door <span class="tag drop">discard ✕</span></div>
+          <div class="b64box door">
+            <div class="b64door-txt">decode()</div>
+            <div class="b64trash">🗑 string thrown away</div>
+          </div>
+          <div class="b64sub">never reaches the model</div>
+        </div>
+        <div class="b64arrow">→</div>
+
+        <!-- stage 3 pixels -->
+        <div class="b64node" data-s="3">
+          <div class="b64cap">3 · raw pixels <span class="tag img">image</span></div>
+          <div class="b64box">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:74px;border-radius:4px">
+              <rect width="100" height="100" fill="#bcdcef"/>
+              <circle cx="74" cy="28" r="12" fill="#e9a23b"/>
+              <path d="M0 78 L26 44 L46 70 L60 50 L100 82 L100 100 L0 100Z" fill="#3f6b54"/>
+            </svg>
+          </div>
+          <div class="b64sub">the bytes the box was carrying</div>
+        </div>
+        <div class="b64arrow">→</div>
+
+        <!-- stage 4 tokens -->
+        <div class="b64node" data-s="4">
+          <div class="b64cap">4 · visual tokens <span class="tag tok">to LLM</span></div>
+          <div class="b64box" id="b64chips" style="display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start"></div>
+          <div class="b64sub">cost = tiles, not string length</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="b64compare">
+      <div class="b64cmp myth">
+        <div class="t">The myth · if base64 were text</div>
+        <div class="v" id="mythNum">~1,365,000</div>
+        <div class="s">tokens for a 1&nbsp;MB photo (≈1.37M chars ÷ ~1 char/tok)</div>
+      </div>
+      <div class="b64cmp real">
+        <div class="t">Reality · counted as an image</div>
+        <div class="v">~765</div>
+        <div class="s">a 1024×1024 image, GPT-4o-style tiling</div>
+      </div>
+    </div>
+    <p style="font-size:14.5px;color:var(--ink-soft);text-align:center;margin:16px 0 0;font-family:'IBM Plex Mono',monospace">
+      same image as a URL or as base64 → identical token cost
+    </p>
+  </div>
+
+  <h3>So what <em>does</em> base64 affect?</h3>
+  <p>Not tokens — but it isn't free either. Two things to keep in mind:</p>
+  <div class="tradeoff" style="margin-top:8px">
+    <div class="con"><div class="t">Watch out</div><ul>
+      <li><strong>Payload size:</strong> base64 inflates the bytes by ~33% (3 bytes → 4 characters), so a big image can bump against an API's maximum request-body size. URLs sidestep that.</li>
+      <li><strong>Bandwidth &amp; latency:</strong> a fatter request takes longer to upload, which can slow time-to-first-token.</li>
+    </ul></div>
+    <div class="pro"><div class="t">Good to know</div><ul>
+      <li><strong>Data URIs</strong> (<span class="mono">data:image/png;base64,…</span>) are the exact same thing, just wrapped for the browser/HTML.</li>
+      <li><strong>It's lossless:</strong> decoding gives back the original file byte-for-byte — base64 changes the <em>spelling</em>, not the picture.</li>
+    </ul></div>
+  </div>
+
+  <div class="note key">
+    <span class="lbl">The one-liner</span>
+    base64 is the <strong>shipping box</strong>. The door unwraps it to pixels, throws the box away, and only the pixels go on to become tokens. The label's length never enters the bill.
+  </div>
+
+  <!-- ============ 11  generation ============ -->
+  <h2 id="gen"><span class="sec-no">§ 11</span>The reverse: making images, not just reading them</h2>
+  <p>Everything so far turns pixels <em>into</em> tokens. Flip the arrow and you get image <strong>generation</strong>. There are two dominant ways to run it backwards, and they map onto the soft-vs-discrete split from §06.</p>
+
+  <div class="demo">
+    <p class="demo-head">Interactive · two engines for generation</p>
+    <div class="seg" id="genSeg">
+      <button class="on" data-g="ar">Autoregressive (discrete)</button>
+      <button data-g="diff">Diffusion (continuous)</button>
+    </div>
+    <div class="gen-track" id="genTrack"></div>
+    <p id="genNote" style="font-size:15.5px;color:var(--ink-soft);margin:6px 0 0"></p>
+  </div>
+
+  <p><strong>Autoregressive</strong> models (e.g. Chameleon) treat an image as a sequence of discrete <span class="term">codebook<span class="pop">A fixed dictionary of image "words." A VQ-VAE maps each patch to its nearest entry; the integer index is the token.</span></span> tokens and predict them one after another — exactly like writing a sentence — so a single transformer can read text and emit a picture in the same breath. <strong>Diffusion</strong> models instead start from noise in a continuous latent space and denoise toward an image; recent systems (the approach behind GPT-4o-style native image generation) lean this way to dodge the quantization blur of discrete tokens. The trade is familiar: discrete is unified and simple but coarser; diffusion is sharper but a different beast bolted alongside the language model.</p>
+
+  <!-- ============ 12  failures ============ -->
+  <h2 id="fail"><span class="sec-no">§ 12</span>Where vision quietly breaks</h2>
+  <p>Knowing how images become tokens explains most of the failures you'll hit. Each one traces back to the pipeline above.</p>
+  <div class="fail-grid">
+    <div class="fail-card"><div class="ic">🔢</div><div class="ti">Counting</div><p>Asked "how many sheep?", models often miscount. Patches fragment objects, and there's no explicit tally — just attention over a token soup.</p></div>
+    <div class="fail-card"><div class="ic">🧭</div><div class="ti">Spatial relations</div><p>"Is the cup left of the laptop?" Position embeddings are approximate, so precise left/right/above logic is shaky, especially after resizing.</p></div>
+    <div class="fail-card"><div class="ic">🔬</div><div class="ti">Tiny text</div><p>If the resolution or tiling can't resolve small glyphs, the text never makes it into a clean token. Fix with higher res or a crop (§08).</p></div>
+    <div class="fail-card"><div class="ic">🌫️</div><div class="ti">Quantization loss</div><p>Discrete-token pipelines round each patch to a codebook entry, discarding fine gradients and texture before the model ever sees them.</p></div>
+    <div class="fail-card"><div class="ic">🎭</div><div class="ti">Adversarial patches</div><p>A small crafted sticker can hijack the patch embeddings and flip the model's read of the whole scene — the token view is exploitable.</p></div>
+    <div class="fail-card"><div class="ic">🪞</div><div class="ti">Confident hallucination</div><p>When detail is missing, the language half happily fills the gap with a plausible guess, stated with the same confidence as a fact.</p></div>
+  </div>
+
+  <!-- ============ 13  decision ============ -->
+  <h2 id="choose"><span class="sec-no">§ 13</span>Choosing an approach</h2>
+  <p>If you're building rather than just curious, the method usually follows from one question.</p>
+  <div class="demo">
+    <p class="demo-head">Interactive · decision guide</p>
+    <div class="dt-q">What's your primary goal?</div>
+    <div class="dt-opts" id="dtOpts">
+      <button data-d="read">Understand single images &amp; reason about them</button>
+      <button data-d="video">Handle video or many images at once</button>
+      <button data-d="detail">Read dense fine print / documents</button>
+      <button data-d="gen">Generate images, not just read</button>
+      <button data-d="cheap">Keep token cost as low as possible</button>
+    </div>
+    <div class="dt-answer" id="dtAnswer">
+      <div class="pick" id="dtPick"></div>
+      <p id="dtWhy" style="margin:0"></p>
+    </div>
+  </div>
+
+  <!-- ============ 14 ============ -->
+  <h2 id="notes"><span class="sec-no">§ 14</span>Practical notes for builders</h2>
+
+  <h3>Resolution is a dial, not a virtue</h3>
+  <p>More pixels help only when the answer lives in fine detail — small text, gauge needles, license plates. For "what's in this scene?" a downscaled image is just as good and far cheaper. Many APIs expose a low/high detail switch; the low mode often charges a flat, tiny token count.</p>
+
+  <h3>Crop before you send</h3>
+  <p>If you only care about one region (a chart, a label, a face), crop to it. You spend tokens on signal instead of sky. This beats sending a 12-megapixel frame and hoping the model zooms in.</p>
+
+  <h3>Tiling is your friend and your enemy</h3>
+  <p>Tiling is what lets models read high-resolution images at all — but token cost grows roughly with the number of tiles, i.e. with area. A 2× wider <em>and</em> taller image is ~4× the tokens. Budget accordingly when batching.</p>
+
+  <h3>The base64 myth</h3>
+  <p>A long base64 image string does <em>not</em> "use up" text tokens — see §10. The bytes are decoded and routed to the vision pipeline before tokenization, so cost comes from patches and tiles, never from the length of the encoded string.</p>
+
+  <h3>Match the method to the job</h3>
+  <p>Reading and reasoning about images? A projector-style VLM is the simple, strong default. Long video or dozens of frames? A resampler keeps the token count flat. Want one model to both understand <em>and</em> draw? That's where discrete-token, native-multimodal designs earn their keep.</p>
+
+  <div class="note key">
+    <span class="lbl">One-line summary</span>
+    Split into patches → project (or quantize) into tokens → add positions → feed alongside text. Every vision-language model is a variation on that sentence.
+  </div>
+
+  <!-- ============ 07 ============ -->
+  <h2 id="refs"><span class="sec-no">§ 15</span>References &amp; further reading</h2>
+  <ol class="refs">
+    <li>Dosovitskiy et&nbsp;al., <em>An Image is Worth 16×16 Words: Transformers for Image Recognition at Scale</em> (ViT), 2020. arXiv:2010.11929.</li>
+    <li>Vaswani et&nbsp;al., <em>Attention Is All You Need</em>, 2017. arXiv:1706.03762.</li>
+    <li>Radford et&nbsp;al., <em>Learning Transferable Visual Models from Natural Language Supervision</em> (CLIP), 2021. arXiv:2103.00020.</li>
+    <li>Liu et&nbsp;al., <em>Visual Instruction Tuning</em> (LLaVA), 2023. arXiv:2304.08485.</li>
+    <li>Alayrac et&nbsp;al., <em>Flamingo: a Visual Language Model for Few-Shot Learning</em>, 2022. arXiv:2204.14198.</li>
+    <li>Li et&nbsp;al., <em>BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and LLMs</em>, 2023. arXiv:2301.12597.</li>
+    <li>Chameleon Team (Meta), <em>Chameleon: Mixed-Modal Early-Fusion Foundation Models</em>, 2024. arXiv:2405.09818.</li>
+    <li>van&nbsp;den&nbsp;Oord et&nbsp;al., <em>Neural Discrete Representation Learning</em> (VQ-VAE), 2017. arXiv:1711.00937.</li>
+    <li>Yu et&nbsp;al., <em>An Image is Worth 32 Tokens for Reconstruction and Generation</em> (TiTok), 2024. arXiv:2406.07550.</li>
+    <li>Liu et&nbsp;al., <em>LLaVA-NeXT</em> (dynamic high-res / AnyRes), 2024. Project page, llava-vl.github.io.</li>
+    <li>Chen et&nbsp;al., <em>InternVL 1.5</em> — dynamic high-resolution image inputs, 2024. arXiv:2404.16821.</li>
+    <li>Zhou et&nbsp;al., <em>Transfusion: Predict the Next Token and Diffuse Images with One Multi-Modal Model</em>, 2024. arXiv:2408.11039.</li>
+    <li>Anthropic, <em>Vision</em> — image input, token cost, and resizing. docs.claude.com/en/docs/build-with-claude/vision.</li>
+    <li>OpenAI — Vision / image-input token counting documentation (platform.openai.com).</li>
+    <li>Google — Gemini API documentation, image token counting.</li>
+    <li>Hugging Face, <em>Design choices for Vision Language Models</em> (overview of resampling, cross-attention, interleaving).</li>
+  </ol>
+
+  <footer>
+    HOW LLMS SEE IMAGES · interactive monograph · figures illustrative ·<br>
+    By Majid Mazouchi · verify provider token math against current docs
+  </footer>
+
+</div>
+
+<script>
+// ---------- §02 Patchification ----------
+(function(){
+  const res=document.getElementById('res'), patch=document.getElementById('patch');
+  const resV=document.getElementById('resV'), patchV=document.getElementById('patchV');
+  const grid=document.getElementById('grid');
+  const pc=document.getElementById('patchCount'), tc=document.getElementById('tokCount');
+  const dim=document.getElementById('dimVal'), chips=document.getElementById('chips');
+
+  function draw(){
+    const R=+res.value, P=+patch.value;
+    resV.textContent=R+' px'; patchV.textContent=P+' px';
+    const n=Math.max(1,Math.floor(R/P));      // patches per side
+    const total=n*n;
+    pc.textContent=total; tc.textContent=total;
+    // dims per token: bigger patch -> richer vector (illustrative)
+    dim.textContent='×'+(P<=8?256:P<=16?768:P<=32?1024:1280);
+    // grid lines
+    grid.innerHTML='';
+    for(let i=1;i<n;i++){
+      const v=document.createElement('div'); v.className='grid-line';
+      v.style.left=(i/n*100)+'%'; v.style.top=0; v.style.width='1px'; v.style.height='100%';
+      const h=document.createElement('div'); h.className='grid-line';
+      h.style.top=(i/n*100)+'%'; h.style.left=0; h.style.height='1px'; h.style.width='100%';
+      grid.appendChild(v); grid.appendChild(h);
+    }
+    // token chips (cap the visual count)
+    chips.innerHTML='';
+    const show=Math.min(total,28);
+    for(let i=0;i<show;i++){
+      const c=document.createElement('span'); c.className='chip';
+      c.textContent='[img]'; c.style.animationDelay=(i*16)+'ms';
+      chips.appendChild(c);
+    }
+    if(total>show){
+      const e=document.createElement('span'); e.className='chip';
+      e.style.background='var(--ink-soft)'; e.style.animationDelay=(show*16)+'ms';
+      e.textContent='+'+(total-show)+' more'; chips.appendChild(e);
+    }
+  }
+  res.addEventListener('input',draw); patch.addEventListener('input',draw); draw();
+})();
+
+// ---------- §03 Method tabs ----------
+(function(){
+  const tabs=document.getElementById('tabs');
+  tabs.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    [...tabs.children].forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById(b.dataset.p).classList.add('on');
+  });
+})();
+
+// ---------- §04 Soft vs discrete ----------
+(function(){
+  const seg=document.getElementById('flavor');
+  const out=document.getElementById('vecOut'); const note=document.getElementById('flavorNote');
+  function rndF(){return (Math.random()*2-1).toFixed(2)}
+  function render(f){
+    if(f==='soft'){
+      let s='one patch → '; const parts=[];
+      for(let i=0;i<8;i++)parts.push('<span class="hl">'+rndF()+'</span>');
+      out.innerHTML='patch&nbsp;#37 → [ '+parts.join(', ')+', … ]<br><span style="color:var(--ink-soft)">a continuous 768-d vector — nothing is rounded</span>';
+      note.innerHTML='<strong>Continuous:</strong> the token is the raw float vector itself. Maximum nuance, ideal for understanding. Used by LLaVA-style readers and most chat VLMs.';
+    }else{
+      const ids=[];for(let i=0;i<8;i++)ids.push('<span class="hl2">#'+(Math.floor(Math.random()*8192))+'</span>');
+      out.innerHTML='patch&nbsp;#37 → nearest codebook entry → '+ids[0]+'<br>image → [ '+ids.join(', ')+', … ]<br><span style="color:var(--ink-soft)">a sequence of integer IDs, exactly like words</span>';
+      note.innerHTML='<strong>Discrete:</strong> each patch snaps to one ID in a fixed codebook (a VQ-VAE). Loses some detail, but lets one transformer generate images token-by-token.';
+    }
+  }
+  seg.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    [...seg.children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    render(b.dataset.f);
+  });
+  render('soft');
+})();
+
+// ---------- §06 base64 pipeline ----------
+(function(){
+  const btn=document.getElementById('b64run');
+  const nodes=[...document.querySelectorAll('#b64stage .b64node')];
+  const arrows=[...document.querySelectorAll('#b64stage .b64arrow')];
+  const chips=document.getElementById('b64chips');
+  let timers=[];
+  function reset(){
+    timers.forEach(clearTimeout); timers=[];
+    nodes.forEach(n=>n.classList.remove('live','spent'));
+    arrows.forEach(a=>a.classList.remove('live'));
+    chips.innerHTML='';
+  }
+  function run(){
+    reset();
+    const seq=[
+      [0,()=>nodes[0].classList.add('live')],
+      [600,()=>{arrows[0].classList.add('live');}],
+      [900,()=>{nodes[1].classList.add('live');}],          // door decodes
+      [1500,()=>{nodes[0].classList.add('spent');           // string fades (discarded)
+                 arrows[1].classList.add('live');}],
+      [1800,()=>{nodes[1].classList.add('spent');
+                 nodes[2].classList.add('live');}],          // pixels appear
+      [2400,()=>{arrows[2].classList.add('live');
+                 nodes[3].classList.add('live');}],          // tokens
+    ];
+    seq.forEach(([t,fn])=>timers.push(setTimeout(fn,t)));
+    // pop tokens
+    for(let i=0;i<10;i++){
+      timers.push(setTimeout(()=>{
+        const c=document.createElement('span'); c.className='b64chip'; c.textContent='[img]';
+        chips.appendChild(c);
+      },2500+i*70));
+    }
+  }
+  btn.addEventListener('click',run);
+  // auto-run once when scrolled into view
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver((es)=>{
+      es.forEach(e=>{if(e.isIntersecting){run();io.disconnect();}});
+    },{threshold:.4});
+    io.observe(document.getElementById('b64stage'));
+  } else { run(); }
+})();
+
+// ---------- §03 positions ----------
+(function(){
+  const t=document.getElementById('posText'), g=document.getElementById('posImg');
+  if(!t||!g)return;
+  for(let i=0;i<7;i++){const c=document.createElement('div');c.className='poscell';c.textContent=i;t.appendChild(c);}
+  for(let r=0;r<5;r++)for(let col=0;col<5;col++){
+    const c=document.createElement('div');c.className='poscell';
+    c.style.background='hsl('+(205+col*4)+','+(40+r*6)+'%,'+(60-r*6)+'%)';
+    c.textContent=r+','+col;c.style.fontSize='9px';g.appendChild(c);
+  }
+})();
+
+// ---------- §05 attention ----------
+(function(){
+  const words=document.getElementById('attnWords'), grid=document.getElementById('attnGrid');
+  if(!grid)return;
+  const N=6; for(let i=0;i<N*N;i++)grid.appendChild(document.createElement('div'));
+  const cells=[...grid.children];
+  const maps={
+    sun:    function(r,c){return (r<=2 && c>=3)? 1-Math.hypot(r-1.4,c-4.4)/3 : 0;},
+    sky:    function(r,c){return r<=2 ? 0.85-((c>=3&&r<=1)?0.2:0) : 0;},
+    mountain:function(r,c){return (r>=2 && r<=4)? 0.9-Math.abs(c-3)/6 : 0;},
+    grass:  function(r,c){return r>=4 ? 0.95 : (r===3?0.4:0);}
+  };
+  function show(k){
+    const f=maps[k];
+    cells.forEach(function(cell,i){
+      const r=Math.floor(i/N), c=i%N; var w=Math.max(0,Math.min(1,f(r,c)));
+      cell.style.background='rgba(122,59,98,'+(w*0.82).toFixed(2)+')';
+    });
+  }
+  words.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    [...words.children].forEach(function(x){x.classList.remove('on');});b.classList.add('on');show(b.dataset.k);});
+  show('sun');
+})();
+
+// ---------- §11 generation ----------
+(function(){
+  const seg=document.getElementById('genSeg'), track=document.getElementById('genTrack'), note=document.getElementById('genNote');
+  if(!track)return;
+  const flows={
+    ar:{steps:['prompt','tok #18','tok #4827','tok #903','…','image'],col:'var(--ochre)',
+        note:'One token at a time, left to right — the same next-token prediction used for text, just over image codebook IDs.'},
+    diff:{steps:['noise','denoise','denoise','denoise','…','image'],col:'var(--teal)',
+        note:'Start from pure noise in a latent space and repeatedly denoise toward a clean image, conditioned on the prompt.'}
+  };
+  function render(g){
+    const f=flows[g]; track.innerHTML='';
+    f.steps.forEach(function(s,i){var d=document.createElement('div');d.className='gen-step';
+      d.textContent=s;d.style.background=f.col;d.style.opacity=(0.45+i*0.1).toFixed(2);
+      track.appendChild(d);});
+    note.textContent=f.note;
+  }
+  seg.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    [...seg.children].forEach(function(x){x.classList.remove('on');});b.classList.add('on');render(b.dataset.g);});
+  render('ar');
+})();
+
+// ---------- §13 decision tree ----------
+(function(){
+  const opts=document.getElementById('dtOpts'), box=document.getElementById('dtAnswer'),
+        pick=document.getElementById('dtPick'), why=document.getElementById('dtWhy');
+  if(!opts)return;
+  const ans={
+    read:['Projector-style VLM (LLaVA family)','The simple, strong default: a CLIP encoder + small projector feeding interleaved visual tokens. Cheap to adopt, excellent at single-image understanding.'],
+    video:['Resampler / Q-Former','A fixed token budget (Flamingo, BLIP-2) keeps cost flat no matter how many frames — essential when hundreds of images would otherwise flood the context.'],
+    detail:['Dynamic high-res tiling (AnyRes)','Global thumbnail plus full-res sub-tiles (LLaVA-NeXT, InternVL) so small text resolves. Budget for the higher token count it brings.'],
+    gen:['Discrete-token or diffusion model','Shared-vocabulary autoregression (Chameleon) unifies read + write; diffusion-based designs trade unity for sharper output.'],
+    cheap:['Aggressive resize + low-detail mode','Method matters less than pixels: downscale, crop to the region of interest, use a low-detail setting. Fewer patches = fewer tokens.']
+  };
+  opts.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    var a=ans[b.dataset.d];pick.textContent=a[0];why.textContent=a[1];box.classList.add('on');});
+})();
+
+// ---------- §07 Token calculator + upload ----------
+(function(){
+  const w=document.getElementById('w'), h=document.getElementById('h');
+  const modelSeg=document.getElementById('model');
+  const tokOut=document.getElementById('tokOut'), tileOut=document.getElementById('tileOut');
+  const ctxOut=document.getElementById('ctxOut'), costOut=document.getElementById('costOut');
+  const explain=document.getElementById('calcExplain');
+  const drop=document.getElementById('drop'), file=document.getElementById('file');
+  const uprev=document.getElementById('uprev'), canvas=document.getElementById('ucanvas'), ucap=document.getElementById('ucap');
+  let model='gpt'; let img=null;
+
+  function gpt(W,H){
+    let s=Math.min(1,2048/Math.max(W,H)); W*=s; H*=s;
+    let s2=768/Math.min(W,H); W*=s2; H*=s2;
+    const tw=Math.ceil(W/512), th=Math.ceil(H/512), tiles=tw*th;
+    return {tokens:85+170*tiles, detail:tiles+' tiles × 170 + 85 base', tw:tw, th:th,
+      ex:'Fit to 2048², then shortest side → 768px → '+tw+'×'+th+' tiles of 512px. tokens = 85 + 170·tiles.'};
+  }
+  function gem(W,H){
+    if(W<=384 && H<=384) return {tokens:258, detail:'small image · flat rate', tw:1, th:1,
+      ex:'Both sides ≤ 384px → flat 258 tokens.'};
+    const tw=Math.ceil(W/768), th=Math.ceil(H/768), tiles=tw*th;
+    return {tokens:tiles*258, detail:tiles+' tiles × 258', tw:tw, th:th,
+      ex:'Tiled by 768px → '+tw+'×'+th+' = '+tiles+' tiles. tokens = tiles · 258.'};
+  }
+  function claude(W,H){
+    let note='';
+    if(Math.max(W,H)>1568){const s=1568/Math.max(W,H);W=Math.round(W*s);H=Math.round(H*s);note=' (resized to '+W+'×'+H+' first)';}
+    const tokens=Math.ceil(W*H/750);
+    return {tokens:tokens, detail:'(w × h) ÷ 750'+note, tw:null, th:null,
+      ex:'Claude uses a smooth area formula — no tiling. tokens ≈ (width·height)/750'+(note?', after capping the long edge at 1568px.':'.')};
+  }
+  function calc(W,H){return model==='gpt'?gpt(W,H):model==='gem'?gem(W,H):claude(W,H);}
+  function fmt(n){return n.toLocaleString();}
+
+  function drawOverlay(r){
+    if(!img){uprev.classList.remove('on');return;}
+    uprev.classList.add('on');
+    const maxW=300, scale=Math.min(1,maxW/img.naturalWidth);
+    const cw=Math.round(img.naturalWidth*scale), ch=Math.round(img.naturalHeight*scale);
+    canvas.width=cw; canvas.height=ch;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,cw,ch); ctx.drawImage(img,0,0,cw,ch);
+    if(r.tw){ // draw tile grid
+      ctx.strokeStyle='rgba(193,68,14,.9)'; ctx.lineWidth=1.5;
+      for(let i=1;i<r.tw;i++){const x=cw*i/r.tw;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,ch);ctx.stroke();}
+      for(let j=1;j<r.th;j++){const y=ch*j/r.th;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cw,y);ctx.stroke();}
+      ucap.textContent=img.naturalWidth+'×'+img.naturalHeight+'px · '+r.tw+'×'+r.th+' tiles ('+model.toUpperCase()+')';
+    }else{
+      ctx.strokeStyle='rgba(29,106,106,.9)'; ctx.lineWidth=2; ctx.strokeRect(1,1,cw-2,ch-2);
+      ucap.textContent=img.naturalWidth+'×'+img.naturalHeight+'px · area formula, no tiling (Claude)';
+    }
+  }
+  function update(){
+    let W=Math.max(1,+w.value||1), H=Math.max(1,+h.value||1);
+    const r=calc(W,H);
+    tokOut.textContent=fmt(r.tokens);
+    tileOut.textContent=r.detail;
+    ctxOut.textContent=((r.tokens/128000)*100).toFixed(r.tokens/128000<0.01?2:1)+'%';
+    costOut.textContent='≈ $'+(r.tokens/1e6*10).toFixed(4)+' in';
+    explain.textContent=r.ex;
+    drawOverlay(r);
+  }
+  w.addEventListener('input',update); h.addEventListener('input',update);
+  modelSeg.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    [...modelSeg.children].forEach(function(x){x.classList.remove('on');});b.classList.add('on');
+    model=b.dataset.m; update();});
+  document.querySelectorAll('.preset button').forEach(function(b){
+    b.addEventListener('click',function(){w.value=b.dataset.w;h.value=b.dataset.h;img=null;uprev.classList.remove('on');update();});
+  });
+  // upload
+  function loadFile(f){
+    if(!f||!f.type.startsWith('image/'))return;
+    const url=URL.createObjectURL(f); const im=new Image();
+    im.onload=function(){img=im; w.value=im.naturalWidth; h.value=im.naturalHeight; update(); URL.revokeObjectURL(url);};
+    im.src=url;
+  }
+  drop.addEventListener('click',function(){file.click();});
+  file.addEventListener('change',function(e){loadFile(e.target.files[0]);});
+  ['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('over');});});
+  ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('over');});});
+  drop.addEventListener('drop',function(e){if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0]);});
+  update();
+})();
+</script>
+</body>
+</html>
