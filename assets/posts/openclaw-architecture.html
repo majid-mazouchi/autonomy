@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw — An Architectural Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecdd;
+    --paper-2:#efe4d2;
+    --card:#fbf5ea;
+    --ink:#241d18;
+    --ink-soft:#4a3f36;
+    --ink-faint:#7a6c5d;
+    --rust:#b8420a;
+    --rust-deep:#8f3208;
+    --petrol:#0f6360;
+    --ochre:#c98a06;
+    --indigo:#2c3b66;
+    --plum:#7a2f4f;
+    --line:#d8c9b1;
+    --line-strong:#bda988;
+    --shadow:rgba(60,42,20,.16);
+    --display:"Fraunces",Georgia,serif;
+    --body:"Newsreader",Georgia,serif;
+    --mono:"Spline Sans Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--body);font-size:19px;line-height:1.66;
+    font-optical-sizing:auto;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(201,138,6,.05), transparent 38%),
+      radial-gradient(circle at 88% 92%, rgba(15,99,96,.05), transparent 40%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--rust);color:var(--paper)}
+
+  /* ---- layout ---- */
+  .wrap{max-width:920px;margin:0 auto;padding:0 26px}
+  section{padding:18px 0}
+  .rule{height:1px;background:linear-gradient(90deg,transparent,var(--line-strong),transparent);margin:8px 0}
+
+  /* ---- masthead ---- */
+  header.hero{padding:74px 0 34px;position:relative;overflow:hidden}
+  .kicker{font-family:var(--mono);font-size:.74rem;letter-spacing:.32em;text-transform:uppercase;color:var(--rust);font-weight:600}
+  h1.title{font-family:var(--display);font-weight:800;font-size:clamp(2.7rem,8vw,5.4rem);line-height:.96;margin:.18em 0 .12em;letter-spacing:-.018em}
+  h1.title .it{font-style:italic;font-weight:400;color:var(--petrol)}
+  .subtitle{font-family:var(--display);font-style:italic;font-weight:400;font-size:clamp(1.1rem,3vw,1.5rem);color:var(--ink-soft);max-width:30ch;margin:.2em 0 1.4em}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 10px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em}
+  .chip{border:1px solid var(--line-strong);border-radius:100px;padding:5px 13px;background:var(--card);color:var(--ink-soft)}
+  .chip b{color:var(--rust-deep);font-weight:600}
+  .corner-no{position:absolute;top:30px;right:0;font-family:var(--mono);font-size:.7rem;color:var(--ink-faint);letter-spacing:.2em}
+
+  /* ---- typography ---- */
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(1.7rem,4.4vw,2.5rem);letter-spacing:-.01em;margin:.4em 0 .12em;line-height:1.05}
+  h3{font-family:var(--display);font-weight:600;font-size:1.28rem;margin:1.3em 0 .25em;color:var(--rust-deep)}
+  .sec-num{font-family:var(--mono);font-size:.78rem;color:var(--rust);letter-spacing:.2em;display:block;margin-bottom:.3em}
+  p{margin:.7em 0;max-width:66ch}
+  a{color:var(--petrol);text-underline-offset:3px;text-decoration-thickness:1px}
+  strong{font-weight:600;color:var(--ink)}
+  em.term{font-style:normal;font-family:var(--mono);font-size:.86em;background:var(--paper-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--rust-deep)}
+  .lead{font-size:1.18rem;color:var(--ink-soft)}
+  .drop::first-letter{font-family:var(--display);font-weight:800;font-size:3.4em;float:left;line-height:.78;padding:.06em .1em 0 0;color:var(--rust)}
+
+  /* ---- toc ---- */
+  nav.toc{background:var(--card);border:1px solid var(--line-strong);border-radius:14px;padding:22px 26px;margin:26px 0;box-shadow:0 2px 0 var(--line-strong)}
+  nav.toc h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 14px}
+  nav.toc ol{margin:0;padding:0;list-style:none;columns:2;column-gap:34px}
+  nav.toc li{margin:0 0 8px;break-inside:avoid;font-size:.96rem}
+  nav.toc a{text-decoration:none;color:var(--ink-soft);display:flex;gap:10px;align-items:baseline}
+  nav.toc a:hover{color:var(--rust)}
+  nav.toc .n{font-family:var(--mono);font-size:.72rem;color:var(--rust);min-width:1.6em}
+
+  /* ---- figure ---- */
+  figure{margin:30px 0;background:var(--card);border:1px solid var(--line-strong);border-radius:14px;padding:22px 22px 14px;box-shadow:0 3px 0 var(--line-strong),0 14px 30px -22px var(--shadow)}
+  figure svg{display:block;width:100%;height:auto;overflow:visible}
+  figcaption{font-family:var(--body);font-size:.92rem;color:var(--ink-soft);margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-strong);line-height:1.5}
+  figcaption b{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--rust);display:inline-block;margin-right:8px}
+
+  /* ---- callouts ---- */
+  .note{border-left:3px solid var(--ochre);background:linear-gradient(90deg,rgba(201,138,6,.08),transparent);padding:12px 18px;margin:22px 0;border-radius:0 8px 8px 0}
+  .note .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ochre);font-weight:600}
+  .warn{border-left-color:var(--plum);background:linear-gradient(90deg,rgba(122,47,79,.08),transparent)}
+  .warn .lbl{color:var(--plum)}
+
+  /* ---- two col facts ---- */
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:24px 0}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 17px}
+  .fact .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .fact .v{font-family:var(--display);font-weight:600;font-size:1.18rem;margin-top:3px;color:var(--rust-deep)}
+  .fact .v small{font-family:var(--body);font-weight:400;font-size:.78rem;color:var(--ink-soft);display:block}
+
+  /* ---- pillar grid ---- */
+  .pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin:22px 0}
+  .pillar{background:var(--card);border:1px solid var(--line-strong);border-radius:12px;padding:16px;position:relative;transition:transform .2s ease}
+  .pillar:hover{transform:translateY(-3px)}
+  .pillar .ico{width:34px;height:34px;margin-bottom:8px}
+  .pillar h5{font-family:var(--display);font-weight:600;font-size:1.12rem;margin:0 0 4px}
+  .pillar p{font-size:.86rem;margin:0;color:var(--ink-soft);line-height:1.45}
+  .pillar .tag{position:absolute;top:12px;right:14px;font-family:var(--mono);font-size:.62rem;color:var(--line-strong)}
+
+  /* ---- blueprint table ---- */
+  .blueprint{background:#23323f;border-radius:14px;padding:26px;margin:28px 0;color:#dfe9ee;border:1px solid #16222b;box-shadow:0 16px 34px -20px rgba(0,0,0,.5);position:relative;overflow:hidden}
+  .blueprint::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(120,170,190,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(120,170,190,.09) 1px,transparent 1px);background-size:26px 26px;pointer-events:none}
+  .blueprint h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:#7fb6c4;margin:0 0 4px;position:relative}
+  .blueprint .bp-sub{font-family:var(--body);font-style:italic;color:#9fb9c4;font-size:.92rem;margin:0 0 18px;position:relative}
+  .bp-row{display:grid;grid-template-columns:175px 1fr;gap:14px;padding:9px 0;border-top:1px dashed rgba(127,182,196,.28);position:relative;align-items:baseline}
+  .bp-row:last-child{border-bottom:1px dashed rgba(127,182,196,.28)}
+  .bp-file{font-family:var(--mono);font-size:.82rem;color:#ffd089;font-weight:500}
+  .bp-desc{font-size:.92rem;color:#cfe0e7;line-height:1.45}
+  @media(max-width:560px){.bp-row{grid-template-columns:1fr;gap:2px}}
+
+  /* ---- references ---- */
+  ol.refs{counter-reset:r;list-style:none;padding:0;margin:18px 0;font-size:.92rem}
+  ol.refs li{counter-increment:r;position:relative;padding:11px 0 11px 44px;border-top:1px solid var(--line)}
+  ol.refs li::before{content:"[" counter(r) "]";position:absolute;left:0;top:11px;font-family:var(--mono);font-size:.76rem;color:var(--rust);font-weight:600}
+  ol.refs .t{color:var(--ink);font-weight:500}
+  ol.refs .src{font-style:italic;color:var(--ink-faint)}
+  ol.refs a{word-break:break-word;font-family:var(--mono);font-size:.78rem}
+
+  footer{padding:50px 0 70px;text-align:center;color:var(--ink-faint);font-family:var(--mono);font-size:.74rem;letter-spacing:.06em}
+  footer .rule{margin-bottom:24px}
+
+  /* svg shared text */
+  svg text{font-family:var(--mono);fill:var(--ink)}
+  .dlabel{font-family:"Newsreader",serif !important;font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <span class="corner-no">FIG. 00 / FIELD GUIDE</span>
+  <span class="kicker">Autonomous Agent Systems · Architecture Monograph</span>
+  <h1 class="title">Open<span class="it">Claw</span></h1>
+  <p class="subtitle">An architectural field guide to the self-hosted, persistent, lobster-themed AI agent.</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);margin:14px 0 18px;letter-spacing:.04em;">By <strong style="color:var(--ink);">Majid Mazouchi</strong> · Reading the architecture of Peter Steinberger's open-source agent</p>
+  <div class="meta-row">
+    <span class="chip"><b>Origin:</b> Clawdbot · Nov 2025</span>
+    <span class="chip"><b>Creator:</b> Peter Steinberger</span>
+    <span class="chip"><b>License:</b> MIT</span>
+    <span class="chip"><b>Stack:</b> TypeScript · Swift</span>
+    <span class="chip"><b>Pattern:</b> Gateway + Loop + Skills + Memory</span>
+  </div>
+</header>
+
+<div class="rule"></div>
+
+<!-- ============ TOC ============ -->
+<nav class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#abstract"><span class="n">01</span> Abstract &amp; lineage</a></li>
+    <li><a href="#pillars"><span class="n">02</span> The five pillars</a></li>
+    <li><a href="#topology"><span class="n">03</span> System topology</a></li>
+    <li><a href="#gateway"><span class="n">04</span> The Gateway</a></li>
+    <li><a href="#brain"><span class="n">05</span> Brain &amp; Hands — the dual loop</a></li>
+    <li><a href="#heartbeat"><span class="n">06</span> The Heartbeat</a></li>
+    <li><a href="#memory"><span class="n">07</span> The Memory system</a></li>
+    <li><a href="#skills"><span class="n">08</span> Skills &amp; context economy</a></li>
+    <li><a href="#prompt"><span class="n">09</span> System-prompt blueprint</a></li>
+    <li><a href="#flow"><span class="n">10</span> End-to-end message flow</a></li>
+    <li><a href="#security"><span class="n">11</span> Security architecture</a></li>
+    <li><a href="#deploy"><span class="n">12</span> Deployment topologies</a></li>
+    <li><a href="#config"><span class="n">13</span> Config &amp; lifecycle</a></li>
+    <li><a href="#skill"><span class="n">14</span> Anatomy of a skill</a></li>
+    <li><a href="#glossary"><span class="n">15</span> Lobster lexicon</a></li>
+    <li><a href="#cheat"><span class="n">16</span> Quick-reference card</a></li>
+    <li><a href="#legacy"><span class="n">17</span> Why the pattern matters</a></li>
+    <li><a href="#refs"><span class="n">18</span> References</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 01 ABSTRACT ============ -->
+<section id="abstract">
+  <h2><span class="sec-num">§ 01</span>Abstract &amp; lineage</h2>
+  <p class="lead drop">OpenClaw is a free, open-source <strong>autonomous agent</strong> — a long-running process that executes tasks on a user's behalf through large language models, using ordinary messaging apps as its interface instead of a bespoke chat window. Where most agents are summoned by a prompt, do one job, and stop, OpenClaw stays resident: it lives on your own hardware, remembers you, and speaks up only when something needs attention.</p>
+
+  <p>The project's name has migrated three times in two months. It began life in November 2025 as <em class="term">Clawdbot</em>, a tongue-in-cheek nod to Anthropic's Claude. Trademark friction prompted a rename to <em class="term">Moltbot</em> in late January 2026 (preserving the lobster motif), and three days later it settled on <strong>OpenClaw</strong> — the name that stuck as the repository rocketed past 100,000 GitHub stars. The system is local-first by design: inference can run against Anthropic, OpenAI, or fully local models, and by default no data leaves the machine.</p>
+
+  <div class="facts">
+    <div class="fact"><div class="k">Interface</div><div class="v">Messaging<small>WhatsApp · Telegram · Slack · Discord · Signal · iMessage</small></div></div>
+    <div class="fact"><div class="k">Execution</div><div class="v">Resident<small>persistent background process, not request/response</small></div></div>
+    <div class="fact"><div class="k">Extensibility</div><div class="v">Markdown<small>capabilities are SKILL.md files, not compiled code</small></div></div>
+    <div class="fact"><div class="k">Trust model</div><div class="v">Single-operator<small>self-hosted; you are the trusted owner</small></div></div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Reading note</span>
+    <p style="margin:.4em 0 0;font-size:.95rem">This guide describes the architecture as of mid-2026. OpenClaw evolves quickly; treat module names and default ports as accurate-at-time-of-writing rather than frozen. Every factual claim is sourced in §18.</p>
+  </div>
+</section>
+
+<!-- ============ 02 PILLARS ============ -->
+<section id="pillars">
+  <h2><span class="sec-num">§ 02</span>The five pillars</h2>
+  <p>The official documentation reduces the system to five fundamental building blocks. Everything else — channels, skills, the canvas, the security perimeter — hangs off these. Holding them in mind is the fastest way to read the diagrams that follow.</p>
+
+  <div class="pillars">
+    <div class="pillar"><span class="tag">I</span>
+      <svg class="ico" viewBox="0 0 40 40" fill="none"><rect x="6" y="10" width="28" height="20" rx="3" stroke="#b8420a" stroke-width="2.2"/><path d="M6 18h28M20 10v20" stroke="#b8420a" stroke-width="2.2"/></svg>
+      <h5>Gateway</h5><p>The single front door. Routes every inbound message and outbound reply across channels over one WebSocket API.</p></div>
+    <div class="pillar"><span class="tag">II</span>
+      <svg class="ico" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="13" stroke="#0f6360" stroke-width="2.2"/><path d="M20 7v26M9 13c6 4 16 4 22 0M9 27c6-4 16-4 22 0" stroke="#0f6360" stroke-width="2.2"/></svg>
+      <h5>Brain</h5><p>The LLM reasoning core. Plans, decides, and chooses which tools to call within a structured loop.</p></div>
+    <div class="pillar"><span class="tag">III</span>
+      <svg class="ico" viewBox="0 0 40 40" fill="none"><path d="M14 6v14M20 4v16M26 8v12" stroke="#c98a06" stroke-width="2.2" stroke-linecap="round"/><path d="M10 18c0 8 5 16 10 16s10-8 10-16" stroke="#c98a06" stroke-width="2.2"/></svg>
+      <h5>Hands</h5><p>The tools and effectors — shell, files, browser, web fetch — through which the Brain acts on the world.</p></div>
+    <div class="pillar"><span class="tag">IV</span>
+      <svg class="ico" viewBox="0 0 40 40" fill="none"><rect x="9" y="7" width="22" height="26" rx="2" stroke="#2c3b66" stroke-width="2.2"/><path d="M14 14h12M14 20h12M14 26h7" stroke="#2c3b66" stroke-width="2.2"/></svg>
+      <h5>Memory</h5><p>Persistent state in plain Markdown plus a search index — survives restarts, updates, migrations.</p></div>
+    <div class="pillar"><span class="tag">V</span>
+      <svg class="ico" viewBox="0 0 40 40" fill="none"><path d="M5 20h7l4-11 8 22 4-11h7" stroke="#7a2f4f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h5>Heartbeat</h5><p>A cron-driven pulse that periodically wakes the agent to check its task list and act proactively.</p></div>
+  </div>
+</section>
+
+<!-- ============ 03 TOPOLOGY ============ -->
+<section id="topology">
+  <h2><span class="sec-num">§ 03</span>System topology</h2>
+  <p>Architecturally OpenClaw is best understood as a <strong>hub-and-spoke</strong> system layered between the outside world and the host machine. Channels feed a single orchestrating Gateway; the Gateway drives a reasoning core that reads from memory and reaches for tools; a runtime enforces the security perimeter around all tool execution. The block diagram below is the canonical mental model — the remaining sections zoom into individual blocks.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 470" role="img" aria-label="OpenClaw high-level block diagram">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#4a3f36"/></marker>
+        <marker id="arrR" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#b8420a"/></marker>
+      </defs>
+
+      <!-- external -->
+      <text x="30" y="28" font-size="11" letter-spacing="2" fill="#7a6c5d">EXTERNAL WORLD</text>
+      <g>
+        <rect x="26" y="40" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#bda988" stroke-width="1.5"/>
+        <text x="101" y="65" font-size="12" text-anchor="middle">Messaging apps</text>
+        <rect x="26" y="92" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#bda988" stroke-width="1.5"/>
+        <text x="101" y="117" font-size="12" text-anchor="middle">Web / mail / docs</text>
+        <rect x="26" y="144" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#bda988" stroke-width="1.5"/>
+        <text x="101" y="169" font-size="12" text-anchor="middle">Cron / schedule</text>
+      </g>
+
+      <!-- channel adapters -->
+      <rect x="210" y="56" width="118" height="112" rx="10" fill="#f4ecdd" stroke="#2c3b66" stroke-width="1.8"/>
+      <text x="269" y="50" font-size="11" text-anchor="middle" fill="#2c3b66">CHANNEL ADAPTERS</text>
+      <text x="269" y="106" font-size="13" text-anchor="middle" class="dlabel" fill="#2c3b66">normalize</text>
+      <text x="269" y="126" font-size="13" text-anchor="middle" class="dlabel" fill="#2c3b66">to events</text>
+
+      <!-- gateway -->
+      <rect x="372" y="40" width="150" height="144" rx="12" fill="#b8420a" stroke="#8f3208" stroke-width="2"/>
+      <text x="447" y="74" font-size="15" text-anchor="middle" fill="#fbf5ea" font-weight="600">GATEWAY</text>
+      <text x="447" y="98" font-size="10.5" text-anchor="middle" fill="#f4ecdd">single WS API</text>
+      <text x="447" y="116" font-size="10.5" text-anchor="middle" fill="#f4ecdd">session router</text>
+      <text x="447" y="134" font-size="10.5" text-anchor="middle" fill="#f4ecdd">command queue</text>
+      <text x="447" y="152" font-size="10.5" text-anchor="middle" fill="#f4ecdd">:18789</text>
+
+      <!-- brain -->
+      <rect x="568" y="40" width="148" height="68" rx="12" fill="#0f6360" stroke="#0a4a48" stroke-width="2"/>
+      <text x="642" y="70" font-size="15" text-anchor="middle" fill="#eaf3f2" font-weight="600">BRAIN</text>
+      <text x="642" y="90" font-size="10.5" text-anchor="middle" fill="#cfe7e5">reason · plan · decide</text>
+
+      <!-- hands -->
+      <rect x="568" y="120" width="148" height="64" rx="12" fill="#c98a06" stroke="#a06f04" stroke-width="2"/>
+      <text x="642" y="148" font-size="15" text-anchor="middle" fill="#3a2b06" font-weight="600">HANDS</text>
+      <text x="642" y="168" font-size="10.5" text-anchor="middle" fill="#4a3506">tools · effectors</text>
+
+      <!-- runtime perimeter (dashed) -->
+      <rect x="552" y="24" width="184" height="300" rx="14" fill="none" stroke="#7a2f4f" stroke-width="1.6" stroke-dasharray="7 5"/>
+      <text x="644" y="318" font-size="10.5" text-anchor="middle" fill="#7a2f4f" letter-spacing="1.5">RUNTIME · SANDBOX · ALLOWLISTS</text>
+
+      <!-- memory -->
+      <rect x="372" y="226" width="150" height="92" rx="12" fill="#f4ecdd" stroke="#2c3b66" stroke-width="2"/>
+      <text x="447" y="256" font-size="14" text-anchor="middle" fill="#2c3b66" font-weight="600">MEMORY</text>
+      <text x="447" y="278" font-size="10.5" text-anchor="middle" fill="#2c3b66">Markdown files</text>
+      <text x="447" y="296" font-size="10.5" text-anchor="middle" fill="#2c3b66">+ SQLite / vectors</text>
+
+      <!-- heartbeat -->
+      <rect x="210" y="226" width="118" height="92" rx="12" fill="#f4ecdd" stroke="#7a2f4f" stroke-width="2"/>
+      <text x="269" y="252" font-size="13" text-anchor="middle" fill="#7a2f4f" font-weight="600">HEARTBEAT</text>
+      <path d="M222 286h12l6-16 11 30 6-14h12" fill="none" stroke="#7a2f4f" stroke-width="2" stroke-linejoin="round"/>
+
+      <!-- skills -->
+      <rect x="568" y="226" width="148" height="92" rx="12" fill="#f4ecdd" stroke="#c98a06" stroke-width="2"/>
+      <text x="642" y="256" font-size="14" text-anchor="middle" fill="#a06f04" font-weight="600">SKILLS</text>
+      <text x="642" y="278" font-size="10.5" text-anchor="middle" fill="#7a5a04">SKILL.md library</text>
+      <text x="642" y="296" font-size="10.5" text-anchor="middle" fill="#7a5a04">lazy-injected</text>
+
+      <!-- host -->
+      <rect x="26" y="360" width="690" height="64" rx="12" fill="#23323f" stroke="#16222b"/>
+      <text x="371" y="388" font-size="13" text-anchor="middle" fill="#7fb6c4" font-weight="600" letter-spacing="1">HOST MACHINE</text>
+      <text x="371" y="408" font-size="11" text-anchor="middle" fill="#cfe0e7">laptop · home server · VPS — all inference &amp; state local by default</text>
+
+      <!-- arrows -->
+      <line x1="176" y1="60" x2="208" y2="80" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="176" y1="112" x2="208" y2="110" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="176" y1="164" x2="208" y2="140" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="328" y1="112" x2="370" y2="112" stroke="#b8420a" stroke-width="2" marker-end="url(#arrR)"/>
+      <line x1="522" y1="86" x2="566" y2="78" stroke="#b8420a" stroke-width="2" marker-end="url(#arrR)"/>
+      <line x1="642" y1="108" x2="642" y2="118" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="568" y1="152" x2="524" y2="262" stroke="#4a3f36" stroke-width="1.4" marker-end="url(#arr)"/>
+      <line x1="642" y1="184" x2="642" y2="224" stroke="#4a3f36" stroke-width="1.4" marker-end="url(#arr)"/>
+      <line x1="447" y1="184" x2="447" y2="224" stroke="#4a3f36" stroke-width="1.4" marker-end="url(#arr)"/>
+      <line x1="328" y1="272" x2="370" y2="272" stroke="#4a3f36" stroke-width="1.4" marker-end="url(#arr)"/>
+      <line x1="447" y1="184" x2="640" y2="42" stroke="#4a3f36" stroke-width="0" />
+    </svg>
+    <figcaption><b>Fig. 1</b> High-level block diagram. Channel adapters normalise the messy outside world into a single event stream; the Gateway is the lone orchestrator; the Brain/Hands pair reasons and acts inside a sandboxed runtime perimeter; Memory and Skills feed context in. Every block runs on one host.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 04 GATEWAY ============ -->
+<section id="gateway">
+  <h2><span class="sec-num">§ 04</span>The Gateway — the front door</h2>
+  <p>The Gateway is where every message enters and every reply leaves. Its key design move is refusing to build a proprietary chat UI; instead it binds to channels you already use — WhatsApp, Telegram, Slack, a web widget, or any API endpoint — so there is no new app and no context switch. Internally it maintains the provider connections and exposes a <strong>typed WebSocket API</strong> with three traffic classes: requests, responses, and server-pushed events.</p>
+
+  <p>Inbound frames are validated against a JSON Schema before they are trusted. The server emits a stream of events — <em class="term">agent</em>, <em class="term">chat</em>, <em class="term">presence</em>, <em class="term">health</em>, <em class="term">heartbeat</em>, <em class="term">cron</em> — that clients subscribe to. Crucially, the Gateway is a <strong>single-writer</strong> per session: a command queue serialises actions so that exactly one Gateway controls one messaging session per host, eliminating the race conditions that plague multi-writer agent designs. It runs as a supervised service (systemd / launchd) on a default loopback port, <em class="term">127.0.0.1:18789</em>, and reports liveness through a health channel.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 320" role="img" aria-label="Gateway internal structure">
+      <defs><marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#4a3f36"/></marker></defs>
+      <rect x="20" y="60" width="120" height="200" rx="10" fill="#fbf5ea" stroke="#bda988" stroke-width="1.5"/>
+      <text x="80" y="50" font-size="10.5" text-anchor="middle" fill="#7a6c5d" letter-spacing="1">CLIENTS / NODES</text>
+      <text x="80" y="110" font-size="11" text-anchor="middle">phone app</text>
+      <text x="80" y="150" font-size="11" text-anchor="middle">web UI</text>
+      <text x="80" y="190" font-size="11" text-anchor="middle">paired device</text>
+      <text x="80" y="230" font-size="11" text-anchor="middle">(role: node)</text>
+
+      <!-- gateway box -->
+      <rect x="220" y="30" width="360" height="260" rx="14" fill="#f4ecdd" stroke="#8f3208" stroke-width="2"/>
+      <text x="400" y="22" font-size="11" text-anchor="middle" fill="#b8420a" letter-spacing="2">GATEWAY  ·  :18789</text>
+
+      <rect x="244" y="56" width="150" height="50" rx="8" fill="#b8420a"/><text x="319" y="80" font-size="11.5" text-anchor="middle" fill="#fbf5ea">WS server</text><text x="319" y="96" font-size="9" text-anchor="middle" fill="#f4ecdd">schema validation</text>
+      <rect x="406" y="56" width="150" height="50" rx="8" fill="#fbf5ea" stroke="#b8420a" stroke-width="1.6"/><text x="481" y="80" font-size="11.5" text-anchor="middle" fill="#8f3208">event bus</text><text x="481" y="96" font-size="9" text-anchor="middle" fill="#8f3208">agent·chat·health…</text>
+      <rect x="244" y="120" width="150" height="50" rx="8" fill="#fbf5ea" stroke="#b8420a" stroke-width="1.6"/><text x="319" y="144" font-size="11.5" text-anchor="middle" fill="#8f3208">session mgr</text><text x="319" y="160" font-size="9" text-anchor="middle" fill="#8f3208">single-writer</text>
+      <rect x="406" y="120" width="150" height="50" rx="8" fill="#fbf5ea" stroke="#b8420a" stroke-width="1.6"/><text x="481" y="144" font-size="11.5" text-anchor="middle" fill="#8f3208">command queue</text><text x="481" y="160" font-size="9" text-anchor="middle" fill="#8f3208">serialised actions</text>
+      <rect x="244" y="184" width="312" height="48" rx="8" fill="#23323f"/><text x="400" y="206" font-size="11.5" text-anchor="middle" fill="#7fb6c4">device pairing store · presence · supervision (systemd/launchd)</text>
+      <rect x="244" y="244" width="312" height="34" rx="8" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.4" stroke-dasharray="5 4"/><text x="400" y="266" font-size="10.5" text-anchor="middle" fill="#2c3b66">A2UI / Canvas host (separate process · :18793)</text>
+
+      <!-- to brain -->
+      <rect x="640" y="120" width="150" height="80" rx="10" fill="#0f6360"/><text x="715" y="156" font-size="13" text-anchor="middle" fill="#eaf3f2" font-weight="600">Brain</text><text x="715" y="176" font-size="9.5" text-anchor="middle" fill="#cfe7e5">+ runtime</text>
+
+      <line x1="140" y1="120" x2="218" y2="100" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr2)"/>
+      <line x1="218" y1="180" x2="140" y2="200" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr2)"/>
+      <line x1="580" y1="150" x2="638" y2="155" stroke="#4a3f36" stroke-width="1.8" marker-end="url(#arr2)"/>
+      <line x1="638" y1="175" x2="580" y2="170" stroke="#4a3f36" stroke-width="1.8" marker-end="url(#arr2)"/>
+    </svg>
+    <figcaption><b>Fig. 2</b> Gateway internals. A schema-validating WebSocket server fans into an event bus; a single-writer session manager and a command queue guarantee one ordered stream of actions per session. The Canvas / A2UI surface is deliberately split into its own process on a separate port.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 05 BRAIN ============ -->
+<section id="brain">
+  <h2><span class="sec-num">§ 05</span>Brain &amp; Hands — the dual loop</h2>
+  <p>The Brain is the LLM-driven reasoning core; the Hands are the tools it invokes — shell commands, file reads and writes, browser automation, web fetches, scripts. What makes the pairing an <em>agent</em> rather than a chatbot is the control structure that wraps them: a <strong>dual loop</strong>.</p>
+
+  <h3>Inner loop — ReAct reasoning</h3>
+  <p>Within a single turn, the Brain runs a reason–act cycle. It thinks about the goal, decides on a tool, calls it through the Hands, observes the result, and repeats until the task is resolved or it needs the human. Before any of this fires, a <strong>context-assembly</strong> step packages the conversation history, the relevant memory, and the operating instructions into one prompt.</p>
+
+  <h3>Outer loop — the task queue</h3>
+  <p>Around the inner loop sits a queue of pending tasks. This is what lets a single user request spawn multi-step work that persists across turns, and what the Heartbeat (§06) consults when it wakes. The context window is treated like a finite, expensive cache: the runtime is careful about what it loads, which is exactly why skills are injected lazily rather than wholesale (§08).</p>
+
+  <figure>
+    <svg viewBox="0 0 820 340" role="img" aria-label="Dual loop execution diagram">
+      <defs><marker id="arr3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#0f6360"/></marker>
+      <marker id="arr3b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#c98a06"/></marker></defs>
+
+      <!-- outer loop -->
+      <rect x="30" y="30" width="760" height="280" rx="16" fill="none" stroke="#c98a06" stroke-width="1.8" stroke-dasharray="8 6"/>
+      <text x="48" y="52" font-size="11" fill="#a06f04" letter-spacing="1.5">OUTER LOOP · TASK QUEUE</text>
+
+      <rect x="56" y="120" width="120" height="100" rx="10" fill="#fbf5ea" stroke="#c98a06" stroke-width="1.6"/>
+      <text x="116" y="160" font-size="12" text-anchor="middle" fill="#a06f04">task</text>
+      <text x="116" y="178" font-size="12" text-anchor="middle" fill="#a06f04">queue</text>
+
+      <!-- context assembly -->
+      <rect x="210" y="120" width="130" height="100" rx="10" fill="#2c3b66"/>
+      <text x="275" y="155" font-size="12" text-anchor="middle" fill="#dfe6f3">context</text>
+      <text x="275" y="172" font-size="12" text-anchor="middle" fill="#dfe6f3">assembly</text>
+      <text x="275" y="194" font-size="8.5" text-anchor="middle" fill="#aab8d8">history+memory+rules</text>
+
+      <!-- inner loop -->
+      <rect x="378" y="74" width="384" height="200" rx="14" fill="none" stroke="#0f6360" stroke-width="1.8"/>
+      <text x="396" y="96" font-size="11" fill="#0f6360" letter-spacing="1.5">INNER LOOP · ReAct</text>
+
+      <rect x="404" y="116" width="100" height="46" rx="9" fill="#0f6360"/><text x="454" y="144" font-size="12" text-anchor="middle" fill="#eaf3f2">REASON</text>
+      <rect x="558" y="116" width="100" height="46" rx="9" fill="#0f6360"/><text x="608" y="144" font-size="12" text-anchor="middle" fill="#eaf3f2">ACT (tool)</text>
+      <rect x="558" y="200" width="100" height="46" rx="9" fill="#fbf5ea" stroke="#0f6360" stroke-width="1.6"/><text x="608" y="228" font-size="12" text-anchor="middle" fill="#0f6360">OBSERVE</text>
+      <rect x="404" y="200" width="100" height="46" rx="9" fill="#c98a06"/><text x="454" y="222" font-size="11.5" text-anchor="middle" fill="#3a2b06">Hands /</text><text x="454" y="238" font-size="9" text-anchor="middle" fill="#4a3506">tools</text>
+
+      <!-- inner arrows -->
+      <line x1="504" y1="139" x2="556" y2="139" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arr3)"/>
+      <line x1="608" y1="162" x2="608" y2="198" stroke="#c98a06" stroke-width="1.8" marker-end="url(#arr3b)"/>
+      <line x1="608" y1="200" x2="540" y2="170" stroke="#c98a06" stroke-width="0"/>
+      <line x1="556" y1="223" x2="506" y2="223" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arr3)"/>
+      <line x1="454" y1="200" x2="454" y2="164" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arr3)"/>
+
+      <!-- flow between blocks -->
+      <line x1="176" y1="170" x2="208" y2="170" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr3b)"/>
+      <line x1="340" y1="150" x2="402" y2="139" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr3)"/>
+      <path d="M404 235 C 360 290, 150 290, 116 222" fill="none" stroke="#4a3f36" stroke-width="1.4" marker-end="url(#arr3b)"/>
+      <text x="270" y="300" font-size="9.5" fill="#7a6c5d" font-style="italic">resolved subtask → back to queue / reply</text>
+    </svg>
+    <figcaption><b>Fig. 3</b> The dual-loop control structure. An outer task queue persists multi-step work; for each turn a context-assembly stage builds the prompt, then an inner ReAct loop (reason → act via Hands → observe) iterates until the subtask resolves.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 06 HEARTBEAT ============ -->
+<section id="heartbeat">
+  <h2><span class="sec-num">§ 06</span>The Heartbeat — proactivity</h2>
+  <p>The Heartbeat is the feature that separates OpenClaw from a reactive assistant. It is, architecturally, a <strong>cron-triggered agentic loop</strong>: at a fixed cadence the agent is woken, handed its current context and a checklist, and asked to evaluate whether anything needs doing. If nothing does, it returns a sentinel — <em class="term">HEARTBEAT_OK</em> — which the Gateway silently swallows and never delivers. You are not pinged every interval; the agent merely <em>checks</em> every interval and speaks only when there is a reason.</p>
+
+  <p>This single mechanism underlies daily briefings, website-change monitoring, calendar-conflict warnings, and reminders pulled from earlier conversation. The cadence and the conditions live in a workspace file (<em class="term">HEARTBEAT.md</em>, §09), so behaviour is edited like text, not recompiled.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 230" role="img" aria-label="Heartbeat loop diagram">
+      <defs><marker id="arr4" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#7a2f4f"/></marker></defs>
+      <rect x="30" y="80" width="120" height="64" rx="10" fill="#7a2f4f"/><text x="90" y="110" font-size="12" text-anchor="middle" fill="#f6e7ee">cron tick</text><text x="90" y="128" font-size="9" text-anchor="middle" fill="#e6c6d3">every N min</text>
+
+      <rect x="190" y="80" width="135" height="64" rx="10" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.6"/><text x="257" y="106" font-size="11.5" text-anchor="middle" fill="#7a2f4f">load context</text><text x="257" y="124" font-size="11.5" text-anchor="middle" fill="#7a2f4f">+ HEARTBEAT.md</text>
+
+      <path d="M365 112 l44 -26 v17 h70 v-17 l44 26 -44 26 v-17 h-70 v17 z" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.6"/>
+      <text x="453" y="108" font-size="11" text-anchor="middle" fill="#7a2f4f">anything</text>
+      <text x="453" y="122" font-size="11" text-anchor="middle" fill="#7a2f4f">to do?</text>
+
+      <rect x="560" y="40" width="220" height="58" rx="10" fill="#0f6360"/><text x="670" y="66" font-size="11.5" text-anchor="middle" fill="#eaf3f2">YES → act &amp; message user</text><text x="670" y="84" font-size="9" text-anchor="middle" fill="#cfe7e5">runs inner loop, sends reply</text>
+
+      <rect x="560" y="128" width="220" height="58" rx="10" fill="#fbf5ea" stroke="#bda988" stroke-width="1.6"/><text x="670" y="154" font-size="11.5" text-anchor="middle" fill="#4a3f36">NO → HEARTBEAT_OK</text><text x="670" y="172" font-size="9" text-anchor="middle" fill="#7a6c5d">Gateway suppresses · silent</text>
+
+      <line x1="150" y1="112" x2="188" y2="112" stroke="#7a2f4f" stroke-width="1.8" marker-end="url(#arr4)"/>
+      <line x1="325" y1="112" x2="362" y2="112" stroke="#7a2f4f" stroke-width="1.8" marker-end="url(#arr4)"/>
+      <line x1="540" y1="100" x2="558" y2="74" stroke="#7a2f4f" stroke-width="1.8" marker-end="url(#arr4)"/>
+      <line x1="540" y1="124" x2="558" y2="150" stroke="#7a2f4f" stroke-width="1.8" marker-end="url(#arr4)"/>
+      <path d="M670 186 C 670 215, 90 215, 90 146" fill="none" stroke="#bda988" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr4)"/>
+      <text x="380" y="212" font-size="9.5" fill="#7a6c5d" font-style="italic">wait for next tick</text>
+    </svg>
+    <figcaption><b>Fig. 4</b> The Heartbeat loop. A cron tick loads context and the heartbeat checklist; the agent decides. Action paths reach the user; the idle path emits a suppressed sentinel, so silence is the default and proactivity the exception.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 07 MEMORY ============ -->
+<section id="memory">
+  <h2><span class="sec-num">§ 07</span>The Memory system</h2>
+  <p>Large language models are stateless — each call starts from nothing. OpenClaw's answer is a persistent memory layer that survives restarts, software updates, and even migrations between machines. The clever part is its <strong>dual representation</strong>: a human-readable surface and a machine-efficient index, kept in sync.</p>
+  <p>The surface is plain <strong>Markdown</strong> — files such as <em class="term">MEMORY.md</em> that you can open in any editor and read or correct by hand. Underneath sits an index layer: a SQLite store, vector embeddings, and semantic search. When you ask a question, the system searches past conversations for semantically related material and injects that slice into the current turn, giving the stateless model the illusion of continuity. You get transparency (read your own memory in VS Code) and performance (the agent queries an optimised index) at once.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 250" role="img" aria-label="Memory system diagram">
+      <defs><marker id="arr5" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#2c3b66"/></marker></defs>
+      <text x="40" y="34" font-size="11" fill="#2c3b66" letter-spacing="1.5">HUMAN-READABLE SURFACE</text>
+      <rect x="40" y="48" width="150" height="46" rx="8" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.5"/><text x="115" y="76" font-size="12" text-anchor="middle" fill="#2c3b66">MEMORY.md</text>
+      <rect x="40" y="104" width="150" height="46" rx="8" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.5"/><text x="115" y="132" font-size="12" text-anchor="middle" fill="#2c3b66">SOUL.md / USER.md</text>
+      <text x="115" y="176" font-size="9.5" text-anchor="middle" fill="#7a6c5d" font-style="italic">edit in any text editor</text>
+
+      <text x="330" y="34" font-size="11" fill="#2c3b66" letter-spacing="1.5">INDEX LAYER (under the hood)</text>
+      <rect x="330" y="48" width="150" height="46" rx="8" fill="#2c3b66"/><text x="405" y="76" font-size="12" text-anchor="middle" fill="#dfe6f3">SQLite index</text>
+      <rect x="330" y="104" width="150" height="46" rx="8" fill="#2c3b66"/><text x="405" y="126" font-size="12" text-anchor="middle" fill="#dfe6f3">vector</text><text x="405" y="142" font-size="9" text-anchor="middle" fill="#aab8d8">embeddings</text>
+      <rect x="330" y="160" width="150" height="40" rx="8" fill="#2c3b66"/><text x="405" y="185" font-size="12" text-anchor="middle" fill="#dfe6f3">semantic search</text>
+
+      <rect x="610" y="92" width="170" height="64" rx="10" fill="#0f6360"/><text x="695" y="120" font-size="12" text-anchor="middle" fill="#eaf3f2">current turn</text><text x="695" y="138" font-size="9" text-anchor="middle" fill="#cfe7e5">relevant slice injected</text>
+
+      <line x1="190" y1="71" x2="328" y2="71" stroke="#2c3b66" stroke-width="1.6" marker-end="url(#arr5)"/>
+      <line x1="190" y1="127" x2="328" y2="127" stroke="#2c3b66" stroke-width="1.6" marker-end="url(#arr5)"/>
+      <text x="258" y="64" font-size="9" text-anchor="middle" fill="#7a6c5d" font-style="italic">index &amp; embed</text>
+      <line x1="480" y1="180" x2="608" y2="135" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arr5)"/>
+    </svg>
+    <figcaption><b>Fig. 5</b> Memory's dual representation. Markdown is the source of truth a human edits; the index layer (SQLite + embeddings + semantic search) is what the agent queries to retrieve and inject only the relevant slice into each turn.</figcaption>
+  </figure>
+  <div class="warn">
+    <span class="lbl">Security note</span>
+    <p style="margin:.4em 0 0;font-size:.95rem">Because memory files are writable Markdown, they are also a persistence target. The January 2026 <strong>ClawHavoc</strong> incident saw malicious skills write payloads directly into <em class="term">MEMORY.md</em> and <em class="term">SOUL.md</em> to survive across sessions — see §11.</p>
+  </div>
+</section>
+
+<!-- ============ 08 SKILLS ============ -->
+<section id="skills">
+  <h2><span class="sec-num">§ 08</span>Skills &amp; the context economy</h2>
+  <p>Capabilities in OpenClaw are not compiled plug-ins; they are <strong>Markdown files</strong>. Each skill lives at a path like <em class="term">~/clawd/skills/&lt;name&gt;/SKILL.md</em> and contains natural-language instructions for talking to an API or running a workflow. The agent reads these at runtime, so installing a skill is immediate — no recompilation, no server restart. You change what the agent can do, and how it behaves, by editing files in the workspace while the runtime continues to enforce execution, permissions, and sandboxing.</p>
+
+  <h3>Discovery vs. injection</h3>
+  <p>The subtle, important detail is that OpenClaw <strong>discovers</strong> skills broadly but <strong>injects</strong> them narrowly. Dumping every skill into every prompt would balloon the context window and degrade model quality, so the system prompt lists skills as <em>metadata only</em> — name, description, file path — and the model reads a full <em class="term">SKILL.md</em> on demand, only when the current turn calls for it. The analogy is a developer with an IDE full of docs: you don't read every manual at startup, you look up the one you need.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 250" role="img" aria-label="Skill injection diagram">
+      <defs><marker id="arr6" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#c98a06"/></marker></defs>
+      <text x="40" y="30" font-size="11" fill="#a06f04" letter-spacing="1.5">SKILL LIBRARY (on disk)</text>
+      <g fill="#fbf5ea" stroke="#c98a06" stroke-width="1.5">
+        <rect x="40" y="44" width="170" height="34" rx="7"/><rect x="40" y="86" width="170" height="34" rx="7"/><rect x="40" y="128" width="170" height="34" rx="7"/><rect x="40" y="170" width="170" height="34" rx="7"/>
+      </g>
+      <g font-size="11" fill="#a06f04" text-anchor="middle"><text x="125" y="66">calendar/SKILL.md</text><text x="125" y="108">email/SKILL.md</text><text x="125" y="150">browser/SKILL.md</text><text x="125" y="192">crypto/SKILL.md</text></g>
+
+      <rect x="300" y="78" width="160" height="92" rx="10" fill="#23323f"/><text x="380" y="110" font-size="11.5" text-anchor="middle" fill="#7fb6c4">system prompt</text><text x="380" y="130" font-size="9" text-anchor="middle" fill="#cfe0e7">metadata list only</text><text x="380" y="146" font-size="9" text-anchor="middle" fill="#cfe0e7">name·desc·path</text>
+
+      <path d="M515 90 l40 -22 v14 h60 v-14 l40 22 -40 22 v-14 h-60 v14 z" fill="#fbf5ea" stroke="#0f6360" stroke-width="1.6"/>
+      <text x="595" y="86" font-size="10.5" text-anchor="middle" fill="#0f6360">turn needs</text>
+      <text x="595" y="99" font-size="10.5" text-anchor="middle" fill="#0f6360">a skill?</text>
+
+      <rect x="640" y="150" width="150" height="60" rx="10" fill="#0f6360"/><text x="715" y="178" font-size="11" text-anchor="middle" fill="#eaf3f2">read full SKILL.md</text><text x="715" y="196" font-size="9" text-anchor="middle" fill="#cfe7e5">inject just-in-time</text>
+
+      <line x1="210" y1="61" x2="298" y2="100" stroke="#c98a06" stroke-width="1.4" marker-end="url(#arr6)"/>
+      <line x1="210" y1="187" x2="298" y2="150" stroke="#c98a06" stroke-width="1.4" marker-end="url(#arr6)"/>
+      <line x1="460" y1="118" x2="512" y2="100" stroke="#4a3f36" stroke-width="1.6" marker-end="url(#arr6)"/>
+      <line x1="650" y1="118" x2="700" y2="148" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arr6)"/>
+      <text x="660" y="118" font-size="9" fill="#7a6c5d" font-style="italic">yes</text>
+    </svg>
+    <figcaption><b>Fig. 6</b> Lazy skill injection. The library is discovered wholesale but enters the prompt only as lightweight metadata; the full instruction file is loaded just-in-time when a turn actually needs that capability — protecting both the context budget and model performance.</figcaption>
+  </figure>
+
+  <p>Skills are distributed through <strong>ClawHub</strong>, the official directory, with each entry carrying a Skill Card describing what it does and where it came from, and scanned for hidden instructions before listing. That curation exists because skills are, functionally, untrusted code (§11).</p>
+</section>
+
+<!-- ============ 09 BLUEPRINT ============ -->
+<section id="prompt">
+  <h2><span class="sec-num">§ 09</span>System-prompt blueprint</h2>
+  <p>An OpenClaw agent's personality and operating rules are not hard-coded — they are assembled at runtime from a stack of workspace files, all of them plain Markdown living in a git-backable directory. The system prompt the model actually sees is a composition of runtime scaffolding plus this project context. The blueprint below maps the principal files; editing them is how you make an agent <em>yours</em> without touching a line of source.</p>
+
+  <div class="blueprint">
+    <h4>System Prompt · Assembly Manifest</h4>
+    <p class="bp-sub">runtime scaffolding + ── project context ── (workspace Markdown)</p>
+    <div class="bp-row"><div class="bp-file">[runtime] Tooling</div><div class="bp-desc">Available tools and their descriptions; JSON tool schemas travel alongside and count against the context budget.</div></div>
+    <div class="bp-row"><div class="bp-file">[runtime] Safety</div><div class="bp-desc">Guardrails and reply tags; the heartbeat contract (including the HEARTBEAT_OK sentinel).</div></div>
+    <div class="bp-row"><div class="bp-file">[runtime] Skills index</div><div class="bp-desc">Names, descriptions and file paths only — full SKILL.md read on demand (§08).</div></div>
+    <div class="bp-row"><div class="bp-file">[runtime] Runtime meta</div><div class="bp-desc">Host / OS / model / thinking level; date &amp; timezone (kept clock-stable to preserve prompt caching).</div></div>
+    <div class="bp-row"><div class="bp-file">AGENTS.md</div><div class="bp-desc">Operating instructions — the agent's standing orders and how it should conduct itself.</div></div>
+    <div class="bp-row"><div class="bp-file">SOUL.md</div><div class="bp-desc">Persona and tone. The lines that make one person's agent sound nothing like another's.</div></div>
+    <div class="bp-row"><div class="bp-file">IDENTITY.md</div><div class="bp-desc">The agent's name and vibe — its sense of self across sessions.</div></div>
+    <div class="bp-row"><div class="bp-file">USER.md</div><div class="bp-desc">The user profile — who you are, your context and preferences.</div></div>
+    <div class="bp-row"><div class="bp-file">TOOLS.md</div><div class="bp-desc">Local notes about host-specific tools and how to use them on this machine.</div></div>
+    <div class="bp-row"><div class="bp-file">HEARTBEAT.md</div><div class="bp-desc">The periodic checklist the Heartbeat consults each tick (§06).</div></div>
+  </div>
+  <p style="font-size:.95rem;color:var(--ink-soft)">Because the workspace is plain Markdown under version control, the prompt is auditable, diffable, and portable — the same property that makes it powerful makes it a tampering target if a skill can write to it.</p>
+</section>
+
+<!-- ============ 10 FLOW ============ -->
+<section id="flow">
+  <h2><span class="sec-num">§ 10</span>End-to-end message flow</h2>
+  <p>Tracing one message — say, <em>"Help me analyse this sales data"</em> — through the whole stack ties the pieces together. The sequence diagram reads top to bottom; time flows downward along each lifeline.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 430" role="img" aria-label="Message sequence diagram">
+      <defs><marker id="arrs" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#241d18"/></marker></defs>
+      <!-- lifelines -->
+      <g font-size="10.5" text-anchor="middle">
+        <rect x="20" y="20" width="96" height="34" rx="7" fill="#2c3b66"/><text x="68" y="42" fill="#dfe6f3">Channel</text>
+        <rect x="160" y="20" width="96" height="34" rx="7" fill="#b8420a"/><text x="208" y="42" fill="#fbf5ea">Gateway</text>
+        <rect x="300" y="20" width="96" height="34" rx="7" fill="#4a3f36"/><text x="348" y="42" fill="#f4ecdd">Session</text>
+        <rect x="440" y="20" width="96" height="34" rx="7" fill="#0f6360"/><text x="488" y="42" fill="#eaf3f2">Brain/LLM</text>
+        <rect x="580" y="20" width="96" height="34" rx="7" fill="#2c3b66"/><text x="628" y="42" fill="#dfe6f3">Memory</text>
+        <rect x="704" y="20" width="96" height="34" rx="7" fill="#c98a06"/><text x="752" y="42" fill="#3a2b06">Hands</text>
+      </g>
+      <g stroke="#bda988" stroke-width="1.2" stroke-dasharray="4 5">
+        <line x1="68" y1="54" x2="68" y2="410"/><line x1="208" y1="54" x2="208" y2="410"/><line x1="348" y1="54" x2="348" y2="410"/><line x1="488" y1="54" x2="488" y2="410"/><line x1="628" y1="54" x2="628" y2="410"/><line x1="752" y1="54" x2="752" y2="410"/>
+      </g>
+      <g stroke="#241d18" stroke-width="1.5" font-size="9.5">
+        <line x1="68" y1="80" x2="206" y2="80" marker-end="url(#arrs)"/><text x="137" y="74" text-anchor="middle">1. user message</text>
+        <line x1="208" y1="110" x2="346" y2="110" marker-end="url(#arrs)"/><text x="277" y="104" text-anchor="middle">2. route + validate</text>
+        <line x1="348" y1="140" x2="486" y2="140" marker-end="url(#arrs)"/><text x="417" y="134" text-anchor="middle">3. assemble context</text>
+        <line x1="488" y1="170" x2="626" y2="170" marker-end="url(#arrs)"/><text x="557" y="164" text-anchor="middle">4. semantic recall</text>
+        <line x1="626" y1="200" x2="490" y2="200" marker-end="url(#arrs)"/><text x="557" y="194" text-anchor="middle">5. relevant slice</text>
+        <line x1="488" y1="232" x2="750" y2="232" marker-end="url(#arrs)"/><text x="610" y="226" text-anchor="middle">6. tool call (ReAct)</text>
+        <line x1="750" y1="262" x2="490" y2="262" marker-end="url(#arrs)"/><text x="610" y="256" text-anchor="middle">7. observation</text>
+      </g>
+      <!-- inner loop bracket -->
+      <rect x="470" y="216" width="300" height="62" rx="6" fill="none" stroke="#0f6360" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="478" y="293" font-size="9" fill="#0f6360" font-style="italic">↺ inner loop repeats until resolved</text>
+      <g stroke="#241d18" stroke-width="1.5" font-size="9.5">
+        <line x1="488" y1="322" x2="350" y2="322" marker-end="url(#arrs)"/><text x="419" y="316" text-anchor="middle">8. write memory</text>
+        <line x1="348" y1="352" x2="210" y2="352" marker-end="url(#arrs)"/><text x="279" y="346" text-anchor="middle">9. result</text>
+        <line x1="208" y1="382" x2="70" y2="382" marker-end="url(#arrs)"/><text x="137" y="376" text-anchor="middle">10. reply to user</text>
+      </g>
+    </svg>
+    <figcaption><b>Fig. 7</b> Sequence for a single request. Note steps 4–5 (semantic recall feeding context) and the bracketed inner loop (6–7) that may cycle several times before the agent persists state (8) and the Gateway returns the reply over the originating channel (10).</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 11 SECURITY ============ -->
+<section id="security">
+  <h2><span class="sec-num">§ 11</span>Security architecture</h2>
+  <p>OpenClaw's security model is deliberate and, for an engineer evaluating it, the most consequential part of the design. The starting premise is the <strong>single-operator trust boundary</strong>: a Gateway is not modelled as a multi-tenant, adversarial surface. Anyone with authenticated Gateway access is treated as a trusted operator — on the reasoning that such a person could already SSH into the host directly. This is a documented choice, not an oversight, and it mirrors how mainstream LLM products decline to treat prompt injection as a classical vulnerability solvable at the model layer.</p>
+
+  <h3>The real attack surface: content, not just senders</h3>
+  <p>The corollary is sharp: <strong>the sender is not the only threat surface — the content is</strong>. Even if only you can message the bot, any untrusted material it <em>reads</em> — web pages, emails, documents, attachments, pasted logs — can carry adversarial instructions. This is indirect prompt injection, and the standard mitigation is a <strong>read-only reader agent</strong> that summarises untrusted content before a tool-enabled agent ever touches it.</p>
+
+  <h3>Defence in depth at the tool layer</h3>
+  <p>Because the model can be confused, the architecture assumes it <em>will</em> be and constrains <em>blast radius</em> instead. The strongest control is the <strong>tool allowlist</strong>: even if an attacker convinces the model to want a destructive command, it cannot run unless it is on the list. Untrusted sessions are run with a stripped tool profile (messaging only; filesystem, runtime, and admin tools denied by default), file writes to system paths are redirected into a sandbox, and secrets are injected via environment variables rather than the prompt.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 360" role="img" aria-label="Security boundaries and threat model">
+      <defs><marker id="arrx" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#7a2f4f"/></marker></defs>
+      <!-- attackers -->
+      <text x="40" y="28" font-size="11" fill="#7a2f4f" letter-spacing="1.5">THREAT MODEL</text>
+      <rect x="30" y="40" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.5"/><text x="105" y="58" font-size="10.5" text-anchor="middle" fill="#7a2f4f">Remote attacker</text><text x="105" y="72" font-size="8.5" text-anchor="middle" fill="#7a6c5d">indirect injection</text>
+      <rect x="30" y="92" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.5"/><text x="105" y="110" font-size="10.5" text-anchor="middle" fill="#7a2f4f">Local attacker</text><text x="105" y="124" font-size="8.5" text-anchor="middle" fill="#7a6c5d">persistence / escape</text>
+      <rect x="30" y="144" width="150" height="40" rx="8" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.5"/><text x="105" y="162" font-size="10.5" text-anchor="middle" fill="#7a2f4f">Malicious skill</text><text x="105" y="176" font-size="8.5" text-anchor="middle" fill="#7a6c5d">ClawHub supply chain</text>
+
+      <!-- nested boundaries -->
+      <rect x="220" y="30" width="570" height="300" rx="16" fill="none" stroke="#2c3b66" stroke-width="1.6"/>
+      <text x="236" y="50" font-size="10" fill="#2c3b66">PERIMETER · loopback :18789 · pairing / allowlist of who may message</text>
+
+      <rect x="248" y="64" width="514" height="240" rx="14" fill="none" stroke="#b8420a" stroke-width="1.6" stroke-dasharray="7 5"/>
+      <text x="264" y="84" font-size="10" fill="#b8420a">CONTEXT FIREWALL · reader agent summarises untrusted content first</text>
+
+      <rect x="278" y="100" width="454" height="186" rx="12" fill="none" stroke="#c98a06" stroke-width="1.8"/>
+      <text x="294" y="120" font-size="10" fill="#a06f04">POLICY ENGINE · intercepts every tool call · allowlist + human-in-the-loop</text>
+
+      <rect x="320" y="140" width="370" height="60" rx="10" fill="#23323f"/><text x="505" y="166" font-size="11.5" text-anchor="middle" fill="#7fb6c4">TOOL SANDBOX</text><text x="505" y="184" font-size="9" text-anchor="middle" fill="#cfe0e7">isolated exec · system writes redirected</text>
+
+      <rect x="320" y="216" width="178" height="52" rx="10" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.4"/><text x="409" y="240" font-size="10.5" text-anchor="middle" fill="#2c3b66">Memory store</text><text x="409" y="256" font-size="8.5" text-anchor="middle" fill="#7a6c5d">elevated to write</text>
+      <rect x="512" y="216" width="178" height="52" rx="10" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.4"/><text x="601" y="240" font-size="10.5" text-anchor="middle" fill="#2c3b66">Audit log</text><text x="601" y="256" font-size="8.5" text-anchor="middle" fill="#7a6c5d">input→call→result</text>
+
+      <line x1="180" y1="60" x2="246" y2="120" stroke="#7a2f4f" stroke-width="1.5" marker-end="url(#arrx)"/>
+      <line x1="180" y1="112" x2="318" y2="240" stroke="#7a2f4f" stroke-width="1.5" marker-end="url(#arrx)"/>
+      <line x1="180" y1="164" x2="318" y2="160" stroke="#7a2f4f" stroke-width="1.5" marker-end="url(#arrx)"/>
+    </svg>
+    <figcaption><b>Fig. 8</b> Concentric defence-in-depth. Three attacker classes press on nested boundaries: a network perimeter, a context firewall (reader agent), a policy engine intercepting every tool call, and a sandbox. The allowlist is the load-bearing control — it holds even when the model is fooled.</figcaption>
+  </figure>
+
+  <div class="warn">
+    <span class="lbl">Case study · ClawHavoc, Jan 2026</span>
+    <p style="margin:.4em 0 0;font-size:.95rem">Hundreds of ClawHub skills were found carrying malware — an info-stealer that harvested API keys, planted keyloggers, and wrote persistent payloads into <em class="term">MEMORY.md</em> and <em class="term">SOUL.md</em>. One posed as a crypto trading tool and lifted wallet credentials. The takeaway is blunt: treat every unverified skill as untrusted code, audit before install, and run new skills sandboxed with minimal permissions.</p>
+  </div>
+</section>
+
+<!-- ============ 12 DEPLOY ============ -->
+<section id="deploy">
+  <h2><span class="sec-num">§ 12</span>Deployment topologies</h2>
+  <p>The same architecture scales down to a laptop and up to a VPS. All inference and state stay local by default, so the deployment decision is really about availability and exposure, not data residency. A common, hard-won piece of advice: do not run OpenClaw on your daily-driver or work machine — give it its own box.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 200" role="img" aria-label="Deployment topologies">
+      <g>
+        <rect x="24" y="40" width="240" height="120" rx="12" fill="#fbf5ea" stroke="#bda988" stroke-width="1.6"/>
+        <text x="144" y="66" font-size="12" text-anchor="middle" fill="#b8420a" font-weight="600">LAPTOP</text>
+        <text x="144" y="92" font-size="10" text-anchor="middle" fill="#4a3f36">foreground gateway</text>
+        <text x="144" y="110" font-size="10" text-anchor="middle" fill="#4a3f36">local models possible</text>
+        <text x="144" y="134" font-size="9" text-anchor="middle" fill="#7a6c5d" font-style="italic">dev &amp; experimentation</text>
+      </g>
+      <g>
+        <rect x="290" y="40" width="240" height="120" rx="12" fill="#fbf5ea" stroke="#2c3b66" stroke-width="1.6"/>
+        <text x="410" y="66" font-size="12" text-anchor="middle" fill="#2c3b66" font-weight="600">HOME SERVER</text>
+        <text x="410" y="92" font-size="10" text-anchor="middle" fill="#4a3f36">systemd / launchd service</text>
+        <text x="410" y="110" font-size="10" text-anchor="middle" fill="#4a3f36">always-on heartbeat</text>
+        <text x="410" y="134" font-size="9" text-anchor="middle" fill="#7a6c5d" font-style="italic">reach via SSH / Tailscale</text>
+      </g>
+      <g>
+        <rect x="556" y="40" width="240" height="120" rx="12" fill="#23323f" stroke="#16222b"/>
+        <text x="676" y="66" font-size="12" text-anchor="middle" fill="#7fb6c4" font-weight="600">VPS</text>
+        <text x="676" y="92" font-size="10" text-anchor="middle" fill="#cfe0e7">never expose port directly</text>
+        <text x="676" y="110" font-size="10" text-anchor="middle" fill="#cfe0e7">reverse proxy + TLS</text>
+        <text x="676" y="134" font-size="9" text-anchor="middle" fill="#9fb9c4" font-style="italic">least privilege · secret mgmt</text>
+      </g>
+    </svg>
+    <figcaption><b>Fig. 9</b> Three deployment shapes sharing one codebase. As exposure grows left-to-right, hardening obligations grow with it: a VPS must sit behind a reverse proxy with TLS and never bind the Gateway port to the public internet.</figcaption>
+  </figure>
+</section>
+
+<style>
+  /* ---- code & config cards ---- */
+  .codecard{background:#23323f;border-radius:14px;margin:26px 0;border:1px solid #16222b;box-shadow:0 16px 34px -20px rgba(0,0,0,.5);overflow:hidden}
+  .codecard .bar{display:flex;align-items:center;gap:7px;padding:11px 16px;background:#1b2832;border-bottom:1px solid #16222b}
+  .codecard .bar .dot{width:11px;height:11px;border-radius:50%;background:#3d5360}
+  .codecard .bar .fname{font-family:var(--mono);font-size:.74rem;color:#7fb6c4;letter-spacing:.06em;margin-left:8px}
+  .codecard pre{margin:0;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.72;color:#cfe0e7;tab-size:2;white-space:pre}
+  .codecard .c{color:#728d99;font-style:italic}
+  .codecard .k{color:#ffd089}
+  .codecard .s{color:#8fd3c4}
+  /* ---- command flow ---- */
+  .cmds{background:#1b2832;border-radius:14px;padding:18px 22px;margin:24px 0;border:1px solid #16222b;font-family:var(--mono);font-size:.78rem;line-height:1.95;color:#cfe0e7;overflow-x:auto;white-space:pre-wrap}
+  .cmds .pr{color:#ff8a4c;user-select:none}
+  .cmds .cm{color:#728d99;font-style:italic}
+  .cmds .hl{color:#ffd089}
+  /* ---- hot/cold compare ---- */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+  .compare .col{background:var(--card);border:1px solid var(--line-strong);border-radius:12px;padding:16px 18px}
+  .compare .col h5{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 9px}
+  .compare .col.hot h5{color:var(--petrol)}
+  .compare .col.cold h5{color:var(--plum)}
+  .compare ul{margin:0;padding-left:1.05em;font-size:.88rem;color:var(--ink-soft)}
+  .compare li{margin:.32em 0}
+  .compare code{font-family:var(--mono);font-size:.88em;color:var(--rust-deep)}
+  @media(max-width:560px){.compare{grid-template-columns:1fr}}
+  /* ---- glossary ---- */
+  .gloss{margin:22px 0;border-top:1px solid var(--line-strong)}
+  .gloss .row{display:grid;grid-template-columns:185px 1fr;gap:16px;padding:11px 2px;border-bottom:1px solid var(--line);align-items:baseline}
+  .gloss .term-k{font-family:var(--mono);font-size:.82rem;color:var(--rust-deep);font-weight:500}
+  .gloss .def{font-size:.93rem;color:var(--ink-soft);line-height:1.5}
+  @media(max-width:560px){.gloss .row{grid-template-columns:1fr;gap:1px}}
+  /* ---- cheat sheet ---- */
+  .cheat{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:26px;margin:26px 0;box-shadow:7px 7px 0 var(--line-strong)}
+  .cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px}
+  .cheat h5{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);margin:0 0 9px;border-bottom:1px dashed var(--line-strong);padding-bottom:6px}
+  .cheat ul{margin:0;padding:0;list-style:none;font-size:.82rem;line-height:1.5}
+  .cheat li{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dotted var(--line)}
+  .cheat li:last-child{border-bottom:none}
+  .cheat code{font-family:var(--mono);font-size:.92em;color:var(--petrol);text-align:right}
+  .cheat .muted{color:var(--ink-faint)}
+  /* ---- print ---- */
+  @media print{
+    body{background:#fff}
+    section,figure,.codecard,.cmds,.blueprint,.cheat,.compare{break-inside:avoid}
+    a{color:var(--ink);text-decoration:none}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .corner-no{display:none}
+  }
+</style>
+
+<!-- ============ 13 CONFIG ============ -->
+<section id="config">
+  <h2><span class="sec-num">§ 13</span>Configuration &amp; lifecycle</h2>
+  <p>Everything an operator tunes lives in one file: <em class="term">~/.openclaw/openclaw.json</em>, written in <strong>JSON5</strong> (comments and trailing commas allowed). It is validated against a strict schema on <em>every</em> startup — add a key that doesn't exist, or give one the wrong type, and the Gateway refuses to boot rather than running misconfigured. Every field is optional; with no file present, OpenClaw falls back to safe defaults. Crucially, secrets do not live here: the config holds <em class="term">secretRef</em> pointers (env / file / exec sources) while the actual credentials sit in <em class="term">~/.openclaw/auth-profiles.json</em>.</p>
+
+  <div class="codecard">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fname">~/.openclaw/openclaw.json</span></div>
+<pre><span class="c">// JSON5 — comments + trailing commas OK. Strict-schema validated on boot.</span>
+{
+  channels: {
+    telegram: {
+      <span class="k">enabled</span>: true,
+      <span class="k">botToken</span>: { <span class="k">secretRef</span>: <span class="s">"env:TG_TOKEN"</span> },   <span class="c">// never inline secrets</span>
+      <span class="k">dmPolicy</span>: <span class="s">"pairing"</span>,        <span class="c">// pairing | allowlist | open | disabled</span>
+      <span class="k">groupPolicy</span>: <span class="s">"mention"</span>,     <span class="c">// require an @-mention in groups</span>
+      <span class="k">allowFrom</span>: [<span class="s">"tg:123456789"</span>],
+    },
+  },
+
+  session: { <span class="k">dmScope</span>: <span class="s">"per-channel-peer"</span> },   <span class="c">// isolate multi-user DMs</span>
+
+  agents: {
+    defaults: {
+      <span class="k">workspace</span>: <span class="s">"~/clawd"</span>,
+      <span class="k">model</span>: {
+        <span class="k">primary</span>: <span class="s">"anthropic/claude-opus-4-6"</span>,        <span class="c">// provider/model ref</span>
+        <span class="k">fallbacks</span>: [<span class="s">"anthropic/claude-sonnet-4-6"</span>],   <span class="c">// auto-failover</span>
+      },
+      <span class="k">models</span>: {
+        <span class="s">"anthropic/claude-opus-4-6"</span>: { <span class="k">alias</span>: <span class="s">"Opus"</span>, <span class="k">cacheControlTtl</span>: 300 },
+      },
+      <span class="k">thinking</span>: <span class="s">"medium"</span>,
+      <span class="k">heartbeat</span>: { <span class="k">intervalMin</span>: 30 },        <span class="c">// the pulse cadence (§6)</span>
+      <span class="k">memory</span>: { <span class="k">enabled</span>: true },
+      <span class="k">skills</span>: { <span class="k">autoInject</span>: false },         <span class="c">// metadata only; body on demand (§8)</span>
+      <span class="k">sandbox</span>: {
+        <span class="k">mode</span>: <span class="s">"non-main"</span>,                  <span class="c">// off | non-main | all</span>
+        <span class="k">docker</span>: { <span class="k">image</span>: <span class="s">"openclaw-sandbox:bookworm-slim"</span>,
+                  <span class="k">network</span>: <span class="s">"none"</span>, <span class="k">readOnlyRoot</span>: true },
+      },
+    },
+  },
+}</pre>
+  </div>
+
+  <h3>What reloads live, what needs a restart</h3>
+  <p>OpenClaw hot-applies most edits the moment you save, but a handful of structural settings only take effect after the Gateway is bounced — and per-agent overrides of <em>defaults-only</em> keys are silently ignored, which is its own class of bug.</p>
+  <div class="compare">
+    <div class="col hot">
+      <h5>Hot-applies · no restart</h5>
+      <ul>
+        <li>Model &amp; fallback changes</li>
+        <li>Channel policies (<code>dmPolicy</code>, <code>allowFrom</code>)</li>
+        <li>Cron jobs &amp; heartbeat intervals</li>
+        <li>Tool config and most session settings</li>
+      </ul>
+    </div>
+    <div class="col cold">
+      <h5>Needs <code>gateway restart</code></h5>
+      <ul>
+        <li>Port / bind address</li>
+        <li>Sandbox Docker configuration</li>
+        <li>Plugins</li>
+        <li>Defaults-only keys set per-agent → run <code>openclaw doctor --fix</code></li>
+      </ul>
+    </div>
+  </div>
+  <p>Edit safely from the CLI rather than hand-patching: <em class="term">openclaw config set agents.defaults.models '&lt;json&gt;' --strict-json --merge</em> adds entries without clobbering existing ones (a removal needs <em class="term">--replace</em>), and <em class="term">openclaw config get &lt;key&gt;</em> reads the <em>resolved</em> value from the running Gateway, not just the file. Need two agents on one box? Give each its own state directory with <em class="term">openclaw --profile work gateway run --port 18790</em> (or set <em class="term">OPENCLAW_HOME</em>).</p>
+
+  <h3>Provider &amp; runtime abstraction</h3>
+  <p>Models are referenced as <em class="term">provider/model</em>, and a per-model <em class="term">api</em> field selects the request dialect: <em class="term">"anthropic"</em> for the Anthropic API, <em class="term">"openai-responses"</em> for most OpenAI-compatible local servers, and <em class="term">"openai-completions"</em> for Ollama. A primary agent model <em>must</em> support function/tool calling — the whole tool system depends on it. The embedded runtime (<em class="term">pi-mono</em>) handles the actual LLM interaction and supports block streaming (emitting completed blocks as they finish); the date is kept timezone-only so the prompt stays cache-stable across turns. Fallbacks rotate automatically on rate limits or outages.</p>
+
+  <h3>Install → run → update</h3>
+  <div class="cmds"><span class="pr">$</span> npm install -g openclaw@latest        <span class="cm"># install the CLI</span>
+<span class="pr">$</span> openclaw --version
+
+<span class="pr">$</span> openclaw onboard --install-daemon     <span class="cm"># ~2-min wizard: provider, key,</span>
+                                       <span class="cm"># workspace, channels, health —</span>
+                                       <span class="cm"># configures the gateway on :18789</span>
+
+<span class="pr">$</span> openclaw gateway status              <span class="cm"># confirm it's listening</span>
+<span class="pr">$</span> openclaw dashboard                   <span class="cm"># open the Control UI in a browser</span>
+
+<span class="pr">$</span> openclaw update                      <span class="cm"># detect npm/git, fetch latest,</span>
+                                       <span class="cm"># run doctor, restart the gateway</span>
+<span class="pr">$</span> openclaw update <span class="hl">--channel</span> beta <span class="hl">--dry-run</span>   <span class="cm"># preview a beta bump</span>
+<span class="pr">$</span> openclaw doctor <span class="hl">--fix</span>                <span class="cm"># find &amp; repair config drift</span></div>
+  <p>Service control lives under <em class="term">openclaw gateway install / start / stop / restart / status</em> (the older <em class="term">openclaw daemon …</em> is a legacy alias). When the config-enabled <strong>core auto-updater</strong> fires, it doesn't replace the package inside the live process: it launches a detached helper that runs the normal update path from outside the Gateway's process tree, so an in-flight turn isn't severed mid-thought.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 150" role="img" aria-label="Lifecycle flow">
+      <defs><marker id="arrl" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9z" fill="#0f6360"/></marker></defs>
+      <rect x="20" y="50" width="130" height="50" rx="10" fill="#fbf5ea" stroke="#0f6360" stroke-width="1.6"/><text x="85" y="72" font-size="11.5" text-anchor="middle" fill="#0f6360">npm install</text><text x="85" y="89" font-size="8.5" text-anchor="middle" fill="#4a3f36">global CLI</text>
+      <rect x="190" y="50" width="150" height="50" rx="10" fill="#fbf5ea" stroke="#0f6360" stroke-width="1.6"/><text x="265" y="72" font-size="11.5" text-anchor="middle" fill="#0f6360">onboard</text><text x="265" y="89" font-size="8.5" text-anchor="middle" fill="#4a3f36">--install-daemon</text>
+      <rect x="380" y="50" width="150" height="50" rx="10" fill="#b8420a"/><text x="455" y="72" font-size="11.5" text-anchor="middle" fill="#fbf5ea">gateway service</text><text x="455" y="89" font-size="8.5" text-anchor="middle" fill="#f4ecdd">always-on · :18789</text>
+      <rect x="570" y="50" width="150" height="50" rx="10" fill="#fbf5ea" stroke="#7a2f4f" stroke-width="1.6"/><text x="645" y="72" font-size="11.5" text-anchor="middle" fill="#7a2f4f">update</text><text x="645" y="89" font-size="8.5" text-anchor="middle" fill="#4a3f36">doctor + restart</text>
+      <line x1="150" y1="75" x2="188" y2="75" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arrl)"/>
+      <line x1="340" y1="75" x2="378" y2="75" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arrl)"/>
+      <line x1="530" y1="75" x2="568" y2="75" stroke="#0f6360" stroke-width="1.8" marker-end="url(#arrl)"/>
+      <path d="M645 100 C 645 135, 455 135, 455 102" fill="none" stroke="#7a2f4f" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arrl)"/>
+      <text x="550" y="132" font-size="9" fill="#7a6c5d" font-style="italic">detached helper · no downtime</text>
+    </svg>
+    <figcaption><b>Fig. 10</b> The operational lifecycle. Install and onboard are one-time; the Gateway then runs as a supervised service, and the update path (self-triggered or manual) loops back through a detached helper so the live process is never replaced mid-turn.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 14 SKILL ANATOMY ============ -->
+<section id="skill">
+  <h2><span class="sec-num">§ 14</span>Anatomy of a skill</h2>
+  <p>Since capabilities are just Markdown (§8), the unit of extension is a folder — <em class="term">~/clawd/skills/&lt;name&gt;/SKILL.md</em> — with two distinct halves. The <strong>front-matter</strong> (name + description) is the cheap "card" that always sits in the system prompt so the model knows the skill exists; the <strong>body</strong> is the heavier payload, read just-in-time only when a turn actually invokes the skill. The annotated example below is representative of the shape; the comments mark which part goes where.</p>
+
+  <div class="codecard">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="fname">~/clawd/skills/weather/SKILL.md</span></div>
+<pre><span class="c">--- &lt;- front-matter: the only part always resident in the prompt</span>
+<span class="k">name</span>: <span class="s">weather</span>
+<span class="k">description</span>: <span class="s">&gt;</span>
+  <span class="s">Current conditions and short forecasts by city. Use when the</span>
+  <span class="s">user asks about weather, rain, temperature, or what to wear.</span>
+<span class="c">---</span>
+
+<span class="c"># Weather skill        &lt;- body: loaded ON DEMAND, not always in context</span>
+
+<span class="k">## When to use</span>
+Trigger on questions about current or upcoming weather for a place.
+
+<span class="k">## How</span>
+1. Resolve the city name to coordinates.
+2. GET https://api.example.com/forecast?lat={lat}&amp;lon={lon}
+   Authorization: Bearer ${WEATHER_API_KEY}   <span class="c"># secret via env, not prompt</span>
+3. Summarise today plus the next three days in two sentences.
+
+<span class="k">## Guardrails</span>
+Read-only. No filesystem writes, no shell. Decline requests that
+resolve to a specific private home address.</pre>
+  </div>
+
+  <div class="note">
+    <span class="lbl">How the halves map to the architecture</span>
+    <p style="margin:.4em 0 0;font-size:.95rem">The front-matter is what §8's lazy injection lists as metadata; the body is the payload pulled in only when needed. The <em class="term">${WEATHER_API_KEY}</em> pattern keeps secrets out of the prompt (§11), and the explicit Guardrails block is how a skill declares least-privilege intent — the runtime's allowlist still enforces it regardless of what the Markdown claims. On ClawHub, each published skill additionally carries a Skill Card and is scanned by SkillSpector before listing.</p>
+  </div>
+</section>
+
+<!-- ============ 15 GLOSSARY ============ -->
+<section id="glossary">
+  <h2><span class="sec-num">§ 15</span>Lobster lexicon</h2>
+  <p>OpenClaw's documentation and community lean hard into the crustacean theme, which can obscure plain meanings. This glossary translates the vocabulary used throughout this guide.</p>
+  <div class="gloss">
+    <div class="row"><div class="term-k">OpenClaw</div><div class="def">The project itself — formerly Clawdbot, then Moltbot. A self-hosted autonomous agent.</div></div>
+    <div class="row"><div class="term-k">claw</div><div class="def">Generic term for a long-running autonomous agent that operates on a heartbeat rather than per-prompt.</div></div>
+    <div class="row"><div class="term-k">Clawd / Molty</div><div class="def">The original personal-assistant forerunner the project grew out of; still referenced in persona files.</div></div>
+    <div class="row"><div class="term-k">molt</div><div class="def">A release / version bump — the lobster shedding its shell. Also the "Moltbot" naming era.</div></div>
+    <div class="row"><div class="term-k">Gateway</div><div class="def">The single orchestrating front door; default loopback port :18789 (§4).</div></div>
+    <div class="row"><div class="term-k">Heartbeat</div><div class="def">The cron pulse that wakes the agent to check its task list (§6).</div></div>
+    <div class="row"><div class="term-k">HEARTBEAT_OK</div><div class="def">The sentinel reply meaning "nothing to do"; the Gateway suppresses it so you stay un-pinged.</div></div>
+    <div class="row"><div class="term-k">SOUL.md</div><div class="def">Workspace file holding the agent's persona and tone — the part that makes it feel like yours.</div></div>
+    <div class="row"><div class="term-k">SKILL.md</div><div class="def">A Markdown-defined capability, discovered broadly but injected lazily (§8, §14).</div></div>
+    <div class="row"><div class="term-k">ClawHub</div><div class="def">The official skill directory; entries ship a Skill Card and are scanned by SkillSpector.</div></div>
+    <div class="row"><div class="term-k">ClawHavoc</div><div class="def">The January 2026 supply-chain incident in which malicious ClawHub skills shipped malware (§11).</div></div>
+    <div class="row"><div class="term-k">Canvas / A2UI</div><div class="def">An agent-driven visual workspace running as a separate process on :18793 for isolation.</div></div>
+    <div class="row"><div class="term-k">pi-mono</div><div class="def">The embedded runtime that performs the actual LLM interaction and block streaming.</div></div>
+    <div class="row"><div class="term-k">node</div><div class="def">A paired device (role: node) that exposes commands like camera, screen-record, and location.</div></div>
+    <div class="row"><div class="term-k">dmPolicy</div><div class="def">Per-channel rule for who may DM the bot: pairing, allowlist, open, or disabled.</div></div>
+    <div class="row"><div class="term-k">dmScope</div><div class="def">Secure-DM setting (per-channel-peer) that stops different senders from sharing one context.</div></div>
+    <div class="row"><div class="term-k">sandbox</div><div class="def">Docker isolation for sub-agents and cron jobs; modes off, non-main, or all.</div></div>
+    <div class="row"><div class="term-k">reader agent</div><div class="def">A tool-disabled agent that summarises untrusted content before a tool-enabled agent touches it.</div></div>
+  </div>
+</section>
+
+<!-- ============ 16 CHEAT SHEET ============ -->
+<section id="cheat">
+  <h2><span class="sec-num">§ 16</span>Quick-reference card</h2>
+  <p>A one-page distillation, built to survive printing. From the browser, <em class="term">Cmd / Ctrl-P → Save as PDF</em> renders the whole guide — diagrams, fonts and all — at full fidelity.</p>
+  <div class="cheat">
+    <div class="cheat-grid">
+      <div>
+        <h5>Five pillars</h5>
+        <ul>
+          <li>Gateway <span class="muted">front door</span></li>
+          <li>Brain <span class="muted">reasoning</span></li>
+          <li>Hands <span class="muted">tools</span></li>
+          <li>Memory <span class="muted">persistence</span></li>
+          <li>Heartbeat <span class="muted">proactivity</span></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Ports &amp; paths</h5>
+        <ul>
+          <li>Gateway <code>:18789</code></li>
+          <li>Canvas <code>:18793</code></li>
+          <li>Config <code>~/.openclaw/openclaw.json</code></li>
+          <li>Secrets <code>auth-profiles.json</code></li>
+          <li>Workspace <code>~/clawd</code></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Core commands</h5>
+        <ul>
+          <li>Install <code>npm i -g openclaw</code></li>
+          <li>Set up <code>onboard --install-daemon</code></li>
+          <li>Status <code>gateway status</code></li>
+          <li>UI <code>dashboard</code></li>
+          <li>Update <code>update</code></li>
+          <li>Repair <code>doctor --fix</code></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Workspace files</h5>
+        <ul>
+          <li>Orders <code>AGENTS.md</code></li>
+          <li>Persona <code>SOUL.md</code></li>
+          <li>You <code>USER.md</code></li>
+          <li>Pulse <code>HEARTBEAT.md</code></li>
+          <li>Skills <code>skills/*/SKILL.md</code></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Policy values</h5>
+        <ul>
+          <li>dmPolicy <code>pairing…disabled</code></li>
+          <li>sandbox <code>off · non-main · all</code></li>
+          <li>api <code>anthropic · openai-*</code></li>
+          <li>channels <code>--channel stable/beta/dev</code></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Safety rules of thumb</h5>
+        <ul>
+          <li>Never expose the port</li>
+          <li>Allowlist tools tightly</li>
+          <li>Reader agent for untrusted input</li>
+          <li>Audit skills before install</li>
+          <li>Not on your daily machine</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 17 LEGACY ============ -->
+<section id="legacy">
+  <h2><span class="sec-num">§ 17</span>Why the pattern matters</h2>
+  <p>OpenClaw became one of the fastest-growing repositories of early 2026, and the enthusiasm was less about the specific tool than about the <em>shape</em> it crystallised. The combination — <strong>local Gateway + agentic loop + lazily-injected skills + persistent file-backed memory</strong> — is a readable, MIT-licensed instance of the same primitives that power production agent systems at serious AI labs. The vocabulary it popularised (the persistent "claw," the heartbeat, the SKILL.md) is now common shorthand, and vendor reference implementations and enterprise hardening kits have grown up around it.</p>
+  <p>For anyone designing their own multi-agent tooling, the lessons transfer cleanly: keep the orchestrator single-writer; treat the context window as a budget and inject capabilities just-in-time; make behaviour editable as version-controlled Markdown rather than code; and assume the model can be subverted, so put the real security boundary at the tool layer with allowlists and a sandbox. The lobster is a joke; the architecture is not.</p>
+</section>
+
+<!-- ============ 18 REFS ============ -->
+<section id="refs">
+  <h2><span class="sec-num">§ 18</span>References</h2>
+  <ol class="refs">
+    <li><span class="t">OpenClaw</span> — encyclopedia entry on naming history, authorship, license and stack. <span class="src">Wikipedia.</span><br><a href="https://en.wikipedia.org/wiki/OpenClaw">en.wikipedia.org/wiki/OpenClaw</a></li>
+    <li><span class="t">Core Concepts — Gateway, Brain, Hands, Memory, Heartbeat.</span> <span class="src">OpenClaw Docs.</span><br><a href="https://clawdocs.org/getting-started/core-concepts/">clawdocs.org/getting-started/core-concepts</a></li>
+    <li><span class="t">Gateway architecture</span> — WS API, events, single-writer, ports, pairing. <span class="src">OpenClaw official docs.</span><br><a href="https://docs.openclaw.ai/concepts/architecture">docs.openclaw.ai/concepts/architecture</a></li>
+    <li><span class="t">Security</span> — content-as-threat-surface, reader-agent mitigation, tool profiles. <span class="src">OpenClaw official docs.</span><br><a href="https://docs.openclaw.ai/gateway/security">docs.openclaw.ai/gateway/security</a></li>
+    <li><span class="t">How OpenClaw Works: Understanding AI Agents Through a Real Architecture</span> — gateway, agentic loop, heartbeat sentinel. <span class="src">B. Poudel, Medium.</span><br><a href="https://bibek-poudel.medium.com/how-openclaw-works-understanding-ai-agents-through-a-real-architecture-5d59cc7a4764">bibek-poudel.medium.com</a></li>
+    <li><span class="t">I Created a Mind Map of OpenClaw's Architecture</span> — six-branch breakdown: memory, capability layers, hub-and-spoke, channels, dual-loop, security. <span class="src">S. Cen, Medium.</span><br><a href="https://medium.com/@cenrunzhe/i-created-a-mind-map-of-openclaws-architecture-here-s-what-each-module-actually-does-ea66abe08fd2">medium.com/@cenrunzhe</a></li>
+    <li><span class="t">Inside OpenClaw: How a Persistent AI Agent Actually Works</span> — heartbeat cadence, SKILL.md paths, runtime reading. <span class="src">DEV Community.</span><br><a href="https://dev.to/entelligenceai/inside-openclaw-how-a-persistent-ai-agent-actually-works-1mnk">dev.to/entelligenceai</a></li>
+    <li><span class="t">Reference Architecture: OpenClaw (Opus 4.6 edition)</span> — system-prompt composition, workspace files, skill-as-metadata. <span class="src">robotpaper.ai.</span><br><a href="https://robotpaper.ai/reference-architecture-openclaw-early-feb-2026-edition-opus-4-6/">robotpaper.ai</a></li>
+    <li><span class="t">OpenClaw System Architecture Overview</span> — skill discovery vs. injection, Canvas as separate process (:18793). <span class="src">P. Paolo, Substack.</span><br><a href="https://ppaolo.substack.com/p/openclaw-system-architecture-overview">ppaolo.substack.com</a></li>
+    <li><span class="t">OpenClaw security: architecture and hardening guide</span> — loopback port, ClawHavoc incident, MEMORY.md/SOUL.md persistence. <span class="src">Nebius.</span><br><a href="https://nebius.com/blog/posts/openclaw-security">nebius.com/blog/posts/openclaw-security</a></li>
+    <li><span class="t">explain-openclaw — prompt-injection-attacks</span> — single-operator trust boundary, allowlist defence-in-depth. <span class="src">centminmod, GitHub.</span><br><a href="https://github.com/centminmod/explain-openclaw">github.com/centminmod/explain-openclaw</a></li>
+    <li><span class="t">Don't Let the Claw Grip Your Hand: A Security Analysis and Defense Framework</span> — three attacker classes, sandbox write-redirection. <span class="src">arXiv preprint.</span><br><a href="https://arxiv.org/html/2603.10387v1">arxiv.org/html/2603.10387v1</a></li>
+    <li><span class="t">The OpenClaw Prompt Injection Problem</span> — policy engine, tool sandbox, immutable memory, audit log pattern. <span class="src">Penligent.</span><br><a href="https://www.penligent.ai/hackinglabs/the-openclaw-prompt-injection-problem-persistence-tool-hijack-and-the-security-boundary-that-doesnt-exist/">penligent.ai</a></li>
+    <li><span class="t">How to Make Your OpenClaw Agent Useful and Secure</span> — SOUL.md / USER.md authoring, deployment advice. <span class="src">AI Product Playbook, Substack.</span><br><a href="https://amankhan1.substack.com/p/how-to-make-your-openclaw-agent-useful">amankhan1.substack.com</a></li>
+    <li><span class="t">OpenClaw — official site &amp; release notes</span> — channels, model providers, Skill Cards / SkillSpector. <span class="src">openclaw.ai.</span><br><a href="https://openclaw.ai/">openclaw.ai</a></li>
+    <li><span class="t">Configuration &amp; Configuration reference</span> — openclaw.json (JSON5), dmPolicy, agents.defaults, models, sandbox. <span class="src">OpenClaw official docs.</span><br><a href="https://docs.openclaw.ai/gateway/configuration">docs.openclaw.ai/gateway/configuration</a></li>
+    <li><span class="t">Updating &amp; CLI update</span> — install detection, channels, doctor, detached-helper auto-update. <span class="src">OpenClaw official docs.</span><br><a href="https://docs.openclaw.ai/install/updating">docs.openclaw.ai/install/updating</a></li>
+    <li><span class="t">Getting started · Onboard · CLI reference</span> — npm install, onboard --install-daemon, gateway service commands. <span class="src">OpenClaw official docs.</span><br><a href="https://docs.openclaw.ai/start/getting-started">docs.openclaw.ai/start/getting-started</a></li>
+    <li><span class="t">openclaw.json option references</span> — hot-reload vs. restart, tool profiles, api dialects, --profile isolation. <span class="src">Stack Junkie · LumaDock · MoltFounders.</span><br><a href="https://www.stack-junkie.com/blog/openclaw-environment-variables-reference">stack-junkie.com</a></li>
+  </ol>
+  <p style="font-size:.85rem;color:var(--ink-faint);font-family:var(--mono)">Compiled June 2026. All diagrams are original schematic renderings prepared for this guide; prose is an independent synthesis of the sources above.</p>
+</section>
+
+<footer>
+  <div class="rule"></div>
+  OPENCLAW · ARCHITECTURAL FIELD GUIDE · v1.1 · cream-monograph edition<br>
+  Develop faster · Ship smarter · Sandbox everything 🦞
+</footer>
+
+</div>
+</body>
+</html>
