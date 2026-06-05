@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Agents Touch the World — API · CLI · MCP · ADK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5efe2; --paper-2:#efe7d6;
+    --ink:#221d16; --ink-soft:#4a4136; --ink-faint:#766a58;
+    --rule:#d8cdb6; --rule-soft:#e5dcc8;
+    --api:#1f6f6b; --cli:#b4521c; --mcp:#5b3fb0; --adk:#2f6d3b;
+    --a2a:#a8362f; --skill:#3a6ea5; --gold:#b48a2c;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.66;
+    font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(rgba(120,100,60,.035) 1px,transparent 1px);
+    background-size:4px 4px;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 26px}
+
+  /* Masthead */
+  header.mast{border-bottom:3px double var(--ink);margin:0 auto;padding:64px 26px 30px;max-width:880px}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink-faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    border-bottom:1px solid var(--rule);padding-bottom:14px;margin-bottom:26px}
+  h1.title{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(40px,8vw,76px);
+    line-height:.98;letter-spacing:-.02em;margin:0 0 18px}
+  h1.title em{font-style:italic;font-weight:400;color:var(--ink-soft)}
+  .standfirst{font-size:clamp(20px,3.5vw,25px);line-height:1.5;color:var(--ink-soft);max-width:46ch;margin:0 0 24px}
+  .standfirst b{color:var(--ink);font-weight:600}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-faint);letter-spacing:.02em;line-height:1.7}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    padding:5px 11px;border-radius:2px;color:#fff;font-weight:500}
+  .chip.api{background:var(--api)} .chip.cli{background:var(--cli)}
+  .chip.mcp{background:var(--mcp)} .chip.adk{background:var(--adk)}
+
+  /* TOC */
+  nav.toc{margin:34px auto 0;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:20px 24px}
+  nav.toc h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.25em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 12px;font-weight:500}
+  nav.toc ol{margin:0;padding-left:0;list-style:none;counter-reset:t;columns:2;column-gap:34px}
+  nav.toc li{counter-increment:t;margin:0 0 7px;font-size:15.5px;break-inside:avoid}
+  nav.toc li::before{content:counter(t,decimal-leading-zero);font-family:"IBM Plex Mono",monospace;
+    font-size:11px;color:var(--gold);margin-right:9px}
+  nav.toc a{color:var(--ink-soft);text-decoration:none;border-bottom:1px solid transparent}
+  nav.toc a:hover{color:var(--ink);border-bottom-color:var(--rule)}
+
+  /* Sections */
+  section{padding:52px 0 8px;border-top:1px solid var(--rule-soft)}
+  section:first-of-type{border-top:none}
+  .secnum{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;color:var(--gold);
+    text-transform:uppercase;display:block;margin-bottom:8px}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.08;
+    letter-spacing:-.015em;margin:0 0 22px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:24px;margin:38px 0 12px;letter-spacing:-.01em}
+  p{margin:0 0 18px}
+  a.ref{color:var(--mcp);text-decoration:none;font-size:.62em;vertical-align:super;
+    font-family:"IBM Plex Mono",monospace;padding:0 1px}
+  a.ref:hover{text-decoration:underline}
+  strong{font-weight:600}
+  .lead{font-size:21px;color:var(--ink-soft)}
+  .lead::first-letter{font-family:"Fraunces",serif;font-weight:900;float:left;font-size:74px;
+    line-height:.74;padding:6px 10px 0 0;color:var(--mcp)}
+
+  /* Layer diagram */
+  .stack{margin:30px 0;display:flex;flex-direction:column;border:2px solid var(--ink);border-radius:6px;overflow:hidden}
+  .layer{padding:16px 20px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;border-bottom:1px solid rgba(0,0,0,.12)}
+  .layer:last-child{border-bottom:none}
+  .layer .lab{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:600;min-width:74px;color:#fff;padding:3px 8px;border-radius:2px}
+  .layer .txt{font-size:16.5px;line-height:1.45;color:var(--ink-soft);flex:1;min-width:200px}
+  .layer .txt b{color:var(--ink)}
+  .l-adk{background:rgba(47,109,59,.1)} .l-adk .lab{background:var(--adk)}
+  .l-mcp{background:rgba(91,63,176,.1)} .l-mcp .lab{background:var(--mcp)}
+  .l-cli{background:rgba(180,82,28,.1)} .l-cli .lab{background:var(--cli)}
+  .l-api{background:rgba(31,111,107,.1)} .l-api .lab{background:var(--api)}
+
+  /* Definition cards */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:26px 0}
+  .card{border:1px solid var(--rule);border-radius:5px;background:var(--paper-2);padding:22px 22px 20px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;top:0;left:0;width:5px;height:100%}
+  .card.api::before{background:var(--api)} .card.cli::before{background:var(--cli)}
+  .card.mcp::before{background:var(--mcp)} .card.adk::before{background:var(--adk)}
+  .card .ab{font-family:"Fraunces",serif;font-weight:900;font-size:30px;letter-spacing:-.01em;margin:0 0 2px}
+  .card.api .ab{color:var(--api)} .card.cli .ab{color:var(--cli)}
+  .card.mcp .ab{color:var(--mcp)} .card.adk .ab{color:var(--adk)}
+  .card .full{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 12px}
+  .card p{font-size:16px;line-height:1.55;margin:0 0 10px}
+  .card .meta{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-faint);
+    border-top:1px dashed var(--rule);padding-top:10px;margin-top:4px;line-height:1.6}
+
+  /* Callouts */
+  .note{border-left:4px solid var(--gold);background:rgba(180,138,44,.08);padding:16px 20px;margin:24px 0;border-radius:0 4px 4px 0}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--gold);font-weight:600;margin-bottom:6px}
+  .note p{margin:0;font-size:17px;line-height:1.55}
+  .note.warn{border-left-color:var(--a2a);background:rgba(168,54,47,.07)}
+  .note.warn .nt{color:var(--a2a)}
+
+  /* Tables */
+  .tablewrap{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:5px}
+  table{border-collapse:collapse;width:100%;font-size:15px;background:var(--paper-2)}
+  th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.42}
+  thead th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+    color:#fff;background:var(--ink);font-weight:500;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:rgba(0,0,0,.018)}
+  td:first-child{font-weight:600;color:var(--ink);white-space:nowrap}
+  .tag{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:2px 6px;border-radius:2px;color:#fff;
+    letter-spacing:.04em;display:inline-block}
+  .t-api{background:var(--api)} .t-cli{background:var(--cli)} .t-mcp{background:var(--mcp)}
+  .t-adk{background:var(--adk)} .t-a2a{background:var(--a2a)} .t-skill{background:var(--skill)}
+
+  /* Code */
+  pre{background:#211d16;color:#ece3d0;border-radius:5px;padding:18px 20px;overflow-x:auto;
+    font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.6;margin:20px 0}
+  pre .c{color:#9c8f76;font-style:italic} pre .k{color:#d9a441} pre .s{color:#8fbf7f} pre .p{color:#b89be0}
+  code{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--paper-2);padding:1.5px 6px;
+    border-radius:3px;border:1px solid var(--rule-soft);color:var(--ink)}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:1em}
+  .codelabel{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:600;color:#fff;padding:4px 10px;border-radius:3px 3px 0 0;display:inline-block;margin-bottom:-6px}
+  .cl-api{background:var(--api)} .cl-cli{background:var(--cli)} .cl-mcp{background:var(--mcp)} .cl-adk{background:var(--adk)}
+
+  /* Video embeds */
+  .embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:6px;border:2px solid var(--ink);margin:14px 0 8px}
+  .embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+  .vidblock{margin:30px 0 38px}
+  .vidblock h4{font-family:"Fraunces",serif;font-weight:600;font-size:21px;margin:0 0 4px;line-height:1.2}
+  .vidblock .vmeta{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-faint);margin:0 0 10px;letter-spacing:.03em}
+  .vidblock p{font-size:16.5px}
+
+  /* SVG diagram */
+  figure{margin:28px 0}
+  figure svg{width:100%;height:auto;display:block}
+  figcaption{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:10px;letter-spacing:.03em}
+
+  /* Knowledge-types grid */
+  .ktypes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0}
+  .kt{border:1px solid var(--rule);border-radius:5px;padding:16px 18px;background:var(--paper-2);border-top:4px solid var(--skill)}
+  .kt:nth-child(2){border-top-color:var(--mcp)} .kt:nth-child(3){border-top-color:var(--api)} .kt:nth-child(4){border-top-color:var(--cli)}
+  .kt h5{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin:0 0 4px}
+  .kt .kk{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px}
+  .kt p{font-size:15px;line-height:1.5;margin:0}
+
+  /* Timeline */
+  .timeline{margin:26px 0;border-left:2px solid var(--rule);padding-left:0}
+  .tlrow{position:relative;padding:0 0 22px 30px}
+  .tlrow::before{content:"";position:absolute;left:-7px;top:5px;width:12px;height:12px;border-radius:50%;
+    background:var(--paper);border:3px solid var(--gold)}
+  .tlrow .yr{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--gold);letter-spacing:.05em}
+  .tlrow .ev{font-size:16.5px;line-height:1.45}
+  .tlrow .ev b{font-family:"Fraunces",serif;font-weight:600}
+
+  /* Decision flow */
+  .flow{margin:26px 0;display:flex;flex-direction:column;gap:12px}
+  .step{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--rule);border-radius:5px;padding:15px 18px;background:var(--paper-2)}
+  .step .q{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--gold);font-size:13px;flex-shrink:0;width:24px}
+  .step .qb{flex:1}
+  .step .qb b{font-family:"Fraunces",serif;font-size:18px}
+  .step .qb .ans{font-size:15.5px;color:var(--ink-soft);margin-top:3px}
+
+  ul.clean{list-style:none;padding:0;margin:18px 0}
+  ul.clean li{padding:8px 0 8px 28px;position:relative;border-bottom:1px solid var(--rule-soft);font-size:17px;line-height:1.5}
+  ul.clean li:last-child{border-bottom:none}
+  ul.clean li::before{content:"→";position:absolute;left:0;color:var(--gold);font-weight:600}
+
+  /* FAQ */
+  details{border:1px solid var(--rule);border-radius:5px;background:var(--paper-2);margin:10px 0;padding:0 18px;overflow:hidden}
+  details summary{font-family:"Fraunces",serif;font-weight:600;font-size:18px;padding:15px 0;cursor:pointer;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;gap:12px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--gold);font-size:22px;transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details .da{padding:0 0 16px;font-size:16.5px;line-height:1.55;color:var(--ink-soft);border-top:1px solid var(--rule-soft);margin-top:-2px;padding-top:14px}
+  details .da b{color:var(--ink)}
+
+  /* Glossary */
+  dl.gloss{margin:22px 0;display:grid;grid-template-columns:max-content 1fr;gap:0 22px}
+  dl.gloss dt{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13.5px;color:var(--mcp);
+    padding:10px 0;border-top:1px solid var(--rule-soft);white-space:nowrap}
+  dl.gloss dd{margin:0;padding:10px 0;font-size:16px;line-height:1.45;border-top:1px solid var(--rule-soft)}
+
+  /* References */
+  ol.refs{font-family:"Newsreader",serif;font-size:15px;line-height:1.5;padding-left:0;list-style:none;counter-reset:r}
+  ol.refs li{counter-increment:r;padding:11px 0 11px 40px;position:relative;border-bottom:1px solid var(--rule-soft)}
+  ol.refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:11px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--gold)}
+  ol.refs a{color:var(--mcp);text-decoration:none;word-break:break-word}
+  ol.refs a:hover{text-decoration:underline}
+  ol.refs .src{color:var(--ink);font-weight:600}
+  ol.refs .pub{color:var(--ink-faint);font-size:13.5px}
+
+  footer{border-top:3px double var(--ink);margin-top:60px;padding:30px 0 70px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-faint);line-height:1.7}
+
+  @media(max-width:620px){
+    body{font-size:18px}
+    .cards,.ktypes{grid-template-columns:1fr}
+    nav.toc ol{columns:1}
+    .lead::first-letter{font-size:58px}
+    dl.gloss{grid-template-columns:1fr;gap:0}
+    dl.gloss dt{padding-bottom:2px;border-top:1px solid var(--rule-soft)}
+    dl.gloss dd{padding-top:2px;border-top:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cli);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="kicker"><span>A Field Guide for Agentic Systems</span><span>Rev. 2 · June 2026</span></div>
+  <h1 class="title">Four Ways an Agent<br><em>Touches the World</em></h1>
+  <p class="standfirst">A practical monograph on <b>API</b>, <b>CLI</b>, <b>MCP</b>, and <b>ADK</b> — with <b>Skills</b> and <b>A2A</b> rounding out the picture. What each one really is, where it sits in the stack, and how a modern AI agent decides which to reach for.</p>
+  <p class="byline">By <strong style="color:var(--ink);">Majid Mazouchi</strong> · Grounded in IBM Technology's <i>Think</i> series — Martin Keen, Cedric Clyburn &amp; Jeff Crume — with the four source talks embedded below, plus the surrounding 2025–26 literature on agent tooling.</p>
+  <div class="chips">
+    <span class="chip api">API · interface</span>
+    <span class="chip cli">CLI · execution</span>
+    <span class="chip mcp">MCP · integration</span>
+    <span class="chip adk">ADK · orchestration</span>
+  </div>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#model">The one-paragraph mental model</a></li>
+      <li><a href="#defs">Four definitions at a glance</a></li>
+      <li><a href="#api">API — the universal contract</a></li>
+      <li><a href="#cli">CLI — the agent at the terminal</a></li>
+      <li><a href="#mcp">MCP — the USB-C of AI tools</a></li>
+      <li><a href="#adk">ADK — the workshop for agents</a></li>
+      <li><a href="#skills">Skills — the knowledge layer</a></li>
+      <li><a href="#a2a">A2A &amp; the protocol zoo</a></li>
+      <li><a href="#mcpvapi">Matchup: MCP vs API</a></li>
+      <li><a href="#clivmcp">Matchup: CLI vs MCP</a></li>
+      <li><a href="#mcpvadk">Matchup: MCP vs ADK</a></li>
+      <li><a href="#example">One task, four ways</a></li>
+      <li><a href="#grand">The grand comparison table</a></li>
+      <li><a href="#timeline">A short timeline</a></li>
+      <li><a href="#decide">How an agent actually chooses</a></li>
+      <li><a href="#practical">Practical engineering notes</a></li>
+      <li><a href="#security">Security &amp; the OWASP angle</a></li>
+      <li><a href="#faq">Misconceptions &amp; FAQ</a></li>
+      <li><a href="#videos">The IBM videos (watch here)</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+</header>
+
+<main class="wrap">
+
+<!-- 01 -->
+<section id="model">
+  <span class="secnum">§ 01 — Orientation</span>
+  <h2>The one-paragraph mental model</h2>
+  <p class="lead">These acronyms are not rivals competing for the same job. They live at different layers of the same stack, and the fastest way to stop confusing them is to picture that stack from the bottom up.</p>
+  <p>At the bottom is the <strong>API</strong>: the raw contract by which any two pieces of software talk, agent or not. One step up, the <strong>CLI</strong> lets an agent borrow the developer's terminal and drive existing tools directly. <strong>MCP</strong> sits above that as a standardized adapter so an agent can <em>discover</em> and call tools and data without bespoke wiring for each one. And <strong>ADK</strong> sits highest, as the framework you use to build the agent itself — including coordinating several agents at once.</p>
+
+  <div class="stack">
+    <div class="layer l-adk"><span class="lab">ADK</span><span class="txt"><b>How do I build &amp; orchestrate the agent(s)?</b> — the framework that defines reasoning, planning, memory, and multi-agent coordination.</span></div>
+    <div class="layer l-mcp"><span class="lab">MCP</span><span class="txt"><b>How does the agent discover &amp; call tools in a standard way?</b> — one protocol, many servers, dynamic discovery at runtime.</span></div>
+    <div class="layer l-cli"><span class="lab">CLI</span><span class="txt"><b>How does the agent run the tools that already exist?</b> — shell commands the model has seen a million times: <code>cat</code>, <code>grep</code>, <code>git</code>, <code>curl</code>.</span></div>
+    <div class="layer l-api"><span class="lab">API</span><span class="txt"><b>How do the underlying systems talk at all?</b> — the bedrock request/response contract everything else is ultimately built on.</span></div>
+  </div>
+
+  <p>Crucially, the upper layers usually <em>wrap</em> the lower ones. An MCP server very often turns around and calls a REST <strong>API</strong>; an ADK agent very often connects to an MCP server as a client. Two more pieces complete the picture — <strong>Skills</strong> (the knowledge of <em>how</em> to use these capabilities) and <strong>A2A</strong> (how agents talk to <em>each other</em>) — both covered below.</p>
+</section>
+
+<!-- 02 -->
+<section id="defs">
+  <span class="secnum">§ 02 — Definitions</span>
+  <h2>Four definitions at a glance</h2>
+  <div class="cards">
+    <div class="card api">
+      <p class="ab">API</p><p class="full">Application Programming Interface</p>
+      <p>A defined contract that lets one program request something from another. In the agent world this usually means a REST/HTTP endpoint with fixed routes, parameters, and response shapes.</p>
+      <p class="meta">Era: decades old · Shape: static contract · Consumer: any software · Discovery: read the docs.</p>
+    </div>
+    <div class="card cli">
+      <p class="ab">CLI</p><p class="full">Command-Line Interface</p>
+      <p>Text commands run in a shell. An agent uses the same terminal a developer would — chaining <code>ls</code>, <code>cat</code>, <code>grep</code>, <code>git</code>, <code>curl</code> — because the model absorbed huge volumes of these examples in training.</p>
+      <p class="meta">Era: 1970s → still default · Shape: high-privilege tool · Consumer: humans &amp; agents · Discovery: <code>--help</code> / man pages.</p>
+    </div>
+    <div class="card mcp">
+      <p class="ab">MCP</p><p class="full">Model Context Protocol</p>
+      <p>An open standard (Anthropic, Nov 2024) that standardizes how LLM apps connect to external tools and data. A client–server protocol over JSON-RPC; servers expose <em>tools</em>, <em>resources</em>, and <em>prompts</em> the agent can discover at runtime.</p>
+      <p class="meta">Era: 2024+ · Shape: typed, discoverable protocol · Consumer: AI agents · Discovery: <code>tools/list</code>.</p>
+    </div>
+    <div class="card adk">
+      <p class="ab">ADK</p><p class="full">Agent Development Kit</p>
+      <p>An open-source framework for building agents — reasoning, tool use, state, and orchestration of multiple agents. Most-cited version is Google's ADK; IBM ships a watsonx Orchestrate ADK too.</p>
+      <p class="meta">Era: 2025+ · Shape: SDK / framework · Consumer: developers · Discovery: it <em>uses</em> MCP &amp; A2A.</p>
+    </div>
+  </div>
+  <div class="note">
+    <div class="nt">Read the layer, not the logo</div>
+    <p>API answers <i>how systems connect</i>. CLI answers <i>how the agent executes</i>. MCP answers <i>how the agent integrates tools in a standard way</i>. ADK answers <i>how you build and coordinate the agents themselves</i>. Keep those four questions straight and the rest follows.</p>
+  </div>
+</section>
+
+<!-- 03 API -->
+<section id="api">
+  <span class="secnum">§ 03 — The bedrock</span>
+  <h2>API — the universal contract</h2>
+  <p>An <strong>Application Programming Interface</strong> is the oldest and most general idea here: a published contract that says "send me a request shaped like <em>this</em>, and I'll send back a response shaped like <em>that</em>." A weather service, a payments processor, your company's CRM — almost every digital service of the last twenty years exposes one, typically as a REST API over HTTP.</p>
+  <p>APIs are wonderful and they are not going anywhere. But they were designed for <em>developers</em> writing code ahead of time, not for an agent reasoning on the fly. Three frictions show up when you point an LLM straight at raw APIs:</p>
+  <ul class="clean">
+    <li><strong>Static, per-service contracts.</strong> Each API has its own auth scheme, endpoint names, pagination, and error format. Integrating ten services means ten bespoke integrations.</li>
+    <li><strong>No native discovery.</strong> An agent can't ask a plain REST API "what can you do?" — that knowledge lives in human documentation, not a machine-queryable form.</li>
+    <li><strong>Brittle to change.</strong> When a provider renames a field or bumps a version, hand-written glue code breaks silently.</li>
+  </ul>
+  <p>This is exactly the gap MCP was built to close — not by replacing APIs, but by putting a consistent, agent-friendly layer in front of them. As you'll see, an MCP server is frequently just a thin, standardized jacket over one or more ordinary APIs. <a class="ref" href="#refs">[5]</a><a class="ref" href="#refs">[11]</a></p>
+</section>
+
+<!-- 04 CLI -->
+<section id="cli">
+  <span class="secnum">§ 04 — The execution layer</span>
+  <h2>CLI — the agent at the terminal</h2>
+  <p>Give a coding agent a shell and something surprising happens: it is often <em>more</em> capable, not less. The <strong>command-line interface</strong> exposes tools the agent already understands intimately, because models trained on an enormous corpus of terminal usage — Stack Overflow answers, man pages, READMEs, shell scripts. Reading a file and finding a line is, from the model's perspective, a well-worn path. <a class="ref" href="#refs">[3]</a><a class="ref" href="#refs">[8]</a></p>
+  <p>In the IBM <i>CLI vs MCP</i> video, Martin Keen uses a plain file-operations example: the agent wants to read <code>notes.md</code> and locate something inside it. Via the CLI that is simply:</p>
+  <pre><span class="c"># read a markdown file</span>
+$ <span class="k">cat</span> notes.md
+
+<span class="c"># find lines containing a term, with line numbers</span>
+$ <span class="k">grep</span> -n <span class="s">"deadline"</span> notes.md
+
+<span class="c"># the last ten commits, one line each</span>
+$ <span class="k">git</span> log --oneline -10</pre>
+  <p>Two properties make the CLI attractive for agents:</p>
+  <ul class="clean">
+    <li><strong>Token efficiency.</strong> A shell command is a handful of tokens. The agent doesn't pay to load a schema — it just types. This matters enormously at scale.</li>
+    <li><strong>Composability.</strong> Pipes and chaining let the agent assemble small tools into a larger result, exactly as a human engineer would.</li>
+  </ul>
+  <p>The trade-offs are equally real. A CLI tool typically runs with the <em>full</em> privileges of the host session unless you deliberately sandbox it, output is unstructured text the model must parse, and discovery stops at <code>--help</code>. CLI sandboxing is a mature discipline — containers, seccomp, AppArmor — but it is on you to apply it. <a class="ref" href="#refs">[2]</a></p>
+  <div class="note">
+    <div class="nt">Why the model "likes" the CLI</div>
+    <p>From the LLM's point of view, both a CLI tool and an MCP tool are just <i>a name, a description, and a schema injected into context</i>. The CLI wins on familiarity and brevity for well-known local tooling; it is, in effect, one very high-privilege tool the model already knows by heart. <a class="ref" href="#refs">[8]</a></p>
+  </div>
+</section>
+
+<!-- 05 MCP -->
+<section id="mcp">
+  <span class="secnum">§ 05 — The integration layer</span>
+  <h2>MCP — the USB-C of AI tools</h2>
+  <p>The <strong>Model Context Protocol</strong> is Anthropic's open standard, introduced November 2024, for connecting LLM applications to external tools and data in a uniform way. Martin Keen's analogy is the one that stuck across the industry: just as <strong>USB-C</strong> standardized a tangle of device connectors into a single port, MCP standardizes the connection between AI applications and the outside world. <a class="ref" href="#refs">[1]</a><a class="ref" href="#refs">[6]</a></p>
+
+  <h3>How it's built</h3>
+  <p>MCP uses a <strong>client–server architecture</strong> communicating over JSON-RPC. Three roles matter:</p>
+
+  <figure>
+    <svg viewBox="0 0 760 220" role="img" aria-label="MCP architecture: host with client connects to MCP server, which calls APIs, databases and files">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#4a4136"/>
+        </marker>
+        <marker id="arrb" markerWidth="9" markerHeight="9" refX="2" refY="4.5" orient="auto">
+          <path d="M9,0 L0,4.5 L9,9 z" fill="#4a4136"/>
+        </marker>
+      </defs>
+      <!-- Host -->
+      <rect x="14" y="42" width="210" height="136" rx="8" fill="#efe7d6" stroke="#221d16" stroke-width="2"/>
+      <text x="119" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#766a58" letter-spacing="1.5">MCP HOST (the AI app)</text>
+      <rect x="34" y="64" width="170" height="40" rx="6" fill="#fff" stroke="#5b3fb0" stroke-width="1.5"/>
+      <text x="119" y="89" text-anchor="middle" font-family="Newsreader, serif" font-size="16" fill="#221d16">LLM / Agent</text>
+      <rect x="34" y="118" width="170" height="40" rx="6" fill="rgba(91,63,176,.12)" stroke="#5b3fb0" stroke-width="1.5"/>
+      <text x="119" y="143" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#5b3fb0" font-weight="600">MCP Client</text>
+      <!-- Server -->
+      <rect x="300" y="64" width="170" height="92" rx="8" fill="rgba(91,63,176,.1)" stroke="#5b3fb0" stroke-width="2"/>
+      <text x="385" y="56" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5b3fb0" letter-spacing="1.5">MCP SERVER</text>
+      <text x="385" y="98" text-anchor="middle" font-family="Newsreader, serif" font-size="13" fill="#4a4136">tools · resources</text>
+      <text x="385" y="118" text-anchor="middle" font-family="Newsreader, serif" font-size="13" fill="#4a4136">· prompts</text>
+      <text x="385" y="142" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#766a58">JSON-RPC</text>
+      <!-- Backends -->
+      <rect x="556" y="44" width="190" height="40" rx="6" fill="rgba(31,111,107,.1)" stroke="#1f6f6b" stroke-width="1.5"/>
+      <text x="651" y="69" text-anchor="middle" font-family="Newsreader, serif" font-size="14" fill="#1f6f6b">REST API</text>
+      <rect x="556" y="92" width="190" height="40" rx="6" fill="rgba(31,111,107,.1)" stroke="#1f6f6b" stroke-width="1.5"/>
+      <text x="651" y="117" text-anchor="middle" font-family="Newsreader, serif" font-size="14" fill="#1f6f6b">Database</text>
+      <rect x="556" y="140" width="190" height="40" rx="6" fill="rgba(31,111,107,.1)" stroke="#1f6f6b" stroke-width="1.5"/>
+      <text x="651" y="165" text-anchor="middle" font-family="Newsreader, serif" font-size="14" fill="#1f6f6b">Files / Service</text>
+      <!-- arrows -->
+      <line x1="206" y1="138" x2="298" y2="120" stroke="#4a4136" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arrb)"/>
+      <text x="252" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#766a58">tools/list</text>
+      <line x1="472" y1="92" x2="552" y2="66" stroke="#4a4136" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="472" y1="110" x2="552" y2="112" stroke="#4a4136" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="472" y1="128" x2="552" y2="158" stroke="#4a4136" stroke-width="1.5" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>Host (with client) ⇄ MCP server → the real systems. The server speaks MCP to the agent and native APIs to the backend.</figcaption>
+  </figure>
+
+  <ul class="clean">
+    <li><strong>Host</strong> — the AI application the user interacts with (a chat client, an IDE, an agent runtime).</li>
+    <li><strong>Client</strong> — the connector inside the host that speaks MCP to a given server.</li>
+    <li><strong>Server</strong> — the process that exposes capabilities and, behind the scenes, talks to the real system (a database, a filesystem, a SaaS API).</li>
+  </ul>
+  <p>Each server can expose three primitives: <strong>tools</strong> (actions the agent can invoke), <strong>resources</strong> (data the agent can read, like files or records), and <strong>prompts</strong> (reusable templates that structure an interaction). Transports include <code>stdio</code> for local servers and HTTP-based streaming for remote ones. <a class="ref" href="#refs">[9]</a><a class="ref" href="#refs">[12]</a></p>
+
+  <h3>The feature that changes everything: dynamic discovery</h3>
+  <p>Unlike a static API, an MCP client can ask a server <em>at runtime</em> what it offers via the <code>tools/list</code> method. The agent doesn't need the toolset hardcoded; it learns the available tools, their typed inputs, and their descriptions on connection, then decides what to call. This is the property Keen highlights as the real unlock: dynamic discovery plus a uniform interface plus tool execution, in one protocol. <a class="ref" href="#refs">[1]</a><a class="ref" href="#refs">[6]</a></p>
+  <pre><span class="c">// the agent asks the server what it can do</span>
+&rarr; <span class="p">{ "method": "tools/list" }</span>
+
+<span class="c">// the server answers with typed, described tools</span>
+&larr; <span class="p">{ "tools": [</span>
+    <span class="p">{ "name":</span> <span class="s">"search_invoices"</span>,
+      <span class="p">"description":</span> <span class="s">"Find invoices by customer or date"</span>,
+      <span class="p">"inputSchema":</span> <span class="p">{ "customer": "string", "since": "date" } }</span>
+  <span class="p">] }</span></pre>
+  <p>A minimal server is genuinely small. Using Python's FastMCP, a tool is just a decorated function:</p>
+  <pre><span class="k">from</span> mcp.server.fastmcp <span class="k">import</span> FastMCP
+mcp = FastMCP(<span class="s">"invoices"</span>)
+
+<span class="p">@mcp.tool()</span>
+<span class="k">def</span> <span class="k">search_invoices</span>(customer: str, since: str) -> list:
+    <span class="s">"""Find invoices by customer or date."""</span>
+    <span class="k">return</span> db.query(customer, since)   <span class="c"># calls your real API/DB</span></pre>
+  <p>The cost of all this structure is context. Every tool's schema and description must be loaded into the model's window, and a busy server with dozens of tools can consume a great deal of context before a single action runs — the "schema tax." That tension is the entire subject of the CLI-vs-MCP debate. <a class="ref" href="#refs">[7]</a><a class="ref" href="#refs">[8]</a></p>
+  <div class="note">
+    <div class="nt">Write once, reuse everywhere</div>
+    <p>Because MCP is a standard, one well-built server works across any MCP-aware host — Claude, an IDE, or frameworks like LangChain and CrewAI — without code changes. That portability is the point: stop writing N×M custom integrations. <a class="ref" href="#refs">[4]</a></p>
+  </div>
+</section>
+
+<!-- 06 ADK -->
+<section id="adk">
+  <span class="secnum">§ 06 — The orchestration layer</span>
+  <h2>ADK — the workshop for agents</h2>
+  <p>Where MCP is about <em>connecting</em> an agent to tools, an <strong>Agent Development Kit</strong> is about <em>building the agent in the first place</em> — and increasingly about coordinating several of them. It is a framework, not a protocol: scaffolding for reasoning, planning, memory, tool use, and multi-agent orchestration. <a class="ref" href="#refs">[13]</a><a class="ref" href="#refs">[14]</a></p>
+  <div class="note warn">
+    <div class="nt">Two things share the name "ADK"</div>
+    <p>The version most discussed alongside MCP is <b>Google's Agent Development Kit</b> (open-sourced 2025, Python &amp; Java). <b>IBM's watsonx Orchestrate ADK</b> is a separate product for building and importing enterprise agents into IBM's orchestration engine. They share a category, not a codebase — pin this down before a design discussion. <a class="ref" href="#refs">[15]</a></p>
+  </div>
+  <h3>ADK and MCP are partners, not rivals</h3>
+  <p>The cleanest way the two fit together: an ADK agent acts as an <strong>MCP client</strong>. In Google's ADK this is done through an <code>MCPToolset</code> that connects to an MCP server, calls <code>tools/list</code> to discover what's available, and hands those tools to the agent as if they were native:</p>
+  <pre><span class="k">from</span> google.adk.agents <span class="k">import</span> LlmAgent
+<span class="k">from</span> google.adk.tools.mcp_tool <span class="k">import</span> MCPToolset, StdioServerParameters
+
+agent = LlmAgent(
+    model=<span class="s">"gemini-2.0-flash"</span>,
+    tools=[ MCPToolset(                 <span class="c"># discovers the server's tools</span>
+        connection_params=StdioServerParameters(
+            command=<span class="s">"python"</span>, args=[<span class="s">"invoice_server.py"</span>]))
+    ])</pre>
+  <p>This is the heart of the IBM <i>MCP vs ADK</i> video: the framing is deliberately not "versus." Cedric Clyburn's point is that they solve different problems — MCP handles the tool/data connection, ADK handles how the agent is built and how multiple agents are orchestrated — and you frequently use both. <a class="ref" href="#refs">[10]</a><a class="ref" href="#refs">[12]</a></p>
+</section>
+
+<!-- 07 Skills -->
+<section id="skills">
+  <span class="secnum">§ 07 — The knowledge layer</span>
+  <h2>Skills — teaching the agent <em>how</em></h2>
+  <p>There's a fifth piece worth knowing, and it cuts across the others. In a separate <i>Think</i> talk, Martin Keen makes the point that an LLM "knows a lot of facts" but doesn't necessarily know <em>how work actually gets done</em>. A <strong>Skill</strong> — typically a structured instruction file — doesn't grant new capabilities; it teaches the model how to use capabilities it already has. <a class="ref" href="#refs">[9]</a><a class="ref" href="#refs">[20]</a></p>
+  <p>Keen frames an agent's competence as four kinds of knowledge, which map neatly onto the layers in this guide:</p>
+  <div class="ktypes">
+    <div class="kt"><div class="kk">Innate</div><h5>Model Context</h5><p>What the LLM already knows from training — language, reasoning, broad world facts.</p></div>
+    <div class="kt"><div class="kk">Tool access · MCP</div><h5>Tool Access</h5><p>The ability to call external services and APIs — exactly what MCP standardizes.</p></div>
+    <div class="kt"><div class="kk">Facts · RAG</div><h5>Factual Knowledge</h5><p>Retrieval-Augmented Generation: pulling relevant, current facts from a knowledge base at query time.</p></div>
+    <div class="kt"><div class="kk">Procedure · Skills</div><h5>Procedural Knowledge</h5><p>The "how-to" — step-by-step procedure encoded in skill files so the agent performs a task reliably.</p></div>
+  </div>
+  <p>Put simply: <strong>RAG gives the agent facts, MCP gives it reach, and Skills give it procedure.</strong> The orchestration framework (ADK) is where you assemble all three into a working agent.</p>
+</section>
+
+<!-- 08 A2A -->
+<section id="a2a">
+  <span class="secnum">§ 08 — The collaboration layer</span>
+  <h2>A2A &amp; the protocol zoo</h2>
+  <p>Once you have more than one agent, they need a way to talk to <em>each other</em>. That's <strong>A2A (Agent2Agent)</strong>, an open protocol introduced by Google in April 2025 and now stewarded by the Linux Foundation. Where MCP standardizes agent-to-<em>tools</em> communication, A2A standardizes agent-to-<em>agent</em> communication. <a class="ref" href="#refs">[17]</a><a class="ref" href="#refs">[18]</a></p>
+  <p>A2A follows a client–server model and leans on plain HTTP and JSON. Its core ideas:</p>
+  <ul class="clean">
+    <li><strong>Agent Card</strong> — a small published profile (name, description, endpoint, capabilities, auth) that lets agents discover one another. Think of it as an agent's résumé or business card.</li>
+    <li><strong>Task</strong> — a unit of work with an ID that moves through a lifecycle (submitted → working → input-required → completed / failed), supporting long-running collaboration.</li>
+    <li><strong>Message</strong> — a single turn in the conversation between agents, carrying instructions, replies, or status updates.</li>
+  </ul>
+  <p>It is genuinely an early, crowded field — a "protocol zoo." IBM's own <strong>ACP (Agent Communication Protocol)</strong>, born from the BeeAI project and also now under the Linux Foundation, targets the same agent-to-agent goal with a lighter, REST-based design. Others (ANP, FIPA-ACL) circle nearby. None has fully won; expect breaking changes as the space matures. <a class="ref" href="#refs">[18]</a><a class="ref" href="#refs">[19]</a></p>
+  <div class="note">
+    <div class="nt">The whole stack in one line</div>
+    <p><b>ADK builds the agents → A2A lets the agents talk to each other → MCP lets each agent reach tools &amp; data → Skills tell it how → RAG gives it facts →</b> and underneath it all sit ordinary <b>APIs</b> and <b>CLIs</b>.</p>
+  </div>
+</section>
+
+<!-- 09 MCP vs API -->
+<section id="mcpvapi">
+  <span class="secnum">§ 09 — Matchup</span>
+  <h2>MCP vs API</h2>
+  <p>The two are more alike than they first appear: both follow a client–server model, and both provide an abstraction layer that hides a system's internals. The difference is who they were designed for. <a class="ref" href="#refs">[21]</a></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Dimension</th><th><span class="tag t-api">API</span></th><th><span class="tag t-mcp">MCP</span></th></tr></thead>
+    <tbody>
+      <tr><td>Designed for</td><td>Developers writing code ahead of time</td><td>LLM agents reasoning at runtime</td></tr>
+      <tr><td>Discovery</td><td>Read the docs; hardcode the calls</td><td>Dynamic — <code>tools/list</code> at connect time</td></tr>
+      <tr><td>Interface</td><td>One bespoke contract per service</td><td>One uniform protocol across all servers</td></tr>
+      <tr><td>Integration cost</td><td>N×M custom glue</td><td>Write a server once, reuse everywhere</td></tr>
+      <tr><td>Relationship</td><td colspan="2" style="white-space:normal">Not exclusive — an MCP server typically <b>calls the underlying API</b> on the agent's behalf.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Takeaway:</strong> MCP doesn't kill the API; it makes the API consumable by an agent. The video's framing — "simplifying AI agent integration with external data" — is precisely that: turning a pile of incompatible API contracts into one discoverable, agent-native surface.</p>
+</section>
+
+<!-- 10 CLI vs MCP -->
+<section id="clivmcp">
+  <span class="secnum">§ 10 — Matchup</span>
+  <h2>CLI vs MCP</h2>
+  <p>The liveliest debate of the set, and the honest answer is that they sit at two ends of a <em>spectrum of tool granularity</em> rather than being true competitors. The decision turns on three axes: token cost, structure, and where the work happens. <a class="ref" href="#refs">[8]</a></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Dimension</th><th><span class="tag t-cli">CLI</span></th><th><span class="tag t-mcp">MCP</span></th></tr></thead>
+    <tbody>
+      <tr><td>Token cost</td><td>Very low — a few tokens per command</td><td>Higher — schemas loaded up front; benchmarks cite 4–32× more on simple ops</td></tr>
+      <tr><td>Output</td><td>Unstructured text to parse</td><td>Typed, structured results</td></tr>
+      <tr><td>Model familiarity</td><td>Very high — trained on vast CLI corpora</td><td>Lower — schemas the model has seen less often</td></tr>
+      <tr><td>Discovery</td><td><code>--help</code>, man pages</td><td>Native, dynamic discovery</td></tr>
+      <tr><td>Auth &amp; isolation</td><td>Host session privileges unless sandboxed</td><td>Server-side credentials; scoped tokens</td></tr>
+      <tr><td>Best regime</td><td>Familiar <b>local</b> tooling — git, files, build</td><td><b>Remote</b>/unfamiliar services, multi-agent reuse, governance</td></tr>
+    </tbody>
+  </table></div>
+  <p>A 2026 benchmark across multiple models and APIs found CLI agents used fewer tokens per simple operation for well-known local tooling — but the advantage <em>flipped</em> the moment a request crossed a network boundary or hit an unfamiliar remote API, where native MCP integration gave the best completion rates. <a class="ref" href="#refs">[8]</a></p>
+  <div class="note">
+    <div class="nt">The pragmatic split many teams use</div>
+    <p>CLI for developer-facing coding agents on local repos; MCP for cross-functional, governed integrations (Slack, Jira, CRM) where multiple agents share tools and you need auth and audit trails. Route both through one governance layer so security policy doesn't fragment. <a class="ref" href="#refs">[2]</a><a class="ref" href="#refs">[4]</a></p>
+  </div>
+</section>
+
+<!-- 11 MCP vs ADK -->
+<section id="mcpvadk">
+  <span class="secnum">§ 11 — Matchup</span>
+  <h2>MCP vs ADK</h2>
+  <p>The easiest to resolve because they barely overlap. One is a protocol for tool connectivity; the other is a framework for building and orchestrating agents. The IBM video's whole thesis is that they're a "collaborative symphony," not competitors. <a class="ref" href="#refs">[13]</a></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Dimension</th><th><span class="tag t-mcp">MCP</span></th><th><span class="tag t-adk">ADK</span></th></tr></thead>
+    <tbody>
+      <tr><td>Category</td><td>Open protocol / standard</td><td>Framework / SDK</td></tr>
+      <tr><td>Job</td><td>Connect one agent to tools &amp; data</td><td>Build the agent; orchestrate many</td></tr>
+      <tr><td>Owner</td><td>Anthropic (open; broad adoption)</td><td>Google ADK · IBM watsonx Orchestrate ADK</td></tr>
+      <tr><td>How they meet</td><td colspan="2" style="white-space:normal">An ADK agent acts as an <b>MCP client</b> (e.g. via <code>MCPToolset</code>) to consume MCP servers.</td></tr>
+      <tr><td>The next layer up</td><td colspan="2" style="white-space:normal"><b>A2A</b> handles agent-to-agent collaboration above tool access.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 12 worked example -->
+<section id="example">
+  <span class="secnum">§ 12 — Worked example</span>
+  <h2>One task, four ways</h2>
+  <p>Nothing makes the layers click like watching the same job done at each level. <strong>Task:</strong> "Pull a customer's recent invoices and summarize them." Here's how each layer expresses it.</p>
+
+  <span class="codelabel cl-api">API · raw HTTP, you write the glue</span>
+  <pre>$ <span class="k">curl</span> -H <span class="s">"Authorization: Bearer $TOKEN"</span> \
+       <span class="s">"https://erp.example.com/v2/invoices?customer=ACME&amp;since=2026-01"</span>
+<span class="c"># → you parse the JSON, handle pagination, retries, and errors yourself</span></pre>
+
+  <span class="codelabel cl-cli">CLI · the agent drives the terminal</span>
+  <pre>$ <span class="k">curl</span> -s <span class="s">".../invoices?customer=ACME&amp;since=2026-01"</span> | <span class="k">jq</span> <span class="s">'.[] | {id, total}'</span>
+<span class="c"># cheap on tokens, but unstructured text the model must interpret</span></pre>
+
+  <span class="codelabel cl-mcp">MCP · discover, then call a typed tool</span>
+  <pre><span class="c"># agent discovered search_invoices via tools/list, then:</span>
+&rarr; <span class="p">{ "method":"tools/call", "name":"search_invoices",</span>
+    <span class="p">"arguments":{ "customer":"ACME", "since":"2026-01" } }</span>
+&larr; <span class="p">{ "content":[ {invoice objects, typed} ] }</span>   <span class="c"># server handled auth + API</span></pre>
+
+  <span class="codelabel cl-adk">ADK · an agent that owns the whole job</span>
+  <pre>agent = LlmAgent(model=<span class="s">"gemini-2.0-flash"</span>,
+    instruction=<span class="s">"Summarize a customer's recent invoices."</span>,
+    tools=[MCPToolset(...invoice_server...)])
+<span class="c"># ADK runs the loop: plan → call MCP tool → summarize → (optionally</span>
+<span class="c"># hand off to a "reporting" sub-agent over A2A)</span></pre>
+  <p>Same outcome, four altitudes. The API is the engine; the CLI is the agent turning the crank by hand; MCP is a clean dashboard the agent reads at runtime; ADK is the driver who plans the trip and can call in other drivers.</p>
+</section>
+
+<!-- 13 grand table -->
+<section id="grand">
+  <span class="secnum">§ 13 — Synthesis</span>
+  <h2>The grand comparison table</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>&nbsp;</th><th><span class="tag t-api">API</span></th><th><span class="tag t-cli">CLI</span></th><th><span class="tag t-mcp">MCP</span></th><th><span class="tag t-adk">ADK</span></th></tr></thead>
+    <tbody>
+      <tr><td>What it is</td><td>Service contract</td><td>Shell commands</td><td>Tool protocol</td><td>Agent framework</td></tr>
+      <tr><td>Layer</td><td>Transport</td><td>Execution</td><td>Integration</td><td>Orchestration</td></tr>
+      <tr><td>Answers</td><td>How systems talk</td><td>How the agent runs tools</td><td>How the agent finds &amp; calls tools</td><td>How you build the agent(s)</td></tr>
+      <tr><td>Discovery</td><td>None (docs)</td><td><code>--help</code></td><td>Dynamic</td><td>Uses MCP/A2A</td></tr>
+      <tr><td>Token cost</td><td>n/a</td><td>Lowest</td><td>Higher (schema)</td><td>Framework-level</td></tr>
+      <tr><td>Structure</td><td>Defined</td><td>Unstructured text</td><td>Typed</td><td>Typed</td></tr>
+      <tr><td>Best for</td><td>System-to-system</td><td>Local dev tooling</td><td>Remote/shared tools</td><td>Building &amp; coordinating agents</td></tr>
+      <tr><td>Origin</td><td>Decades old</td><td>1970s→now</td><td>Anthropic 2024</td><td>Google/IBM 2025</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 14 timeline -->
+<section id="timeline">
+  <span class="secnum">§ 14 — Context</span>
+  <h2>A short timeline</h2>
+  <div class="timeline">
+    <div class="tlrow"><div class="yr">1970s →</div><div class="ev"><b>The CLI.</b> The Unix shell and its toolset (<code>cat</code>, <code>grep</code>, pipes) — still the default execution surface fifty years on.</div></div>
+    <div class="tlrow"><div class="yr">2000s →</div><div class="ev"><b>REST APIs.</b> HTTP/JSON web APIs become the universal way services integrate. The bedrock the agent era is built on.</div></div>
+    <div class="tlrow"><div class="yr">Nov 2024</div><div class="ev"><b>MCP.</b> Anthropic introduces the Model Context Protocol; rapid adoption by OpenAI, Google, and others follows.</div></div>
+    <div class="tlrow"><div class="yr">Apr 2025</div><div class="ev"><b>ADK &amp; A2A.</b> Google open-sources its Agent Development Kit and unveils the Agent2Agent protocol within days of each other.</div></div>
+    <div class="tlrow"><div class="yr">May 2025</div><div class="ev"><b>ACP.</b> IBM's BeeAI project debuts the Agent Communication Protocol — a REST-based agent-to-agent alternative.</div></div>
+    <div class="tlrow"><div class="yr">Late 2025</div><div class="ev"><b>Open governance.</b> MCP, A2A, and ACP converge toward the Linux Foundation, signaling the space is consolidating around shared standards.</div></div>
+  </div>
+</section>
+
+<!-- 15 decide -->
+<section id="decide">
+  <span class="secnum">§ 15 — Decision</span>
+  <h2>How an agent actually chooses</h2>
+  <p>Strip away the branding and, to the model, every option is the same kind of object: a name, a description, and an input schema in its context, plus a runtime that executes whatever the model emits. The "choice" is the model predicting which tool best fits the request given those descriptions. You steer it mostly by <em>how you write the tool descriptions</em> — and by which tools you put in front of it at all. <a class="ref" href="#refs">[8]</a></p>
+  <div class="flow">
+    <div class="step"><span class="q">Q1</span><div class="qb"><b>Is the work local and familiar?</b><div class="ans">Editing files, running git, building, parsing logs on the host → reach for the <span class="tag t-cli">CLI</span>. Cheapest tokens, highest fluency.</div></div></div>
+    <div class="step"><span class="q">Q2</span><div class="qb"><b>Does it cross a network or hit an unfamiliar service?</b><div class="ans">A SaaS app, a remote database, an internal system → prefer <span class="tag t-mcp">MCP</span>. Structured, discoverable, far more reliable than improvising API calls.</div></div></div>
+    <div class="step"><span class="q">Q3</span><div class="qb"><b>Will several agents (or tools) share this capability?</b><div class="ans">One MCP server, reused everywhere, beats re-wiring the same tool into each agent. <span class="tag t-mcp">MCP</span> earns its schema cost here.</div></div></div>
+    <div class="step"><span class="q">Q4</span><div class="qb"><b>Do you need auth isolation, scoping, and audit?</b><div class="ans">Server-side credentials and scoped tokens favor <span class="tag t-mcp">MCP</span>; or sandbox the <span class="tag t-cli">CLI</span> deliberately. Neither is secure by default.</div></div></div>
+    <div class="step"><span class="q">Q5</span><div class="qb"><b>Are you building the agent itself — or several working together?</b><div class="ans">Not a tool choice at all. Reach for an <span class="tag t-adk">ADK</span>, and let it consume MCP and <span class="tag t-a2a">A2A</span> beneath you.</div></div></div>
+  </div>
+</section>
+
+<!-- 16 practical -->
+<section id="practical">
+  <span class="secnum">§ 16 — Field notes</span>
+  <h2>Practical engineering notes</h2>
+  <ul class="clean">
+    <li><strong>Mind the schema tax.</strong> Stacking GitHub + database + Microsoft Graph + Jira MCP servers can burn tens of thousands of tokens before any action runs. Load only the servers a task needs; lazy-load the rest.</li>
+    <li><strong>Prototype with CLI, harden with MCP.</strong> Build a new capability as a CLI tool you can run and inspect by hand, then promote it to an MCP server once it must run reliably, at scale, or across agents. <a class="ref" href="#refs">[4]</a></li>
+    <li><strong>Never hardcode credentials, in any layer.</strong> CLI auth via env vars or config; API via secrets-managed keys/OAuth; MCP auth configured server-side and abstracted from the agent. <a class="ref" href="#refs">[5]</a></li>
+    <li><strong>Security is a config decision, not a default.</strong> MCP gives credential isolation by default but its OAuth 2.1 spec (2025) has uneven adoption; CLI grants full host privileges unless sandboxed. Put both behind one gateway for auth, rate limiting, and logging. <a class="ref" href="#refs">[2]</a></li>
+    <li><strong>Tool descriptions <em>are</em> the routing logic.</strong> Since the model picks tools from their descriptions, careful, unambiguous specs do more for reliability than almost anything else. <a class="ref" href="#refs">[8]</a></li>
+    <li><strong>Don't reach for MCP just because it's new.</strong> Reserve it for what it's genuinely good at — remote/unfamiliar services, multi-tenant access control, shared discovery across an org. <a class="ref" href="#refs">[7]</a></li>
+  </ul>
+</section>
+
+<!-- 17 security -->
+<section id="security">
+  <span class="secnum">§ 17 — Risk</span>
+  <h2>Security &amp; the OWASP angle</h2>
+  <p>The moment an agent can run commands and call tools, its attack surface grows. In IBM's <i>OWASP Top 10 for LLMs</i> talk, Jeff Crume walks the updated list of LLM vulnerabilities — and several land squarely on the layers in this guide. <a class="ref" href="#refs">[16]</a></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>OWASP risk</th><th>Where it bites in an agent stack</th></tr></thead>
+    <tbody>
+      <tr><td>Prompt injection</td><td>Most prevalent threat. <i>Indirect</i> injection is the agent-specific danger: malicious text inside a tool result, fetched web page, or API response hijacks the agent's next action.</td></tr>
+      <tr><td>Excessive agency</td><td>The defining agent risk — too much autonomy, too many permissions, too few guardrails. A CLI with full host rights or an over-scoped MCP token is excessive agency waiting to happen.</td></tr>
+      <tr><td>Sensitive info disclosure</td><td>Secrets leaking through tool outputs or summaries. Validate and sanitize what flows back out of a tool call.</td></tr>
+      <tr><td>Improper output handling</td><td>Trusting an LLM's output downstream unchecked — it can emit code, markup, or SQL that executes elsewhere.</td></tr>
+      <tr><td>Supply chain</td><td>A malicious or compromised third-party MCP server or plugin is a direct path in. Vet what you connect.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Crume's mitigations are the familiar security hygiene, applied to LLMs: validate inputs <em>and</em> outputs, verify the provenance of models and data, scan and red-team regularly, patch, and log everything for incident response. The agentic twist: <strong>scope every tool to least privilege</strong>, and treat anything an agent reads from the outside world as untrusted input. <a class="ref" href="#refs">[16]</a></p>
+  <p style="font-size:15px;color:var(--ink-faint);font-style:italic">Security is a sensitive area — the notes above are orientation, not an audit. Threat-model your own deployment against current OWASP guidance before shipping.</p>
+</section>
+
+<!-- 18 faq -->
+<section id="faq">
+  <span class="secnum">§ 18 — Clearing the air</span>
+  <h2>Misconceptions &amp; FAQ</h2>
+  <details><summary>Is MCP replacing APIs?</summary><div class="da">No. MCP usually <b>sits on top of</b> APIs and calls them on the agent's behalf. APIs remain the underlying transport; MCP just makes them discoverable and uniform for an agent.</div></details>
+  <details><summary>Is the CLI obsolete now that MCP exists?</summary><div class="da">Not at all. For familiar <b>local</b> tooling — git, files, builds — the CLI is cheaper on tokens and the model is more fluent with it. The advantage flips toward MCP when work crosses a network or touches unfamiliar services.</div></details>
+  <details><summary>Do I need an ADK to use MCP?</summary><div class="da">No. Any MCP-aware host (a chat client, an IDE) can use MCP servers. An ADK is only needed when you're <b>building</b> the agent yourself or orchestrating several — and even then, the ADK simply acts as an MCP client.</div></details>
+  <details><summary>MCP vs A2A — what's the difference?</summary><div class="da">MCP standardizes <b>agent-to-tools</b> communication; A2A standardizes <b>agent-to-agent</b> communication. They're complementary layers — MCP makes an agent capable, A2A makes agents collaborative.</div></details>
+  <details><summary>Which of these is the most secure?</summary><div class="da">None is secure by default. MCP offers credential isolation and scoped tokens; CLI runs with host privileges unless sandboxed. Security comes from deliberate configuration — least privilege, a governance gateway, input/output validation — not from the choice of layer.</div></details>
+  <details><summary>Is there one "ADK"?</summary><div class="da">No — Google's Agent Development Kit and IBM's watsonx Orchestrate ADK are different products that share a name and a category. Confirm which one a conversation means.</div></details>
+</section>
+
+<!-- 19 videos -->
+<section id="videos">
+  <span class="secnum">§ 19 — Source talks</span>
+  <h2>The IBM videos — watch here</h2>
+  <p>The four <i>Think</i> series talks behind this guide, embedded in narrative order. Each maps onto a layer above.</p>
+
+  <div class="vidblock">
+    <h4>1 · MCP vs API — Simplifying AI Agent Integration with External Data</h4>
+    <p class="vmeta">IBM Technology · Martin Keen · ~13 min · the foundational entry</p>
+    <div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/7j1t3UZA1TY" title="MCP vs API" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+    <p>The USB-C analogy: one standard port replacing a tangle of connectors. Both MCP and APIs are client–server abstraction layers, but MCP is purpose-built for LLMs and adds dynamic discovery, a uniform interface, and tool execution.</p>
+  </div>
+
+  <div class="vidblock">
+    <h4>2 · CLI vs MCP — How AI Agents Choose the Right Tool for the Job</h4>
+    <p class="vmeta">IBM Technology · Martin Keen · ~14 min · the token-economy debate</p>
+    <div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/g9JIUM0MHgQ" title="CLI vs MCP" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+    <p>A file-operations example — <code>cat notes.md</code>, then <code>grep</code> — sets the CLI's brevity and the model's deep familiarity against MCP's structure, discovery, and built-in auth. Pick by granularity, not by hype.</p>
+  </div>
+
+  <div class="vidblock">
+    <h4>3 · MCP vs ADK — How Modern AI Agents Connect and Work Together</h4>
+    <p class="vmeta">IBM Technology · Cedric Clyburn · ~14 min · the orchestration view</p>
+    <div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/BedAaB1RKgE" title="MCP vs ADK" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+    <p>Separates protocol from framework: MCP handles tool/data connectivity, ADK structures how agents are built and orchestrated. Complementary — an ADK agent commonly acts as an MCP client — with A2A waiting in the wings.</p>
+  </div>
+
+  <div class="vidblock">
+    <h4>4 · OWASP's Top 10 Ways to Attack LLMs — AI Vulnerabilities Exposed</h4>
+    <p class="vmeta">IBM Technology · Jeff Crume · ~14 min · the security backdrop</p>
+    <div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/gUNXZMcd2jU" title="OWASP Top 10 for LLMs" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+    <p>Why the security section matters: once an agent can run commands and call tools, every layer becomes a place to get the safety configuration wrong. Prompt injection and excessive agency lead the list.</p>
+  </div>
+  <p style="font-size:14px;color:var(--ink-faint)">If an embed doesn't load (offline, or a strict viewer), each title links to the same video in the <a class="ref" style="font-size:1em;vertical-align:baseline" href="#refs">references</a>.</p>
+</section>
+
+<!-- 20 glossary -->
+<section id="glossary">
+  <span class="secnum">§ 20 — Reference</span>
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <dt>JSON-RPC</dt><dd>The lightweight request/response message format MCP uses to carry tool calls and results.</dd>
+    <dt>Host / Client / Server</dt><dd>MCP's three roles: the AI app (host) embeds a client that speaks to a server exposing capabilities.</dd>
+    <dt>Tool / Resource / Prompt</dt><dd>MCP's three server primitives: an action to invoke, data to read, and a reusable template.</dd>
+    <dt>tools/list</dt><dd>The MCP method an agent calls to discover, at runtime, what a server offers.</dd>
+    <dt>stdio · HTTP/SSE</dt><dd>MCP transports: standard I/O for local servers; HTTP streaming for remote ones.</dd>
+    <dt>Schema tax</dt><dd>The context (tokens) spent loading tool definitions before any action runs — MCP's main cost.</dd>
+    <dt>MCPToolset</dt><dd>The ADK class that connects an agent to an MCP server and surfaces its tools.</dd>
+    <dt>Agent Card</dt><dd>An A2A profile advertising an agent's identity, endpoint, and capabilities so others can discover it.</dd>
+    <dt>Task (A2A)</dt><dd>A unit of agent-to-agent work with an ID and a lifecycle (submitted → working → completed/failed).</dd>
+    <dt>RAG</dt><dd>Retrieval-Augmented Generation — fetching relevant facts from a knowledge base at query time.</dd>
+    <dt>Skill</dt><dd>Encoded procedural know-how that teaches an agent how to perform a task with capabilities it already has.</dd>
+    <dt>A2A / ACP</dt><dd>Agent-to-agent protocols (Google / IBM-BeeAI) for letting independent agents collaborate.</dd>
+    <dt>Excessive agency</dt><dd>OWASP risk: an agent granted too much autonomy or permission relative to its safeguards.</dd>
+  </dl>
+</section>
+
+<!-- 21 refs -->
+<section id="refs">
+  <span class="secnum">§ 21 — Sources</span>
+  <h2>References</h2>
+  <ol class="refs">
+    <li><span class="src">CLI vs MCP: How AI Agents Choose the Right Tool for the Job.</span> <span class="pub">IBM Technology (Martin Keen), 2026.</span> <a href="https://www.youtube.com/watch?v=g9JIUM0MHgQ">youtube.com/watch?v=g9JIUM0MHgQ</a></li>
+    <li><span class="src">MCP vs CLI for AI Agents: Enterprise Comparison Guide.</span> <span class="pub">Tyk, Apr 2026.</span> <a href="https://tyk.io/learning-center/mcp-vs-cli-for-ai-agents-enterprise-comparison-guide/">tyk.io/learning-center/mcp-vs-cli-for-ai-agents…</a></li>
+    <li><span class="src">CLI vs MCP: What Tools AI Agents Use to Get the Job Done.</span> <span class="pub">Frank's World of Data Science, May 2026.</span> <a href="https://www.franksworld.com/2026/05/04/cli-vs-mcp-what-tools-ai-agents-use-to-get-the-job-done/">franksworld.com/2026/05/04/cli-vs-mcp…</a></li>
+    <li><span class="src">MCP Servers vs CLI Tools for AI Agents: When to Use Each.</span> <span class="pub">MindStudio, 2026.</span> <a href="https://www.mindstudio.ai/blog/mcp-servers-vs-cli-tools-for-ai-agents">mindstudio.ai/blog/mcp-servers-vs-cli-tools-for-ai-agents</a></li>
+    <li><span class="src">CLI vs MCP vs API for AI Agents: Which Integration Method?</span> <span class="pub">MindStudio, 2026.</span> <a href="https://www.mindstudio.ai/blog/cli-vs-mcp-vs-api-ai-agents">mindstudio.ai/blog/cli-vs-mcp-vs-api-ai-agents</a></li>
+    <li><span class="src">MCP vs API: Simplifying AI Agent Integration with External Data.</span> <span class="pub">IBM Technology (Martin Keen), Jun 2025.</span> <a href="https://www.youtube.com/watch?v=7j1t3UZA1TY">youtube.com/watch?v=7j1t3UZA1TY</a></li>
+    <li><span class="src">Why CLI Tools Are Beating MCP for AI Agents.</span> <span class="pub">Jannik Reinhard, Feb 2026.</span> <a href="https://jannikreinhard.com/2026/02/22/why-cli-tools-are-beating-mcp-for-ai-agents/">jannikreinhard.com/2026/02/22/…</a></li>
+    <li><span class="src">CLI vs MCP: How AI Agents Actually Decide Which Tool to Call.</span> <span class="pub">Softmax Data, 2026 (cites Smithery &amp; Descope benchmarks).</span> <a href="https://softmaxdata.com/blog/cli-vs-mcp-how-ai-agents-actually-decide-which-tool-to-call/">softmaxdata.com/blog/cli-vs-mcp…</a></li>
+    <li><span class="src">Skills, CLI, and MCP — Picking the Right Tool Layer for Your AI Agent.</span> <span class="pub">D. Dewhurst, Mar 2026.</span> <a href="https://ddewhurst.com/blog/skills-cli-and-mcp-picking-the-right-tool-layer-for-your-ai-agent/">ddewhurst.com/blog/skills-cli-and-mcp…</a></li>
+    <li><span class="src">MCP vs ADK: How Modern AI Agents Connect and Work Together.</span> <span class="pub">IBM Technology (Cedric Clyburn), 2026.</span> <a href="https://www.youtube.com/watch?v=BedAaB1RKgE">youtube.com/watch?v=BedAaB1RKgE</a></li>
+    <li><span class="src">Building AI Agents with MCP, ADK, and A2A: A Comprehensive Guide.</span> <span class="pub">R. Bin Safi, Medium, Nov 2025.</span> <a href="https://medium.com/@rbinsafi/building-ai-agents-with-mcp-adk-and-a2a-a-comprehensive-guide-29cbc641eb50">medium.com/@rbinsafi/building-ai-agents-with-mcp-adk-and-a2a…</a></li>
+    <li><span class="src">ADK Meets MCP: Bridging Worlds of AI Agents.</span> <span class="pub">Kaz Sato, Google Cloud Community, 2025.</span> <a href="https://medium.com/google-cloud/adk-meets-mcp-bridging-worlds-of-ai-agents-1ed96ef5399c">medium.com/google-cloud/adk-meets-mcp…</a></li>
+    <li><span class="src">Connecting the Dots: MCP vs ADK in Modern AI Agent Development.</span> <span class="pub">Frank's World of Data Science, May 2026.</span> <a href="https://www.franksworld.com/2026/05/19/connecting-the-dots-mcp-vs-adk-in-modern-ai-agent-development/">franksworld.com/2026/05/19/connecting-the-dots…</a></li>
+    <li><span class="src">A2A, MCP, and ADK — Clarifying Their Roles in the AI Ecosystem.</span> <span class="pub">Google Cloud Community, 2025.</span> <a href="https://medium.com/google-cloud/a2a-mcp-and-adk-clarifying-their-roles-in-the-ai-ecosystem-44727700a0c6">medium.com/google-cloud/a2a-mcp-and-adk…</a></li>
+    <li><span class="src">Build AI Agents with IBM watsonx Orchestrate ADK and Kiro on AWS.</span> <span class="pub">AWS / IBM &amp; Red Hat, Mar 2026.</span> <a href="https://aws.amazon.com/blogs/ibm-redhat/build-ai-agents-with-ibm-watsonx-orchestrate-adk-and-kiro-on-aws/">aws.amazon.com/blogs/ibm-redhat/build-ai-agents…</a></li>
+    <li><span class="src">OWASP's Top 10 Ways to Attack LLMs: AI Vulnerabilities Exposed.</span> <span class="pub">IBM Technology (Jeff Crume), 2026.</span> <a href="https://www.youtube.com/watch?v=gUNXZMcd2jU">youtube.com/watch?v=gUNXZMcd2jU</a></li>
+    <li><span class="src">What is the A2A (Agent2Agent) Protocol?</span> <span class="pub">IBM Think.</span> <a href="https://www.ibm.com/think/topics/agent2agent-protocol">ibm.com/think/topics/agent2agent-protocol</a></li>
+    <li><span class="src">What Are AI Agent Protocols?</span> <span class="pub">IBM Think, 2026.</span> <a href="https://www.ibm.com/think/topics/ai-agent-protocols">ibm.com/think/topics/ai-agent-protocols</a></li>
+    <li><span class="src">What is the Agent Communication Protocol (ACP)?</span> <span class="pub">IBM Think.</span> <a href="https://www.ibm.com/think/topics/agent-communication-protocol">ibm.com/think/topics/agent-communication-protocol</a></li>
+    <li><span class="src">AI Agents Need Skills: Martin Keen on LLM Tooling.</span> <span class="pub">StartupHub.ai, Apr 2026.</span> <a href="https://www.startuphub.ai/ai-news/artificial-intelligence/2026/ai-agents-need-skills-martin-keen-on-llm-tooling">startuphub.ai/…/ai-agents-need-skills-martin-keen…</a></li>
+    <li><span class="src">MCP vs API: Simplifying AI Agent Integration (write-up).</span> <span class="pub">Frank's World of Data Science, May 2025.</span> <a href="https://www.franksworld.com/2025/05/05/mcp-vs-api-simplifying-ai-agent-integration-with-external-data/">franksworld.com/2025/05/05/mcp-vs-api…</a></li>
+  </ol>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>Compiled June 2026 · Rev. 2 · Light-paper monograph · Content paraphrased and synthesized from the cited IBM Technology talks and surrounding 2025–26 literature. Layers: API · CLI · MCP · ADK · Skills · A2A.</p>
+  <p>The map is not the territory — verify protocol specifics against current vendor docs before building.</p>
+</footer>
+
+</body>
+</html>
