@@ -1,5 +1,5 @@
 ---
-title: "Coding with VS Code Copilot — The Complete Plain-English Guide"
+title: "VS Code Copilot, Explained"
 subtitle: "Every confusing new word — instructions, prompts, skills, hooks, agents, modes, models — explained simply, with real examples you can copy and a reading list at the end."
 date: 2026-06-04 10:00:00 -0400
 category: "Tools"
