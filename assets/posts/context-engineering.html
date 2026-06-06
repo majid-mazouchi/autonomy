@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From RAG to Context Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#f4efe2;
+    --cream-2:#efe7d4;
+    --paper:#fbf8ef;
+    --ink:#23201c;
+    --ink-soft:#4a443b;
+    --ink-faint:#7a7264;
+    --line:#d8cfb8;
+    --line-soft:#e4dcc8;
+    --blue:#1f5fb0;
+    --pink:#c0367f;
+    --green:#5f8a1e;
+    --amber:#d08a13;
+    --teal:#0e8a8a;
+    --rust:#b5562a;
+    --shadow:0 1px 0 rgba(35,32,28,.04), 0 12px 32px -16px rgba(35,32,28,.28);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #fbf6e9 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, #f7f1e0 0%, transparent 55%),
+      var(--cream);
+    color:var(--ink);
+    font-family:"Spectral", Georgia, serif;
+    font-size:18px;
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+  }
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.045;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .wrap{max-width:920px;margin:0 auto;padding:0 26px;position:relative;z-index:2}
+
+  /* progress bar */
+  #bar{position:fixed;top:0;left:0;height:3px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--blue),var(--teal),var(--green),var(--amber),var(--pink));}
+
+  /* hero */
+  header.hero{padding:88px 0 30px;border-bottom:1px solid var(--line)}
+  .kicker{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--ink-faint);margin-bottom:22px}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(40px,8vw,76px);
+    line-height:1.02;letter-spacing:-.02em;margin:0 0 18px;color:var(--ink)}
+  h1 em{font-style:italic;font-weight:400;color:var(--rust)}
+  .lede{font-size:clamp(19px,2.5vw,22px);color:var(--ink-soft);max-width:62ch;margin:0}
+  .byline{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+    color:var(--ink-faint);margin-top:30px;text-transform:uppercase}
+
+  /* table of contents */
+  nav.toc{margin:40px 0 10px;padding:22px 26px;background:var(--paper);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow)}
+  nav.toc h4{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 14px}
+  nav.toc ol{margin:0;padding:0;counter-reset:t;list-style:none;
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 30px}
+  nav.toc li{counter-increment:t;font-size:16px}
+  nav.toc li a{color:var(--ink-soft);text-decoration:none;display:flex;gap:12px;
+    padding:5px 0;border-bottom:1px solid transparent;transition:.2s}
+  nav.toc li a:before{content:counter(t,decimal-leading-zero);font-family:"JetBrains Mono",monospace;
+    font-size:12px;color:var(--pink);padding-top:3px}
+  nav.toc li a:hover{color:var(--ink);border-bottom-color:var(--line)}
+  @media(max-width:620px){nav.toc ol{grid-template-columns:1fr}}
+
+  /* sections */
+  section{padding:56px 0;border-bottom:1px solid var(--line-soft)}
+  .secnum{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.2em;
+    color:var(--pink);text-transform:uppercase;margin-bottom:10px}
+  h2{font-family:"Fraunces",serif;font-weight:700;font-size:clamp(28px,4.5vw,40px);
+    line-height:1.08;letter-spacing:-.01em;margin:0 0 20px;color:var(--ink)}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:23px;margin:34px 0 10px;color:var(--ink)}
+  p{margin:0 0 18px}
+  strong{font-weight:600;color:var(--ink)}
+  a{color:var(--blue)}
+  code{font-family:"JetBrains Mono",monospace;font-size:.84em;background:#efe7d2;
+    padding:1px 6px;border-radius:5px;color:var(--rust)}
+
+  .analogy{border-left:3px solid var(--amber);background:linear-gradient(90deg,#faf3df,transparent);
+    padding:14px 20px;margin:22px 0;border-radius:0 10px 10px 0;font-style:italic;color:var(--ink-soft)}
+  .analogy b{font-style:normal;color:var(--amber);font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:4px;font-weight:600}
+
+  .note{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:26px 0;box-shadow:var(--shadow)}
+  .note .tag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:8px}
+  .note ul{margin:6px 0 0;padding-left:20px}
+  .note li{margin:7px 0;color:var(--ink-soft)}
+  .note li b{color:var(--ink)}
+
+  /* figure */
+  figure{margin:34px 0;text-align:center}
+  .fig-shell{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+    padding:24px 18px 18px;box-shadow:var(--shadow);overflow-x:auto}
+  figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+  figcaption{font-size:14px;color:var(--ink-faint);margin-top:14px;font-style:italic;max-width:70ch;
+    margin-left:auto;margin-right:auto;line-height:1.5}
+  figcaption b{font-style:normal;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+
+  /* comparison table */
+  .tbl-shell{overflow-x:auto;margin:30px 0}
+  table{border-collapse:collapse;width:100%;font-size:15.5px;min-width:640px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-faint);border-bottom:2px solid var(--line)}
+  tbody th{font-family:"Fraunces",serif;font-weight:600;font-size:16px;color:var(--ink);width:24%}
+  td{color:var(--ink-soft)}
+  tbody tr:nth-child(odd){background:rgba(251,248,239,.55)}
+
+  /* legend chips */
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:18px 0 4px;justify-content:center}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.04em;
+    display:flex;align-items:center;gap:7px;color:var(--ink-soft)}
+  .chip i{width:13px;height:13px;border-radius:3px;display:inline-block;border:2px solid}
+
+  /* refs */
+  .refs{font-size:15px;color:var(--ink-soft)}
+  .refs ol{padding-left:22px}
+  .refs li{margin:11px 0}
+  .refs a{word-break:break-word}
+
+  footer{padding:50px 0 80px;text-align:center;color:var(--ink-faint);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em}
+
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease, transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* danger / security callout */
+  .note.danger{border-color:#e0b3a0;background:linear-gradient(180deg,#fdf1ea,#fbf8ef)}
+  .note.danger .tag{color:var(--rust)}
+
+  /* two-column compare cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:26px 0}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    box-shadow:var(--shadow)}
+  .card h5{font-family:"Fraunces",serif;font-weight:600;font-size:17px;margin:0 0 8px;color:var(--ink)}
+  .card p{font-size:14.5px;color:var(--ink-soft);margin:0}
+  .card .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;display:block;margin-bottom:7px}
+
+  /* interactive token budget */
+  .budget{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;
+    margin:28px 0;box-shadow:var(--shadow)}
+  .budget .ttl{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:14px}
+  .budget input[type=range]{width:100%;accent-color:var(--blue);margin:6px 0 4px}
+  .budget .read{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;margin-bottom:14px}
+  .budget .read b{color:var(--rust)}
+  .stack{display:flex;flex-direction:column;gap:6px}
+  .blk{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-radius:8px;
+    border:1.5px solid var(--line);background:#fff;font-size:14px;transition:.35s}
+  .blk .sz{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint)}
+  .blk.evicted{opacity:.28;border-style:dashed;background:#f3ede0;transform:translateX(8px)}
+  .blk.pinned{border-color:var(--green)}
+  .blk.evicted .sz{text-decoration:line-through}
+  .verdict{margin-top:14px;font-size:14.5px;color:var(--ink-soft);font-style:italic}
+  .verdict b{font-style:normal;color:var(--rust)}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="grain"></div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="kicker">Applied AI Systems · Monograph</div>
+    <h1>From <em>RAG</em> to<br>Context Engineering</h1>
+    <p class="lede">How a language model gets the right information at the right moment — starting from a fixed retrieval pipeline, then handing the steering wheel to the model itself, and finally turning context into something you deliberately design.</p>
+    <div class="byline">By <strong style="color:var(--ink);">Majid Mazouchi</strong> · Three architectures · plain-language walkthrough · block diagrams · practical notes</div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#big">The one idea behind all three</a></li>
+      <li><a href="#window">Anatomy of a context window</a></li>
+      <li><a href="#rag">Retrieval-Augmented Generation</a></li>
+      <li><a href="#internals">Under the hood: retrieval &amp; GraphRAG</a></li>
+      <li><a href="#agentic-rag">Agentic RAG</a></li>
+      <li><a href="#agentic-search">Agentic search &amp; context engineering</a></li>
+      <li><a href="#example">Worked example: a flux-table trip</a></li>
+      <li><a href="#compare">Side-by-side comparison</a></li>
+      <li><a href="#eval">Evaluation &amp; failure taxonomy</a></li>
+      <li><a href="#production">Production: security, cost, MCP</a></li>
+      <li><a href="#choose">Which one should you build?</a></li>
+      <li><a href="#refs">Notes &amp; references</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================== BIG IDEA ===================== -->
+  <section id="big">
+    <div class="secnum">§ 01 — Orientation</div>
+    <h2>The one idea behind all three</h2>
+    <p>A large language model only knows two things: the patterns baked into its weights during training, and whatever text you place in its <strong>context window</strong> right now. It has no live memory of your files, your database, or yesterday's conversation. So the whole game of building useful AI systems comes down to a single question:</p>
+    <p style="font-family:'Fraunces',serif;font-size:22px;font-style:italic;color:var(--rust);text-align:center;max-width:60ch;margin:8px auto 22px;line-height:1.4">“How do the right facts end up inside the context window at the right time?”</p>
+    <p>The three architectures in this monograph are three increasingly capable answers to that question. They are not rivals so much as a progression — each one keeps the previous idea and adds more control:</p>
+    <div class="note">
+      <div class="tag">The progression in one breath</div>
+      <ul>
+        <li><b>RAG</b> — a fixed pipeline fetches documents <em>before</em> the model speaks. The model never decides; retrieval just happens.</li>
+        <li><b>Agentic RAG</b> — the model is given a search <em>tool</em> and decides for itself whether, when, and what to retrieve — and can loop.</li>
+        <li><b>Agentic search / context engineering</b> — the model gets <em>many</em> tools reaching <em>many</em> sources (files, databases, the web, memory, the shell) and you deliberately curate what enters the window.</li>
+      </ul>
+    </div>
+    <div class="analogy">
+      <b>Plain-language analogy</b>
+      RAG is a librarian who always hands you the same five pages before you ask your question. Agentic RAG is you walking up to the search desk and deciding what to look up. Context engineering is you with a full research library — card catalog, microfilm, the web, your own notebooks, and a terminal — choosing exactly what goes on your desk.
+    </div>
+  </section>
+
+  <!-- ===================== CONTEXT WINDOW ===================== -->
+  <section id="window">
+    <div class="secnum">§ 02 — Foundation</div>
+    <h2>Anatomy of a context window</h2>
+    <p>Every diagram in this piece ends at the same place — a stack of text fed to the model on each turn. Reading this stack first makes the rest obvious. The richer the architecture, the more <em>kinds</em> of blocks appear in it.</p>
+
+    <figure>
+      <div class="fig-shell">
+        <svg viewBox="0 0 720 430" role="img" aria-label="Context window stack">
+          <defs>
+            <style>
+              .lbl{font-family:'JetBrains Mono',monospace;font-size:13px;fill:#23201c}
+              .cap{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;fill:#7a7264}
+              .anno{font-family:'Spectral',serif;font-size:13px;fill:#4a443b;font-style:italic}
+            </style>
+          </defs>
+          <rect x="40" y="20" width="360" height="390" rx="14" fill="#fbf8ef" stroke="#1f5fb0" stroke-width="2"/>
+          <text x="220" y="14" class="cap" text-anchor="middle" fill="#1f5fb0">CONTEXT WINDOW</text>
+
+          <!-- rows -->
+          <g>
+            <rect x="58" y="36" width="324" height="34" rx="7" fill="#fff" stroke="#d8cfb8"/>
+            <text x="220" y="58" class="lbl" text-anchor="middle">System prompt</text>
+
+            <rect x="58" y="78" width="324" height="34" rx="7" fill="#fff" stroke="#c0367f" stroke-width="2"/>
+            <text x="220" y="100" class="lbl" text-anchor="middle">Skills / YAML frontmatter</text>
+
+            <rect x="58" y="120" width="324" height="34" rx="7" fill="#fff" stroke="#d8cfb8"/>
+            <text x="220" y="142" class="lbl" text-anchor="middle">Tool list</text>
+
+            <rect x="58" y="162" width="156" height="34" rx="7" fill="#fff" stroke="#5f8a1e" stroke-width="2"/>
+            <text x="136" y="184" class="lbl" text-anchor="middle">Memory file</text>
+            <rect x="226" y="162" width="156" height="34" rx="7" fill="#fff" stroke="#5f8a1e" stroke-width="2"/>
+            <text x="304" y="184" class="lbl" text-anchor="middle">History</text>
+
+            <rect x="58" y="204" width="324" height="34" rx="7" fill="#fff" stroke="#d8cfb8"/>
+            <text x="220" y="226" class="lbl" text-anchor="middle">User message</text>
+
+            <rect x="58" y="246" width="324" height="34" rx="7" fill="#fff" stroke="#d8cfb8"/>
+            <text x="220" y="268" class="lbl" text-anchor="middle">Tool call</text>
+
+            <rect x="58" y="288" width="324" height="106" rx="9" fill="#fbf6e9" stroke="#d8cfb8"/>
+            <text x="72" y="307" class="cap" fill="#4a443b">TOOL RESULT</text>
+            <rect x="70" y="316" width="92" height="32" rx="6" fill="#fff" stroke="#1f5fb0" stroke-width="2"/>
+            <text x="116" y="337" class="lbl" text-anchor="middle">Doc 3</text>
+            <rect x="170" y="316" width="92" height="32" rx="6" fill="#fff" stroke="#1f5fb0" stroke-width="2"/>
+            <text x="216" y="337" class="lbl" text-anchor="middle">Doc 4</text>
+            <rect x="270" y="316" width="92" height="32" rx="6" fill="#fff" stroke="#1f5fb0" stroke-width="2"/>
+            <text x="316" y="337" class="lbl" text-anchor="middle">Doc 5</text>
+            <text x="72" y="372" class="anno">retrieved evidence the model will read</text>
+          </g>
+
+          <!-- annotations on right -->
+          <g>
+            <line x1="382" y1="53" x2="430" y2="53" stroke="#7a7264" stroke-dasharray="3 3"/>
+            <text x="438" y="50" class="anno">who the model is + rules</text>
+            <line x1="382" y1="95" x2="430" y2="95" stroke="#c0367f" stroke-dasharray="3 3"/>
+            <text x="438" y="92" class="anno" fill="#c0367f">on-demand instructions</text>
+            <line x1="382" y1="137" x2="430" y2="137" stroke="#7a7264" stroke-dasharray="3 3"/>
+            <text x="438" y="134" class="anno">what it’s allowed to call</text>
+            <line x1="382" y1="179" x2="430" y2="179" stroke="#5f8a1e" stroke-dasharray="3 3"/>
+            <text x="438" y="176" class="anno" fill="#5f8a1e">persistent + past turns</text>
+            <line x1="382" y1="221" x2="430" y2="221" stroke="#7a7264" stroke-dasharray="3 3"/>
+            <text x="438" y="218" class="anno">the actual question</text>
+            <line x1="382" y1="263" x2="430" y2="263" stroke="#7a7264" stroke-dasharray="3 3"/>
+            <text x="438" y="260" class="anno">model’s own action</text>
+            <line x1="382" y1="340" x2="430" y2="340" stroke="#1f5fb0" stroke-dasharray="3 3"/>
+            <text x="438" y="337" class="anno" fill="#1f5fb0">what came back</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption><b>Figure 1.</b> The context window is just an ordered stack of text. Basic RAG fills only the top few rows; agentic systems add tool lists, skills, memory, and tool results. Every byte here competes for limited space.</figcaption>
+    </figure>
+
+    <div class="note">
+      <div class="tag">Why this stack matters</div>
+      <ul>
+        <li>The window has a <b>hard size limit</b> (the token budget). Everything you add pushes something else out, so <em>what you include is a design decision</em>.</li>
+        <li>Models attend unevenly: facts at the very start and very end are used more reliably than facts buried in the middle (the <b>“lost in the middle”</b> effect). Placement is not cosmetic.</li>
+        <li>Irrelevant text is not free — it dilutes attention and can actively mislead. More context is not better context.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== RAG ===================== -->
+  <section id="rag">
+    <div class="secnum">§ 03 — Architecture I</div>
+    <h2>Retrieval-Augmented Generation (RAG)</h2>
+    <p>Classic RAG bolts a <strong>fixed retrieval step</strong> onto the front of generation. Before the model ever sees the question, a pipeline turns the query into a vector, runs a <code>semantic_search()</code> against a vector database, grabs the top few matching documents, and pastes them into the context window. Then the model answers using that pasted-in evidence.</p>
+    <p>The defining trait is that <strong>the model does not decide to retrieve</strong>. Retrieval is a hard-wired preprocessing stage that fires exactly once, the same way, every time — whether or not the question actually needs outside knowledge.</p>
+
+    <figure>
+      <div class="fig-shell">
+        <svg viewBox="0 0 760 360" role="img" aria-label="RAG architecture block diagram">
+          <defs>
+            <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#4a443b"/>
+            </marker>
+            <style>
+              .box{fill:#fff;stroke:#23201c;stroke-width:1.6}
+              .grp{fill:#fbf8ef;stroke:#bcb39a;stroke-width:1.4}
+              .t{font-family:'Spectral',serif;font-size:14px;fill:#23201c}
+              .tb{font-family:'Fraunces',serif;font-size:14px;font-weight:600;fill:#23201c}
+              .mono{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#23201c}
+              .cap2{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;fill:#7a7264}
+              .doc{fill:#fff;stroke:#1f5fb0;stroke-width:1.6}
+              .flow{stroke:#4a443b;stroke-width:1.6;fill:none}
+            </style>
+          </defs>
+
+          <!-- user -->
+          <rect class="box" x="14" y="120" width="64" height="50" rx="8"/>
+          <text class="tb" x="46" y="150" text-anchor="middle">User</text>
+
+          <!-- llm -->
+          <rect class="box" x="100" y="120" width="64" height="50" rx="8" fill="#fbf6e9"/>
+          <text class="mono" x="132" y="150" text-anchor="middle">LLM</text>
+
+          <!-- pipeline group -->
+          <rect class="grp" x="200" y="40" width="300" height="180" rx="12"/>
+          <text class="cap2" x="216" y="60">(FIXED) RETRIEVAL PIPELINE</text>
+          <rect class="box" x="216" y="95" width="120" height="56" rx="8"/>
+          <text class="mono" x="276" y="128" text-anchor="middle">semantic_search()</text>
+
+          <rect class="grp" x="356" y="80" width="128" height="120" rx="10" fill="#fff" stroke="#bcb39a"/>
+          <text class="cap2" x="420" y="100" text-anchor="middle" fill="#4a443b">DATABASE</text>
+          <rect class="doc" x="366" y="112" width="52" height="30" rx="5"/><text class="mono" x="392" y="131" text-anchor="middle">Doc 1</text>
+          <rect class="doc" x="424" y="112" width="52" height="30" rx="5"/><text class="mono" x="450" y="131" text-anchor="middle">Doc 2</text>
+          <rect class="doc" x="366" y="150" width="52" height="30" rx="5"/><text class="mono" x="392" y="169" text-anchor="middle">Doc 3</text>
+          <rect class="doc" x="424" y="150" width="52" height="30" rx="5"/><text class="mono" x="450" y="169" text-anchor="middle">Doc 4</text>
+
+          <!-- context window -->
+          <rect x="540" y="40" width="206" height="280" rx="12" fill="#fbf8ef" stroke="#1f5fb0" stroke-width="1.8"/>
+          <text class="cap2" x="643" y="58" text-anchor="middle" fill="#1f5fb0">CONTEXT WINDOW</text>
+          <rect class="box" x="556" y="70" width="174" height="30" rx="6"/><text class="t" x="643" y="90" text-anchor="middle">System prompt</text>
+          <rect class="box" x="556" y="106" width="174" height="30" rx="6"/><text class="t" x="643" y="126" text-anchor="middle">User message</text>
+          <rect class="doc" x="556" y="144" width="54" height="30" rx="5"/><text class="mono" x="583" y="163" text-anchor="middle">Doc 3</text>
+          <rect class="doc" x="616" y="144" width="54" height="30" rx="5"/><text class="mono" x="643" y="163" text-anchor="middle">Doc 4</text>
+          <rect class="doc" x="676" y="144" width="54" height="30" rx="5"/><text class="mono" x="703" y="163" text-anchor="middle">Doc 5</text>
+
+          <!-- flows -->
+          <path class="flow" d="M78,135 H92 H132 V120" marker-end="url(#ar)"/>
+          <text class="cap2" x="78" y="112">USER MSG</text>
+          <path class="flow" d="M132,170 V300 H643 V320" opacity="0"/>
+          <!-- LLM -> pipeline -->
+          <path class="flow" d="M132,118 V70 H276 V92" marker-end="url(#ar)"/>
+          <!-- semantic -> db -->
+          <path class="flow" d="M336,123 H356" marker-end="url(#ar)"/>
+          <!-- db -> context -->
+          <path class="flow" d="M484,140 H512 V159 H552" marker-end="url(#ar)"/>
+          <!-- context -> llm (feed back to generate) -->
+          <path class="flow" d="M540,300 H132 V172" marker-end="url(#ar)"/>
+          <text class="cap2" x="300" y="296">context fed back to model</text>
+          <!-- llm -> user assistant msg -->
+          <path class="flow" d="M100,158 H46 V172" marker-end="url(#ar)"/>
+          <text class="cap2" x="6" y="190">ASSISTANT MSG</text>
+        </svg>
+      </div>
+      <figcaption><b>Figure 2.</b> The query flows through a fixed <code>semantic_search()</code> into the database; the top documents are pasted into the window and the model answers from them. The model has no say over retrieval — it is a one-shot, deterministic step.</figcaption>
+    </figure>
+
+    <h3>How it works, step by step</h3>
+    <p><strong>1. Index (offline).</strong> Your documents are chunked and each chunk is turned into an embedding vector, stored in a vector database. <strong>2. Retrieve.</strong> At query time the user's question is embedded and compared by similarity to find the closest chunks. <strong>3. Augment.</strong> Those chunks are inserted into the prompt next to the question. <strong>4. Generate.</strong> The model writes an answer grounded in the retrieved text, ideally citing it.</p>
+
+    <div class="note">
+      <div class="tag">Practical notes</div>
+      <ul>
+        <li><b>Strengths:</b> simple, cheap, fast, and predictable. One retrieval call, one generation call. Easy to debug and to ground answers in real sources to reduce hallucination.</li>
+        <li><b>Chunking is half the battle.</b> Too-small chunks lose context; too-large chunks bury the answer. Overlap windows and store metadata (title, section) you can show to the model.</li>
+        <li><b>Hybrid retrieval wins.</b> Pure vector search misses exact terms (part numbers, error codes). Combine semantic search with keyword/BM25, then <b>re-rank</b> the merged list with a cross-encoder before trimming to top-k.</li>
+        <li><b>Where it breaks:</b> multi-hop questions ("compare A's spec against B's policy"), questions needing fresh data, or queries that don't actually need retrieval at all — the fixed pipeline still fires and wastes tokens.</li>
+        <li><b>Always evaluate retrieval separately from generation.</b> A wrong answer is usually a retrieval miss, not a model failure. Track recall@k and answer faithfulness independently.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== INTERNALS ===================== -->
+  <section id="internals">
+    <div class="secnum">§ 04 — Deep dive</div>
+    <h2>Under the hood: retrieval, chunking &amp; GraphRAG</h2>
+    <p>The <code>semantic_search()</code> box in Figure 2 hides most of what determines whether RAG works. In practice it is a small assembly line, and each station has its own failure modes.</p>
+
+    <figure>
+      <div class="fig-shell">
+        <svg viewBox="0 0 740 230" role="img" aria-label="Retrieval pipeline detail">
+          <defs>
+            <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4a443b"/></marker>
+            <style>
+              .s-box{fill:#fff;stroke:#23201c;stroke-width:1.5}
+              .s-t{font-family:'Fraunces',serif;font-size:14px;font-weight:600;fill:#23201c;text-anchor:middle}
+              .s-m{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#7a7264;text-anchor:middle}
+              .s-f{stroke:#4a443b;stroke-width:1.6;fill:none}
+              .s-c{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:#7a7264;text-anchor:middle}
+            </style>
+          </defs>
+          <rect class="s-box" x="14" y="80" width="104" height="60" rx="9" stroke="#1f5fb0"/>
+          <text class="s-t" x="66" y="106">Embed</text><text class="s-m" x="66" y="124">query → vector</text>
+          <rect class="s-box" x="158" y="80" width="120" height="60" rx="9" stroke="#1f5fb0"/>
+          <text class="s-t" x="218" y="100">ANN index</text><text class="s-m" x="218" y="116">HNSW / IVF</text><text class="s-m" x="218" y="128">top-50 candidates</text>
+          <rect class="s-box" x="318" y="80" width="120" height="60" rx="9" stroke="#d08a13"/>
+          <text class="s-t" x="378" y="100">Hybrid merge</text><text class="s-m" x="378" y="116">+ keyword / BM25</text><text class="s-m" x="378" y="128">exact terms</text>
+          <rect class="s-box" x="478" y="80" width="120" height="60" rx="9" stroke="#c0367f"/>
+          <text class="s-t" x="538" y="100">Re-rank</text><text class="s-m" x="538" y="116">cross-encoder</text><text class="s-m" x="538" y="128">score relevance</text>
+          <rect class="s-box" x="638" y="80" width="88" height="60" rx="9" stroke="#5f8a1e"/>
+          <text class="s-t" x="682" y="106">Trim</text><text class="s-m" x="682" y="124">top-k → window</text>
+
+          <path class="s-f" d="M118,110 H156" marker-end="url(#ar3)"/>
+          <path class="s-f" d="M278,110 H316" marker-end="url(#ar3)"/>
+          <path class="s-f" d="M438,110 H476" marker-end="url(#ar3)"/>
+          <path class="s-f" d="M598,110 H636" marker-end="url(#ar3)"/>
+          <text class="s-c" x="370" y="40">RECALL-ORIENTED (cast a wide net)</text>
+          <text class="s-c" x="370" y="186">PRECISION-ORIENTED (keep only the best)</text>
+          <line x1="40" y1="50" x2="440" y2="50" stroke="#bcb39a" stroke-dasharray="3 3"/>
+          <line x1="320" y1="172" x2="726" y2="172" stroke="#bcb39a" stroke-dasharray="3 3"/>
+        </svg>
+      </div>
+      <figcaption><b>Figure 2b.</b> A real retrieval pipeline is two-stage: a cheap, recall-heavy first pass (vector + keyword) gathers many candidates, then an expensive, precision-heavy re-ranker reorders them so only the truly relevant few reach the window.</figcaption>
+    </figure>
+
+    <h3>Chunking: the decision that quietly sets your ceiling</h3>
+    <p>You cannot retrieve what you chunked badly. The split happens at index time, long before any query, so a poor strategy caps quality no matter how good the model is.</p>
+    <div class="cards">
+      <div class="card"><span class="k" style="color:var(--ink-faint)">Fixed-size</span><h5>Naïve</h5><p>Split every N tokens. Fast, but slices sentences and tables in half. A baseline, rarely the answer.</p></div>
+      <div class="card"><span class="k" style="color:var(--blue)">Recursive</span><h5>Structure-aware</h5><p>Split on paragraphs → sentences, respecting boundaries. The sensible default for prose.</p></div>
+      <div class="card"><span class="k" style="color:var(--green)">Semantic</span><h5>Meaning-aware</h5><p>Start a new chunk where the topic shifts (embedding distance jumps). Better coherence, higher cost.</p></div>
+      <div class="card"><span class="k" style="color:var(--pink)">Contextual</span><h5>Augmented</h5><p>Prepend a one-line summary of where the chunk sits before embedding. Large recall gains for a small token cost.</p></div>
+    </div>
+    <p>Always carry <strong>metadata</strong> with each chunk — source, title, section, timestamp — so the model can cite it and you can filter by it. And store an <strong>overlap window</strong> so an answer straddling a boundary isn't lost.</p>
+
+    <h3>Query transformation: meeting the index halfway</h3>
+    <p>User questions rarely match how documents are written. A layer of query rewriting closes that gap, and it is exactly what an agentic system does on its own:</p>
+    <div class="note">
+      <div class="tag">Common rewrites</div>
+      <ul>
+        <li><b>Multi-query</b> — generate several paraphrases, retrieve for each, union the results. Cheap recall boost.</li>
+        <li><b>HyDE</b> — have the model draft a <em>hypothetical answer</em>, then embed <em>that</em> to search. Answers look more like documents than questions do.</li>
+        <li><b>Step-back</b> — ask a broader question first ("what governs current-control bandwidth?") to fetch foundational context before the specific one.</li>
+        <li><b>Decomposition</b> — break a multi-part question into sub-questions, retrieve and answer each, then compose. This is the seed of multi-hop reasoning.</li>
+      </ul>
+    </div>
+
+    <h3>GraphRAG: when relationships are the answer</h3>
+    <p>Vector search finds chunks that are <em>similar</em> to the query. It is weak when the answer requires <em>connecting</em> facts that never appear together — "which calibrations were touched by every engineer who also signed off on the saturation model?" That is a traversal, not a similarity match.</p>
+    <p><strong>GraphRAG</strong> indexes your corpus as a knowledge graph of entities and relationships, then retrieves by walking the graph (and often summarizing communities of nodes) instead of, or alongside, embedding search. It shines on multi-hop, "global" questions over a connected corpus — and pairs naturally with the kind of structured extraction (A2L, ARXML, Simulink, RTE-C organized by functional rings) that a knowledge-graph platform already produces.</p>
+    <div class="note">
+      <div class="tag">Practical notes</div>
+      <ul>
+        <li><b>Don't pick one.</b> Production systems route: vector search for "find me text about X," graph traversal for "how does X connect to Y," keyword for exact identifiers. A small router or the agent itself decides.</li>
+        <li><b>Graph construction is the cost.</b> Entity/relation extraction is an upfront LLM-heavy pipeline. Worth it when relationships are queried repeatedly, overkill for flat FAQ corpora.</li>
+        <li><b>Re-ranking is the highest-leverage cheap win.</b> If you add one thing to a plain RAG system, add a cross-encoder re-ranker before generation.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== AGENTIC RAG ===================== -->
+  <section id="agentic-rag">
+    <div class="secnum">§ 05 — Architecture II</div>
+    <h2>Agentic RAG</h2>
+    <p>Agentic RAG removes the hard wiring. Instead of a forced retrieval step, search becomes a <strong>tool the model can choose to call</strong>. The model reads the question, decides whether it even needs to look anything up, issues a <code>TOOL CALL</code> with a query it writes itself, reads the <code>TOOL RESULT</code> that comes back in the window — and can then <em>call again</em> with a refined query if the first results were thin.</p>
+    <p>This single change — putting the model in the loop — is what makes it "agentic." Retrieval is now a decision, not a reflex, and it can repeat.</p>
+
+    <figure>
+      <div class="fig-shell">
+        <svg viewBox="0 0 760 380" role="img" aria-label="Agentic RAG architecture block diagram">
+          <defs>
+            <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#4a443b"/>
+            </marker>
+            <style>
+              .box{fill:#fff;stroke:#23201c;stroke-width:1.6}
+              .grp{fill:#fbf8ef;stroke:#bcb39a;stroke-width:1.4}
+              .t{font-family:'Spectral',serif;font-size:13px;fill:#23201c}
+              .tb{font-family:'Fraunces',serif;font-size:14px;font-weight:600;fill:#23201c}
+              .mono{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#23201c}
+              .cap2{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;fill:#7a7264}
+              .doc{fill:#fff;stroke:#1f5fb0;stroke-width:1.6}
+              .flow{stroke:#4a443b;stroke-width:1.6;fill:none}
+            </style>
+          </defs>
+
+          <rect class="box" x="14" y="150" width="60" height="48" rx="8"/>
+          <text class="tb" x="44" y="179" text-anchor="middle">User</text>
+          <rect class="box" x="96" y="150" width="60" height="48" rx="8" fill="#fbf6e9"/>
+          <text class="mono" x="126" y="179" text-anchor="middle">LLM</text>
+
+          <!-- tools group -->
+          <rect class="grp" x="190" y="120" width="160" height="110" rx="12"/>
+          <text class="cap2" x="206" y="140">CONTEXT RETRIEVAL TOOLS</text>
+          <rect class="box" x="214" y="158" width="112" height="50" rx="8"/>
+          <text class="t" x="270" y="188" text-anchor="middle">Search tool</text>
+
+          <!-- sources group -->
+          <rect class="grp" x="372" y="120" width="150" height="110" rx="12"/>
+          <text class="cap2" x="388" y="140">CONTEXT SOURCES</text>
+          <rect x="386" y="150" width="124" height="70" rx="9" fill="#fff" stroke="#bcb39a"/>
+          <text class="cap2" x="448" y="166" text-anchor="middle" fill="#4a443b">DATABASE</text>
+          <rect class="doc" x="394" y="172" width="50" height="20" rx="4"/><text class="mono" x="419" y="186" text-anchor="middle">Doc 1</text>
+          <rect class="doc" x="452" y="172" width="50" height="20" rx="4"/><text class="mono" x="477" y="186" text-anchor="middle">Doc 2</text>
+          <rect class="doc" x="394" y="196" width="50" height="20" rx="4"/><text class="mono" x="419" y="210" text-anchor="middle">Doc 3</text>
+          <rect class="doc" x="452" y="196" width="50" height="20" rx="4"/><text class="mono" x="477" y="210" text-anchor="middle">Doc 4</text>
+
+          <!-- context window with richer stack -->
+          <rect x="548" y="22" width="200" height="336" rx="12" fill="#fbf8ef" stroke="#1f5fb0" stroke-width="1.8"/>
+          <text class="cap2" x="648" y="40" text-anchor="middle" fill="#1f5fb0">CONTEXT WINDOW</text>
+          <rect class="box" x="562" y="50" width="172" height="26" rx="6"/><text class="t" x="648" y="68" text-anchor="middle">System prompt</text>
+          <rect class="box" x="562" y="80" width="172" height="26" rx="6" stroke="#c0367f"/><text class="t" x="648" y="98" text-anchor="middle">Skills YAML</text>
+          <rect class="box" x="562" y="110" width="172" height="26" rx="6"/><text class="t" x="648" y="128" text-anchor="middle">Tool list</text>
+          <rect class="box" x="562" y="140" width="82" height="26" rx="6" stroke="#5f8a1e"/><text class="t" x="603" y="158" text-anchor="middle">Memory</text>
+          <rect class="box" x="652" y="140" width="82" height="26" rx="6" stroke="#5f8a1e"/><text class="t" x="693" y="158" text-anchor="middle">History</text>
+          <rect class="box" x="562" y="170" width="172" height="26" rx="6"/><text class="t" x="648" y="188" text-anchor="middle">User message</text>
+          <rect class="box" x="562" y="200" width="172" height="26" rx="6"/><text class="t" x="648" y="218" text-anchor="middle">Tool call</text>
+          <rect x="562" y="230" width="172" height="116" rx="9" fill="#fbf6e9" stroke="#bcb39a"/>
+          <text class="cap2" x="574" y="248" fill="#4a443b">TOOL RESULT</text>
+          <rect class="doc" x="572" y="258" width="48" height="26" rx="5"/><text class="mono" x="596" y="276" text-anchor="middle">Doc 3</text>
+          <rect class="doc" x="626" y="258" width="48" height="26" rx="5"/><text class="mono" x="650" y="276" text-anchor="middle">Doc 4</text>
+          <rect class="doc" x="680" y="258" width="48" height="26" rx="5"/><text class="mono" x="704" y="276" text-anchor="middle">Doc 5</text>
+
+          <!-- flows -->
+          <path class="flow" d="M74,165 H126 V150" marker-end="url(#ar2)"/>
+          <text class="cap2" x="78" y="143">USER MSG</text>
+          <path class="flow" d="M96,182 H44 V198" marker-end="url(#ar2)" transform="translate(0,2)"/>
+          <text class="cap2" x="2" y="216">ASSISTANT MSG</text>
+
+          <path class="flow" d="M156,170 H190" marker-end="url(#ar2)"/>
+          <text class="cap2" x="158" y="162">TOOL CALL</text>
+          <path class="flow" d="M326,183 H372" marker-end="url(#ar2)"/>
+          <path class="flow" d="M522,185 H534 V292 H560" marker-end="url(#ar2)"/>
+          <!-- llm -> top of window -->
+          <path class="flow" d="M126,150 V32 H544" marker-end="url(#ar2)"/>
+          <!-- window -> llm loop -->
+          <path class="flow" d="M548,330 H126 V200" marker-end="url(#ar2)"/>
+          <text class="cap2" x="250" y="326">loop: read result, refine, search again</text>
+        </svg>
+      </div>
+      <figcaption><b>Figure 3.</b> The model emits a tool call, the search tool hits the database, and results land back in the window as a tool result. Because the model can read that result and call again, retrieval becomes an <em>iterative decision</em>. Notice the richer stack: skills, tool list, memory, and history now coexist.</figcaption>
+    </figure>
+
+    <div class="note">
+      <div class="tag">Practical notes</div>
+      <ul>
+        <li><b>The model writes the query.</b> It can rephrase the user's messy question into a clean search query, split a multi-part question into several searches, or skip retrieval entirely for chit-chat.</li>
+        <li><b>Iteration handles multi-hop.</b> Read the first results, notice a gap, search again. This is what fixed RAG could never do.</li>
+        <li><b>New costs appear:</b> variable latency and token spend (you don't know how many loops it'll take), and the risk of loops that never converge. <b>Cap the iterations</b> and give a clear stop condition.</li>
+        <li><b>Tool descriptions are now prompt-critical.</b> A vague tool description produces vague tool use. Spell out exactly what the search tool indexes and when to use it.</li>
+        <li><b>Watch for over-retrieval.</b> An eager agent will search when it shouldn't. Encourage it to answer from existing context first and only search when it genuinely lacks information.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== AGENTIC SEARCH ===================== -->
+  <section id="agentic-search">
+    <div class="secnum">§ 06 — Architecture III</div>
+    <h2>Agentic search &amp; context engineering</h2>
+    <p>The final step generalizes the idea in two directions at once. First, the model gets a whole <strong>toolbox</strong> of retrieval tools — file search, a skill loader, database queries, web search, a memory tool, even a raw <strong>shell</strong> for <code>grep</code> and scripts. Second, those tools reach <strong>many different sources</strong>: local files, structured databases, the live web, and long-term memory.</p>
+    <p>"Context engineering" is the discipline layered on top: deliberately deciding <em>what</em> goes into the window, <em>in what form</em>, and <em>when to remove it</em>. The window stops being a passive bucket and becomes a workspace the agent actively curates — pulling a <code>Skill</code> only when a task needs it, writing a <code>Plan.md</code> to externalize its thinking, recalling a memory, and dropping stale results to free up room.</p>
+
+    <figure>
+      <div class="fig-shell">
+        <svg viewBox="0 0 780 520" role="img" aria-label="Agentic search and context engineering block diagram">
+          <defs>
+            <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="2.6" orient="auto"><path d="M0,0 L6,2.6 L0,5.2 Z" fill="#7a7264"/></marker>
+            <style>
+              .box{fill:#fff;stroke:#23201c;stroke-width:1.4}
+              .grp{fill:#fbf8ef;stroke:#bcb39a;stroke-width:1.3}
+              .t{font-family:'Spectral',serif;font-size:12px;fill:#23201c}
+              .tb{font-family:'Fraunces',serif;font-size:13px;font-weight:600;fill:#23201c}
+              .mono{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#23201c}
+              .cap2{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;fill:#7a7264}
+              .flow{stroke-width:1.5;fill:none}
+            </style>
+          </defs>
+
+          <!-- user + llm -->
+          <rect class="box" x="10" y="240" width="56" height="44" rx="8"/>
+          <text class="tb" x="38" y="266" text-anchor="middle">User</text>
+          <rect class="box" x="84" y="240" width="56" height="44" rx="8" fill="#fbf6e9"/>
+          <text class="mono" x="112" y="266" text-anchor="middle">LLM</text>
+          <text class="cap2" x="150" y="258">TOOL CALL</text>
+
+          <!-- tools column -->
+          <text class="cap2" x="190" y="40">CONTEXT RETRIEVAL TOOLS</text>
+          <rect class="box" x="190" y="52" width="150" height="42" rx="8" stroke="#1f5fb0"/>
+          <text class="t" x="265" y="70" text-anchor="middle">File search</text><text class="mono" x="265" y="86" text-anchor="middle" fill="#7a7264">search_files</text>
+          <rect class="box" x="190" y="106" width="150" height="42" rx="8" stroke="#c0367f"/>
+          <text class="t" x="265" y="131" text-anchor="middle">Skill loading tool</text>
+          <rect class="box" x="190" y="160" width="150" height="46" rx="8" stroke="#1f5fb0"/>
+          <text class="t" x="265" y="178" text-anchor="middle">Database tools</text><text class="mono" x="265" y="194" text-anchor="middle" fill="#7a7264">execute_query</text>
+          <rect class="box" x="190" y="218" width="150" height="42" rx="8" stroke="#d08a13"/>
+          <text class="t" x="265" y="243" text-anchor="middle">Web search tool</text>
+          <rect class="box" x="190" y="272" width="150" height="46" rx="8" stroke="#5f8a1e"/>
+          <text class="t" x="265" y="290" text-anchor="middle">Memory tool</text><text class="mono" x="265" y="306" text-anchor="middle" fill="#7a7264">get_memory</text>
+          <rect class="box" x="190" y="330" width="150" height="46" rx="8" stroke="#0e8a8a"/>
+          <text class="t" x="265" y="348" text-anchor="middle">Shell tool</text><text class="mono" x="265" y="364" text-anchor="middle" fill="#7a7264">grep / scripts</text>
+
+          <!-- sources column -->
+          <text class="cap2" x="400" y="40">CONTEXT SOURCES</text>
+          <rect class="grp" x="400" y="52" width="150" height="118" rx="10" fill="#fff"/>
+          <text class="cap2" x="475" y="68" text-anchor="middle" fill="#4a443b">LOCAL FILES</text>
+          <rect class="box" x="408" y="76" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="440" y="91" text-anchor="middle">Doc 1</text>
+          <rect class="box" x="478" y="76" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="510" y="91" text-anchor="middle">Doc 2</text>
+          <rect class="box" x="408" y="102" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="440" y="117" text-anchor="middle">Doc 3</text>
+          <rect class="box" x="478" y="102" width="64" height="22" rx="4" stroke="#b5562a"/><text class="mono" x="510" y="117" text-anchor="middle">Plan.md</text>
+          <rect class="box" x="408" y="128" width="64" height="22" rx="4" stroke="#c0367f"/><text class="mono" x="440" y="143" text-anchor="middle">Skill 1</text>
+          <rect class="box" x="478" y="128" width="64" height="22" rx="4" stroke="#c0367f"/><text class="mono" x="510" y="143" text-anchor="middle">Skill 2</text>
+
+          <rect class="grp" x="400" y="180" width="150" height="92" rx="10" fill="#fff"/>
+          <text class="cap2" x="475" y="196" text-anchor="middle" fill="#4a443b">DATABASE</text>
+          <rect class="box" x="408" y="204" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="440" y="219" text-anchor="middle">Doc 1</text>
+          <rect class="box" x="478" y="204" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="510" y="219" text-anchor="middle">Doc 2</text>
+          <rect class="box" x="408" y="230" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="440" y="245" text-anchor="middle">Doc 3</text>
+          <rect class="box" x="478" y="230" width="64" height="22" rx="4" stroke="#1f5fb0"/><text class="mono" x="510" y="245" text-anchor="middle">Doc 4</text>
+
+          <rect class="grp" x="400" y="282" width="150" height="62" rx="10" fill="#fff"/>
+          <text class="cap2" x="475" y="298" text-anchor="middle" fill="#4a443b">WEB</text>
+          <rect class="box" x="408" y="306" width="64" height="24" rx="4" stroke="#d08a13"/><text class="mono" x="440" y="322" text-anchor="middle">Res 1</text>
+          <rect class="box" x="478" y="306" width="64" height="24" rx="4" stroke="#d08a13"/><text class="mono" x="510" y="322" text-anchor="middle">Res 2</text>
+
+          <rect class="grp" x="400" y="354" width="150" height="92" rx="10" fill="#fff"/>
+          <text class="cap2" x="475" y="370" text-anchor="middle" fill="#4a443b">LONG-TERM</text>
+          <rect class="box" x="408" y="378" width="64" height="22" rx="4" stroke="#5f8a1e"/><text class="mono" x="440" y="393" text-anchor="middle">Mem 1</text>
+          <rect class="box" x="478" y="378" width="64" height="22" rx="4" stroke="#5f8a1e"/><text class="mono" x="510" y="393" text-anchor="middle">Mem 2</text>
+          <rect class="box" x="408" y="404" width="64" height="22" rx="4" stroke="#5f8a1e"/><text class="mono" x="440" y="419" text-anchor="middle">Mem 3</text>
+          <rect class="box" x="478" y="404" width="64" height="22" rx="4" stroke="#5f8a1e"/><text class="mono" x="510" y="419" text-anchor="middle">Mem 4</text>
+
+          <!-- context window -->
+          <rect x="592" y="40" width="178" height="420" rx="12" fill="#fbf8ef" stroke="#1f5fb0" stroke-width="1.8"/>
+          <text class="cap2" x="681" y="58" text-anchor="middle" fill="#1f5fb0">CONTEXT WINDOW</text>
+          <rect class="box" x="604" y="68" width="154" height="26" rx="6"/><text class="t" x="681" y="85" text-anchor="middle">System prompt</text>
+          <rect class="box" x="604" y="100" width="154" height="26" rx="6" stroke="#c0367f"/><text class="t" x="681" y="117" text-anchor="middle">Skills YAML</text>
+          <rect class="box" x="604" y="132" width="154" height="26" rx="6"/><text class="t" x="681" y="149" text-anchor="middle">Tool list</text>
+          <rect class="box" x="604" y="164" width="73" height="26" rx="6" stroke="#5f8a1e"/><text class="t" x="640" y="181" text-anchor="middle">Memory</text>
+          <rect class="box" x="685" y="164" width="73" height="26" rx="6" stroke="#5f8a1e"/><text class="t" x="721" y="181" text-anchor="middle">History</text>
+          <rect class="box" x="604" y="196" width="154" height="26" rx="6"/><text class="t" x="681" y="213" text-anchor="middle">User message</text>
+          <rect class="box" x="604" y="228" width="154" height="26" rx="6"/><text class="t" x="681" y="245" text-anchor="middle">Tool call</text>
+          <rect x="604" y="260" width="154" height="190" rx="9" fill="#fbf6e9" stroke="#bcb39a"/>
+          <text class="cap2" x="616" y="278" fill="#4a443b">TOOL RESULT</text>
+          <rect class="box" x="614" y="288" width="44" height="24" rx="5" stroke="#1f5fb0"/><text class="mono" x="636" y="304" text-anchor="middle">Doc 3</text>
+          <rect class="box" x="664" y="288" width="44" height="24" rx="5" stroke="#1f5fb0"/><text class="mono" x="686" y="304" text-anchor="middle">Doc 4</text>
+          <rect class="box" x="714" y="288" width="40" height="24" rx="5" stroke="#1f5fb0"/><text class="mono" x="734" y="304" text-anchor="middle">Doc 5</text>
+
+          <!-- tool->source flows (colored) -->
+          <path class="flow" d="M340,73 H400" stroke="#1f5fb0" marker-end="url(#ag)"/>
+          <path class="flow" d="M340,127 C368,127 368,138 396,138" stroke="#c0367f" marker-end="url(#ag)"/>
+          <path class="flow" d="M340,183 H400" stroke="#1f5fb0" marker-end="url(#ag)"/>
+          <path class="flow" d="M340,239 C368,239 368,316 398,316" stroke="#d08a13" marker-end="url(#ag)"/>
+          <path class="flow" d="M340,295 C366,295 366,389 398,389" stroke="#5f8a1e" marker-end="url(#ag)"/>
+          <path class="flow" d="M340,353 C360,353 360,214 396,214" stroke="#0e8a8a" marker-end="url(#ag)"/>
+
+          <!-- sources -> window -->
+          <path class="flow" d="M550,250 H580 V300 H600" stroke="#4a443b" marker-end="url(#ag)"/>
+
+          <!-- llm -> tools (fan) -->
+          <path class="flow" d="M140,256 C168,256 168,73 188,73" stroke="#7a7264" marker-end="url(#ag)"/>
+          <path class="flow" d="M140,260 C172,260 172,183 188,183" stroke="#7a7264" marker-end="url(#ag)"/>
+          <path class="flow" d="M140,266 C176,266 176,353 188,353" stroke="#7a7264" marker-end="url(#ag)"/>
+
+          <!-- user/llm msgs -->
+          <path class="flow" d="M66,254 H84" stroke="#4a443b" marker-end="url(#ag)"/>
+          <text class="cap2" x="6" y="234">USER MSG</text>
+          <path class="flow" d="M84,278 H66 V286" stroke="#4a443b" marker-end="url(#ag)"/>
+          <text class="cap2" x="2" y="304">ASSISTANT MSG</text>
+
+          <!-- llm -> window top, window -> llm loop -->
+          <path class="flow" d="M112,240 V30 H588" stroke="#4a443b" marker-end="url(#ag)"/>
+          <path class="flow" d="M592,470 H112 V286" stroke="#4a443b" marker-end="url(#ag)"/>
+          <text class="cap2" x="280" y="466">loop until the task is done</text>
+        </svg>
+      </div>
+      <figcaption><b>Figure 4.</b> Many tools, many sources. The agent chooses among file search, skills, database queries, web search, memory, and the shell — drawing from local files, databases, the web, and long-term memory — and curates which results stay in the window. Color-coded arrows trace each tool to the source it reaches.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <span class="chip"><i style="border-color:#1f5fb0"></i>files / database</span>
+      <span class="chip"><i style="border-color:#c0367f"></i>skills</span>
+      <span class="chip"><i style="border-color:#d08a13"></i>web</span>
+      <span class="chip"><i style="border-color:#5f8a1e"></i>memory</span>
+      <span class="chip"><i style="border-color:#0e8a8a"></i>shell</span>
+      <span class="chip"><i style="border-color:#b5562a"></i>plan / scratchpad</span>
+    </div>
+
+    <h3>The four moves of context engineering</h3>
+    <p>Practitioners describe the discipline as four recurring moves on the window:</p>
+    <div class="note">
+      <div class="tag">Write · Select · Compress · Isolate</div>
+      <ul>
+        <li><b>Write</b> — push state <em>out</em> of the window into durable storage: a <code>Plan.md</code> scratchpad, notes, or long-term memory, so it survives across turns without hogging tokens.</li>
+        <li><b>Select</b> — pull <em>in</em> only what this step needs: load a specific skill, fetch the relevant memories, retrieve the three documents that matter — not the whole corpus.</li>
+        <li><b>Compress</b> — summarize or trim what's already there: collapse old turns, replace a giant tool result with its key findings, prune dead branches.</li>
+        <li><b>Isolate</b> — split work across sub-agents or separate contexts so a noisy subtask (say, reading 40 files) doesn't pollute the main window.</li>
+      </ul>
+    </div>
+
+    <div class="note">
+      <div class="tag">Practical notes</div>
+      <ul>
+        <li><b>Progressive disclosure is the core trick.</b> Don't dump everything up front. A <em>skill</em> is loaded only when its YAML frontmatter matches the task; the shell lets the agent <code>grep</code> a huge repo and read only the matching lines. The window stays lean.</li>
+        <li><b>The shell tool is a force multiplier.</b> Instead of stuffing files into context, let the agent run <code>grep</code>, <code>head</code>, or a script and read just the output. This often beats embedding-based search for code and logs.</li>
+        <li><b>Memory needs a write policy and a forget policy.</b> Deciding what <em>not</em> to remember is as important as what to store, or memory becomes noise.</li>
+        <li><b>Beware context rot.</b> As windows fill, models degrade — they re-read stale tool output, confuse old and new state, and lose the thread. Active compression and isolation are what keep long-running agents coherent.</li>
+        <li><b>Observability is mandatory.</b> With many tools and loops, you need traces of every tool call and the evolving window to debug. You can no longer eyeball a single prompt.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== EXAMPLE ===================== -->
+  <section id="example">
+    <div class="secnum">§ 07 — Walkthrough</div>
+    <h2>Worked example: a flux-table boundary trip</h2>
+    <p>Abstractions land better on a concrete case. Take one engineer's question and trace it through all three architectures:</p>
+    <p style="font-family:'Fraunces',serif;font-size:20px;font-style:italic;color:var(--rust);text-align:center;max-width:60ch;margin:8px auto 24px;line-height:1.4">“Why did the axial-flux unit trip on drift-mode exit near 3000&nbsp;RPM, and has this pattern shown up before?”</p>
+
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="card">
+        <span class="k" style="color:var(--ink-faint)">Architecture I · RAG</span>
+        <h5>One pipeline, one shot</h5>
+        <p>The question is embedded and <code>semantic_search()</code> returns the closest spec chunks — likely the field-weakening control description and the flux-map calibration note. The model answers from those. <b>Limit:</b> it cannot check whether this specific trip has happened before, because the fault history lives in a different system the pipeline never touches. You get a plausible textbook explanation, not a grounded diagnosis.</p>
+      </div>
+      <div class="card">
+        <span class="k" style="color:var(--blue)">Architecture II · Agentic RAG</span>
+        <h5>The model decides to look twice</h5>
+        <p>The model reads the question and recognizes two parts. First it searches the spec corpus for the control behavior; then, seeing the words "shown up before," it issues a <b>second tool call</b> querying the fault database for prior drift-mode-exit trips on this platform. It composes the two results. <b>Gain:</b> the multi-hop structure is handled because retrieval is now an iterative decision — exactly the leap from the fixed pipeline.</p>
+      </div>
+      <div class="card">
+        <span class="k" style="color:var(--green)">Architecture III · Agentic search</span>
+        <h5>Many tools, curated context</h5>
+        <p>Now the agent orchestrates: <b>shell</b> to <code>grep</code> the dyno logs for trips in the 2900–3100&nbsp;RPM band; <b>database</b> for the saturation-region inductance table; <b>memory</b> to recall the prior RCA that flagged PI gains tied to nominal inductance; <b>web/file search</b> for the relevant standard; and it writes findings to a <code>Plan.md</code> scratchpad so the growing evidence doesn't crowd the window. It then synthesizes the stacked root cause — sharp differential-inductance drop at the saturation boundary, gains tuned to nominal, noisy table edges, weak feed-forward at the boundary — and proposes a dyno test to confirm. <b>This is the only level that can fuse logs, tables, prior analysis, and specs into a single grounded answer.</b></p>
+      </div>
+    </div>
+
+    <div class="note">
+      <div class="tag">What the example shows</div>
+      <ul>
+        <li>The <b>same question</b> exposes each architecture's ceiling: single-source, multi-hop-single-source, then multi-source synthesis.</li>
+        <li>Capability climbs, but so does what you must manage — three tools and a scratchpad means three things that can fail and a window you must actively keep clean.</li>
+        <li>Notice the agent used the <b>shell on logs</b> rather than embedding them. For structured, greppable data that is faster, cheaper, and more precise than vector search.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== COMPARISON ===================== -->
+  <section id="compare">
+    <div class="secnum">§ 08 — Synthesis</div>
+    <h2>Side-by-side comparison</h2>
+    <div class="tbl-shell">
+      <table>
+        <thead>
+          <tr><th></th><th>RAG</th><th>Agentic RAG</th><th>Agentic search / CE</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Who triggers retrieval</th><td>A fixed pipeline, every time</td><td>The model decides</td><td>The model orchestrates many tools</td></tr>
+          <tr><th>Sources</th><td>One vector DB</td><td>Usually one DB via a tool</td><td>Files, DBs, web, memory, shell</td></tr>
+          <tr><th>Iteration</th><td>None — single shot</td><td>Yes — loops &amp; refines queries</td><td>Yes — multi-step, multi-tool</td></tr>
+          <tr><th>Context window</th><td>Prompt + question + docs</td><td>+ tools, skills, memory, results</td><td>Actively curated workspace</td></tr>
+          <tr><th>Cost &amp; latency</th><td>Low, predictable</td><td>Variable</td><td>Highest, hardest to bound</td></tr>
+          <tr><th>Best for</th><td>FAQ, doc Q&amp;A, grounding</td><td>Multi-hop, conditional lookup</td><td>Open-ended tasks, coding agents, research</td></tr>
+          <tr><th>Main failure mode</th><td>Retrieval miss / wrong chunk</td><td>Over-searching, runaway loops</td><td>Context rot, tool sprawl</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Read the table top to bottom and the through-line is clear: <strong>control over the context window shifts from the engineer's fixed pipeline to the model itself</strong>, and the cost of that flexibility is complexity you must manage deliberately.</p>
+  </section>
+
+  <!-- ===================== EVAL ===================== -->
+  <section id="eval">
+    <div class="secnum">§ 09 — Rigor</div>
+    <h2>Evaluation &amp; the failure taxonomy</h2>
+    <p>The single most important habit: <strong>evaluate retrieval and generation separately</strong>. When an answer is wrong, you need to know whether the model never received the right evidence or received it and reasoned poorly — they have completely different fixes.</p>
+
+    <div class="cards">
+      <div class="card">
+        <span class="k" style="color:var(--blue)">Retrieval metrics</span>
+        <h5>Did the right docs arrive?</h5>
+        <p><b>Recall@k</b> — was the answer-bearing chunk in the top-k? <b>Context precision</b> — how much of what you retrieved was actually relevant (noise dilutes attention). Measured against a labeled set of question→source pairs.</p>
+      </div>
+      <div class="card">
+        <span class="k" style="color:var(--green)">Generation metrics</span>
+        <h5>Did it use them well?</h5>
+        <p><b>Faithfulness</b> — is every claim grounded in the retrieved context, or did it hallucinate? <b>Answer relevance</b> — does it address the actual question? Often scored by an LLM-as-judge against the context.</p>
+      </div>
+    </div>
+    <p>Frameworks like RAGAS operationalize these into automatic scores. For agentic systems, add <strong>trajectory</strong> metrics: did the agent pick the right tools, in a sensible order, without redundant calls?</p>
+
+    <div class="note">
+      <div class="tag">The classic RAG failure points</div>
+      <ul>
+        <li><b>Missing content</b> — the answer isn't in the corpus at all. Retrieval can't fix a gap; detect it and say "I don't know."</li>
+        <li><b>Missed the top-k</b> — it's in the corpus but ranked too low. Fix with hybrid search + re-ranking, not a bigger model.</li>
+        <li><b>Lost in consolidation</b> — retrieved but buried in the middle of a long context. Fix with placement and trimming.</li>
+        <li><b>Wrong format / not extracted</b> — the model ignored or misread the evidence. Fix with prompting and output structure.</li>
+        <li><b>Incomplete</b> — answered part of a multi-part question. The signal you've outgrown plain RAG and need iteration.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== PRODUCTION ===================== -->
+  <section id="production">
+    <div class="secnum">§ 10 — Production</div>
+    <h2>Production concerns: security, cost &amp; MCP</h2>
+
+    <h3>Security: retrieval is an attack surface</h3>
+    <p>The moment a model acts on text it didn't write — a retrieved document, a web page, a tool result — that text can carry instructions. <strong>Indirect prompt injection</strong> means a poisoned document in your corpus can hijack the model's behavior. The danger sharpens as tools grow.</p>
+    <div class="note danger">
+      <div class="tag">The "lethal trifecta"</div>
+      <ul>
+        <li>An agent becomes genuinely dangerous when it simultaneously has <b>access to private data</b>, <b>exposure to untrusted content</b> (web pages, user-supplied files, retrieved docs), and <b>a way to exfiltrate</b> (send email, make web requests, write to shared stores).</li>
+        <li>Any one alone is fine. Together, a malicious instruction hidden in a retrieved page can read your secrets and ship them out. <b>Break the triangle</b> — sandbox the shell, allow-list outbound domains, keep untrusted retrieval away from privileged tools, and require human approval for irreversible actions.</li>
+        <li>Treat every retrieved or tool-returned string as untrusted input, never as instructions. Clearly delimit it in the prompt.</li>
+      </ul>
+    </div>
+
+    <h3>Cost &amp; latency: the window is a budget</h3>
+    <p>Each architecture trades predictability for capability, and the bill is paid in tokens. The interactive panel below makes the trade tangible — shrink the budget and watch low-priority blocks get evicted while pinned essentials survive.</p>
+
+    <div class="budget">
+      <div class="ttl">Interactive · context budget eviction</div>
+      <div class="read"><span>Token budget: <b id="bval">100%</b></span><span id="bfit">all blocks fit</span></div>
+      <input type="range" id="brange" min="20" max="100" value="100" step="1" aria-label="context budget">
+      <div class="stack" id="bstack"></div>
+      <div class="verdict" id="bverdict"></div>
+    </div>
+
+    <div class="note">
+      <div class="tag">Cost levers that work</div>
+      <ul>
+        <li><b>Prompt caching</b> — stable prefixes (system prompt, tool list, skills) are cached so you don't pay to re-process them every turn. Order your window so the stable parts come first.</li>
+        <li><b>Semantic caching</b> — if a near-identical query was answered recently, return the cached answer and skip retrieval and generation entirely.</li>
+        <li><b>Compression</b> — summarize old turns and replace bulky tool results with their key findings, the "compress" move from §06.</li>
+        <li><b>Cap the loop</b> — set a max number of tool calls and a token ceiling so an agentic run cannot spiral.</li>
+      </ul>
+    </div>
+
+    <h3>MCP: a standard plug for the toolbox</h3>
+    <p>Figure 4's toolbox raises an integration question: every new source needs a tool, and writing bespoke glue for each one doesn't scale. The <strong>Model Context Protocol (MCP)</strong> is an open standard — a "USB-C for tools" — that lets a model connect to any compliant server (a database, a file store, a ticketing system, the shell) through one uniform interface. It turns the toolbox from a pile of custom integrations into a directory of pluggable connectors, which is what makes the agentic-search picture practical at scale.</p>
+  </section>
+
+  <!-- ===================== CHOOSE ===================== -->
+  <section id="choose">
+    <div class="secnum">§ 11 — Guidance</div>
+    <h2>Which one should you build?</h2>
+    <p>Start as simple as the problem allows and climb only when a real limitation forces you to. Over-engineering an agent for what plain RAG would solve is the most common and most expensive mistake.</p>
+    <div class="note">
+      <div class="tag">A decision rule of thumb</div>
+      <ul>
+        <li><b>Use plain RAG</b> when questions map to one knowledge base, are mostly single-hop, and you value predictable cost and latency — internal doc Q&amp;A, support FAQs, policy lookup.</li>
+        <li><b>Step up to Agentic RAG</b> when questions need multiple lookups, conditional retrieval ("only search if the answer isn't already known"), or query reformulation the model should handle.</li>
+        <li><b>Reach for full agentic search / context engineering</b> when the task spans heterogeneous sources, runs over many steps, or needs tools beyond search — coding assistants, research agents, ops automation, vehicle-health-style diagnostics that pull logs, specs, and history together.</li>
+      </ul>
+    </div>
+    <p>And whichever you pick: <strong>evaluate retrieval and generation separately, instrument every tool call, and treat the context window as a scarce, designed resource rather than a bucket to fill.</strong></p>
+  </section>
+
+  <!-- ===================== REFERENCES ===================== -->
+  <section id="refs" class="refs">
+    <div class="secnum">§ 12 — Notes &amp; references</div>
+    <h2>Further reading</h2>
+    <p>These are good entry points for each concept. Treat them as starting threads rather than the last word — the field moves fast.</p>
+    <ol>
+      <li>Lewis et al., “Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,” NeurIPS 2020 — the original RAG paper. <a href="https://arxiv.org/abs/2005.11401">arxiv.org/abs/2005.11401</a></li>
+      <li>Liu et al., “Lost in the Middle: How Language Models Use Long Contexts,” TACL 2024 — why position in the window matters. <a href="https://arxiv.org/abs/2307.03172">arxiv.org/abs/2307.03172</a></li>
+      <li>Anthropic, “Effective context engineering for AI agents” — the write/select/compress/isolate framing and progressive disclosure. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering</a></li>
+      <li>Anthropic, “Building effective agents” — when to use workflows vs. agents and how to keep them simple. <a href="https://www.anthropic.com/engineering/building-effective-agents">anthropic.com/engineering/building-effective-agents</a></li>
+      <li>LangChain, “Context Engineering for Agents” (blog) — practical patterns and the four-move vocabulary in code. <a href="https://blog.langchain.dev/">blog.langchain.dev</a></li>
+      <li>Gao et al., “Retrieval-Augmented Generation for Large Language Models: A Survey,” 2023 — a broad map of RAG variants including agentic/iterative retrieval. <a href="https://arxiv.org/abs/2312.10997">arxiv.org/abs/2312.10997</a></li>
+      <li>Anthropic, “Introducing Contextual Retrieval” — prepending context to chunks before embedding; large recall gains. <a href="https://www.anthropic.com/news/contextual-retrieval">anthropic.com/news/contextual-retrieval</a></li>
+      <li>Edge et al., “From Local to Global: A Graph RAG Approach to Query-Focused Summarization,” 2024 — the GraphRAG method. <a href="https://arxiv.org/abs/2404.16130">arxiv.org/abs/2404.16130</a></li>
+      <li>Es et al., “RAGAS: Automated Evaluation of Retrieval-Augmented Generation,” 2023 — faithfulness, context precision/recall as automatic metrics. <a href="https://arxiv.org/abs/2309.15217">arxiv.org/abs/2309.15217</a></li>
+      <li>Barnett et al., “Seven Failure Points When Engineering a RAG System,” 2024 — the failure taxonomy used in §09. <a href="https://arxiv.org/abs/2401.05856">arxiv.org/abs/2401.05856</a></li>
+      <li>Simon Willison, “The lethal trifecta for AI agents” — private data + untrusted content + exfiltration. <a href="https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/">simonwillison.net</a></li>
+      <li>Anthropic, “Model Context Protocol” — the open standard for connecting models to tools and data. <a href="https://modelcontextprotocol.io/">modelcontextprotocol.io</a></li>
+    </ol>
+    <p style="margin-top:24px;color:var(--ink-faint);font-size:14px">Reference titles and venues are provided from background knowledge for orientation; verify the exact current URL and citation before formal use.</p>
+  </section>
+
+  <footer>
+    Context engineering · monograph · made for hands-on reference
+  </footer>
+
+</div>
+
+<script>
+  // scroll progress bar
+  const bar = document.getElementById('bar');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.width = (scrolled * 100) + '%';
+  };
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // staggered reveal on sections
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12});
+  document.querySelectorAll('section').forEach((s,i)=>{
+    s.classList.add('reveal');
+    s.style.transitionDelay = (i%2 ? .05 : 0) + 's';
+    io.observe(s);
+  });
+
+  // interactive token-budget eviction widget
+  (function(){
+    const blocks = [
+      {n:'System prompt', sz:8, pri:5, pin:true},
+      {n:'Skills / YAML frontmatter', sz:6, pri:4, pin:true},
+      {n:'Tool list', sz:7, pri:4, pin:true},
+      {n:'Memory file', sz:10, pri:3},
+      {n:'Conversation history', sz:22, pri:2},
+      {n:'User message', sz:4, pri:5, pin:true},
+      {n:'Tool result · Doc 3', sz:11, pri:3},
+      {n:'Tool result · Doc 4', sz:11, pri:2},
+      {n:'Tool result · Doc 5', sz:11, pri:1},
+    ];
+    const total = blocks.reduce((a,b)=>a+b.sz,0);
+    const stack = document.getElementById('bstack');
+    const range = document.getElementById('brange');
+    if(!stack||!range) return;
+    blocks.forEach((b,i)=>{
+      const d=document.createElement('div');
+      d.className='blk'+(b.pin?' pinned':'');
+      d.dataset.i=i;
+      d.innerHTML='<span>'+b.n+(b.pin?' · pinned':'')+'</span><span class="sz">'+b.sz+'k</span>';
+      stack.appendChild(d);
+    });
+    function render(){
+      const budgetPct=+range.value;
+      const budget=Math.round(total*budgetPct/100);
+      document.getElementById('bval').textContent=budgetPct+'%';
+      // pinned always kept; fill remaining by priority (high first)
+      let used=blocks.filter(b=>b.pin).reduce((a,b)=>a+b.sz,0);
+      const order=blocks.map((b,i)=>({...b,i})).filter(b=>!b.pin).sort((a,b)=>b.pri-a.pri);
+      const keep=new Set(blocks.map((b,i)=>b.pin?i:-1).filter(i=>i>=0));
+      for(const b of order){ if(used+b.sz<=budget){used+=b.sz;keep.add(b.i);} }
+      let evicted=0;
+      stack.querySelectorAll('.blk').forEach(el=>{
+        const i=+el.dataset.i;
+        const ev=!keep.has(i);
+        el.classList.toggle('evicted',ev);
+        if(ev) evicted++;
+      });
+      const fit=document.getElementById('bfit');
+      const v=document.getElementById('bverdict');
+      if(evicted===0){fit.textContent='all blocks fit';
+        v.innerHTML='Room to spare. This is the comfortable regime plain RAG lives in — few blocks, predictable cost.';}
+      else{fit.innerHTML='<b>'+evicted+' block'+(evicted>1?'s':'')+' evicted</b>';
+        v.innerHTML='Something had to go. Pinned essentials survive; the lowest-priority retrieved docs and history get dropped first — which is why <b>placement and compression decide what the model actually sees</b>.';}
+    }
+    range.addEventListener('input',render);
+    render();
+  })();
+
+</script>
+</body>
+</html>
