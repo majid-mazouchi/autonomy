@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Node.js & npm — A Plain-Language Monograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4 ecd8;
+    --paper:#f5eedb;
+    --paper-deep:#efe6cf;
+    --ink:#2b2417;
+    --ink-soft:#5a5040;
+    --rule:#d8cca f;
+    --rule:#d9ccae;
+    --green:#3f6b3a;     /* node-evocative forest green */
+    --green-deep:#2c4d29;
+    --rust:#a8482a;      /* npm-evocative terracotta/rust */
+    --gold:#b08524;
+    --shadow:rgba(43,36,23,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(176,133,36,.06), transparent 42%),
+      radial-gradient(circle at 88% 92%, rgba(63,107,58,.06), transparent 45%);
+    color:var(--ink);
+    font-family:'Newsreader',Georgia,serif;
+    font-size:19px;
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:72px 28px 120px;}
+
+  /* ---- Masthead ---- */
+  header.mast{
+    border-bottom:3px double var(--rule);
+    padding-bottom:34px;margin-bottom:8px;
+    opacity:0;animation:rise .9s ease .05s forwards;
+  }
+  .kicker{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--rust);margin-bottom:20px;
+  }
+  h1{
+    font-family:'Fraunces',serif;font-weight:900;
+    font-size:clamp(40px,8vw,68px);line-height:1.02;
+    letter-spacing:-.015em;margin-bottom:18px;
+  }
+  h1 em{font-style:italic;color:var(--green);}
+  .standfirst{
+    font-size:21px;color:var(--ink-soft);font-style:italic;
+    max-width:58ch;
+  }
+
+  /* ---- Section ---- */
+  section{margin-top:58px;opacity:0;animation:rise .8s ease forwards;}
+  section:nth-of-type(1){animation-delay:.18s;}
+  section:nth-of-type(2){animation-delay:.26s;}
+  section:nth-of-type(3){animation-delay:.34s;}
+  section:nth-of-type(4){animation-delay:.42s;}
+  section:nth-of-type(5){animation-delay:.5s;}
+  section:nth-of-type(6){animation-delay:.58s;}
+  section:nth-of-type(7){animation-delay:.62s;}
+  section:nth-of-type(n+8){animation-delay:.66s;}
+
+  h2{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:31px;line-height:1.12;letter-spacing:-.01em;
+    margin-bottom:6px;display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .num{
+    font-family:'JetBrains Mono',monospace;font-size:14px;
+    color:var(--gold);font-weight:600;
+    border:1.5px solid var(--gold);border-radius:50%;
+    width:34px;height:34px;flex:0 0 34px;
+    display:inline-flex;align-items:center;justify-content:center;
+    transform:translateY(-3px);
+  }
+  .sub{
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);
+    margin:0 0 18px 48px;
+  }
+  p{margin:0 0 18px;}
+  p + p{margin-top:-2px;}
+  strong{font-weight:600;color:var(--green-deep);}
+
+  /* ---- Analogy card ---- */
+  .analogy{
+    background:var(--paper-deep);
+    border-left:4px solid var(--rust);
+    padding:24px 28px;margin:28px 0;
+    box-shadow:0 2px 0 var(--shadow);
+  }
+  .analogy .tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--rust);
+    display:block;margin-bottom:10px;
+  }
+  .analogy p:last-child{margin-bottom:0;}
+
+  /* ---- Code ---- */
+  .code{
+    background:#251f14;color:#ece3cf;
+    font-family:'JetBrains Mono',monospace;font-size:14.5px;line-height:1.7;
+    border-radius:8px;padding:20px 22px;margin:22px 0;
+    overflow-x:auto;box-shadow:0 6px 22px -10px var(--shadow);
+  }
+  .code .c{color:#9aa07f;}      /* comment */
+  .code .p{color:#d99a6c;}      /* prompt */
+  .code .k{color:#9ec98a;}      /* keyword */
+  code.inline{
+    font-family:'JetBrains Mono',monospace;font-size:.84em;
+    background:var(--paper-deep);border:1px solid var(--rule);
+    padding:1px 7px;border-radius:5px;color:var(--green-deep);
+  }
+
+  /* ---- Practical note ---- */
+  .note{
+    border:1px dashed var(--rule);background:rgba(176,133,36,.05);
+    padding:18px 22px;margin:24px 0;border-radius:6px;
+    font-size:17px;
+  }
+  .note b{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+    display:block;margin-bottom:8px;
+  }
+
+  /* ---- Compare table ---- */
+  .compare{
+    width:100%;border-collapse:collapse;margin:26px 0;font-size:17px;
+  }
+  .compare th,.compare td{
+    text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+    vertical-align:top;
+  }
+  .compare thead th{
+    font-family:'Fraunces',serif;font-size:18px;font-weight:600;
+    border-bottom:2px solid var(--ink);
+  }
+  .compare thead th:nth-child(2){color:var(--green);}
+  .compare thead th:nth-child(3){color:var(--rust);}
+  .compare td:first-child{color:var(--ink-soft);font-style:italic;}
+
+  /* ---- Command cheat sheet ---- */
+  .cheat{
+    display:grid;grid-template-columns:auto 1fr;gap:0;
+    border:1px solid var(--rule);border-radius:8px;overflow:hidden;
+    margin:24px 0;background:var(--paper-deep);
+  }
+  .cheat dt{
+    font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;
+    color:var(--green-deep);padding:13px 16px;
+    border-bottom:1px solid var(--rule);
+    background:rgba(63,107,58,.06);white-space:nowrap;
+  }
+  .cheat dd{
+    font-size:16px;padding:13px 18px;border-bottom:1px solid var(--rule);
+    color:var(--ink-soft);
+  }
+  .cheat dt:last-of-type,.cheat dd:last-of-type{border-bottom:none;}
+
+  /* ---- Tag chips ---- */
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:20px 0 4px;}
+  .chip{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    padding:5px 13px;border-radius:30px;border:1.5px solid var(--rule);
+    color:var(--green-deep);background:var(--paper-deep);
+  }
+  .chip.rust{color:var(--rust);border-color:rgba(168,72,42,.35);}
+
+  /* ---- FAQ ---- */
+  .faq{margin:24px 0;border-top:1px solid var(--rule);}
+  .faq details{border-bottom:1px solid var(--rule);}
+  .faq summary{
+    cursor:pointer;list-style:none;padding:16px 4px;
+    font-family:'Fraunces',serif;font-size:19px;font-weight:600;
+    color:var(--ink);display:flex;justify-content:space-between;gap:12px;
+  }
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{content:"+";color:var(--rust);font-family:'JetBrains Mono',monospace;}
+  .faq details[open] summary::after{content:"–";}
+  .faq details[open] summary{color:var(--green);}
+  .faq .ans{padding:0 4px 18px;font-size:17px;color:var(--ink-soft);}
+
+  /* ---- References ---- */
+  .refs{margin-top:18px;}
+  .refs ol{list-style:none;counter-reset:r;}
+  .refs li{
+    counter-increment:r;position:relative;
+    padding:12px 0 12px 42px;border-bottom:1px solid var(--rule);
+    font-size:16px;color:var(--ink-soft);
+  }
+  .refs li::before{
+    content:"["counter(r)"]";position:absolute;left:0;top:12px;
+    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--rust);
+  }
+  .refs a{color:var(--green-deep);text-decoration:none;border-bottom:1px solid var(--rule);}
+  .refs a:hover{border-color:var(--green);}
+
+  footer{
+    margin-top:70px;padding-top:28px;border-top:3px double var(--rule);
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+    letter-spacing:.1em;color:var(--ink-soft);text-align:center;
+  }
+
+  @keyframes rise{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+  @media (max-width:560px){
+    body{font-size:18px;}
+    .wrap{padding:48px 20px 90px;}
+    .sub{margin-left:0;}
+    h2{flex-direction:column;gap:8px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="kicker">A Plain-Language Monograph · JavaScript Tooling</div>
+    <h1>Node.js &amp; <em>npm</em></h1>
+    <p class="standfirst">What they are, why they always show up together, and how you actually use them — explained without jargon, with hands-on notes you can try.</p>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.1em;text-transform:uppercase;margin-top:14px;">By <strong style="color:var(--ink);">Majid Mazouchi</strong></p>
+  </header>
+
+  <section>
+    <h2><span class="num">1</span>The one-sentence version</h2>
+    <p class="sub">Start here</p>
+    <p><strong>Node.js</strong> lets you run JavaScript on your computer instead of only inside a web browser. <strong>npm</strong> is the tool that fetches and manages the reusable code packages your project depends on. They ship together: install one, you get both.</p>
+    <div class="analogy">
+      <span class="tag">Mental model</span>
+      <p>Think of building a car. <strong>Node.js is the engine</strong> — the thing that actually runs your code. <strong>npm is the parts store</strong> — where you grab pre-built components instead of machining every bolt yourself. You need the engine to drive, and the store to avoid building everything from scratch.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>What is Node.js, really?</h2>
+    <p class="sub">The runtime</p>
+    <p>JavaScript was born in 1995 with exactly one job: making web pages interactive inside a browser. The browser contained the "engine" that understood the language. If you didn't have a browser open, JavaScript had nowhere to run.</p>
+    <p>In 2009, Node.js changed that. It took Google Chrome's JavaScript engine (called <strong>V8</strong>) and wrapped it so it could run <em>directly on your machine</em> — no browser required. Suddenly the same language used for buttons and animations could power web servers, command-line tools, build scripts, and automation.</p>
+    <p>A <strong>runtime</strong> is just "the environment that executes your code." Node.js is the runtime for JavaScript outside the browser. That's the whole idea.</p>
+    <div class="note">
+      <b>Practical note</b>
+      Node is famous for being <em>asynchronous and non-blocking</em>. In plain terms: instead of waiting idly for a slow task (like reading a file or a network call) to finish before doing anything else, it kicks off the task and keeps working. That's why it's good at handling many requests at once with modest resources.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>What is npm, really?</h2>
+    <p class="sub">The package manager</p>
+    <p><strong>npm</strong> stands for <em>Node Package Manager</em>. A "package" is simply a bundle of someone else's code — a library — that solves a common problem so you don't have to. Want to build a web server, parse dates, or talk to a database? Someone has likely already written and shared a package for it.</p>
+    <p>npm has two parts worth knowing. First, the <strong>command-line tool</strong> on your computer (the <code class="inline">npm</code> command). Second, the <strong>registry</strong> — a giant public online warehouse holding millions of packages. When you run an install command, the tool downloads the package from the registry into your project.</p>
+    <div class="note">
+      <b>Practical note</b>
+      Every npm project has a file called <code class="inline">package.json</code>. It's the project's "table of contents" — it lists your dependencies (which packages, which versions) and handy shortcut commands. Commit it to version control and anyone can rebuild your exact setup with one command.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>How they fit together</h2>
+    <p class="sub">A 60-second hands-on tour</p>
+    <p>Here's the typical first encounter. After installing Node.js (which bundles npm), you'd open a terminal and do something like this:</p>
+    <div class="code">
+<span class="c"># 1. Check both are installed</span>
+<span class="p">$</span> node <span class="k">-v</span>      <span class="c"># → v22.x.x</span>
+<span class="p">$</span> npm <span class="k">-v</span>       <span class="c"># → 10.x.x</span>
+
+<span class="c"># 2. Start a new project (creates package.json)</span>
+<span class="p">$</span> npm init <span class="k">-y</span>
+
+<span class="c"># 3. Install a package from the registry</span>
+<span class="p">$</span> npm install dayjs
+
+<span class="c"># 4. Run your program with Node</span>
+<span class="p">$</span> node app.js
+    </div>
+    <p>In that flow, <strong>npm</strong> set up the project and fetched the <code class="inline">dayjs</code> library, while <strong>Node.js</strong> actually executed your <code class="inline">app.js</code> file. That division of labor — npm manages the building blocks, Node runs the result — is the heart of the relationship.</p>
+    <div class="note">
+      <b>Watch out</b>
+      Installing a package creates a <code class="inline">node_modules</code> folder. It can get large and should <em>not</em> be committed to git — add it to <code class="inline">.gitignore</code>. The <code class="inline">package.json</code> plus <code class="inline">package-lock.json</code> are enough to recreate it anywhere with <code class="inline">npm install</code>.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>Quick side-by-side</h2>
+    <p class="sub">When you confuse the two</p>
+    <table class="compare">
+      <thead>
+        <tr><th>&nbsp;</th><th>Node.js</th><th>npm</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>What it is</td><td>A runtime that executes JavaScript</td><td>A package manager + online registry</td></tr>
+        <tr><td>Its job</td><td>Runs your code</td><td>Installs &amp; manages code others wrote</td></tr>
+        <tr><td>You type</td><td><code class="inline">node app.js</code></td><td><code class="inline">npm install ...</code></td></tr>
+        <tr><td>Analogy</td><td>The engine</td><td>The parts store</td></tr>
+        <tr><td>Comes from</td><td>Install it yourself</td><td>Bundled inside Node.js</td></tr>
+      </tbody>
+    </table>
+    <div class="analogy">
+      <span class="tag">Common mix-up</span>
+      <p>People say "I'm building a Node app" and "I npm-installed a library" — and both refer to the same project. Node is the <em>where it runs</em>; npm is the <em>how I got the pieces</em>. Alternatives exist too: <code class="inline">yarn</code> and <code class="inline">pnpm</code> are other package managers that talk to the same npm registry.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>Worked example: a real web server</h2>
+    <p class="sub">From idea to running code</p>
+    <p>The fastest way for it all to click is to see Node actually <em>do</em> something. Below is a complete, working web server — no extra packages needed, just Node itself. Save it as <code class="inline">server.js</code>:</p>
+    <div class="code">
+<span class="c">// server.js — a tiny web server using only Node's built-ins</span>
+<span class="k">const</span> http = <span class="k">require</span>(<span class="p">'http'</span>);
+
+<span class="k">const</span> server = http.createServer((req, res) => {
+  res.writeHead(<span class="p">200</span>, { <span class="p">'Content-Type'</span>: <span class="p">'text/plain'</span> });
+  res.end(<span class="p">'Hello from Node.js!'</span>);
+});
+
+server.listen(<span class="p">3000</span>, () => {
+  console.log(<span class="p">'Running at http://localhost:3000'</span>);
+});
+    </div>
+    <p>Then run it:</p>
+    <div class="code">
+<span class="p">$</span> node server.js
+<span class="c"># → Running at http://localhost:3000</span>
+    </div>
+    <p>Open that address in a browser and you'll see your message. In about ten lines, Node has done something a browser alone never could: <strong>served a web page from your own machine</strong>. Now the second half — adding a package with npm:</p>
+    <div class="code">
+<span class="c"># Install a date library, then use it</span>
+<span class="p">$</span> npm install dayjs
+
+<span class="c">// app.js</span>
+<span class="k">const</span> dayjs = <span class="k">require</span>(<span class="p">'dayjs'</span>);
+console.log(<span class="p">'Today is '</span> + dayjs().format(<span class="p">'YYYY-MM-DD'</span>));
+    </div>
+    <p>Here <code class="inline">require('dayjs')</code> pulls in the package npm downloaded — code you didn't write, working instantly inside the program Node runs.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">7</span>The command cheat sheet</h2>
+    <p class="sub">The dozen commands of week one</p>
+    <p>You can go a long way with just these. Keep them handy:</p>
+    <dl class="cheat">
+      <dt>npm init -y</dt><dd>Create a new <code class="inline">package.json</code> with default settings.</dd>
+      <dt>npm install pkg</dt><dd>Add a package to your project (saved as a dependency).</dd>
+      <dt>npm install pkg -D</dt><dd>Add it as a <em>dev</em> dependency — a build/test-only tool.</dd>
+      <dt>npm install -g pkg</dt><dd>Install globally, available as a command anywhere on your machine.</dd>
+      <dt>npm install</dt><dd>With no name: install everything listed in <code class="inline">package.json</code>.</dd>
+      <dt>npm uninstall pkg</dt><dd>Remove a package and drop it from <code class="inline">package.json</code>.</dd>
+      <dt>npm update</dt><dd>Upgrade packages to newer allowed versions.</dd>
+      <dt>npm run name</dt><dd>Run a custom script you defined in <code class="inline">package.json</code>.</dd>
+      <dt>npx pkg</dt><dd>Run a package <em>once</em> without permanently installing it.</dd>
+    </dl>
+    <div class="note">
+      <b>The npx trick</b>
+      <code class="inline">npx</code> is the one people miss. It lets you run a tool a single time — say, scaffolding a new project with <code class="inline">npx create-react-app myapp</code> — without cluttering your machine with a global install you'll never touch again.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">8</span>Dependencies vs. devDependencies</h2>
+    <p class="sub">Two kinds of "stuff my project needs"</p>
+    <p>Open any <code class="inline">package.json</code> and you'll see two lists. The distinction is simpler than it looks: it's about <em>when</em> a package is needed.</p>
+    <table class="compare">
+      <thead>
+        <tr><th>&nbsp;</th><th>dependencies</th><th>devDependencies</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Needed</td><td>While the app <em>runs</em></td><td>Only while you <em>build/test</em></td></tr>
+        <tr><td>Examples</td><td>A web framework, a date library</td><td>Test runners, linters, bundlers</td></tr>
+        <tr><td>Install flag</td><td><code class="inline">npm install pkg</code></td><td><code class="inline">npm install pkg -D</code></td></tr>
+        <tr><td>Ships to production?</td><td>Yes</td><td>No</td></tr>
+      </tbody>
+    </table>
+    <p>The point is to keep your shipped application lean: tools you only use at your desk don't need to travel to the server where the app actually runs.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">9</span>Versions and the lockfile</h2>
+    <p class="sub">What <code class="inline">^1.2.3</code> actually means</p>
+    <p>npm packages use <strong>semantic versioning</strong> — three numbers, <code class="inline">MAJOR.MINOR.PATCH</code>, each signaling a different kind of change:</p>
+    <div class="chips">
+      <span class="chip rust">MAJOR — breaking changes</span>
+      <span class="chip">MINOR — new features, safe</span>
+      <span class="chip">PATCH — bug fixes only</span>
+    </div>
+    <p>The symbol in front of a version tells npm how much wiggle room it has when updating. <code class="inline">^1.2.3</code> (caret) allows any newer <strong>minor or patch</strong> — so up to but not including <code class="inline">2.0.0</code>. <code class="inline">~1.2.3</code> (tilde) is stricter, allowing only newer <strong>patches</strong>. A bare <code class="inline">1.2.3</code> means exactly that version.</p>
+    <div class="note">
+      <b>Why package-lock.json exists</b>
+      Those ranges create a problem: two people running <code class="inline">npm install</code> on different days could get slightly different versions. The <code class="inline">package-lock.json</code> file solves it by recording the <em>exact</em> version of every package actually installed — so everyone, and every server, gets a byte-for-byte identical setup. Always commit it to git.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">10</span>Where Node fits — and where it doesn't</h2>
+    <p class="sub">Choosing the right tool</p>
+    <p>Node's non-blocking design makes it excellent at juggling many simultaneous, lightweight operations. It's less suited to grinding through heavy, single-threaded computation — for that, languages like C++, Rust, or Python (with native libraries) often fit better.</p>
+    <table class="compare">
+      <thead>
+        <tr><th>Great fit</th><th>&nbsp;</th><th>Poor fit</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Web APIs &amp; servers</td><td></td><td>Heavy CPU number-crunching</td></tr>
+        <tr><td>Real-time apps (chat, live updates)</td><td></td><td>Large-scale scientific computing</td></tr>
+        <tr><td>Command-line tools &amp; build scripts</td><td></td><td>Long blocking computations</td></tr>
+      </tbody>
+    </table>
+    <p>You rarely use raw Node for big projects. Instead you build on <strong>frameworks</strong> written on top of it: <code class="inline">Express</code> and <code class="inline">Fastify</code> for APIs, <code class="inline">Next.js</code> for full web applications. These are all just npm packages — which is exactly why the two tools in this monograph matter so much.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">11</span>Common pitfalls &amp; FAQ</h2>
+    <p class="sub">The loops everyone trips on</p>
+    <div class="faq">
+      <details>
+        <summary>Do I commit the <code class="inline">node_modules</code> folder to git?</summary>
+        <div class="ans">No. It can hold tens of thousands of files and is fully rebuildable. Add it to <code class="inline">.gitignore</code>. Commit <code class="inline">package.json</code> and <code class="inline">package-lock.json</code> instead — together they let anyone recreate it with <code class="inline">npm install</code>.</div>
+      </details>
+      <details>
+        <summary>Why is <code class="inline">node_modules</code> so enormous?</summary>
+        <div class="ans">Because packages have their own dependencies, which have their own dependencies, and so on. Installing one library can quietly pull in dozens of smaller ones. This is normal — it's the cost of not reinventing everything.</div>
+      </details>
+      <details>
+        <summary>Remind me — npm or Node?</summary>
+        <div class="ans">Node <em>runs</em> your code (<code class="inline">node app.js</code>). npm <em>fetches and manages</em> the packages your code uses (<code class="inline">npm install ...</code>). The engine versus the parts store.</div>
+      </details>
+      <details>
+        <summary>Local install or global (<code class="inline">-g</code>)?</summary>
+        <div class="ans">Default to local — packages live in your project and travel with it. Reserve global installs for command-line tools you want available everywhere. When in doubt, install local, or use <code class="inline">npx</code> to skip installing at all.</div>
+      </details>
+      <details>
+        <summary>I see "vulnerabilities" after installing. Panic?</summary>
+        <div class="ans">Usually not. <code class="inline">npm audit</code> reports known issues in your dependency tree; many are low-severity or in dev-only tools. Read before acting, and avoid blindly running <code class="inline">npm audit fix --force</code>, which can break things.</div>
+      </details>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">12</span>References &amp; where to go next</h2>
+    <p class="sub">Official, trustworthy sources</p>
+    <div class="refs">
+      <ol>
+        <li>Node.js — Official site &amp; downloads (LTS recommended for beginners). <a href="https://nodejs.org">nodejs.org</a></li>
+        <li>Node.js — "Introduction to Node.js" learning guide. <a href="https://nodejs.org/en/learn">nodejs.org/en/learn</a></li>
+        <li>npm — Official documentation &amp; package registry. <a href="https://docs.npmjs.com">docs.npmjs.com</a> · <a href="https://www.npmjs.com">npmjs.com</a></li>
+        <li>npm — "About packages and modules" reference. <a href="https://docs.npmjs.com/about-packages-and-modules">docs.npmjs.com/about-packages-and-modules</a></li>
+        <li>MDN Web Docs — JavaScript &amp; server-side fundamentals. <a href="https://developer.mozilla.org">developer.mozilla.org</a></li>
+        <li>V8 — The JavaScript engine that powers Node.js. <a href="https://v8.dev">v8.dev</a></li>
+      </ol>
+    </div>
+    <div class="note">
+      <b>Suggested first step</b>
+      Download the <strong>LTS</strong> (Long-Term Support) build of Node.js from the official site — it bundles npm automatically. Then open a terminal and run <code class="inline">node -v</code> and <code class="inline">npm -v</code> to confirm both are ready.
+    </div>
+  </section>
+
+  <footer>
+    Plain-Language Monograph · Node.js &amp; npm · Self-contained HTML
+  </footer>
+
+</div>
+</body>
+</html>

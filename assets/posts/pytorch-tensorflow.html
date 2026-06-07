@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyTorch &amp; TensorFlow — A Plain-Language Monograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecda; --paper-2:#efe5cf; --ink:#2b2620; --ink-soft:#5a5042;
+    --rule:#d8caa9; --torch:#ee4c2c; --tf:#ff6f00; --teal:#1f6f6b;
+    --burgundy:#8a3033; --gold:#b8862f; --shadow:rgba(60,45,20,.16);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 8%, #faf3e2 0%, transparent 40%),
+      radial-gradient(circle at 85% 92%, #f0e6d0 0%, transparent 45%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Newsreader", Georgia, serif;
+    font-size:19px; line-height:1.68; -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 26px 120px;}
+
+  /* progress + back-to-top */
+  #progress{position:fixed;top:0;left:0;height:4px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--torch),var(--tf));transition:width .08s linear;}
+  #backtop{position:fixed;right:22px;bottom:22px;z-index:50;width:46px;height:46px;border-radius:50%;
+    border:1px solid var(--rule);background:var(--paper-2);color:var(--ink);cursor:pointer;
+    font-size:20px;box-shadow:0 4px 12px var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s;}
+  #backtop.show{opacity:1;pointer-events:auto;}
+
+  header.mast{padding:78px 0 38px;text-align:center;border-bottom:3px double var(--rule);}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:22px;}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(40px,7vw,72px);line-height:1.02;margin:0 0 18px;letter-spacing:-.01em;}
+  h1 .amp{color:var(--torch);font-style:italic;font-weight:500;}
+  h1 .tf{color:var(--tf);}
+  .dek{font-style:italic;font-size:21px;color:var(--ink-soft);max-width:560px;margin:0 auto;}
+  .byline{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.2em;color:var(--ink-soft);margin-top:26px;text-transform:uppercase;}
+
+  section{margin-top:64px;scroll-margin-top:30px;}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(27px,4vw,38px);line-height:1.1;margin:0 0 6px;letter-spacing:-.01em;}
+  h2 .num{font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--gold);display:block;letter-spacing:.2em;margin-bottom:10px;font-weight:700;}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:23px;margin:38px 0 8px;}
+  .lead{font-size:21px;}
+  p{margin:14px 0;}
+  a{color:var(--teal);text-underline-offset:3px;text-decoration-thickness:1px;}
+  a:hover{color:var(--burgundy);}
+  strong{font-weight:600;}
+  code{font-family:"JetBrains Mono",monospace;font-size:.82em;background:rgba(120,90,40,.12);padding:1px 5px;border-radius:3px;}
+  .divider{height:1px;background:var(--rule);border:0;margin:54px 0;}
+  .drop::first-letter{font-family:"Fraunces",serif;font-weight:600;float:left;font-size:74px;line-height:.74;padding:8px 12px 0 0;color:var(--torch);}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:30px;}
+  .card{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:26px 24px;box-shadow:0 2px 0 var(--shadow);position:relative;overflow:hidden;}
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;}
+  .card.torch::before{background:var(--torch);}
+  .card.tf::before{background:var(--tf);}
+  .card h3{margin-top:6px;font-size:25px;}
+  .card .maker{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);}
+  .card ul{margin:14px 0 0;padding-left:20px;}
+  .card li{margin:7px 0;font-size:17px;line-height:1.5;}
+
+  .note{border-left:4px solid var(--teal);background:rgba(31,111,107,.07);padding:16px 20px;margin:26px 0;border-radius:0 4px 4px 0;font-size:17.5px;}
+  .note .tag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:5px;font-weight:700;}
+  .note.warn{border-left-color:var(--burgundy);background:rgba(138,48,51,.07);}
+  .note.warn .tag{color:var(--burgundy);}
+
+  /* code blocks */
+  .codewrap,.tabcode{margin:22px 0;border-radius:6px;overflow:hidden;border:1px solid #3a352c;box-shadow:0 6px 18px var(--shadow);}
+  .codebar{background:#2b2620;color:#cbb88f;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;padding:0 10px 0 16px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;min-height:38px;}
+  .codebar .label{padding:9px 0;}
+  pre{margin:0;background:#23201a;color:#e7dcc4;padding:18px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13.5px;line-height:1.62;}
+  pre .k{color:#ff9d6b;} pre .c{color:#8a7f63;font-style:italic;} pre .s{color:#9bcf8f;}
+  pre .f{color:#7fc7c2;} pre .n{color:#e0b96a;}
+  .copybtn{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    background:transparent;border:1px solid #5a5142;color:#cbb88f;border-radius:4px;padding:5px 11px;cursor:pointer;transition:.2s;}
+  .copybtn:hover{background:#3a352c;color:#fff;}
+  .tabbtns{display:flex;gap:4px;}
+  .tab-btn{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    background:transparent;border:0;color:#8a7f63;padding:12px 12px;cursor:pointer;border-bottom:2px solid transparent;}
+  .tab-btn[data-fw="pt"].active{color:var(--torch);border-bottom-color:var(--torch);}
+  .tab-btn[data-fw="tf"].active{color:var(--tf);border-bottom-color:var(--tf);}
+  .tabcode pre.panel{display:none;}
+  .tabcode pre.panel.active{display:block;}
+
+  .tablewrap{overflow-x:auto;margin:26px 0;}
+  table{border-collapse:collapse;width:100%;font-size:16.5px;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;overflow:hidden;}
+  th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  thead th{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:#e7dcc2;}
+  thead th:nth-child(2){color:var(--torch);} thead th:nth-child(3){color:var(--tf);}
+  tbody tr:last-child td{border-bottom:0;}
+  td:first-child{font-weight:600;width:24%;}
+
+  ol.refs{font-size:16px;line-height:1.5;padding-left:22px;}
+  ol.refs li{margin:11px 0;}
+  ol.refs a{word-break:break-word;}
+
+  nav.toc{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:20px 26px;margin-top:40px;}
+  nav.toc .tag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);}
+  nav.toc ol{margin:12px 0 0;padding-left:20px;columns:2;column-gap:34px;font-size:16px;}
+  nav.toc li{margin:6px 0;break-inside:avoid;}
+  nav.toc a{text-decoration:none;}
+
+  /* training-loop diagram */
+  figure.diagram{margin:30px 0;text-align:center;}
+  figure.diagram svg{max-width:100%;height:auto;}
+  figcaption{font-style:italic;color:var(--ink-soft);font-size:16px;margin-top:12px;}
+
+  /* timeline */
+  .timeline{position:relative;margin:34px 0 10px;padding-left:30px;border-left:2px solid var(--rule);}
+  .tl-item{position:relative;margin:0 0 26px;}
+  .tl-item::before{content:"";position:absolute;left:-37px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid var(--paper);}
+  .tl-item .yr{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.1em;color:var(--burgundy);font-weight:700;}
+  .tl-item p{margin:3px 0 0;font-size:17px;}
+
+  /* aside / sidebar */
+  aside.side{background:var(--paper-2);border:1px solid var(--rule);border-top:5px solid var(--gold);border-radius:4px;padding:24px 26px;margin:30px 0;box-shadow:0 2px 0 var(--shadow);}
+  aside.side h3{margin-top:0;}
+  aside.side ul{padding-left:20px;}
+  aside.side li{margin:8px 0;font-size:17px;line-height:1.5;}
+
+  /* recommender widget */
+  .widget{background:var(--paper-2);border:1px solid var(--rule);border-radius:6px;padding:26px;margin:30px 0;box-shadow:0 4px 14px var(--shadow);}
+  .widget .wtitle{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin-bottom:4px;}
+  .widget .wsub{font-style:italic;color:var(--ink-soft);font-size:16px;margin-bottom:6px;}
+  .q{margin-top:22px;}
+  .q .qtext{font-weight:600;margin-bottom:10px;}
+  .opts{display:flex;flex-wrap:wrap;gap:9px;}
+  .opt{font-family:"Newsreader",serif;font-size:16px;background:var(--paper);border:1px solid var(--rule);border-radius:30px;padding:9px 16px;cursor:pointer;transition:.18s;color:var(--ink);}
+  .opt:hover{border-color:var(--teal);}
+  .opt.sel{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .result{margin-top:24px;padding:20px 22px;border-radius:6px;background:var(--paper);border:1px dashed var(--rule);display:none;}
+  .result.show{display:block;animation:fade .4s ease;}
+  .result .verdict{font-family:"Fraunces",serif;font-weight:700;font-size:26px;}
+  .result .verdict.pt{color:var(--torch);} .result .verdict.tf{color:var(--tf);} .result .verdict.tie{color:var(--gold);}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  footer{margin-top:80px;padding-top:26px;border-top:3px double var(--rule);text-align:center;font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.16em;color:var(--ink-soft);text-transform:uppercase;}
+
+  @media(max-width:620px){
+    body{font-size:17.5px;}
+    .cards{grid-template-columns:1fr;}
+    nav.toc ol{columns:1;}
+    .drop::first-letter{font-size:60px;}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button id="backtop" aria-label="Back to top">↑</button>
+
+<div class="wrap">
+
+  <header class="mast">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--torch);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">A Field Guide for the Curious</div>
+    <h1>PyTorch <span class="amp">&amp;</span> <span class="tf">TensorFlow</span></h1>
+    <p class="dek">The two engines behind modern artificial intelligence — explained in plain words, with practical notes, runnable examples, and a map of where each one shines.</p>
+    <div class="byline">By <strong style="color:var(--ink);">Majid Mazouchi</strong> · Educational Monograph · Deep Learning Frameworks</div>
+  </header>
+
+  <nav class="toc">
+    <span class="tag">Contents</span>
+    <ol>
+      <li><a href="#big">The Big Picture</a></li>
+      <li><a href="#analogy">A Kitchen Analogy</a></li>
+      <li><a href="#shared">What They Share</a></li>
+      <li><a href="#loop">The Training Loop, Drawn</a></li>
+      <li><a href="#pt">Meet PyTorch</a></li>
+      <li><a href="#tf">Meet TensorFlow</a></li>
+      <li><a href="#history">A Short History</a></li>
+      <li><a href="#compare">Side by Side</a></li>
+      <li><a href="#example">Same Model, Both Ways</a></li>
+      <li><a href="#mnist">End-to-End: A Real Model</a></li>
+      <li><a href="#save">Saving &amp; Loading</a></li>
+      <li><a href="#ecosystem">The Ecosystem &amp; JAX</a></li>
+      <li><a href="#who">Who Uses What</a></li>
+      <li><a href="#choose">Which Should You Use?</a></li>
+      <li><a href="#deploy">Getting to Production</a></li>
+      <li><a href="#gotchas">Common Gotchas</a></li>
+      <li><a href="#glossary">Mini Glossary</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="big">
+    <h2><span class="num">01</span>The Big Picture</h2>
+    <p class="lead drop">PyTorch and TensorFlow are <strong>software libraries</strong> for building, training, and running machine-learning models — most famously the deep neural networks that power image recognition, language models, recommendation engines, and self-driving systems. They are free and open-source, and together they account for the overwhelming majority of deep-learning work done today.</p>
+    <p>Here is the key idea: training a neural network requires doing an enormous amount of arithmetic, and — crucially — computing <em>derivatives</em> of that arithmetic so the model can learn from its mistakes. You could write all of that by hand, but it would be painful and slow. These frameworks do three heavy things for you automatically:</p>
+    <p>They give you a fast container for numbers (a <strong>tensor</strong>), they run the math on a <strong>GPU</strong> so it's hundreds of times faster, and they compute the gradients for you through <strong>automatic differentiation</strong>. You describe the model; the framework handles the calculus and the hardware.</p>
+    <div class="note">
+      <span class="tag">In one sentence</span>
+      Both let you say <em>"here is my model and my data"</em> and they take care of <em>"now do the math fast and figure out how to improve it."</em>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="analogy">
+    <h2><span class="num">02</span>A Kitchen Analogy</h2>
+    <p>Imagine you're a chef inventing recipes. The <strong>tensor</strong> is your mixing bowl — it holds the ingredients (numbers) in an organized way: a single value, a row, a grid, or a stack of grids. The <strong>GPU</strong> is an industrial kitchen with a thousand line cooks who can chop in parallel, instead of one cook doing everything alone. And <strong>automatic differentiation</strong> is a magical assistant who watches every step you take and can instantly tell you, "if you'd used a pinch less salt, the dish would have scored higher" — which is exactly the feedback a model needs to improve.</p>
+    <p>PyTorch and TensorFlow are two competing brands of this fully-equipped kitchen. They cook the same dishes; they just lay out the counters differently and hand you slightly different utensils.</p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- 3 -->
+  <section id="shared">
+    <h2><span class="num">03</span>What They Share</h2>
+    <p>Before the differences, it's worth seeing how much overlap there is. Both frameworks provide:</p>
+    <h3>Tensors</h3>
+    <p>An n-dimensional array of numbers — the universal currency of deep learning. A photo is a 3-D tensor (height × width × color); a batch of photos is 4-D. Everything flowing through a model is a tensor.</p>
+    <h3>Autograd (automatic differentiation)</h3>
+    <p>The engine that tracks every operation and computes gradients automatically, so the network knows how to nudge its parameters to reduce error. This is the beating heart of training.</p>
+    <h3>GPU acceleration &amp; optimizers</h3>
+    <p>Both move computation to NVIDIA/AMD GPUs (and increasingly other accelerators) with one line of code, and both ship ready-made optimizers (SGD, Adam, etc.), loss functions, and neural-network layers.</p>
+    <h3>High-level building blocks</h3>
+    <p>Pre-built layers, datasets, model zoos, and friendly wrappers — <strong>Keras</strong> for TensorFlow, and modules like <strong>torch.nn</strong> (plus libraries such as PyTorch Lightning) for PyTorch.</p>
+  </section>
+
+  <!-- 4 NEW: training loop diagram -->
+  <section id="loop">
+    <h2><span class="num">04</span>The Training Loop, Drawn</h2>
+    <p>Almost all deep-learning training — in either framework — is the same five-step cycle, repeated thousands of times. Each lap nudges the model a little closer to correct. Here is the whole idea in one picture:</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 600 320" role="img" aria-label="The training loop cycle">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#5a5042"/>
+          </marker>
+        </defs>
+        <!-- boxes -->
+        <g font-family="Newsreader, serif">
+          <!-- Data -->
+          <rect x="20" y="50" width="150" height="60" rx="8" fill="#efe5cf" stroke="#b8862f" stroke-width="2"/>
+          <text x="95" y="76" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2620">Data</text>
+          <text x="95" y="95" text-anchor="middle" font-size="12" fill="#5a5042">a batch of examples</text>
+          <!-- Model -->
+          <rect x="210" y="50" width="150" height="60" rx="8" fill="#efe5cf" stroke="#1f6f6b" stroke-width="2"/>
+          <text x="285" y="76" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2620">Model</text>
+          <text x="285" y="95" text-anchor="middle" font-size="12" fill="#5a5042">forward → prediction</text>
+          <!-- Loss -->
+          <rect x="400" y="50" width="150" height="60" rx="8" fill="#efe5cf" stroke="#1f6f6b" stroke-width="2"/>
+          <text x="475" y="76" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2620">Loss</text>
+          <text x="475" y="95" text-anchor="middle" font-size="12" fill="#5a5042">how wrong?</text>
+          <!-- Gradients -->
+          <rect x="400" y="210" width="150" height="60" rx="8" fill="#efe5cf" stroke="#ee4c2c" stroke-width="2"/>
+          <text x="475" y="236" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2620">Gradients</text>
+          <text x="475" y="255" text-anchor="middle" font-size="12" fill="#5a5042">backward()</text>
+          <!-- Optimizer -->
+          <rect x="210" y="210" width="150" height="60" rx="8" fill="#efe5cf" stroke="#ee4c2c" stroke-width="2"/>
+          <text x="285" y="236" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2620">Optimizer</text>
+          <text x="285" y="255" text-anchor="middle" font-size="12" fill="#5a5042">update weights</text>
+        </g>
+        <!-- arrows -->
+        <g stroke="#5a5042" stroke-width="2" fill="none">
+          <line x1="170" y1="80" x2="206" y2="80" marker-end="url(#arrow)"/>
+          <line x1="360" y1="80" x2="396" y2="80" marker-end="url(#arrow)"/>
+          <line x1="475" y1="110" x2="475" y2="206" marker-end="url(#arrow)"/>
+          <line x1="400" y1="240" x2="364" y2="240" marker-end="url(#arrow)"/>
+          <line x1="285" y1="210" x2="285" y2="114" marker-end="url(#arrow)"/>
+        </g>
+        <text x="300" y="160" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="#8a3033">REPEAT EACH STEP ↺</text>
+      </svg>
+      <figcaption>The five-step loop: feed data in, predict, measure how wrong, compute gradients, update — then repeat.</figcaption>
+    </figure>
+    <p>The top row is the <em>forward pass</em> (making a guess); the bottom row is the <em>backward pass</em> (learning from the error). PyTorch makes you write this loop by hand; Keras hides it inside <code>.fit()</code>. Either way, the cycle underneath is identical.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="pt">
+    <h2><span class="num">05</span>Meet PyTorch</h2>
+    <div class="cards" style="grid-template-columns:1fr;">
+      <div class="card torch">
+        <span class="maker">Created by Meta (Facebook) AI · 2016 · now under the PyTorch Foundation / Linux Foundation</span>
+        <h3>The researcher's favorite</h3>
+        <ul>
+          <li><strong>Define-by-run.</strong> The model is built on the fly as your Python code executes. Loops, conditionals, and printing all work naturally.</li>
+          <li><strong>Feels like normal Python.</strong> Easy to read, easy to debug — drop a breakpoint anywhere.</li>
+          <li><strong>Dominant in research.</strong> Most new papers and most open-source models (e.g. on Hugging Face) are PyTorch-first.</li>
+          <li><strong>Strong ecosystem.</strong> torchvision, torchaudio, Lightning, and a fast-maturing deployment story.</li>
+        </ul>
+      </div>
+    </div>
+    <p>PyTorch's signature trait is that the computation graph is <em>dynamic</em>: it's created freshly each time you run your code. This "eager" style means a model is just ordinary Python that happens to operate on tensors — which is why beginners and researchers tend to find it the gentler on-ramp.</p>
+    <div class="codewrap">
+      <div class="codebar"><span class="label">PyTorch — a tensor and a gradient</span><button class="copybtn">Copy</button></div>
+<pre><span class="k">import</span> <span class="f">torch</span>
+
+<span class="c"># x is something we want to learn; track its gradient</span>
+x = <span class="f">torch</span>.tensor([<span class="n">2.0</span>], requires_grad=<span class="k">True</span>)
+
+y = x**<span class="n">2</span> + <span class="n">3</span>*x        <span class="c"># define some computation</span>
+y.backward()             <span class="c"># autograd computes dy/dx for us</span>
+
+<span class="k">print</span>(x.grad)            <span class="c"># tensor([7.]) -> derivative 2x+3 at x=2</span></pre>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      The <code>requires_grad=True</code> flag is what tells PyTorch to <em>watch</em> a tensor. Call <code>.backward()</code> and every watched tensor gets its gradient filled in automatically. This single idea scales from this two-line example all the way up to billion-parameter language models.
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="tf">
+    <h2><span class="num">06</span>Meet TensorFlow</h2>
+    <div class="cards" style="grid-template-columns:1fr;">
+      <div class="card tf">
+        <span class="maker">Created by Google Brain · released 2015</span>
+        <h3>The production workhorse</h3>
+        <ul>
+          <li><strong>Battle-tested deployment.</strong> Mature tooling to serve models at scale (TensorFlow Serving), on phones and microcontrollers (TF Lite / LiteRT), and in browsers (TensorFlow.js).</li>
+          <li><strong>Keras built in.</strong> The clean, high-level Keras API makes standard models very concise.</li>
+          <li><strong>Graph optimization.</strong> Can compile your model into a static graph for speed and portability.</li>
+          <li><strong>Broad hardware reach.</strong> First-class support for Google's TPUs alongside GPUs and CPUs.</li>
+        </ul>
+      </div>
+    </div>
+    <p>TensorFlow arrived first and originally used a <em>"define-then-run"</em> model: you built a static computation graph, then executed it. That was efficient for deployment but awkward to debug. <strong>TensorFlow 2.x</strong> changed the default to eager execution — so it now feels much more like PyTorch — while keeping the option to compile to a fast graph with a single decorator.</p>
+    <div class="codewrap">
+      <div class="codebar"><span class="label">TensorFlow — the same gradient example</span><button class="copybtn">Copy</button></div>
+<pre><span class="k">import</span> <span class="f">tensorflow</span> <span class="k">as</span> <span class="f">tf</span>
+
+x = <span class="f">tf</span>.Variable([<span class="n">2.0</span>])         <span class="c"># a learnable variable</span>
+
+<span class="k">with</span> <span class="f">tf</span>.GradientTape() <span class="k">as</span> tape:  <span class="c"># "record" the math</span>
+    y = x**<span class="n">2</span> + <span class="n">3</span>*x
+
+<span class="k">print</span>(tape.gradient(y, x))    <span class="c"># tf.Tensor([7.]) -> same answer</span></pre>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      Where PyTorch quietly tracks gradients via <code>requires_grad</code>, TensorFlow asks you to record operations inside a <code>GradientTape</code> block. Different spelling, identical idea: watch the math, then ask for the slope.
+    </div>
+  </section>
+
+  <!-- 7 NEW: history -->
+  <section id="history">
+    <h2><span class="num">07</span>A Short History</h2>
+    <p>The "framework wars" shaped how these tools look today. A quick timeline:</p>
+    <div class="timeline">
+      <div class="tl-item"><span class="yr">2007–2015</span><p>Early frameworks — Theano, Torch (Lua), Caffe — prove the idea but are clunky. Google builds an internal system called DistBelief.</p></div>
+      <div class="tl-item"><span class="yr">2015</span><p><strong>TensorFlow 1.0</strong> is open-sourced by Google. Powerful and production-ready, but its static define-then-run graphs are notoriously hard to debug.</p></div>
+      <div class="tl-item"><span class="yr">2016</span><p><strong>PyTorch</strong> launches from Meta with dynamic, Pythonic graphs. Researchers love it almost immediately.</p></div>
+      <div class="tl-item"><span class="yr">2019</span><p><strong>TensorFlow 2.0</strong> makes eager execution the default and folds in Keras as the official high-level API — a direct response to PyTorch's ergonomics.</p></div>
+      <div class="tl-item"><span class="yr">2018–2022</span><p>PyTorch overtakes TensorFlow in research publications. Google quietly seeds a third option, <strong>JAX</strong>, for its own large-scale research.</p></div>
+      <div class="tl-item"><span class="yr">2022–today</span><p>PyTorch moves to the neutral <strong>PyTorch Foundation</strong>, adds <code>torch.compile</code> for graph-level speed, and grows edge tooling (ExecuTorch). TensorFlow rebrands TF Lite as <strong>LiteRT</strong> and keeps its grip on production and on-device inference.</p></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- 8 -->
+  <section id="compare">
+    <h2><span class="num">08</span>Side by Side</h2>
+    <p>A practical comparison. None of these are absolutes — both frameworks have spent years copying each other's best ideas, so the gaps are smaller than they used to be.</p>
+    <div class="tablewrap">
+    <table>
+      <thead><tr><th>Dimension</th><th>PyTorch</th><th>TensorFlow</th></tr></thead>
+      <tbody>
+        <tr><td>Maker / year</td><td>Meta, 2016</td><td>Google, 2015</td></tr>
+        <tr><td>Default style</td><td>Dynamic (define-by-run)</td><td>Eager since 2.x, compiles to graph on demand</td></tr>
+        <tr><td>Feels like</td><td>Plain Python</td><td>Python + Keras conventions</td></tr>
+        <tr><td>Learning curve</td><td>Gentle, intuitive</td><td>Gentle via Keras; deeper layers get complex</td></tr>
+        <tr><td>Debugging</td><td>Easy — standard Python tools</td><td>Easy in eager mode; trickier once compiled</td></tr>
+        <tr><td>Research mindshare</td><td>Dominant in papers &amp; new models</td><td>Strong but declining in research</td></tr>
+        <tr><td>Deployment</td><td>Rapidly maturing (TorchServe, ExecuTorch, ONNX)</td><td>Very mature (Serving, LiteRT, TF.js)</td></tr>
+        <tr><td>Mobile / embedded</td><td>ExecuTorch, PyTorch Mobile</td><td>LiteRT (formerly TF Lite) — long the standard</td></tr>
+        <tr><td>Specialty hardware</td><td>GPU-centric, growing accelerator support</td><td>First-class TPU support</td></tr>
+        <tr><td>High-level API</td><td>torch.nn, PyTorch Lightning</td><td>Keras (built in)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section id="example">
+    <h2><span class="num">09</span>Same Model, Both Ways</h2>
+    <p>A tiny neural network — a single linear layer that learns to map an input to an output — written in each framework. Use the tabs to flip between them and notice how similar the shapes are.</p>
+    <div class="tabcode">
+      <div class="codebar">
+        <div class="tabbtns">
+          <button class="tab-btn active" data-fw="pt">PyTorch</button>
+          <button class="tab-btn" data-fw="tf">TensorFlow</button>
+        </div>
+        <button class="copybtn">Copy</button>
+      </div>
+<pre class="panel active" data-fw="pt"><span class="k">import</span> <span class="f">torch</span>, <span class="f">torch.nn</span> <span class="k">as</span> <span class="f">nn</span>
+
+model = <span class="f">nn</span>.Linear(<span class="n">1</span>, <span class="n">1</span>)                 <span class="c"># 1 input -> 1 output</span>
+loss_fn = <span class="f">nn</span>.MSELoss()
+opt = <span class="f">torch</span>.optim.SGD(model.parameters(), lr=<span class="n">0.01</span>)
+
+x = <span class="f">torch</span>.tensor([[<span class="n">1.</span>],[<span class="n">2.</span>],[<span class="n">3.</span>]])
+y = <span class="f">torch</span>.tensor([[<span class="n">2.</span>],[<span class="n">4.</span>],[<span class="n">6.</span>]])   <span class="c"># target: y = 2x</span>
+
+<span class="k">for</span> epoch <span class="k">in</span> <span class="k">range</span>(<span class="n">200</span>):
+    pred = model(x)
+    loss = loss_fn(pred, y)
+    opt.zero_grad()                       <span class="c"># reset old gradients</span>
+    loss.backward()                       <span class="c"># compute new gradients</span>
+    opt.step()                            <span class="c"># update the weights</span></pre>
+<pre class="panel" data-fw="tf"><span class="k">import</span> <span class="f">tensorflow</span> <span class="k">as</span> <span class="f">tf</span>
+
+model = <span class="f">tf</span>.keras.Sequential([
+    <span class="f">tf</span>.keras.layers.Dense(<span class="n">1</span>, input_shape=(<span class="n">1</span>,))
+])
+model.compile(optimizer=<span class="f">tf</span>.keras.optimizers.SGD(<span class="n">0.01</span>),
+              loss=<span class="s">"mse"</span>)
+
+x = [[<span class="n">1.</span>],[<span class="n">2.</span>],[<span class="n">3.</span>]]
+y = [[<span class="n">2.</span>],[<span class="n">4.</span>],[<span class="n">6.</span>]]            <span class="c"># target: y = 2x</span>
+
+model.fit(x, y, epochs=<span class="n">200</span>, verbose=<span class="n">0</span>)   <span class="c"># training loop is hidden</span></pre>
+    </div>
+    <div class="note">
+      <span class="tag">What this shows</span>
+      PyTorch makes the training loop <em>explicit</em> — you see every step (predict → measure error → get gradients → update). Keras <em>hides</em> the loop behind <code>.fit()</code>, which is wonderfully concise for standard tasks but gives you less to look at when something custom is needed. This trade-off — visible control vs. tidy abstraction — captures the cultural difference between the two camps.
+    </div>
+  </section>
+
+  <!-- 10 NEW: end-to-end MNIST -->
+  <section id="mnist">
+    <h2><span class="num">10</span>End-to-End: A Real Model</h2>
+    <p>The toy example above learns a single line. Here's something closer to real life: a small network that learns to recognize <strong>handwritten digits</strong> (the classic MNIST dataset — 28×28 grayscale images of the numbers 0–9). This is the "hello world" of deep learning, and it shows the full arc: load data, define layers, train.</p>
+    <div class="tabcode">
+      <div class="codebar">
+        <div class="tabbtns">
+          <button class="tab-btn active" data-fw="pt">PyTorch</button>
+          <button class="tab-btn" data-fw="tf">TensorFlow</button>
+        </div>
+        <button class="copybtn">Copy</button>
+      </div>
+<pre class="panel active" data-fw="pt"><span class="k">import</span> <span class="f">torch</span>, <span class="f">torch.nn</span> <span class="k">as</span> <span class="f">nn</span>
+<span class="k">from</span> <span class="f">torch.utils.data</span> <span class="k">import</span> DataLoader
+<span class="k">from</span> <span class="f">torchvision</span> <span class="k">import</span> datasets, transforms
+
+<span class="c"># 1. Data: 28x28 grayscale digits -> tensors</span>
+tfm = transforms.ToTensor()
+train = datasets.MNIST(<span class="s">"data"</span>, train=<span class="k">True</span>, download=<span class="k">True</span>, transform=tfm)
+loader = DataLoader(train, batch_size=<span class="n">64</span>, shuffle=<span class="k">True</span>)
+
+<span class="c"># 2. Model: flatten -> hidden layer -> 10 class scores</span>
+model = <span class="f">nn</span>.Sequential(
+    <span class="f">nn</span>.Flatten(),
+    <span class="f">nn</span>.Linear(<span class="n">28</span>*<span class="n">28</span>, <span class="n">128</span>), <span class="f">nn</span>.ReLU(),
+    <span class="f">nn</span>.Linear(<span class="n">128</span>, <span class="n">10</span>),
+)
+loss_fn = <span class="f">nn</span>.CrossEntropyLoss()
+opt = <span class="f">torch</span>.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>)
+
+<span class="c"># 3. Train: one full pass over the data</span>
+model.train()
+<span class="k">for</span> images, labels <span class="k">in</span> loader:
+    preds = model(images)
+    loss = loss_fn(preds, labels)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()</pre>
+<pre class="panel" data-fw="tf"><span class="k">import</span> <span class="f">tensorflow</span> <span class="k">as</span> <span class="f">tf</span>
+
+<span class="c"># 1. Data: built-in MNIST, pixels scaled to 0-1</span>
+(x, y), _ = <span class="f">tf</span>.keras.datasets.mnist.load_data()
+x = x / <span class="n">255.0</span>
+
+<span class="c"># 2. Model: flatten -> hidden layer -> 10 class scores</span>
+model = <span class="f">tf</span>.keras.Sequential([
+    <span class="f">tf</span>.keras.layers.Flatten(input_shape=(<span class="n">28</span>, <span class="n">28</span>)),
+    <span class="f">tf</span>.keras.layers.Dense(<span class="n">128</span>, activation=<span class="s">"relu"</span>),
+    <span class="f">tf</span>.keras.layers.Dense(<span class="n">10</span>),
+])
+model.compile(
+    optimizer=<span class="s">"adam"</span>,
+    loss=<span class="f">tf</span>.keras.losses.SparseCategoricalCrossentropy(from_logits=<span class="k">True</span>),
+    metrics=[<span class="s">"accuracy"</span>],
+)
+
+<span class="c"># 3. Train: one full pass over the data</span>
+model.fit(x, y, epochs=<span class="n">1</span>, batch_size=<span class="n">64</span>)</pre>
+    </div>
+    <div class="note">
+      <span class="tag">Read it as a story</span>
+      Both programs say the same thing in three beats: <em>get the digits</em>, <em>stack a couple of layers</em>, <em>train</em>. The 128-neuron hidden layer with a ReLU is what lets the network learn curved, non-linear patterns — without it, you'd only ever fit a straight line. Run a few more epochs and either model lands around 97% accuracy.
+    </div>
+  </section>
+
+  <!-- 11 NEW: saving/loading -->
+  <section id="save">
+    <h2><span class="num">11</span>Saving &amp; Loading</h2>
+    <p>A trained model is worthless if you can't store it and reload it later. This is one of the first real-project needs — and the two frameworks have slightly different philosophies.</p>
+    <div class="tabcode">
+      <div class="codebar">
+        <div class="tabbtns">
+          <button class="tab-btn active" data-fw="pt">PyTorch</button>
+          <button class="tab-btn" data-fw="tf">TensorFlow</button>
+        </div>
+        <button class="copybtn">Copy</button>
+      </div>
+<pre class="panel active" data-fw="pt"><span class="c"># PyTorch favors saving just the learned weights ("state dict")</span>
+<span class="f">torch</span>.save(model.state_dict(), <span class="s">"model.pt"</span>)
+
+<span class="c"># To load: rebuild the SAME architecture, then pour the weights in</span>
+model = build_model()              <span class="c"># your own function/class</span>
+model.load_state_dict(<span class="f">torch</span>.load(<span class="s">"model.pt"</span>))
+model.eval()                       <span class="c"># switch to inference mode</span></pre>
+<pre class="panel" data-fw="tf"><span class="c"># Keras can save the WHOLE model: architecture + weights + config</span>
+model.save(<span class="s">"model.keras"</span>)
+
+<span class="c"># Load it back in one line, ready to predict</span>
+model = <span class="f">tf</span>.keras.models.load_model(<span class="s">"model.keras"</span>)
+predictions = model.predict(x)</pre>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      The key difference: PyTorch's default saves only the <em>weights</em>, so you must keep the model's code to rebuild its structure before loading. Keras can bundle <em>everything</em> into one file. PyTorch's approach is more portable across code versions and is the safer habit for long-lived projects; Keras's is more convenient for quick handoffs.
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- 12 NEW: ecosystem + JAX -->
+  <section id="ecosystem">
+    <h2><span class="num">12</span>The Ecosystem &amp; a Word on JAX</h2>
+    <p>Neither framework lives alone — each anchors a constellation of companion libraries that do the real day-to-day work.</p>
+    <div class="cards">
+      <div class="card torch">
+        <h3>Around PyTorch</h3>
+        <ul>
+          <li><strong>torchvision / torchaudio / torchtext</strong> — datasets, transforms, and pretrained models for images, audio, text.</li>
+          <li><strong>Hugging Face Transformers</strong> — the de-facto hub for state-of-the-art models, PyTorch-first.</li>
+          <li><strong>PyTorch Lightning</strong> — removes boilerplate from the training loop.</li>
+          <li><strong>torch.compile</strong> — opt-in graph compilation for speed.</li>
+        </ul>
+      </div>
+      <div class="card tf">
+        <h3>Around TensorFlow</h3>
+        <ul>
+          <li><strong>Keras</strong> — the built-in high-level API.</li>
+          <li><strong>TensorBoard</strong> — superb visualization of training (also usable from PyTorch).</li>
+          <li><strong>TFX</strong> — end-to-end production ML pipelines.</li>
+          <li><strong>TF Hub / TF Datasets</strong> — reusable models and ready-made datasets.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>The third framework: JAX</h3>
+    <p>Increasingly you'll hear about <strong>JAX</strong>, also from Google. It isn't a drop-in replacement — think of it as "NumPy with superpowers": a familiar array API plus composable function transforms (<code>grad</code> for gradients, <code>jit</code> for compilation, <code>vmap</code> for auto-batching), all compiled through XLA to run fast on GPUs and TPUs. It's favored in cutting-edge research and underpins libraries like Flax and Haiku, as well as a good deal of large-scale model training at Google/DeepMind. For most newcomers PyTorch is still the place to start, but JAX is worth knowing exists.</p>
+  </section>
+
+  <!-- 13 NEW: who uses what -->
+  <section id="who">
+    <h2><span class="num">13</span>Who Uses What</h2>
+    <p>Rough, real-world associations (these shift over time, and most big organizations use more than one):</p>
+    <div class="tablewrap">
+    <table>
+      <thead><tr><th>Framework</th><th>Commonly associated with</th><th>Sweet spot</th></tr></thead>
+      <tbody>
+        <tr><td>PyTorch</td><td>Meta, OpenAI, much of academia, the Hugging Face model ecosystem, many autonomy/robotics teams</td><td>Research, rapid prototyping, large language models, anything using the latest published architectures</td></tr>
+        <tr><td>TensorFlow</td><td>Google products historically, many enterprises with established ML pipelines, on-device and mobile apps via LiteRT</td><td>Production serving at scale, mobile/embedded/browser inference, mature MLOps pipelines</td></tr>
+        <tr><td>JAX</td><td>Google Research / DeepMind and a growing slice of frontier-model labs</td><td>High-performance, large-scale research where compilation and TPUs matter</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note">
+      <span class="tag">Takeaway</span>
+      The "best" framework is often just the one your team, your tutorial, or the model you're building on already uses. The concepts transfer almost entirely — learn one well and picking up another takes days, not months.
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section id="choose">
+    <h2><span class="num">14</span>Which Should You Use?</h2>
+    <p>A few honest heuristics that hold up well:</p>
+    <h3>Lean PyTorch if…</h3>
+    <p>You're learning deep learning, doing research, prototyping new ideas, or working with the latest published models. Its readability and the size of its research community make it the path of least resistance today.</p>
+    <h3>Lean TensorFlow if…</h3>
+    <p>Your priority is shipping to constrained or massive-scale targets — mobile apps, microcontrollers, browsers, or large serving fleets — or your team and existing codebase already live in the TensorFlow/Keras world.</p>
+
+    <div class="widget" id="rec">
+      <div class="wtitle">Quick recommender</div>
+      <div class="wsub">Answer three questions for a (lighthearted) suggestion.</div>
+
+      <div class="q" data-q="0">
+        <div class="qtext">1. What's your main goal?</div>
+        <div class="opts">
+          <button class="opt" data-pt="2" data-tf="0">Learning / research</button>
+          <button class="opt" data-pt="0" data-tf="2">Shipping to production</button>
+          <button class="opt" data-pt="1" data-tf="1">Just exploring</button>
+        </div>
+      </div>
+
+      <div class="q" data-q="1">
+        <div class="qtext">2. Where will the model run?</div>
+        <div class="opts">
+          <button class="opt" data-pt="1" data-tf="0">Cloud / a GPU server</button>
+          <button class="opt" data-pt="0" data-tf="2">Phone / embedded / browser</button>
+          <button class="opt" data-pt="0" data-tf="0">Not sure yet</button>
+        </div>
+      </div>
+
+      <div class="q" data-q="2">
+        <div class="qtext">3. Any existing code or models?</div>
+        <div class="opts">
+          <button class="opt" data-pt="2" data-tf="0">Latest research models</button>
+          <button class="opt" data-pt="0" data-tf="3">An existing TF / Keras codebase</button>
+          <button class="opt" data-pt="1" data-tf="0">Starting fresh</button>
+        </div>
+      </div>
+
+      <div class="result" id="recResult">
+        <div class="verdict" id="recVerdict"></div>
+        <p id="recReason" style="margin:8px 0 0;"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section id="deploy">
+    <h2><span class="num">15</span>Getting to Production</h2>
+    <p>Building a model is half the job; running it somewhere real is the other half. This is where the frameworks' personalities matter most.</p>
+    <h3>Cloud &amp; servers</h3>
+    <p>TensorFlow Serving has long been a standard for high-throughput model serving; PyTorch answers with TorchServe and broad support for the open <strong>ONNX</strong> format, which lets a model trained in one framework run in many runtimes.</p>
+    <h3>Phones, microcontrollers &amp; the edge</h3>
+    <p>This was historically TensorFlow's stronghold via <strong>TF Lite</strong> (now <strong>LiteRT</strong>), widely used for on-device inference. PyTorch has closed in with <strong>ExecuTorch</strong>. A key technique on both sides is <strong>quantization</strong> — shrinking a model's numbers from 32-bit floats down to 8-bit integers (INT8) so it runs fast and small on limited hardware.</p>
+
+    <aside class="side">
+      <h3>Sidebar — the embedded / edge reality</h3>
+      <p>Once your target is a real microcontroller or automotive ECU rather than a GPU, the "last mile" decides everything. Things to plan for:</p>
+      <ul>
+        <li><strong>Pick the export path early:</strong> LiteRT, ExecuTorch, or ONNX → a vendor runtime. Confirm your chip's toolchain actually supports it <em>before</em> committing.</li>
+        <li><strong>Quantize deliberately:</strong> post-training quantization is quick but lossy; <em>quantization-aware training</em> bakes the INT8 behavior into training and usually recovers accuracy.</li>
+        <li><strong>Watch operator support:</strong> edge runtimes implement a subset of operations. An exotic layer that trains fine may have no kernel on the target — keep the architecture conservative.</li>
+        <li><strong>Mind fixed-point numerics:</strong> on integer-only or DSP-style cores, you're managing scales and ranges by hand. Validate the quantized model's outputs against the float reference on representative data.</li>
+        <li><strong>Budget memory and latency:</strong> flash, RAM, and cycle counts are hard limits. Profile on-device, not just on your laptop.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- 16 -->
+  <section id="gotchas">
+    <h2><span class="num">16</span>Common Gotchas</h2>
+    <div class="note warn"><span class="tag">Forgetting to zero gradients (PyTorch)</span>PyTorch <em>accumulates</em> gradients by default. Forget <code>optimizer.zero_grad()</code> in your loop and gradients pile up across steps, quietly wrecking training. It's the single most common beginner bug.</div>
+    <div class="note warn"><span class="tag">CPU/GPU device mismatch</span>Tensors on the CPU can't directly operate with tensors on the GPU. In PyTorch you'll move things with <code>.to(device)</code>; forgetting leads to a loud error. Keep your data and model on the same device.</div>
+    <div class="note warn"><span class="tag">Version 1.x vs 2.x confusion (TensorFlow)</span>Old tutorials use TensorFlow 1.x's session-and-graph style, very different from modern 2.x. If example code mentions <code>tf.Session()</code> or <code>placeholder</code>, it's outdated — find a 2.x version.</div>
+    <div class="note warn"><span class="tag">Mixing up training and evaluation mode</span>Layers like dropout and batch-norm behave differently during training vs. inference. Remember <code>model.train()</code> / <code>model.eval()</code> in PyTorch (Keras handles this inside <code>fit</code>/<code>predict</code>). Skipping it gives mysteriously bad predictions.</div>
+  </section>
+
+  <!-- 17 -->
+  <section id="glossary">
+    <h2><span class="num">17</span>Mini Glossary</h2>
+    <div class="tablewrap">
+    <table>
+      <tbody>
+        <tr><td>Tensor</td><td>An n-dimensional array of numbers — the data structure everything flows through.</td></tr>
+        <tr><td>Autograd / autodiff</td><td>Automatic computation of derivatives (gradients) so the model can learn.</td></tr>
+        <tr><td>Gradient</td><td>The slope telling each parameter which way (and how much) to change to reduce error.</td></tr>
+        <tr><td>GPU / TPU</td><td>Specialized chips that do the massively parallel math of deep learning fast.</td></tr>
+        <tr><td>Epoch</td><td>One full pass over the training dataset.</td></tr>
+        <tr><td>Batch</td><td>A small chunk of examples processed together in one step.</td></tr>
+        <tr><td>Loss function</td><td>A number measuring how wrong the model currently is; training minimizes it.</td></tr>
+        <tr><td>Optimizer</td><td>The rule (e.g. SGD, Adam) for updating parameters using the gradients.</td></tr>
+        <tr><td>ReLU / activation</td><td>A simple non-linear function between layers that lets networks learn curved patterns.</td></tr>
+        <tr><td>Eager vs. graph</td><td>Running math line-by-line (eager) vs. compiling it into a fixed graph first (graph).</td></tr>
+        <tr><td>Quantization</td><td>Shrinking numbers (e.g. 32-bit float → 8-bit int) for smaller, faster models on limited hardware.</td></tr>
+        <tr><td>ONNX</td><td>An open format for sharing trained models between frameworks and runtimes.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- 18 -->
+  <section id="refs">
+    <h2><span class="num">18</span>References &amp; Further Reading</h2>
+    <ol class="refs">
+      <li>PyTorch — Official documentation and tutorials. <a href="https://pytorch.org/">https://pytorch.org/</a> · <a href="https://pytorch.org/tutorials/">pytorch.org/tutorials</a></li>
+      <li>TensorFlow — Official documentation and guides. <a href="https://www.tensorflow.org/">https://www.tensorflow.org/</a> · <a href="https://www.tensorflow.org/tutorials">tensorflow.org/tutorials</a></li>
+      <li>Keras — High-level API documentation. <a href="https://keras.io/">https://keras.io/</a></li>
+      <li>JAX — Documentation. <a href="https://jax.readthedocs.io/">https://jax.readthedocs.io/</a></li>
+      <li>Paszke et al., "PyTorch: An Imperative Style, High-Performance Deep Learning Library," NeurIPS 2019. <a href="https://arxiv.org/abs/1912.01703">arxiv.org/abs/1912.01703</a></li>
+      <li>Abadi et al., "TensorFlow: A System for Large-Scale Machine Learning," OSDI 2016. <a href="https://arxiv.org/abs/1605.08695">arxiv.org/abs/1605.08695</a></li>
+      <li>MNIST handwritten digit database — Yann LeCun et al. <a href="https://yann.lecun.com/exdb/mnist/">yann.lecun.com/exdb/mnist</a></li>
+      <li>LiteRT (formerly TensorFlow Lite) — on-device inference. <a href="https://ai.google.dev/edge/litert">ai.google.dev/edge/litert</a></li>
+      <li>ExecuTorch — PyTorch for edge and mobile. <a href="https://pytorch.org/executorch/">pytorch.org/executorch</a></li>
+      <li>ONNX — Open Neural Network Exchange. <a href="https://onnx.ai/">https://onnx.ai/</a></li>
+      <li>Hugging Face — model hub showing framework usage across models. <a href="https://huggingface.co/models">huggingface.co/models</a></li>
+    </ol>
+    <p style="font-size:15px;color:var(--ink-soft);font-style:italic;margin-top:22px;">Note: framework features and product names evolve quickly (for example, TF Lite was rebranded LiteRT). When precise version-specific behavior matters, the official docs above are the authoritative source.</p>
+  </section>
+
+  <footer>Plain-Language Monograph · PyTorch &amp; TensorFlow · For learning &amp; reference</footer>
+
+</div>
+
+<script>
+  // scroll progress + back-to-top
+  var prog = document.getElementById('progress');
+  var back = document.getElementById('backtop');
+  function onScroll(){
+    var h = document.documentElement;
+    var pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    prog.style.width = pct + '%';
+    if (h.scrollTop > 600) back.classList.add('show'); else back.classList.remove('show');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  back.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  // code tabs (event delegation)
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t.classList.contains('tab-btn')){
+      var fw = t.getAttribute('data-fw');
+      var box = t.closest('.tabcode');
+      box.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-fw')===fw); });
+      box.querySelectorAll('pre.panel').forEach(function(p){ p.classList.toggle('active', p.getAttribute('data-fw')===fw); });
+    }
+    if (t.classList.contains('copybtn')){
+      var wrap = t.closest('.codewrap, .tabcode');
+      var pre = wrap.querySelector('pre.panel.active') || wrap.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=t.textContent; t.textContent='Copied'; setTimeout(function(){ t.textContent=o; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(text, done); });
+      } else { fallbackCopy(text, done); }
+    }
+  });
+  function fallbackCopy(text, cb){
+    var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta); if(cb) cb();
+  }
+
+  // recommender widget
+  (function(){
+    var answers = [null, null, null];
+    var rec = document.getElementById('rec');
+    rec.querySelectorAll('.q').forEach(function(q){
+      var idx = parseInt(q.getAttribute('data-q'), 10);
+      q.querySelectorAll('.opt').forEach(function(opt){
+        opt.addEventListener('click', function(){
+          q.querySelectorAll('.opt').forEach(function(o){ o.classList.remove('sel'); });
+          opt.classList.add('sel');
+          answers[idx] = { pt: +opt.getAttribute('data-pt'), tf: +opt.getAttribute('data-tf') };
+          maybeShow();
+        });
+      });
+    });
+    function maybeShow(){
+      if (answers.some(function(a){ return a===null; })) return;
+      var pt=0, tf=0;
+      answers.forEach(function(a){ pt+=a.pt; tf+=a.tf; });
+      var res=document.getElementById('recResult');
+      var v=document.getElementById('recVerdict');
+      var r=document.getElementById('recReason');
+      if (Math.abs(pt-tf) <= 1){
+        v.className='verdict tie'; v.textContent='It\u2019s basically a toss-up';
+        r.textContent='Your needs don\u2019t strongly favor either. Go with whatever your tutorial, team, or target model already uses \u2014 the skills transfer almost completely.';
+      } else if (pt > tf){
+        v.className='verdict pt'; v.textContent='Start with PyTorch';
+        r.textContent='Your answers point toward research, fresh code, or the latest models \u2014 PyTorch\u2019s readability and research-first ecosystem make it the smoother path here.';
+      } else {
+        v.className='verdict tf'; v.textContent='Start with TensorFlow';
+        r.textContent='Your answers lean toward production, on-device deployment, or an existing Keras codebase \u2014 TensorFlow\u2019s mature serving and edge tooling fit that best.';
+      }
+      res.classList.add('show');
+    }
+  })();
+</script>
+</body>
+</html>

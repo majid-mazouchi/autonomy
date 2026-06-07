@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent-Building Frameworks — A Field Monograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,500&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f1e7d2; --paper:#faf4e6; --ink:#241f17; --ink-soft:#5b5240; --ink-faint:#8a7f68;
+    --rule:#d8cbac; --rule-soft:#e6dcc4;
+    --llama:#8e2f6b; --autogen:#b4531c; --pydantic:#117a6b; --skernel:#34508c;
+    --langgraph:#5b3a8a; --crewai:#a8324a; --gold:#a9842c; --danger:#9c4221;
+    --shadow:rgba(64,49,20,.13);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);
+    background-image:radial-gradient(circle at 18% 12%, rgba(169,132,44,.06), transparent 42%),radial-gradient(circle at 82% 78%, rgba(142,47,107,.05), transparent 45%);
+    color:var(--ink);font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.68;-webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 26px 120px}
+
+  /* sticky side TOC (desktop only) */
+  nav.toc{position:fixed;top:0;left:0;height:100vh;width:210px;padding:38px 18px;overflow-y:auto;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.02em;border-right:1px solid var(--rule);background:rgba(241,231,210,.7);backdrop-filter:blur(3px);z-index:5;display:none}
+  nav.toc .tlabel{color:var(--ink-faint);letter-spacing:.24em;text-transform:uppercase;margin-bottom:16px;display:block;font-size:10px}
+  nav.toc a{display:block;color:var(--ink-soft);text-decoration:none;padding:5px 0;border-bottom:1px solid transparent;line-height:1.35}
+  nav.toc a:hover{color:var(--llama)}
+  nav.toc a .n{color:var(--ink-faint);margin-right:7px}
+  @media(min-width:1240px){nav.toc{display:block}}
+
+  header.mast{padding:70px 0 30px;border-bottom:2px solid var(--ink);margin-bottom:6px}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--llama);margin:0 0 22px}
+  h1{font-family:"Fraunces",serif;font-weight:800;font-size:clamp(2.5rem,7vw,4.4rem);line-height:1.02;letter-spacing:-.02em;margin:0 0 18px}
+  h1 em{font-style:italic;font-weight:500;color:var(--llama)}
+  .dek{font-family:"Fraunces",serif;font-style:italic;font-weight:400;font-size:clamp(1.15rem,2.6vw,1.5rem);color:var(--ink-soft);max-width:660px;margin:0 0 26px;line-height:1.4}
+  .meta{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.05em;color:var(--ink-faint);display:flex;flex-wrap:wrap;gap:8px 22px;padding-top:6px;border-top:1px solid var(--rule)}
+
+  /* in-page contents card */
+  .contents{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:22px 26px;margin:34px 0 6px}
+  .contents h4{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 14px}
+  .contents ol{margin:0;padding-left:20px;columns:2;column-gap:34px;font-size:15px;line-height:1.5}
+  .contents li{margin-bottom:7px;break-inside:avoid}
+  .contents a{color:var(--ink);text-decoration:none}
+  .contents a:hover{color:var(--llama);text-decoration:underline}
+  @media(max-width:560px){.contents ol{columns:1}}
+
+  section{padding:46px 0;border-bottom:1px solid var(--rule-soft)}
+  h2{font-family:"Fraunces",serif;font-weight:700;font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.015em;line-height:1.08;margin:0 0 6px;scroll-margin-top:24px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:1.32rem;margin:34px 0 8px;letter-spacing:-.01em}
+  .secnum{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.3em;color:var(--ink-faint);display:block;margin-bottom:14px}
+  p{margin:0 0 18px}
+  a{color:var(--llama);text-underline-offset:3px;text-decoration-thickness:1px}
+  strong{font-weight:600;color:var(--ink)}
+  .lead::first-letter{font-family:"Fraunces",serif;font-weight:800;float:left;font-size:4.6rem;line-height:.78;padding:6px 12px 0 0;color:var(--llama)}
+  ul.clean{list-style:none;padding:0;margin:0 0 18px}
+  ul.clean li{position:relative;padding-left:26px;margin-bottom:11px}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:.62em;width:8px;height:8px;background:var(--gold);transform:rotate(45deg)}
+
+  .tool{padding:54px 0;border-bottom:1px solid var(--rule);scroll-margin-top:20px}
+  .badge{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:5px 11px;border-radius:2px;color:#fff;white-space:nowrap;display:inline-block;margin-bottom:8px}
+  .tool h2{margin-bottom:2px}
+  .tool .tag{font-family:"Fraunces",serif;font-style:italic;color:var(--ink-soft);font-size:1.12rem;margin:0 0 22px}
+  .accent-llama{border-left:4px solid var(--llama)} .accent-autogen{border-left:4px solid var(--autogen)}
+  .accent-pydantic{border-left:4px solid var(--pydantic)} .accent-skernel{border-left:4px solid var(--skernel)}
+  .accent-langgraph{border-left:4px solid var(--langgraph)} .accent-crewai{border-left:4px solid var(--crewai)}
+
+  figure{margin:30px 0;padding:0}
+  .diagram{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:22px 18px;box-shadow:0 6px 24px -16px var(--shadow)}
+  figcaption{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.04em;color:var(--ink-faint);margin-top:12px;text-align:center}
+  svg{display:block;width:100%;height:auto}
+  svg text{font-family:"JetBrains Mono",monospace}
+
+  pre{background:#2a2218;color:#f2e9d6;border-radius:6px;padding:18px 20px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.62;margin:22px 0;box-shadow:0 8px 26px -18px rgba(0,0,0,.5)}
+  pre .k{color:#e0a85e}pre .c{color:#8a8266;font-style:italic}pre .f{color:#cf86b6}pre .s{color:#9ec79a}
+  code.inl{font-family:"JetBrains Mono",monospace;font-size:.86em;background:#e9dec3;padding:2px 6px;border-radius:3px;color:#5a3018}
+  .codelabel{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin:22px 0 -10px}
+
+  .note{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--gold);border-radius:4px;padding:20px 24px;margin:26px 0}
+  .note .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:8px}
+  .note p:last-child{margin-bottom:0}
+  .gotcha{background:#f7ece1;border:1px solid #e3cdb4;border-left:4px solid var(--danger);border-radius:4px;padding:16px 22px;margin:24px 0}
+  .gotcha .lbl{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--danger);display:block;margin-bottom:8px}
+  .gotcha ul{margin:0;padding-left:20px;font-size:15.5px;line-height:1.55}
+  .gotcha li{margin-bottom:8px}
+  .gotcha li:last-child{margin-bottom:0}
+
+  .tablewrap{overflow-x:auto;margin:26px 0}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px;background:var(--paper)}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+  thead th{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+  tbody th{font-family:"Fraunces",serif;font-weight:600;font-size:16px;white-space:nowrap}
+  tbody tr:hover{background:#f4ebd6}
+
+  .refs{padding-top:46px}
+  ol.reflist{font-size:14px;line-height:1.55;color:var(--ink-soft);padding-left:24px;margin:0}
+  ol.reflist li{margin-bottom:12px}
+  ol.reflist a{word-break:break-word}
+  sup a{font-family:"JetBrains Mono",monospace;font-size:.62em;text-decoration:none;color:var(--llama);font-weight:600;padding:0 1px}
+
+  .toplink{display:inline-block;margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--ink-faint);text-decoration:none}
+  .toplink:hover{color:var(--llama)}
+  footer{padding:50px 0 0;text-align:center;color:var(--ink-faint);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.04em}
+
+  @media(max-width:560px){body{font-size:16.5px}.wrap{padding:0 18px 90px}.lead::first-letter{font-size:3.6rem}}
+
+  /* ---- print / PDF ---- */
+  @media print{
+    nav.toc{display:none!important}
+    body{background:#fff;font-size:11.5pt;color:#000}
+    body::before{display:none}
+    .wrap{max-width:100%;padding:0}
+    a{color:#000;text-decoration:none}
+    sup a{color:#444}
+    section,.tool{padding:18px 0;border-color:#ccc;break-inside:avoid}
+    figure,.note,.gotcha,table,pre{break-inside:avoid}
+    pre{background:#f3f3f3;color:#111;border:1px solid #ccc;box-shadow:none}
+    pre .k,pre .f{color:#7a3a00}pre .c{color:#666}pre .s{color:#2a6a2a}
+    .diagram{box-shadow:none}
+    h1{font-size:30pt}
+    .toplink{display:none}
+    @page{margin:16mm}
+  }
+</style>
+</head>
+<body>
+
+<nav class="toc" aria-label="Contents">
+  <span class="tlabel">Contents</span>
+  <a href="#orient"><span class="n">00</span>Orientation</a>
+  <a href="#llamaindex"><span class="n">01</span>LlamaIndex</a>
+  <a href="#autogen"><span class="n">02</span>AutoGen / AG2</a>
+  <a href="#pydantic"><span class="n">03</span>Pydantic AI</a>
+  <a href="#skernel"><span class="n">04</span>Semantic Kernel</a>
+  <a href="#langgraph"><span class="n">05</span>LangChain / LangGraph</a>
+  <a href="#crewai"><span class="n">06</span>CrewAI</a>
+  <a href="#protocols"><span class="n">A</span>MCP &amp; A2A</a>
+  <a href="#glance"><span class="n">B</span>At a glance</a>
+  <a href="#decide"><span class="n">C</span>Decision flow</a>
+  <a href="#trend"><span class="n">D</span>The real trend</a>
+  <a href="#tiers"><span class="n">E</span>Three-tier (VHM)</a>
+  <a href="#ota"><span class="n">F</span>Gated OTA loop</a>
+  <a href="#eval"><span class="n">G</span>Eval appendix</a>
+  <a href="#versions"><span class="n">H</span>Version table</a>
+  <a href="#refs"><span class="n">R</span>References</a>
+</nav>
+
+<div class="wrap">
+
+  <header class="mast" id="top">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <p class="eyebrow">Field Monograph · Agentic Systems</p>
+    <h1>The Frameworks<br>Behind the <em>Agents</em></h1>
+    <p class="dek">A practical tour of LlamaIndex, AutoGen / AG2, Pydantic&nbsp;AI, Semantic&nbsp;Kernel, LangGraph and CrewAI — what they are, how they're shaped, the protocols binding them, and where the field is actually heading.</p>
+    <div class="meta">
+      <span>By Majid Mazouchi</span><span>EST. 2026</span><span>6 FRAMEWORKS · 2 PROTOCOLS</span><span>DIAGRAMS · CODE · NOTES · REFS</span>
+    </div>
+  </header>
+
+  <div class="contents">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#orient">Orientation</a></li>
+      <li><a href="#llamaindex">LlamaIndex — data &amp; retrieval</a></li>
+      <li><a href="#autogen">AutoGen / AG2 — multi-agent</a></li>
+      <li><a href="#pydantic">Pydantic AI — type-safe</a></li>
+      <li><a href="#skernel">Semantic Kernel — enterprise SDK</a></li>
+      <li><a href="#langgraph">LangChain / LangGraph — stateful graphs</a></li>
+      <li><a href="#crewai">CrewAI — role-based crews</a></li>
+      <li><a href="#protocols">MCP &amp; A2A — the protocols</a></li>
+      <li><a href="#glance">At a glance (comparison)</a></li>
+      <li><a href="#decide">Decision flowchart</a></li>
+      <li><a href="#trend">Where the field is going</a></li>
+      <li><a href="#tiers">Three-tier reference architecture</a></li>
+      <li><a href="#ota">Gated OTA skill-deployment loop</a></li>
+      <li><a href="#eval">Evaluation appendix</a></li>
+      <li><a href="#versions">Version / last-verified table</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </div>
+
+  <!-- ORIENTATION -->
+  <section id="orient">
+    <span class="secnum">§ 0 — ORIENTATION</span>
+    <p class="lead">These tools all answer one question — <em>how do I wrap a language model in enough structure to do useful, repeatable work?</em> — but each answers it from a different starting point. LlamaIndex starts from <strong>your data</strong>. AutoGen / AG2 and CrewAI start from <strong>agents working together</strong>. Pydantic&nbsp;AI starts from <strong>type-safe contracts</strong>. Semantic&nbsp;Kernel starts from <strong>enterprise plumbing</strong>. LangGraph starts from <strong>an explicit state machine</strong>.</p>
+    <p>Worth saying up front, because it reframes everything below: the framework you pick matters less than the field once believed. The dominant trend is engineers assembling their own lightweight <strong>harness</strong> and treating the hard problems as cross-cutting concerns — <strong>evaluation</strong> (is it actually working?), <strong>observability</strong> (what did it do and why?), and <strong>memory</strong> (what carries forward?). As one practitioner put it bluntly, the gap between a good agent system and a bad one is almost never the framework — it's the eval pipeline, the observability setup, and the failure-recovery logic<span><sup><a href="#r32">[32]</a></sup></span>. The frameworks below are increasingly judged by how cleanly they expose those seams. We return to this in §D–G.</p>
+  </section>
+
+  <!-- 01 LLAMAINDEX -->
+  <article class="tool accent-llama" id="llamaindex">
+    <span class="badge" style="background:var(--llama)">01 · Data &amp; Retrieval</span>
+    <h2>LlamaIndex</h2>
+    <p class="tag">The data framework that grew into agentic document processing.</p>
+    <p>LlamaIndex began as the connective tissue between an LLM and <em>your</em> corpus. Its identity is the retrieval pipeline: ingest, chunk, embed, index, and serve the right context at query time. The team has been explicit that they moved beyond being "just a RAG framework" toward best-in-class agentic document processing — OCR, structured extraction, and orchestration over documents<span><sup><a href="#r5">[5]</a></sup></span>.</p>
+    <p>Two pieces anchor the modern stack. <strong>LlamaParse</strong> handles hard real-world documents (tables, charts, mixed layouts) where naive OCR produces garbage. <strong>Workflows&nbsp;1.0</strong>, released mid-2025, is a lightweight event-driven framework for agentic systems<span><sup><a href="#r2">[2]</a></sup></span> — prebuilt agents for speed, or hand-authored workflows for full control<span><sup><a href="#r7">[7]</a></sup></span>. The flagship pattern, <strong>Agentic Document Workflows (ADW)</strong>, fuses parsing, retrieval, structured output and agent loops into end-to-end knowledge work, a step past both classic IDP and plain RAG<span><sup><a href="#r4">[4]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="LlamaIndex pipeline">
+        <defs><marker id="aL" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8e2f6b"/></marker></defs>
+        <rect x="14" y="30" width="120" height="52" rx="5" fill="#fff" stroke="#8e2f6b" stroke-width="1.5"/><text x="74" y="52" text-anchor="middle" font-size="12" fill="#241f17">PDFs · DBs</text><text x="74" y="68" text-anchor="middle" font-size="12" fill="#241f17">APIs · docs</text>
+        <rect x="174" y="30" width="130" height="52" rx="5" fill="#f6e6ef" stroke="#8e2f6b" stroke-width="1.5"/><text x="239" y="52" text-anchor="middle" font-size="12" fill="#8e2f6b">LlamaParse /</text><text x="239" y="68" text-anchor="middle" font-size="12" fill="#8e2f6b">Ingestion</text>
+        <rect x="344" y="30" width="120" height="52" rx="5" fill="#fff" stroke="#8e2f6b" stroke-width="1.5"/><text x="404" y="52" text-anchor="middle" font-size="12" fill="#241f17">Chunk +</text><text x="404" y="68" text-anchor="middle" font-size="12" fill="#241f17">Embed</text>
+        <rect x="504" y="30" width="120" height="52" rx="5" fill="#fff" stroke="#8e2f6b" stroke-width="1.5"/><text x="564" y="52" text-anchor="middle" font-size="12" fill="#241f17">Index /</text><text x="564" y="68" text-anchor="middle" font-size="12" fill="#241f17">Vector store</text>
+        <line x1="134" y1="56" x2="172" y2="56" stroke="#8e2f6b" stroke-width="1.5" marker-end="url(#aL)"/><line x1="304" y1="56" x2="342" y2="56" stroke="#8e2f6b" stroke-width="1.5" marker-end="url(#aL)"/><line x1="464" y1="56" x2="502" y2="56" stroke="#8e2f6b" stroke-width="1.5" marker-end="url(#aL)"/>
+        <line x1="564" y1="82" x2="564" y2="120" stroke="#8e2f6b" stroke-width="1.5" marker-end="url(#aL)"/>
+        <rect x="424" y="124" width="200" height="56" rx="5" fill="#fff" stroke="#8e2f6b" stroke-width="1.5"/><text x="524" y="146" text-anchor="middle" font-size="12" fill="#241f17">Retriever +</text><text x="524" y="163" text-anchor="middle" font-size="12" fill="#241f17">Query Engine</text>
+        <rect x="124" y="210" width="500" height="64" rx="6" fill="#f6e6ef" stroke="#8e2f6b" stroke-width="2"/><text x="374" y="236" text-anchor="middle" font-size="13" fill="#8e2f6b" font-weight="600">Workflows 1.0 · Agent loop (ADW)</text><text x="374" y="256" text-anchor="middle" font-size="11" fill="#5b5240">reason · call tools · self-correct · emit structured output</text>
+        <line x1="524" y1="180" x2="524" y2="208" stroke="#8e2f6b" stroke-width="1.5" marker-end="url(#aL)"/><line x1="124" y1="242" x2="60" y2="242" stroke="#8e2f6b" stroke-width="1.5"/><line x1="60" y1="242" x2="60" y2="290" stroke="#8e2f6b" stroke-width="1.5"/><text x="60" y="294" text-anchor="middle" font-size="11" fill="#8e2f6b">→ Answer</text>
+      </svg></div><figcaption>Fig. 1 — Data flows left-to-right into the index; the agent loop pulls context back through the retriever.</figcaption></figure>
+
+    <p class="codelabel">// minimal shape</p>
+    <pre><span class="k">from</span> llama_index.core <span class="k">import</span> VectorStoreIndex, SimpleDirectoryReader
+
+docs  = SimpleDirectoryReader(<span class="s">"./service_manuals"</span>).load_data()
+index = VectorStoreIndex.from_documents(docs)        <span class="c"># ingest → embed → index</span>
+engine = index.as_query_engine()
+print(engine.query(<span class="s">"What torque spec applies to the rotor bolt?"</span>))</pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> the hard part is the <em>documents</em> — messy PDFs, tables, A2L/ARXML-style artifacts, large heterogeneous corpora.</li>
+      <li><strong>Hybrid stacks are common</strong>: use LlamaIndex for ingestion + retrieval, hand results to a different orchestrator for tool-heavy reasoning. You needn't adopt the whole thing.</li>
+      <li><strong>Edge path exists</strong>: the open-source local route (filesystem tools, local embeddings) is the relevant one off-cloud — recent experiments show simple file exploration can beat RAG on small datasets<span><sup><a href="#r6">[6]</a></sup></span>.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>LlamaParse and managed indexing sit behind a cloud/paid tier — costs scale with document volume, easy to under-budget.</li>
+      <li>Default chunking is rarely optimal for technical docs; tables and figures need tuned parsing or they fragment.</li>
+      <li>It is not an orchestration platform — for elaborate multi-agent control you'll bolt on another tool anyway.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- 02 AUTOGEN / AG2 -->
+  <article class="tool accent-autogen" id="autogen">
+    <span class="badge" style="background:var(--autogen)">02 · Multi-Agent</span>
+    <h2>AutoGen / AG2</h2>
+    <p class="tag">Agents that solve problems by talking to each other — and a fork you need to understand.</p>
+    <p>AutoGen came out of Microsoft Research as a framework for <strong>conversable agents</strong>: compose specialized agents (plus an optional human proxy) into a group chat where they collaborate, debate, reflect, and execute code to reach a goal<span><sup><a href="#r11">[11]</a></sup></span>. Group chat, sequential conversation, reflection, parallel execution — those patterns made it popular.</p>
+    <p>The thing to internalize is the <strong>governance split</strong>. The original authors (Chi Wang, Qingyun Wu) left Microsoft in late 2024 and forked the project as <strong>AG2</strong>, keeping the proven v0.2 architecture, the original PyPI packages (<code class="inl">autogen</code>, <code class="inl">pyautogen</code>, <code class="inl">ag2</code>) and independent governance under Apache&nbsp;2.0<span><sup><a href="#r9">[9]</a></sup></span><span><sup><a href="#r12">[12]</a></sup></span>. Microsoft rewrote AutoGen as v0.4+ (async actor model), then in October&nbsp;2025 folded it together with Semantic&nbsp;Kernel into the new <strong>Microsoft Agent Framework (MAF)</strong>, leaving the classic line in maintenance<span><sup><a href="#r10">[10]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 320" role="img" aria-label="AutoGen group chat and fork">
+        <defs><marker id="aA" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b4531c"/></marker></defs>
+        <rect x="300" y="20" width="160" height="48" rx="5" fill="#f6e7d8" stroke="#b4531c" stroke-width="2"/><text x="380" y="42" text-anchor="middle" font-size="12" fill="#b4531c" font-weight="600">GroupChat</text><text x="380" y="58" text-anchor="middle" font-size="11" fill="#5b5240">Manager / orchestrator</text>
+        <rect x="40" y="120" width="150" height="50" rx="5" fill="#fff" stroke="#b4531c" stroke-width="1.5"/><text x="115" y="142" text-anchor="middle" font-size="12" fill="#241f17">UserProxy</text><text x="115" y="158" text-anchor="middle" font-size="11" fill="#5b5240">(human / exec)</text>
+        <rect x="305" y="120" width="150" height="50" rx="5" fill="#fff" stroke="#b4531c" stroke-width="1.5"/><text x="380" y="142" text-anchor="middle" font-size="12" fill="#241f17">Planner agent</text><text x="380" y="158" text-anchor="middle" font-size="11" fill="#5b5240">decompose task</text>
+        <rect x="570" y="120" width="150" height="50" rx="5" fill="#fff" stroke="#b4531c" stroke-width="1.5"/><text x="645" y="142" text-anchor="middle" font-size="12" fill="#241f17">Coder / Tool</text><text x="645" y="158" text-anchor="middle" font-size="11" fill="#5b5240">execute + verify</text>
+        <line x1="340" y1="68" x2="150" y2="118" stroke="#b4531c" stroke-width="1.4" marker-end="url(#aA)"/><line x1="380" y1="68" x2="380" y2="118" stroke="#b4531c" stroke-width="1.4" marker-end="url(#aA)"/><line x1="420" y1="68" x2="610" y2="118" stroke="#b4531c" stroke-width="1.4" marker-end="url(#aA)"/>
+        <line x1="190" y1="150" x2="303" y2="150" stroke="#c98a5a" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="455" y1="150" x2="568" y2="150" stroke="#c98a5a" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <line x1="380" y1="170" x2="380" y2="208" stroke="#b4531c" stroke-width="1.4"/><line x1="200" y1="208" x2="560" y2="208" stroke="#b4531c" stroke-width="1.4"/><line x1="200" y1="208" x2="200" y2="240" stroke="#b4531c" stroke-width="1.4" marker-end="url(#aA)"/><line x1="560" y1="208" x2="560" y2="240" stroke="#b4531c" stroke-width="1.4" marker-end="url(#aA)"/>
+        <rect x="90" y="244" width="220" height="58" rx="5" fill="#fff" stroke="#b4531c" stroke-width="1.5"/><text x="200" y="266" text-anchor="middle" font-size="12" fill="#b4531c" font-weight="600">AG2 (community fork)</text><text x="200" y="284" text-anchor="middle" font-size="10.5" fill="#5b5240">v0.2 lineage · original PyPI pkgs</text>
+        <rect x="450" y="244" width="220" height="58" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.5"/><text x="560" y="266" text-anchor="middle" font-size="12" fill="#34508c" font-weight="600">Microsoft Agent Framework</text><text x="560" y="284" text-anchor="middle" font-size="10.5" fill="#5b5240">+ Semantic Kernel · 1.0 (2026)</text>
+      </svg></div><figcaption>Fig. 2 — A group chat orchestrates specialists; the project itself forked into AG2 and the MAF successor.</figcaption></figure>
+
+    <p class="codelabel">// AG2 / v0.2-style shape</p>
+    <pre><span class="k">from</span> autogen <span class="k">import</span> AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+
+planner = AssistantAgent(<span class="s">"planner"</span>, llm_config=cfg)
+coder   = AssistantAgent(<span class="s">"coder"</span>,   llm_config=cfg)
+user    = UserProxyAgent(<span class="s">"user"</span>, human_input_mode=<span class="s">"NEVER"</span>, code_execution_config={...})
+
+chat = GroupChat(agents=[user, planner, coder], messages=[], max_round=12)
+mgr  = GroupChatManager(groupchat=chat, llm_config=cfg)
+user.initiate_chat(mgr, message=<span class="s">"Diagnose the 3000 RPM trip from this log..."</span>)</pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> the natural decomposition is "several specialists arguing it out" — code-gen with a critic, plan-then-execute, debate/consensus.</li>
+      <li><strong>Pick the branch deliberately.</strong> AG2 = stable 0.2 patterns, no Azure dependency. MAF = the Microsoft-blessed future with Entra&nbsp;ID, OpenTelemetry, Foundry hosting — natural if you live in Azure<span><sup><a href="#r10">[10]</a></sup></span>.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>Three architectural shifts in under two years (0.2 → 0.4 → MAF). Production code carries a migration plan whether you want one or not<span><sup><a href="#r9">[9]</a></sup></span>.</li>
+      <li>Package-name confusion (<code class="inl">autogen</code> vs <code class="inl">pyautogen</code> vs Microsoft's repo) trips up dependency pinning — read which project you're installing.</li>
+      <li>Free-flowing conversation is harder to constrain in production; without round caps and tight tool boundaries, agents loop or wander.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- 03 PYDANTIC AI -->
+  <article class="tool accent-pydantic" id="pydantic">
+    <span class="badge" style="background:var(--pydantic)">03 · Type-Safe</span>
+    <h2>Pydantic AI</h2>
+    <p class="tag">"The FastAPI feeling" for agents — validation as a first-class citizen.</p>
+    <p>Built by the Pydantic team (Samuel Colvin and collaborators), Pydantic&nbsp;AI starts from a sharp observation: nearly every Python agent library already uses Pydantic for validation, yet none delivered the ergonomic, type-safe experience FastAPI brought to web work<span><sup><a href="#r20">[20]</a></sup></span>. So the agent's <strong>output is a Pydantic model</strong>, its <strong>tools are validated functions</strong>, and its <strong>dependencies are typed and injected</strong> — pushing whole classes of error from runtime to write-time<span><sup><a href="#r17">[17]</a></sup></span>.</p>
+    <p>It's model-agnostic and ships the surrounding production machinery: <strong>Logfire</strong> for OpenTelemetry-native observability, <strong>Pydantic&nbsp;Evals</strong> for systematic testing, a graph layer, durable execution, plus MCP and A2A support<span><sup><a href="#r16">[16]</a></sup></span><span><sup><a href="#r17">[17]</a></sup></span>. If the schema fails to validate, the framework re-prompts the model in a self-correction loop<span><sup><a href="#r21">[21]</a></sup></span>. It reached a stable 1.x in late 2025 and iterates roughly weekly<span><sup><a href="#r18">[18]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Pydantic AI type-safe boundaries">
+        <defs><marker id="aP" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#117a6b"/></marker></defs>
+        <rect x="30" y="24" width="430" height="176" rx="8" fill="none" stroke="#117a6b" stroke-width="2" stroke-dasharray="6 4"/><text x="245" y="46" text-anchor="middle" font-size="12" fill="#117a6b" font-weight="600">Agent · typed Deps in / typed Output out</text>
+        <rect x="52" y="64" width="180" height="44" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.5"/><text x="142" y="90" text-anchor="middle" font-size="11.5" fill="#241f17">Instructions (system prompt)</text>
+        <rect x="52" y="120" width="180" height="44" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.5"/><text x="142" y="146" text-anchor="middle" font-size="11.5" fill="#241f17">@tool — validated fns</text>
+        <rect x="258" y="64" width="180" height="100" rx="5" fill="#e3f1ed" stroke="#117a6b" stroke-width="1.5"/><text x="348" y="100" text-anchor="middle" font-size="11.5" fill="#117a6b" font-weight="600">Output schema</text><text x="348" y="120" text-anchor="middle" font-size="11" fill="#5b5240">BaseModel</text><text x="348" y="138" text-anchor="middle" font-size="10.5" fill="#5b5240">validate → retry</text>
+        <rect x="520" y="60" width="210" height="48" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.5"/><text x="625" y="82" text-anchor="middle" font-size="11.5" fill="#241f17">Model interface (agnostic)</text><text x="625" y="98" text-anchor="middle" font-size="10" fill="#5b5240">OpenAI · Anthropic · Bedrock · …</text>
+        <line x1="460" y1="100" x2="518" y2="84" stroke="#117a6b" stroke-width="1.5" marker-end="url(#aP)"/><path d="M625,108 q0,40 -120,60" fill="none" stroke="#117a6b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#aP)"/><text x="600" y="150" font-size="10" fill="#117a6b">validation loop</text>
+        <rect x="30" y="230" width="220" height="46" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.3"/><text x="140" y="258" text-anchor="middle" font-size="11" fill="#241f17">Logfire — observability</text>
+        <rect x="270" y="230" width="220" height="46" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.3"/><text x="380" y="258" text-anchor="middle" font-size="11" fill="#241f17">Pydantic Evals — testing</text>
+        <rect x="510" y="230" width="220" height="46" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.3"/><text x="620" y="258" text-anchor="middle" font-size="11" fill="#241f17">MCP · A2A · durable exec</text>
+      </svg></div><figcaption>Fig. 3 — Type-safe boundaries on every edge; the validation loop re-prompts until the output fits the schema.</figcaption></figure>
+
+    <p class="codelabel">// the whole idea</p>
+    <pre><span class="k">from</span> pydantic <span class="k">import</span> BaseModel
+<span class="k">from</span> pydantic_ai <span class="k">import</span> Agent
+
+<span class="k">class</span> <span class="f">Fault</span>(BaseModel):
+    component: str
+    severity: int           <span class="c"># constrain 0..10 and it's enforced</span>
+    rationale: str
+
+agent  = Agent(<span class="s">'anthropic:claude-opus-4-8'</span>, output_type=Fault)
+result = agent.run_sync(<span class="s">"Triage this CAN log: ..."</span>)
+fault  = result.output      <span class="c"># a typed Fault, guaranteed-shaped</span></pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> you want predictable, parseable output to hand straight to downstream code — exactly the constraint in safety-adjacent or pipeline-fed systems where a free-text blob is a liability.</li>
+      <li><strong>Lightweight by design</strong> — closer to a typed harness than a heavy platform, so it fits the "build your own" trend rather than fighting it.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>Weekly releases mean a fast-moving surface; pin versions and read changelogs even though the 1.x API is stable.</li>
+      <li>Single-agent first — multi-agent orchestration exists (graph layer) but is less battle-tested than AutoGen/LangGraph for complex topologies.</li>
+      <li>The retry-on-invalid loop can quietly multiply token cost on poorly-constrained schemas; watch Logfire traces.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- 04 SEMANTIC KERNEL -->
+  <article class="tool accent-skernel" id="skernel">
+    <span class="badge" style="background:var(--skernel)">04 · Enterprise SDK</span>
+    <h2>Semantic Kernel</h2>
+    <p class="tag">Microsoft's model-agnostic SDK for putting LLM reasoning inside real applications.</p>
+    <p>Semantic&nbsp;Kernel (SK) launched in early 2023 as Microsoft's answer to "how do I integrate an LLM into a production app safely and repeatably?" Its mental model is three parts<span><sup><a href="#r25">[25]</a></sup></span>: the <strong>Kernel</strong> is a dependency-injection container that orchestrates everything; <strong>Plugins</strong> (formerly "skills") are the typed tools you give an agent; and a <strong>Planner</strong> inspects the request and available plugins to build a step-by-step plan. It also carries early <strong>memory</strong> abstractions and runs with C#, Python and Java parity — its enterprise calling card<span><sup><a href="#r30">[30]</a></sup></span>.</p>
+    <p>Current reality: SK has been folded into <strong>Microsoft Agent Framework</strong>, which reached <strong>1.0</strong> in 2026 and unifies SK's enterprise foundations with AutoGen's orchestration<span><sup><a href="#r23">[23]</a></sup></span><span><sup><a href="#r29">[29]</a></sup></span>. Notably, MAF drops the explicit planner — modern reasoning models plan natively given the right tools — and makes MCP a first-class way to attach tool servers<span><sup><a href="#r26">[26]</a></sup></span>. Microsoft has committed to supporting SK v1.x for at least a year past MAF's GA<span><sup><a href="#r28">[28]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 290" role="img" aria-label="Semantic Kernel architecture and migration">
+        <defs><marker id="aS" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#34508c"/></marker></defs>
+        <rect x="280" y="100" width="200" height="64" rx="6" fill="#e4e9f3" stroke="#34508c" stroke-width="2"/><text x="380" y="128" text-anchor="middle" font-size="13" fill="#34508c" font-weight="600">Kernel</text><text x="380" y="146" text-anchor="middle" font-size="10.5" fill="#5b5240">DI container · orchestrator</text>
+        <rect x="30" y="40" width="170" height="48" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.5"/><text x="115" y="62" text-anchor="middle" font-size="11.5" fill="#241f17">Plugins / skills</text><text x="115" y="78" text-anchor="middle" font-size="10.5" fill="#5b5240">[KernelFunction] tools</text>
+        <rect x="30" y="116" width="170" height="48" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.5"/><text x="115" y="138" text-anchor="middle" font-size="11.5" fill="#241f17">Planner</text><text x="115" y="154" text-anchor="middle" font-size="10.5" fill="#5b5240">plan over plugins</text>
+        <rect x="30" y="192" width="170" height="48" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.5"/><text x="115" y="214" text-anchor="middle" font-size="11.5" fill="#241f17">Memory</text><text x="115" y="230" text-anchor="middle" font-size="10.5" fill="#5b5240">embeddings / recall</text>
+        <line x1="200" y1="64" x2="278" y2="116" stroke="#34508c" stroke-width="1.4" marker-end="url(#aS)"/><line x1="200" y1="140" x2="278" y2="134" stroke="#34508c" stroke-width="1.4" marker-end="url(#aS)"/><line x1="200" y1="216" x2="278" y2="152" stroke="#34508c" stroke-width="1.4" marker-end="url(#aS)"/>
+        <rect x="560" y="116" width="170" height="48" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.5"/><text x="645" y="138" text-anchor="middle" font-size="11.5" fill="#241f17">AI services</text><text x="645" y="154" text-anchor="middle" font-size="10.5" fill="#5b5240">OpenAI / Azure / HF</text>
+        <line x1="480" y1="134" x2="558" y2="138" stroke="#34508c" stroke-width="1.4" marker-end="url(#aS)"/>
+        <line x1="380" y1="164" x2="380" y2="210" stroke="#34508c" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#aS)"/>
+        <rect x="230" y="214" width="300" height="52" rx="6" fill="#e4e9f3" stroke="#34508c" stroke-width="2"/><text x="380" y="238" text-anchor="middle" font-size="12" fill="#34508c" font-weight="600">→ Microsoft Agent Framework 1.0</text><text x="380" y="256" text-anchor="middle" font-size="10.5" fill="#5b5240">workflows · MCP · A2A · planner now optional</text>
+      </svg></div><figcaption>Fig. 4 — Kernel as the hub for plugins, planner and memory; the whole thing now flows into MAF.</figcaption></figure>
+
+    <p class="codelabel">// C# — the enterprise calling card</p>
+    <pre><span class="k">var</span> builder = Kernel.CreateBuilder();
+builder.AddAzureOpenAIChatCompletion(deployment, endpoint, apiKey);
+builder.Plugins.AddFromType&lt;DiagnosticsPlugin&gt;();   <span class="c">// [KernelFunction] tools</span>
+<span class="k">var</span> kernel = builder.Build();
+
+<span class="k">var</span> reply = <span class="k">await</span> kernel.InvokePromptAsync(
+    <span class="s">"Summarize the fault codes and recommend next steps."</span>);</pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> you're on .NET / Azure or need C#/Java parity — the rare agent SDK that treats non-Python enterprise stacks as first-class.</li>
+      <li><strong>Start new work on MAF, not raw SK.</strong> Microsoft is explicit MAF is the recommended path; SK knowledge transfers and a migration guide exists<span><sup><a href="#r28">[28]</a></sup></span>.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>You're adopting a framework mid-transition — building fresh on legacy SK risks an avoidable migration to MAF later.</li>
+      <li>Historically verbose vs. Python-first frameworks; expect more boilerplate to reach the same behavior.</li>
+      <li>The classic Planner pattern is being retired — don't over-invest in bespoke planner logic that strong models now do natively<span><sup><a href="#r26">[26]</a></sup></span>.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- 05 LANGCHAIN / LANGGRAPH -->
+  <article class="tool accent-langgraph" id="langgraph">
+    <span class="badge" style="background:var(--langgraph)">05 · Stateful Graphs</span>
+    <h2>LangChain / LangGraph</h2>
+    <p class="tag">From chaining LLM calls to an explicit, auditable state machine.</p>
+    <p>LangChain began as the framework for chaining LLM calls and grew into a sprawling platform — <strong>LangSmith</strong> for observability, <strong>LangServe</strong> for deployment, and <strong>LangGraph</strong> for stateful agent workflows — with one of the largest ecosystems in the space<span><sup><a href="#r37">[37]</a></sup></span>. The LangChain team now explicitly steers people to <strong>LangGraph for agents</strong> and keeps LangChain itself for RAG and document Q&amp;A<span><sup><a href="#r39">[39]</a></sup></span>.</p>
+    <p>LangGraph models a workflow as a <strong>directed (often cyclic) graph</strong>: nodes execute actions, edges define transitions, and <strong>state flows through and persists at checkpoints</strong> — giving explicit control over every decision point, retry and branch<span><sup><a href="#r31">[31]</a></sup></span>. Production patterns that used to be community recipes — checkpointing, durable execution, human-in-the-loop approvals — are now first-class<span><sup><a href="#r14">[14]</a></sup></span>, with a stable Postgres checkpointer and first-class TypeScript support<span><sup><a href="#r38">[38]</a></sup></span><span><sup><a href="#r35">[35]</a></sup></span>. It's the default pick for regulated, auditable production where deterministic control matters<span><sup><a href="#r36">[36]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="LangGraph directed state graph">
+        <defs><marker id="aG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b3a8a"/></marker></defs>
+        <!-- state rail -->
+        <rect x="40" y="248" width="680" height="34" rx="5" fill="#efe7f5" stroke="#5b3a8a" stroke-width="1.4"/><text x="380" y="270" text-anchor="middle" font-size="11" fill="#5b3a8a">Shared State (persisted at every checkpoint ●)</text>
+        <!-- nodes -->
+        <rect x="40" y="60" width="120" height="50" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.5"/><text x="100" y="90" text-anchor="middle" font-size="12" fill="#241f17">START</text>
+        <rect x="220" y="60" width="130" height="50" rx="5" fill="#efe7f5" stroke="#5b3a8a" stroke-width="1.5"/><text x="285" y="83" text-anchor="middle" font-size="12" fill="#5b3a8a">Agent node</text><text x="285" y="99" text-anchor="middle" font-size="10.5" fill="#5b5240">reason + tools</text>
+        <rect x="420" y="60" width="130" height="50" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.5"/><text x="485" y="83" text-anchor="middle" font-size="12" fill="#241f17">Router</text><text x="485" y="99" text-anchor="middle" font-size="10.5" fill="#5b5240">conditional edge</text>
+        <rect x="610" y="40" width="120" height="44" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.5"/><text x="670" y="66" text-anchor="middle" font-size="11.5" fill="#241f17">Tool node</text>
+        <rect x="610" y="108" width="120" height="44" rx="5" fill="#f3ead7" stroke="#5b3a8a" stroke-width="1.5"/><text x="670" y="128" text-anchor="middle" font-size="11" fill="#5b3a8a">HITL approve</text><text x="670" y="143" text-anchor="middle" font-size="10" fill="#5b5240">human-in-loop</text>
+        <rect x="420" y="160" width="130" height="46" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.5"/><text x="485" y="187" text-anchor="middle" font-size="12" fill="#241f17">END</text>
+        <!-- edges -->
+        <line x1="160" y1="85" x2="218" y2="85" stroke="#5b3a8a" stroke-width="1.5" marker-end="url(#aG)"/>
+        <line x1="350" y1="85" x2="418" y2="85" stroke="#5b3a8a" stroke-width="1.5" marker-end="url(#aG)"/>
+        <line x1="550" y1="76" x2="608" y2="62" stroke="#5b3a8a" stroke-width="1.4" marker-end="url(#aG)"/>
+        <line x1="550" y1="95" x2="608" y2="125" stroke="#5b3a8a" stroke-width="1.4" marker-end="url(#aG)"/>
+        <!-- tool back to agent (cycle) -->
+        <path d="M610,55 q-180,-40 -325,3" fill="none" stroke="#9a7bc0" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#aG)"/><text x="430" y="30" text-anchor="middle" font-size="10" fill="#5b3a8a">cycle back (loop until done)</text>
+        <line x1="485" y1="110" x2="485" y2="158" stroke="#5b3a8a" stroke-width="1.5" marker-end="url(#aG)"/>
+        <!-- checkpoints -->
+        <circle cx="285" cy="248" r="4" fill="#5b3a8a"/><circle cx="485" cy="248" r="4" fill="#5b3a8a"/><circle cx="670" cy="248" r="4" fill="#5b3a8a"/>
+        <line x1="285" y1="110" x2="285" y2="244" stroke="#cdbbe0" stroke-width="1" stroke-dasharray="3 3"/><line x1="485" y1="206" x2="485" y2="244" stroke="#cdbbe0" stroke-width="1" stroke-dasharray="3 3"/><line x1="670" y1="152" x2="670" y2="244" stroke="#cdbbe0" stroke-width="1" stroke-dasharray="3 3"/>
+      </svg></div><figcaption>Fig. 5 — Nodes and conditional edges over a persisted state; cycles, retries and human approvals are explicit.</figcaption></figure>
+
+    <p class="codelabel">// graph shape</p>
+    <pre><span class="k">from</span> langgraph.graph <span class="k">import</span> StateGraph, START, END
+
+g = StateGraph(DiagState)
+g.add_node(<span class="s">"triage"</span>, triage_fn)
+g.add_node(<span class="s">"tools"</span>,  tool_fn)
+g.add_edge(START, <span class="s">"triage"</span>)
+g.add_conditional_edges(<span class="s">"triage"</span>, route, {<span class="s">"call"</span>: <span class="s">"tools"</span>, <span class="s">"done"</span>: END})
+g.add_edge(<span class="s">"tools"</span>, <span class="s">"triage"</span>)        <span class="c"># cycle back</span>
+app = g.compile(checkpointer=PostgresSaver(...))   <span class="c"># durable state</span></pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> you need auditability, deterministic control, retries, and human approval steps — regulated or safety-adjacent workflows where "what happened and why" must be reconstructable.</li>
+      <li><strong>Incremental if you're already on LangChain</strong> — adding LangGraph reuses your RAG, tools and embeddings rather than maintaining two dependency trees<span><sup><a href="#r37">[37]</a></sup></span>.</li>
+      <li><strong>Only major framework with first-class TypeScript</strong>, useful if your edge/UI layer is JS<span><sup><a href="#r35">[35]</a></sup></span>.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>The graph paradigm has a real learning curve — it clicks for some immediately and confuses others for weeks<span><sup><a href="#r35">[35]</a></sup></span>.</li>
+      <li>Overkill for a simple linear workflow; don't reach for a state machine when a single typed agent call would do.</li>
+      <li>No <em>native</em> MCP/A2A protocol support yet — it leans on community integrations, where CrewAI ships them in-box<span><sup><a href="#r33">[33]</a></sup></span>.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- 06 CREWAI -->
+  <article class="tool accent-crewai" id="crewai">
+    <span class="badge" style="background:var(--crewai)">06 · Role-Based Crews</span>
+    <h2>CrewAI</h2>
+    <p class="tag">The fastest path from idea to a working multi-agent demo.</p>
+    <p>CrewAI orchestrates <strong>teams of role-based agents</strong>. You give each agent a <strong>role, goal and backstory</strong>, assign it <strong>tasks</strong>, and assemble them into a <strong>crew</strong> that runs under a process type — <strong>sequential, hierarchical or consensual</strong><span><sup><a href="#r31">[31]</a></sup></span>. The team metaphor is intuitive and fast: most teams get a working multi-agent setup running in a few hours<span><sup><a href="#r35">[35]</a></sup></span>. It's been the fastest-growing framework in the category, with ~45k GitHub stars, version 1.x, hundreds of millions of monthly workflow executions, and adoption across a large share of the Fortune 500<span><sup><a href="#r33">[33]</a></sup></span><span><sup><a href="#r36">[36]</a></sup></span>.</p>
+    <p>Crucially for interoperability, CrewAI shipped <strong>native MCP and A2A support</strong> — making it a strong choice when your agents must reach external tool servers and talk to agents built on other frameworks<span><sup><a href="#r33">[33]</a></sup></span><span><sup><a href="#r37">[37]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 290" role="img" aria-label="CrewAI role-based crew">
+        <defs><marker id="aC" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#a8324a"/></marker></defs>
+        <rect x="280" y="22" width="200" height="56" rx="6" fill="#f6e1e6" stroke="#a8324a" stroke-width="2"/><text x="380" y="46" text-anchor="middle" font-size="13" fill="#a8324a" font-weight="600">Crew</text><text x="380" y="64" text-anchor="middle" font-size="10.5" fill="#5b5240">process: sequential / hierarchical</text>
+        <!-- agents with role cards -->
+        <g>
+          <rect x="40" y="118" width="200" height="78" rx="6" fill="#fff" stroke="#a8324a" stroke-width="1.5"/><text x="140" y="140" text-anchor="middle" font-size="12" fill="#a8324a" font-weight="600">Researcher</text><text x="140" y="158" text-anchor="middle" font-size="10" fill="#5b5240">role · goal · backstory</text><text x="140" y="176" text-anchor="middle" font-size="10" fill="#5b5240">task → gather evidence</text>
+          <rect x="280" y="118" width="200" height="78" rx="6" fill="#fff" stroke="#a8324a" stroke-width="1.5"/><text x="380" y="140" text-anchor="middle" font-size="12" fill="#a8324a" font-weight="600">Analyst</text><text x="380" y="158" text-anchor="middle" font-size="10" fill="#5b5240">role · goal · backstory</text><text x="380" y="176" text-anchor="middle" font-size="10" fill="#5b5240">task → diagnose</text>
+          <rect x="520" y="118" width="200" height="78" rx="6" fill="#fff" stroke="#a8324a" stroke-width="1.5"/><text x="620" y="140" text-anchor="middle" font-size="12" fill="#a8324a" font-weight="600">Writer</text><text x="620" y="158" text-anchor="middle" font-size="10" fill="#5b5240">role · goal · backstory</text><text x="620" y="176" text-anchor="middle" font-size="10" fill="#5b5240">task → report</text>
+        </g>
+        <line x1="330" y1="78" x2="160" y2="116" stroke="#a8324a" stroke-width="1.4" marker-end="url(#aC)"/><line x1="380" y1="78" x2="380" y2="116" stroke="#a8324a" stroke-width="1.4" marker-end="url(#aC)"/><line x1="430" y1="78" x2="600" y2="116" stroke="#a8324a" stroke-width="1.4" marker-end="url(#aC)"/>
+        <line x1="240" y1="157" x2="278" y2="157" stroke="#c97d8e" stroke-width="1.3" marker-end="url(#aC)"/><line x1="480" y1="157" x2="518" y2="157" stroke="#c97d8e" stroke-width="1.3" marker-end="url(#aC)"/>
+        <!-- protocol bar -->
+        <rect x="160" y="232" width="440" height="34" rx="5" fill="#f6e1e6" stroke="#a8324a" stroke-width="1.4"/><text x="380" y="254" text-anchor="middle" font-size="11" fill="#a8324a">native MCP (tools) + A2A (other agents)</text>
+        <line x1="380" y1="196" x2="380" y2="230" stroke="#a8324a" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#aC)"/>
+      </svg></div><figcaption>Fig. 6 — Specialists with roles pass tasks down the crew; MCP and A2A connect outward.</figcaption></figure>
+
+    <p class="codelabel">// crew shape</p>
+    <pre><span class="k">from</span> crewai <span class="k">import</span> Agent, Task, Crew, Process
+
+analyst = Agent(role=<span class="s">"VHM Analyst"</span>, goal=<span class="s">"diagnose the fault"</span>,
+                backstory=<span class="s">"20 yrs in powertrain prognostics"</span>)
+task = Task(description=<span class="s">"Classify this bearing signature"</span>, agent=analyst)
+
+crew = Crew(agents=[analyst], tasks=[task], process=Process.sequential)
+result = crew.kickoff()</pre>
+
+    <h3>Practical notes</h3>
+    <ul class="clean">
+      <li><strong>Reach for it when</strong> you want a working prototype this week and your problem maps cleanly onto "a team of specialists."</li>
+      <li><strong>Best-in-class interoperability</strong> right now thanks to in-box MCP + A2A — relevant if you're federating across vendors or fleets<span><sup><a href="#r33">[33]</a></sup></span>.</li>
+    </ul>
+    <div class="gotcha"><span class="lbl">Gotchas</span><ul>
+      <li>The well-documented <strong>6–12 month ceiling</strong>: teams move fast, then need non-linear flows or dynamic agent spawning, hit the opinionated design, and rewrite<span><sup><a href="#r39">[39]</a></sup></span>.</li>
+      <li>Debugging inside task execution is awkward — ordinary prints/logging don't surface well<span><sup><a href="#r39">[39]</a></sup></span>.</li>
+      <li>Python-centric; no help if you need agents in other languages<span><sup><a href="#r39">[39]</a></sup></span>.</li>
+    </ul></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </article>
+
+  <!-- A — PROTOCOLS -->
+  <section id="protocols">
+    <span class="secnum">§ A — THE PROTOCOLS</span>
+    <h2>MCP &amp; A2A</h2>
+    <p>Every framework above now cites these two acronyms. They're not competing — they sit on perpendicular axes and are designed to work together<span><sup><a href="#r44">[44]</a></sup></span>.</p>
+    <p><strong>MCP (Model Context Protocol)</strong> is an open standard from Anthropic — think "USB for AI." It standardizes the <em>vertical</em> link: how a single agent connects to external <strong>tools and data</strong> (APIs, databases, file systems) through one consistent interface, over JSON-RPC, so you stop writing bespoke glue for every tool and every model<span><sup><a href="#r40">[40]</a></sup></span><span><sup><a href="#r45">[45]</a></sup></span>.</p>
+    <p><strong>A2A (Agent-to-Agent)</strong> is an open standard introduced by Google (April 2025, 50+ partners). It standardizes the <em>horizontal</em> link: how <strong>agents discover and collaborate with each other</strong> across vendors and frameworks. Agents advertise capabilities via an <strong>Agent Card</strong> (a JSON resume), and it's intentionally <strong>stateful</strong> — a Task object moves through states like <code class="inl">submitted → working → input-required</code> so both sides share one view of long-running work<span><sup><a href="#r41">[41]</a></sup></span><span><sup><a href="#r42">[42]</a></sup></span><span><sup><a href="#r47">[47]</a></sup></span>.</p>
+
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="MCP vertical and A2A horizontal axes">
+        <defs><marker id="aM" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#117a6b"/></marker><marker id="aM2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#a8324a"/></marker></defs>
+        <!-- agents horizontal -->
+        <rect x="120" y="40" width="160" height="56" rx="6" fill="#fff" stroke="#241f17" stroke-width="1.6"/><text x="200" y="73" text-anchor="middle" font-size="13" fill="#241f17" font-weight="600">Agent A</text>
+        <rect x="480" y="40" width="160" height="56" rx="6" fill="#fff" stroke="#241f17" stroke-width="1.6"/><text x="560" y="73" text-anchor="middle" font-size="13" fill="#241f17" font-weight="600">Agent B</text>
+        <!-- A2A horizontal -->
+        <line x1="280" y1="68" x2="478" y2="68" stroke="#a8324a" stroke-width="2.2" marker-end="url(#aM2)" marker-start="url(#aM2)"/>
+        <rect x="320" y="14" width="120" height="22" rx="11" fill="#f6e1e6" stroke="#a8324a" stroke-width="1.2"/><text x="380" y="29" text-anchor="middle" font-size="11" fill="#a8324a" font-weight="600">A2A</text><text x="380" y="92" text-anchor="middle" font-size="9.5" fill="#5b5240">Agent Card · stateful Task</text>
+        <!-- MCP vertical from A -->
+        <line x1="200" y1="96" x2="200" y2="180" stroke="#117a6b" stroke-width="2.2" marker-end="url(#aM)"/><rect x="150" y="120" width="100" height="22" rx="11" fill="#e3f1ed" stroke="#117a6b" stroke-width="1.2"/><text x="200" y="135" text-anchor="middle" font-size="11" fill="#117a6b" font-weight="600">MCP</text>
+        <!-- MCP vertical from B -->
+        <line x1="560" y1="96" x2="560" y2="180" stroke="#117a6b" stroke-width="2.2" marker-end="url(#aM)"/><rect x="510" y="120" width="100" height="22" rx="11" fill="#e3f1ed" stroke="#117a6b" stroke-width="1.2"/><text x="560" y="135" text-anchor="middle" font-size="11" fill="#117a6b" font-weight="600">MCP</text>
+        <!-- tool servers -->
+        <rect x="120" y="184" width="160" height="50" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.5"/><text x="200" y="206" text-anchor="middle" font-size="11.5" fill="#241f17">Tools / data</text><text x="200" y="222" text-anchor="middle" font-size="10" fill="#5b5240">DB · API · files</text>
+        <rect x="480" y="184" width="160" height="50" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.5"/><text x="560" y="206" text-anchor="middle" font-size="11.5" fill="#241f17">Tools / data</text><text x="560" y="222" text-anchor="middle" font-size="10" fill="#5b5240">supplier systems</text>
+        <text x="380" y="270" text-anchor="middle" font-size="11" fill="#5b5240">MCP = agent ↔ tools (vertical) · A2A = agent ↔ agent (horizontal)</text>
+      </svg></div><figcaption>Fig. 7 — Perpendicular and complementary: MCP wires an agent to its tools; A2A wires agents to each other.</figcaption></figure>
+
+    <div class="note"><span class="lbl">Why this matters for fleets</span>
+      <p>If you're designing agents that must outlive any single framework choice, build to the protocols, not the SDK. An MCP server you write once (say, a CAN/UDS query tool) is reusable by any MCP-aware framework; an A2A-exposed edge agent can be coordinated by a cloud orchestrator regardless of what either is built on. That's the cleanest hedge against the migration churn the framework sections keep flagging.</p>
+    </div>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- B — COMPARISON -->
+  <section id="glance">
+    <span class="secnum">§ B — AT A GLANCE</span>
+    <h2>Side by side</h2>
+    <p>The six frameworks reduced to the axes that actually drive a choice. "Status" reflects the field as of early-to-mid 2026; treat star counts and versions as directional (see §H).</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Framework</th><th>Starts from</th><th>Sweet spot</th><th>Languages</th><th>Status / caution</th></tr></thead>
+      <tbody>
+        <tr><th style="color:var(--llama)">LlamaIndex</th><td>Your data</td><td>RAG, document parsing, agentic doc workflows</td><td>Python, TS</td><td>Active; cloud tiers cost money; local path for edge</td></tr>
+        <tr><th style="color:var(--autogen)">AutoGen / AG2</th><td>Agents conversing</td><td>Multi-agent collaboration, code-gen, debate</td><td>Python</td><td>Forked: AG2 vs MAF — pick deliberately</td></tr>
+        <tr><th style="color:var(--pydantic)">Pydantic AI</th><td>Type-safe contracts</td><td>Structured outputs, lightweight typed harness</td><td>Python</td><td>Stable 1.x; weekly releases; Logfire/Evals</td></tr>
+        <tr><th style="color:var(--skernel)">Semantic Kernel</th><td>App plumbing</td><td>Enterprise / .NET / Azure integration</td><td>C#, Python, Java</td><td>Superseded by MAF 1.0; SK v1.x supported ~1yr past GA</td></tr>
+        <tr><th style="color:var(--langgraph)">LangGraph</th><td>Explicit state machine</td><td>Auditable, stateful production; HITL; retries</td><td>Python, TS</td><td>Mature; steeper curve; no native MCP/A2A yet</td></tr>
+        <tr><th style="color:var(--crewai)">CrewAI</th><td>Role-based crews</td><td>Fast prototyping; native MCP + A2A</td><td>Python</td><td>Huge adoption; 6–12mo ceiling on complex flows</td></tr>
+      </tbody>
+    </table></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- C — DECISION FLOW -->
+  <section id="decide">
+    <span class="secnum">§ C — DECISION FLOWCHART</span>
+    <h2>Which one?</h2>
+    <p>A rough triage, not a verdict. The honest first question is whether you need a framework at all — for a single typed call, a thin harness plus the protocols often wins.</p>
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 470" role="img" aria-label="Framework decision flowchart">
+        <defs><marker id="aD" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b5240"/></marker></defs>
+        <!-- Q1 -->
+        <rect x="250" y="14" width="260" height="48" rx="6" fill="#f3ead7" stroke="#5b5240" stroke-width="1.6"/><text x="380" y="35" text-anchor="middle" font-size="12" fill="#241f17">Is the hard part the documents/data?</text><text x="380" y="52" text-anchor="middle" font-size="10.5" fill="#5b5240">parsing, retrieval, large corpus</text>
+        <line x1="250" y1="38" x2="150" y2="38" stroke="#5b5240" stroke-width="1.3"/><line x1="150" y1="38" x2="150" y2="78" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="178" y="32" font-size="10" fill="#5b5240">yes</text>
+        <rect x="70" y="80" width="160" height="44" rx="5" fill="#fff" stroke="#8e2f6b" stroke-width="1.6"/><text x="150" y="107" text-anchor="middle" font-size="12" fill="#8e2f6b" font-weight="600">LlamaIndex</text>
+        <line x1="380" y1="62" x2="380" y2="96" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="392" y="82" font-size="10" fill="#5b5240">no</text>
+
+        <!-- Q2 -->
+        <rect x="250" y="98" width="260" height="48" rx="6" fill="#f3ead7" stroke="#5b5240" stroke-width="1.6"/><text x="380" y="119" text-anchor="middle" font-size="12" fill="#241f17">Do you just need typed output</text><text x="380" y="136" text-anchor="middle" font-size="11" fill="#241f17">from one agent?</text>
+        <line x1="510" y1="122" x2="610" y2="122" stroke="#5b5240" stroke-width="1.3"/><line x1="610" y1="122" x2="610" y2="160" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="558" y="116" font-size="10" fill="#5b5240">yes</text>
+        <rect x="530" y="162" width="160" height="44" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.6"/><text x="610" y="189" text-anchor="middle" font-size="12" fill="#117a6b" font-weight="600">Pydantic AI</text>
+        <line x1="380" y1="146" x2="380" y2="180" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="392" y="166" font-size="10" fill="#5b5240">no</text>
+
+        <!-- Q3 -->
+        <rect x="250" y="182" width="260" height="48" rx="6" fill="#f3ead7" stroke="#5b5240" stroke-width="1.6"/><text x="380" y="203" text-anchor="middle" font-size="12" fill="#241f17">On .NET / Azure or need</text><text x="380" y="220" text-anchor="middle" font-size="11" fill="#241f17">C#/Java parity?</text>
+        <line x1="250" y1="206" x2="150" y2="206" stroke="#5b5240" stroke-width="1.3"/><line x1="150" y1="206" x2="150" y2="244" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="178" y="200" font-size="10" fill="#5b5240">yes</text>
+        <rect x="60" y="246" width="180" height="44" rx="5" fill="#fff" stroke="#34508c" stroke-width="1.6"/><text x="150" y="267" text-anchor="middle" font-size="11.5" fill="#34508c" font-weight="600">Semantic Kernel</text><text x="150" y="282" text-anchor="middle" font-size="9.5" fill="#5b5240">→ MAF for new work</text>
+        <line x1="380" y1="230" x2="380" y2="264" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="392" y="250" font-size="10" fill="#5b5240">no</text>
+
+        <!-- Q4 -->
+        <rect x="250" y="266" width="260" height="48" rx="6" fill="#f3ead7" stroke="#5b5240" stroke-width="1.6"/><text x="380" y="287" text-anchor="middle" font-size="12" fill="#241f17">Need audit trails, retries,</text><text x="380" y="304" text-anchor="middle" font-size="11" fill="#241f17">human-in-the-loop?</text>
+        <line x1="510" y1="290" x2="610" y2="290" stroke="#5b5240" stroke-width="1.3"/><line x1="610" y1="290" x2="610" y2="328" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="558" y="284" font-size="10" fill="#5b5240">yes</text>
+        <rect x="530" y="330" width="160" height="44" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.6"/><text x="610" y="357" text-anchor="middle" font-size="12" fill="#5b3a8a" font-weight="600">LangGraph</text>
+        <line x1="380" y1="314" x2="380" y2="348" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="392" y="334" font-size="10" fill="#5b5240">no</text>
+
+        <!-- Q5 -->
+        <rect x="250" y="350" width="260" height="48" rx="6" fill="#f3ead7" stroke="#5b5240" stroke-width="1.6"/><text x="380" y="371" text-anchor="middle" font-size="12" fill="#241f17">Want a fast multi-agent</text><text x="380" y="388" text-anchor="middle" font-size="11" fill="#241f17">prototype / cross-vendor?</text>
+        <line x1="250" y1="374" x2="150" y2="374" stroke="#5b5240" stroke-width="1.3"/><line x1="150" y1="374" x2="150" y2="412" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/><text x="178" y="368" font-size="10" fill="#5b5240">yes</text>
+        <rect x="70" y="414" width="160" height="44" rx="5" fill="#fff" stroke="#a8324a" stroke-width="1.6"/><text x="150" y="441" text-anchor="middle" font-size="12" fill="#a8324a" font-weight="600">CrewAI</text>
+        <line x1="380" y1="398" x2="380" y2="414" stroke="#5b5240" stroke-width="1.3" marker-end="url(#aD)"/>
+        <rect x="270" y="416" width="220" height="46" rx="5" fill="#fff" stroke="#b4531c" stroke-width="1.6"/><text x="380" y="437" text-anchor="middle" font-size="11.5" fill="#b4531c" font-weight="600">AutoGen / AG2 or MAF</text><text x="380" y="453" text-anchor="middle" font-size="9.5" fill="#5b5240">conversational multi-agent</text>
+      </svg></div><figcaption>Fig. 8 — Walk top-to-bottom; the first "yes" is your strong default, not a rule.</figcaption></figure>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- D — TREND -->
+  <section id="trend">
+    <span class="secnum">§ D — WHERE THE FIELD IS GOING</span>
+    <h2>Past the framework wars</h2>
+    <p>Notice what every project converged toward in 2025–26: native <strong>MCP</strong> for tools, native <strong>observability</strong>, built-in <strong>evaluation</strong>, explicit <strong>memory</strong> — while clever orchestration DSLs receded (MAF even dropped the planner). That convergence is the signal. The differentiating problems moved <em>out</em> of the framework into three cross-cutting concerns.</p>
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 250" role="img" aria-label="Harness and three concerns">
+        <defs><marker id="aH" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#a9842c"/></marker></defs>
+        <rect x="270" y="24" width="220" height="56" rx="6" fill="#f3ead7" stroke="#a9842c" stroke-width="2"/><text x="380" y="48" text-anchor="middle" font-size="13" fill="#5a3018" font-weight="600">Your harness</text><text x="380" y="66" text-anchor="middle" font-size="10.5" fill="#5b5240">thin loop · any framework underneath</text>
+        <line x1="320" y1="80" x2="160" y2="128" stroke="#a9842c" stroke-width="1.6" marker-end="url(#aH)"/><line x1="380" y1="80" x2="380" y2="128" stroke="#a9842c" stroke-width="1.6" marker-end="url(#aH)"/><line x1="440" y1="80" x2="600" y2="128" stroke="#a9842c" stroke-width="1.6" marker-end="url(#aH)"/>
+        <rect x="40" y="132" width="220" height="86" rx="6" fill="#fff" stroke="#a9842c" stroke-width="1.5"/><text x="150" y="160" text-anchor="middle" font-size="13" fill="#5a3018" font-weight="600">Evaluation</text><text x="150" y="182" text-anchor="middle" font-size="10.5" fill="#5b5240">is it actually working?</text><text x="150" y="200" text-anchor="middle" font-size="10.5" fill="#5b5240">test sets · regression · scoring</text>
+        <rect x="270" y="132" width="220" height="86" rx="6" fill="#fff" stroke="#a9842c" stroke-width="1.5"/><text x="380" y="160" text-anchor="middle" font-size="13" fill="#5a3018" font-weight="600">Observability</text><text x="380" y="182" text-anchor="middle" font-size="10.5" fill="#5b5240">what did it do, and why?</text><text x="380" y="200" text-anchor="middle" font-size="10.5" fill="#5b5240">traces · tokens · latency (OTel)</text>
+        <rect x="500" y="132" width="220" height="86" rx="6" fill="#fff" stroke="#a9842c" stroke-width="1.5"/><text x="610" y="160" text-anchor="middle" font-size="13" fill="#5a3018" font-weight="600">Memory</text><text x="610" y="182" text-anchor="middle" font-size="10.5" fill="#5b5240">what carries forward?</text><text x="610" y="200" text-anchor="middle" font-size="10.5" fill="#5b5240">short-term · long-term · context</text>
+      </svg></div><figcaption>Fig. 9 — The framework is interchangeable; the three concerns below it are where the engineering effort now lives.</figcaption></figure>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- E — THREE TIER -->
+  <section id="tiers">
+    <span class="secnum">§ E — REFERENCE ARCHITECTURE</span>
+    <h2>Mapping it onto a three-tier system</h2>
+    <p>For a constrained compute hierarchy (a safety-critical controller, a high-compute edge node, a cloud backend) the lens shifts usefully. The rule of thumb: <strong>no framework belongs on the safety-critical tier</strong> — that stays deterministic. The edge earns a thin typed harness; the heavy orchestration lives in the cloud where compute and observability are cheap.</p>
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 360" role="img" aria-label="Three-tier reference architecture">
+        <defs><marker id="aT" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b5240"/></marker></defs>
+        <!-- tier 1 -->
+        <rect x="20" y="20" width="720" height="92" rx="8" fill="#f7ece1" stroke="#9c4221" stroke-width="1.8"/><text x="40" y="44" font-size="12" fill="#9c4221" font-weight="600">TIER 1 · Safety-critical ECU</text><text x="40" y="62" font-size="10.5" fill="#5b5240">deterministic control · ASIL-rated · fixed-point · hard real-time</text>
+        <rect x="430" y="48" width="290" height="48" rx="5" fill="#fff" stroke="#9c4221" stroke-width="1.5"/><text x="575" y="70" text-anchor="middle" font-size="11" fill="#9c4221" font-weight="600">NO LLM / NO framework here</text><text x="575" y="86" text-anchor="middle" font-size="10" fill="#5b5240">emits signals / DTCs only</text>
+        <!-- tier 2 -->
+        <rect x="20" y="128" width="720" height="120" rx="8" fill="#e3f1ed" stroke="#117a6b" stroke-width="1.8"/><text x="40" y="152" font-size="12" fill="#117a6b" font-weight="600">TIER 2 · High-compute edge node</text><text x="40" y="170" font-size="10.5" fill="#5b5240">thin typed harness · runs intermittently · bandwidth-constrained uplink</text>
+        <rect x="40" y="182" width="150" height="50" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.4"/><text x="115" y="203" text-anchor="middle" font-size="10.5" fill="#241f17">Triage</text><text x="115" y="219" text-anchor="middle" font-size="9.5" fill="#5b5240">keep / drop / flag</text>
+        <rect x="205" y="182" width="150" height="50" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.4"/><text x="280" y="203" text-anchor="middle" font-size="10.5" fill="#241f17">Context enrich</text><text x="280" y="219" text-anchor="middle" font-size="9.5" fill="#5b5240">local retrieval</text>
+        <rect x="370" y="182" width="150" height="50" rx="5" fill="#fff" stroke="#117a6b" stroke-width="1.4"/><text x="445" y="203" text-anchor="middle" font-size="10.5" fill="#241f17">Weak-label</text><text x="445" y="219" text-anchor="middle" font-size="9.5" fill="#5b5240">at the source</text>
+        <rect x="535" y="182" width="185" height="50" rx="5" fill="#eef6f3" stroke="#117a6b" stroke-width="1.4"/><text x="627" y="200" text-anchor="middle" font-size="10" fill="#117a6b" font-weight="600">Pydantic AI / LlamaIndex (local)</text><text x="627" y="216" text-anchor="middle" font-size="9" fill="#5b5240">typed output · A2A-exposed</text>
+        <!-- tier 3 -->
+        <rect x="20" y="264" width="720" height="84" rx="8" fill="#efe7f5" stroke="#5b3a8a" stroke-width="1.8"/><text x="40" y="288" font-size="12" fill="#5b3a8a" font-weight="600">TIER 3 · Cloud backend</text><text x="40" y="306" font-size="10.5" fill="#5b5240">heavy multi-agent orchestration · fleet view · eval + observability</text>
+        <rect x="430" y="298" width="135" height="40" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.4"/><text x="497" y="322" text-anchor="middle" font-size="10" fill="#5b3a8a" font-weight="600">LangGraph / MAF</text>
+        <rect x="575" y="298" width="145" height="40" rx="5" fill="#fff" stroke="#5b3a8a" stroke-width="1.4"/><text x="647" y="316" text-anchor="middle" font-size="9.5" fill="#241f17">adaptive acquisition</text><text x="647" y="330" text-anchor="middle" font-size="9.5" fill="#5b5240">campaigns</text>
+        <!-- vertical flows -->
+        <line x1="300" y1="112" x2="300" y2="126" stroke="#5b5240" stroke-width="1.4" marker-end="url(#aT)"/><text x="312" y="124" font-size="9" fill="#5b5240">signals up</text>
+        <line x1="300" y1="248" x2="300" y2="262" stroke="#5b5240" stroke-width="1.4" marker-end="url(#aT)"/><text x="312" y="260" font-size="9" fill="#5b5240">enriched payload up</text>
+        <line x1="150" y1="262" x2="150" y2="248" stroke="#5b5240" stroke-width="1.4" marker-end="url(#aT)"/><text x="162" y="260" font-size="9" fill="#5b5240">campaigns / skills down</text>
+      </svg></div><figcaption>Fig. 10 — Triage and enrich at the edge before the bandwidth-limited uplink; orchestrate and learn in the cloud.</figcaption></figure>
+    <div class="note"><span class="lbl">Unifying rule</span><p>The same lesson MAF stumbled into applies at every tier: <strong>give good tools and tight schemas first; build bespoke orchestration last.</strong> Pydantic&nbsp;AI's "never emit an unparseable blob" discipline is exactly what you want feeding a Tier-1 boundary; LangGraph's auditable state machine is what you want when a cloud decision must be reconstructable months later.</p></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- F — OTA LOOP -->
+  <section id="ota">
+    <span class="secnum">§ F — GATED OTA SKILL DEPLOYMENT</span>
+    <h2>The deployment loop, gated by eval</h2>
+    <p>This is where §D's three concerns become a control loop. A new or updated "skill" (a tool, a prompt, a sub-agent) should never ship to a fleet on author confidence alone. Evaluation and observability are the <strong>gates</strong>; telemetry from the field closes the loop and produces the next batch of training/eval data.</p>
+    <figure><div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Gated OTA skill deployment loop">
+        <defs><marker id="aO" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#a9842c"/></marker><marker id="aOr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9c4221"/></marker></defs>
+        <rect x="20" y="60" width="130" height="54" rx="6" fill="#fff" stroke="#a9842c" stroke-width="1.6"/><text x="85" y="84" text-anchor="middle" font-size="11" fill="#241f17" font-weight="600">Skill candidate</text><text x="85" y="100" text-anchor="middle" font-size="9.5" fill="#5b5240">tool / prompt / agent</text>
+        <rect x="190" y="60" width="130" height="54" rx="6" fill="#f3ead7" stroke="#a9842c" stroke-width="1.8"/><text x="255" y="80" text-anchor="middle" font-size="11" fill="#5a3018" font-weight="600">Eval gate</text><text x="255" y="95" text-anchor="middle" font-size="9.5" fill="#5b5240">golden set · regression</text><text x="255" y="108" text-anchor="middle" font-size="9.5" fill="#5b5240">score ≥ threshold?</text>
+        <rect x="360" y="60" width="130" height="54" rx="6" fill="#f3ead7" stroke="#a9842c" stroke-width="1.8"/><text x="425" y="80" text-anchor="middle" font-size="11" fill="#5a3018" font-weight="600">Shadow / canary</text><text x="425" y="95" text-anchor="middle" font-size="9.5" fill="#5b5240">observe on live traffic</text><text x="425" y="108" text-anchor="middle" font-size="9.5" fill="#5b5240">no actions taken</text>
+        <rect x="530" y="60" width="130" height="54" rx="6" fill="#f3ead7" stroke="#9c4221" stroke-width="1.8"/><text x="595" y="84" text-anchor="middle" font-size="11" fill="#9c4221" font-weight="600">Human approve</text><text x="595" y="100" text-anchor="middle" font-size="9.5" fill="#5b5240">sign-off + audit</text>
+        <rect x="565" y="170" width="160" height="50" rx="6" fill="#efe7f5" stroke="#5b3a8a" stroke-width="1.8"/><text x="645" y="192" text-anchor="middle" font-size="11" fill="#5b3a8a" font-weight="600">OTA → fleet</text><text x="645" y="208" text-anchor="middle" font-size="9.5" fill="#5b5240">staged rollout</text>
+        <rect x="300" y="170" width="170" height="50" rx="6" fill="#e3f1ed" stroke="#117a6b" stroke-width="1.6"/><text x="385" y="192" text-anchor="middle" font-size="11" fill="#117a6b" font-weight="600">Field telemetry</text><text x="385" y="208" text-anchor="middle" font-size="9.5" fill="#5b5240">traces · outcomes · drift</text>
+        <rect x="40" y="170" width="170" height="50" rx="6" fill="#fff" stroke="#a9842c" stroke-width="1.6"/><text x="125" y="192" text-anchor="middle" font-size="11" fill="#5a3018" font-weight="600">New eval data</text><text x="125" y="208" text-anchor="middle" font-size="9.5" fill="#5b5240">weak labels → golden set</text>
+        <!-- forward edges -->
+        <line x1="150" y1="87" x2="188" y2="87" stroke="#a9842c" stroke-width="1.5" marker-end="url(#aO)"/>
+        <line x1="320" y1="87" x2="358" y2="87" stroke="#a9842c" stroke-width="1.5" marker-end="url(#aO)"/><text x="339" y="78" text-anchor="middle" font-size="8.5" fill="#5b5240">pass</text>
+        <line x1="490" y1="87" x2="528" y2="87" stroke="#a9842c" stroke-width="1.5" marker-end="url(#aO)"/>
+        <line x1="595" y1="114" x2="645" y2="168" stroke="#5b3a8a" stroke-width="1.5" marker-end="url(#aO)"/>
+        <line x1="565" y1="195" x2="472" y2="195" stroke="#5b5240" stroke-width="1.5" marker-end="url(#aO)"/>
+        <line x1="300" y1="195" x2="212" y2="195" stroke="#5b5240" stroke-width="1.5" marker-end="url(#aO)"/>
+        <line x1="125" y1="170" x2="125" y2="120" stroke="#a9842c" stroke-width="1.5"/><line x1="125" y1="120" x2="85" y2="120" stroke="#a9842c" stroke-width="1.5"/><line x1="85" y1="120" x2="85" y2="116" stroke="#a9842c" stroke-width="1.5" marker-end="url(#aO)"/><text x="150" y="146" font-size="9" fill="#5b5240">feeds next candidate</text>
+        <!-- fail loop -->
+        <path d="M255,114 q-30,40 -110,52" fill="none" stroke="#9c4221" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#aOr)"/><text x="150" y="135" font-size="8.5" fill="#9c4221">fail → back to author</text>
+      </svg></div><figcaption>Fig. 11 — Two gates (automated eval, then human sign-off after a shadow run), then staged OTA; field telemetry regenerates eval data.</figcaption></figure>
+    <ul class="clean">
+      <li><strong>Eval gate</strong> blocks anything that regresses a golden set — cheap, automated, runs on every candidate.</li>
+      <li><strong>Shadow/canary</strong> exercises the skill on live traffic <em>without acting</em>, so observability catches surprises before they reach Tier&nbsp;1.</li>
+      <li><strong>Human sign-off</strong> produces the audit record — the artifact a safety case needs, and exactly what LangGraph/MAF HITL checkpoints are built to capture.</li>
+      <li><strong>Telemetry → weak labels → golden set</strong> is the flywheel; the adaptive-acquisition campaign decides what new data to pull next.</li>
+    </ul>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- G — EVAL APPENDIX -->
+  <section id="eval">
+    <span class="secnum">§ G — EVALUATION APPENDIX</span>
+    <h2>Building the eval harness the frameworks punt on</h2>
+    <p>Every framework now ships <em>some</em> eval hook (Pydantic Evals, LangSmith datasets, CrewAI's observability), but the substance is yours to build. A workable shape:</p>
+    <h3>1 · A golden set with teeth</h3>
+    <p>Start small and adversarial: 30–100 cases that each pin one behavior, with a known-good answer or an assertable property. For diagnostic work that's often a property, not a string — "severity is within ±1 of ground truth," "names the correct subsystem," "never fabricates a DTC." Grow it from field failures (§F's flywheel), not from cases the system already passes.</p>
+    <h3>2 · Scoring that isn't just string-match</h3>
+    <p>Layer three kinds of check: deterministic assertions (schema valid, value in range — Pydantic does this for free), reference metrics where a gold answer exists, and an LLM-as-judge for open-ended quality with a tight rubric. Keep judge prompts versioned; a drifting judge silently moves your bar.</p>
+    <h3>3 · Regression discipline</h3>
+    <p>Run the whole set on every skill candidate and store scores per version. The gate is relative, not absolute: block anything that drops a previously-passing case, even if aggregate score rises. Aggregate improvements routinely hide specific regressions.</p>
+    <h3>4 · Cost and latency as first-class metrics</h3>
+    <p>Score tokens and wall-clock alongside quality — a skill that's 2% better and 3× slower may be a net loss at the edge. Observability traces (OTel via Logfire/LangSmith) give you these for free if wired early.</p>
+    <pre><span class="c"># sketch: property-based eval over a golden set</span>
+<span class="k">for</span> case <span class="k">in</span> golden_set:
+    out = agent.run_sync(case.input).output      <span class="c"># typed → already schema-valid</span>
+    record(case.id, version,
+        in_range = <span class="k">abs</span>(out.severity - case.truth.severity) &lt;= 1,
+        subsystem_ok = out.component == case.truth.component,
+        no_fabricated_dtc = out.dtc <span class="k">in</span> KNOWN_DTCS,
+        tokens = trace.tokens, latency_ms = trace.ms)
+gate_pass = no_regressions(version) <span class="k">and</span> aggregate(version) &gt;= THRESHOLD</pre>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- H — VERSION TABLE -->
+  <section id="versions">
+    <span class="secnum">§ H — VERSION / LAST VERIFIED</span>
+    <h2>Snapshot — treat as directional</h2>
+    <p>Star counts and versions move weekly and vary by source; these are representative figures verified June&nbsp;2026, not authoritative. Always check the primary docs in §R before pinning anything.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Framework</th><th>Repr. version</th><th>≈ GitHub stars</th><th>Note</th><th>As of</th></tr></thead>
+      <tbody>
+        <tr><th style="color:var(--llama)">LlamaIndex</th><td>Workflows 1.0</td><td>—</td><td>shifting toward agentic doc processing</td><td>2026-Q1</td></tr>
+        <tr><th style="color:var(--autogen)">AutoGen</th><td>1.0 GA (v2 API)</td><td>~56k (MS repo)</td><td>classic line in maintenance</td><td>2026-02</td></tr>
+        <tr><th style="color:var(--autogen)">AG2 (fork)</th><td>v0.2 lineage</td><td>~4–5k</td><td>community-governed</td><td>2026-Q1</td></tr>
+        <tr><th style="color:var(--pydantic)">Pydantic AI</th><td>1.8x</td><td>~17k</td><td>weekly releases, stable 1.x API</td><td>2026-04</td></tr>
+        <tr><th style="color:var(--skernel)">Semantic Kernel</th><td>v1.x (→ MAF)</td><td>~27k</td><td>superseded by MAF 1.0</td><td>2026-Q1</td></tr>
+        <tr><th style="color:var(--skernel)">MS Agent Framework</th><td>1.0 GA</td><td>—</td><td>SK + AutoGen merger</td><td>2026-04</td></tr>
+        <tr><th style="color:var(--langgraph)">LangGraph</th><td>v0.4+</td><td>~24k</td><td>LangChain ~97k stars overall</td><td>2026-Q1</td></tr>
+        <tr><th style="color:var(--crewai)">CrewAI</th><td>1.10.x</td><td>~45k</td><td>native MCP + A2A</td><td>2026-03</td></tr>
+        <tr><th>MCP</th><td>open standard</td><td>—</td><td>Anthropic; JSON-RPC; widely adopted</td><td>2026-Q1</td></tr>
+        <tr><th>A2A</th><td>open standard</td><td>—</td><td>Google + 50 partners (Apr 2025)</td><td>2026-Q1</td></tr>
+      </tbody>
+    </table></div>
+    <a class="toplink" href="#top">↑ top</a>
+  </section>
+
+  <!-- REFERENCES -->
+  <section class="refs" id="refs">
+    <span class="secnum">§ R — REFERENCES</span>
+    <h2>Sources &amp; further reading</h2>
+    <p style="color:var(--ink-faint);font-size:14px">Primary docs and project pages first; analyst/comparison pieces where they clarify the cross-framework picture. Accessed June 2026.</p>
+    <ol class="reflist">
+      <li id="r2">LlamaIndex — "Announcing Workflows 1.0." <a href="https://www.llamaindex.ai/workflows">llamaindex.ai/workflows</a></li>
+      <li id="r4">LlamaIndex — "Introducing Agentic Document Workflows." <a href="https://www.llamaindex.ai/blog/introducing-agentic-document-workflows">llamaindex.ai/blog · ADW</a></li>
+      <li id="r5">LlamaIndex — "LlamaIndex is more than a RAG framework." <a href="https://www.llamaindex.ai/blog/llamaindex-is-more-than-a-rag-framework">llamaindex.ai/blog · beyond-RAG</a></li>
+      <li id="r6">LlamaIndex — engineering blog (filesystem tools vs RAG). <a href="https://www.llamaindex.ai/blog">llamaindex.ai/blog</a></li>
+      <li id="r7">LlamaIndex — Agents use-case docs. <a href="https://developers.llamaindex.ai/python/framework/use_cases/agents/">developers.llamaindex.ai · agents</a></li>
+      <li id="r9">Nexus — "AutoGen vs CrewAI" (AG2 lineage, migration risk). <a href="https://agent.nexus/blog/autogen-vs-crewai">agent.nexus · autogen-vs-crewai</a></li>
+      <li id="r10">Nexus — "Microsoft Agent Framework Alternatives" (AutoGen/AG2/MAF split). <a href="https://agent.nexus/blog/microsoft-agent-framework-alternatives">agent.nexus · MAF alternatives</a></li>
+      <li id="r11">"Architecting Resilient LLM Agents" — AutoGen patterns (arXiv 2509.08646). <a href="https://arxiv.org/pdf/2509.08646">arxiv.org/pdf/2509.08646</a></li>
+      <li id="r12">Nexus — Nexus vs AutoGen/AG2 (PyPI control, MAF timeline). <a href="https://agent.nexus/compare/developer-frameworks/nexus-vs-autogen">agent.nexus · nexus-vs-autogen</a></li>
+      <li id="r14">alicelabs — "Best AI Agent Frameworks 2026" (LangGraph production patterns; AutoGen/AG2 split). <a href="https://alicelabs.ai/en/insights/best-ai-agent-frameworks-2026">alicelabs.ai · best-frameworks-2026</a></li>
+      <li id="r16">Pydantic — Pydantic AI product page. <a href="https://pydantic.dev/pydantic-ai">pydantic.dev/pydantic-ai</a></li>
+      <li id="r17">Agent Wiki — Pydantic AI (type safety, DI, Evals, A2A). <a href="https://agentwiki.org/pydantic_ai">agentwiki.org/pydantic_ai</a></li>
+      <li id="r18">DEV — "Pydantic AI Tutorial" (release cadence, Bedrock). <a href="https://dev.to/jahanzaibai/pydantic-ai-tutorial-how-i-build-type-safe-ai-agents-that-actually-work-in-production-3bcp">dev.to · pydantic-ai-tutorial</a></li>
+      <li id="r20">Pydantic — official Pydantic AI docs. <a href="https://ai.pydantic.dev/">ai.pydantic.dev</a></li>
+      <li id="r21">"Pydantic AI: Type-Safe AI Agent Framework" (self-correction loop). <a href="https://www.decisioncrafters.com/pydantic-ai-type-safe-ai-agent-framework-with-16-5k-github-stars/">decisioncrafters.com · pydantic-ai</a></li>
+      <li id="r23">Visual Studio Magazine — "Microsoft Ships Agent Framework 1.0." <a href="https://visualstudiomagazine.com/articles/2026/04/06/microsoft-ships-production-ready-agent-framework-1-0-for-net-and-python.aspx">visualstudiomagazine.com · MAF 1.0</a></li>
+      <li id="r25">A. Belablotski — "Semantic Kernel and AutoGen" (Kernel/Plugins/Planner). <a href="https://belablotski.github.io/engineering/ai/agentic_apps/multi_agent/">belablotski.github.io · multi_agent</a></li>
+      <li id="r26">DEV — "Migrating from Semantic Kernel to MAF" (planner now optional, MCP-native). <a href="https://dev.to/bspann/migrating-from-semantic-kernel-to-microsoft-agent-framework-a-c-developers-guide-3ad5">dev.to · SK → MAF</a></li>
+      <li id="r28">orchestrator.dev — Semantic Kernel guide (SK v1.x support window). <a href="https://orchestrator.dev/blog/2026-03-23-semantic-kernel-guide/">orchestrator.dev · SK guide</a></li>
+      <li id="r29">GitHub — microsoft/semantic-kernel ("now Microsoft Agent Framework"). <a href="https://github.com/microsoft/semantic-kernel">github.com/microsoft/semantic-kernel</a></li>
+      <li id="r30">S. Bhattacharyya — "MAF: the next evolution beyond SK and AutoGen." <a href="https://medium.com/@howtodoml/microsoft-agent-framework-the-next-evolution-beyond-semantic-kernel-and-autogen-2919e9345b29">medium.com · MAF evolution</a></li>
+      <li id="r31">Fastio — "LangGraph vs CrewAI: Honest Comparison 2026" (graph model; crew roles/process types). <a href="https://fast.io/resources/langgraph-vs-crewai/">fast.io · langgraph-vs-crewai</a></li>
+      <li id="r32">Tensoria — "LangGraph vs CrewAI vs AutoGen vs Custom [2026 Benchmark]." <a href="https://tensoria.fr/en/blog/multi-agent-orchestration-comparison">tensoria.fr · orchestration comparison</a></li>
+      <li id="r33">Redwerk — "LangGraph vs CrewAI in 2026" (CrewAI MCP+A2A, workflow volume; LangGraph no native protocol). <a href="https://redwerk.com/blog/langgraph-vs-crewai/">redwerk.com · langgraph-vs-crewai</a></li>
+      <li id="r35">agentsindex — "CrewAI vs LangGraph" (versions, MCP/A2A, TS support, learning curve). <a href="https://agentsindex.ai/blog/crewai-vs-langgraph">agentsindex.ai · crewai-vs-langgraph</a></li>
+      <li id="r36">Uvik — "Agentic AI Frameworks 2026" (LangGraph for regulated/auditable; CrewAI adoption). <a href="https://uvik.net/blog/agentic-ai-frameworks/">uvik.net · agentic-ai-frameworks</a></li>
+      <li id="r37">NxCode — "CrewAI vs LangChain 2026" (LangChain ecosystem/stars; CrewAI MCP+A2A). <a href="https://www.nxcode.io/resources/news/crewai-vs-langchain-ai-agent-framework-comparison-2026">nxcode.io · crewai-vs-langchain</a></li>
+      <li id="r38">PE Collective — "AI Agent Frameworks Compared 2026" (LangGraph v0.4 checkpointer; CrewAI/AutoGen versions). <a href="https://pecollective.com/blog/ai-agent-frameworks-compared/">pecollective.com · frameworks compared</a></li>
+      <li id="r39">Stencilwash — "AI Agent Framework Comparison 2026" (LangChain→LangGraph steer; CrewAI 6–12mo ceiling, debugging). <a href="https://www.stencilwash.com/blog/ai-agent-framework-comparison-2026">stencilwash.com · framework comparison</a></li>
+      <li id="r40">Composio — "MCP vs A2A" (MCP = Anthropic open standard, USB-for-AI; complementary). <a href="https://composio.dev/blog/mcp-vs-a2a-everything-you-need-to-know">composio.dev · mcp-vs-a2a</a></li>
+      <li id="r41">TrueFoundry — "MCP vs A2A" (A2A announced Google Cloud Apr 2025, 50+ partners). <a href="https://www.truefoundry.com/blog/mcp-vs-a2a">truefoundry.com · mcp-vs-a2a</a></li>
+      <li id="r42">Tahir (Medium) — "A2A vs MCP" (Agent Card, HTTP/JSON-RPC, vertical vs horizontal). <a href="https://medium.com/@tahirbalarabe2/agent-to-agent-protocol-a2a-vs-what-is-model-context-protocol-mcp-which-ai-protocol-do-you-need-aff602a4571c">medium.com · a2a-vs-mcp</a></li>
+      <li id="r44">Auth0 — "MCP vs A2A" (complementary building blocks, not competing). <a href="https://auth0.com/blog/mcp-vs-a2a/">auth0.com/blog/mcp-vs-a2a</a></li>
+      <li id="r45">Boomi — "What is MCP, ACP, and A2A?" (MCP JSON-RPC 2.0; Anthropic origin; OpenAI adoption). <a href="https://boomi.com/blog/what-is-mcp-acp-a2a/">boomi.com · mcp-acp-a2a</a></li>
+      <li id="r47">Stride — "A2A vs MCP: when to use which" (A2A stateful Task object + states; Agent Card discovery). <a href="https://www.stride.build/blog/agent-to-agent-a2a-vs-model-context-protocol-mcp-when-to-use-which">stride.build · a2a-vs-mcp</a></li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>Self-contained reference · 11 original SVG block diagrams · figures, code and the eval harness are illustrative — verify version-specific details against the linked primary docs before building. · Print or "Save as PDF" for a clean offline copy.</p>
+  </footer>
+
+</div>
+</body>
+</html>
