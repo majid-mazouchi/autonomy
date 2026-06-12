@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Team of AI Agents — Explained Simply</title>
+<style>
+  :root{
+    --paper:#F8F4EB;
+    --paper-deep:#F1EAD9;
+    --ink:#221D15;
+    --ink-soft:#5C5346;
+    --rule:#D8CEBA;
+    --planner:#1F6F8B;
+    --doer:#B0532A;
+    --tool:#7A6A2F;
+    --learner:#3E7C4F;
+    --critic:#A52A3C;
+    --supervisor:#54487A;
+    --presenter:#946200;
+    --accent:#1F6F8B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{transition:none!important;animation:none!important;} }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    font-size:17px;
+    line-height:1.65;
+  }
+  .mono{font-family:'SF Mono', 'Menlo', 'Consolas', monospace;}
+  .wrap{max-width:880px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- Header ---------- */
+  header{
+    border-bottom:3px double var(--rule);
+    padding:56px 0 40px;
+    background:
+      linear-gradient(180deg, var(--paper-deep) 0%, var(--paper) 100%);
+  }
+  .eyebrow{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(34px, 5.4vw, 54px);
+    line-height:1.08;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin-bottom:18px;
+  }
+  h1 em{font-style:italic;color:var(--accent);}
+  .standfirst{
+    font-size:20px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    max-width:640px;
+    font-style:italic;
+  }
+  .source-line{
+    margin-top:26px;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    padding:10px 14px;
+    border-left:3px solid var(--accent);
+    background:rgba(31,111,139,0.06);
+  }
+  .source-line a{color:var(--accent);}
+
+  /* ---------- Sections ---------- */
+  section{padding:48px 0 8px;}
+  .sec-label{
+    display:flex;align-items:baseline;gap:14px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--rule);
+    padding-bottom:10px;
+  }
+  .sec-label .num{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:13px;color:var(--accent);letter-spacing:0.1em;
+  }
+  h2{font-size:clamp(24px,3.4vw,32px);line-height:1.2;font-weight:700;}
+  h3{font-size:20px;margin:26px 0 10px;font-weight:700;}
+  p{margin-bottom:16px;max-width:72ch;}
+  strong{font-weight:700;}
+
+  /* ---------- Big idea card ---------- */
+  .big-idea{
+    margin:8px 0 24px;
+    padding:26px 28px;
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:4px;
+  }
+  .big-idea .kicker{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:11px;letter-spacing:0.2em;text-transform:uppercase;
+    color:#D9B25C;margin-bottom:10px;
+  }
+  .big-idea p{font-size:21px;line-height:1.5;margin:0;font-style:italic;max-width:none;}
+
+  /* ---------- Analogy strip ---------- */
+  .analogy{
+    display:grid;grid-template-columns:1fr 1fr;gap:0;
+    border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+    margin:20px 0 28px;
+  }
+  .analogy > div{padding:20px 22px;}
+  .analogy .left{background:var(--paper-deep);border-right:1px solid var(--rule);}
+  .analogy h4{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:10px;
+  }
+  .analogy p{font-size:15.5px;margin:0;}
+  @media(max-width:640px){
+    .analogy{grid-template-columns:1fr;}
+    .analogy .left{border-right:none;border-bottom:1px solid var(--rule);}
+  }
+
+  /* ---------- Role cards ---------- */
+  .roles{display:grid;gap:18px;margin:24px 0 10px;}
+  .role{
+    border:1px solid var(--rule);
+    border-radius:4px;
+    background:#FFFDF7;
+    overflow:hidden;
+  }
+  .role-head{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--rule);
+    background:var(--paper-deep);
+  }
+  .role-badge{
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:13px;font-weight:700;flex-shrink:0;
+  }
+  .role-title{font-size:19px;font-weight:700;}
+  .role-tag{
+    margin-left:auto;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .role-body{padding:16px 18px 6px;}
+  .role-body p{font-size:15.5px;margin-bottom:12px;}
+  .pnote{
+    margin:0 18px 16px;
+    padding:12px 14px;
+    background:rgba(31,111,139,0.05);
+    border-left:3px solid currentColor;
+    border-radius:0 3px 3px 0;
+    font-size:14.5px;
+    line-height:1.55;
+  }
+  .pnote b{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;
+    display:block;margin-bottom:4px;
+  }
+  .pnote p{margin:0;color:var(--ink);font-size:14.5px;max-width:none;}
+
+  .c-planner{color:var(--planner);} .b-planner{background:var(--planner);}
+  .c-doer{color:var(--doer);} .b-doer{background:var(--doer);}
+  .c-tool{color:var(--tool);} .b-tool{background:var(--tool);}
+  .c-learner{color:var(--learner);} .b-learner{background:var(--learner);}
+  .c-critic{color:var(--critic);} .b-critic{background:var(--critic);}
+  .c-supervisor{color:var(--supervisor);} .b-supervisor{background:var(--supervisor);}
+  .c-presenter{color:var(--presenter);} .b-presenter{background:var(--presenter);}
+
+  /* ---------- Pipeline ---------- */
+  .pipeline{
+    margin:26px auto 30px;
+    max-width:480px;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .pl-node{
+    width:100%;
+    border:1.5px solid var(--ink);
+    border-radius:4px;
+    background:#FFFDF7;
+    padding:12px 16px;
+    text-align:center;
+    font-size:15.5px;
+  }
+  .pl-node .pl-role{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+    display:block;
+  }
+  .pl-node .pl-desc{font-size:13.5px;color:var(--ink-soft);font-style:italic;}
+  .pl-arrow{
+    height:30px;width:2px;background:var(--ink);position:relative;margin:2px 0;
+  }
+  .pl-arrow::after{
+    content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+    border-left:5px solid transparent;border-right:5px solid transparent;
+    border-top:7px solid var(--ink);
+  }
+  .pl-branch{
+    width:100%;
+    border:1.5px dashed var(--supervisor);
+    border-radius:4px;
+    background:rgba(84,72,122,0.06);
+    padding:12px 16px;text-align:center;font-size:14px;
+  }
+  .pl-branch .opts{
+    display:flex;justify-content:center;gap:10px;margin-top:8px;flex-wrap:wrap;
+  }
+  .pl-branch .opt{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:11px;letter-spacing:0.08em;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--supervisor);
+    color:var(--supervisor);
+  }
+  .pl-user{
+    border:none;background:var(--ink);color:var(--paper);
+    border-radius:4px;width:100%;padding:11px 16px;text-align:center;
+    font-family:'SF Mono','Menlo','Consolas',monospace;font-size:13px;letter-spacing:0.1em;
+  }
+
+  /* ---------- Levers ---------- */
+  .levers{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0;}
+  @media(max-width:640px){.levers{grid-template-columns:1fr;}}
+  .lever{
+    border:1px solid var(--rule);border-radius:4px;background:#FFFDF7;
+    padding:18px 20px;
+  }
+  .lever h4{
+    font-size:17px;font-weight:700;margin-bottom:8px;
+  }
+  .lever h4 span{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    color:var(--accent);font-size:13px;margin-right:6px;
+  }
+  .lever p{font-size:14.5px;margin-bottom:8px;}
+  .lever .as{
+    font-style:italic;color:var(--ink-soft);font-size:13.5px;
+  }
+
+  /* ---------- Prompt compare ---------- */
+  .prompt-compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 26px;}
+  @media(max-width:640px){.prompt-compare{grid-template-columns:1fr;}}
+  .prompt{
+    border-radius:4px;padding:14px 16px;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:12.5px;line-height:1.6;
+  }
+  .prompt .lab{
+    font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;
+    display:block;margin-bottom:8px;font-weight:700;
+  }
+  .prompt.bad{background:rgba(165,42,60,0.07);border:1px solid rgba(165,42,60,0.35);}
+  .prompt.bad .lab{color:var(--critic);}
+  .prompt.good{background:rgba(62,124,79,0.07);border:1px solid rgba(62,124,79,0.35);}
+  .prompt.good .lab{color:var(--learner);}
+
+  /* ---------- Checklist / takeaways ---------- */
+  .ticklist{list-style:none;margin:14px 0 22px;}
+  .ticklist li{
+    position:relative;padding-left:30px;margin-bottom:10px;
+    font-size:15.5px;max-width:70ch;
+  }
+  .ticklist li::before{
+    content:'→';position:absolute;left:4px;top:0;
+    color:var(--accent);font-weight:700;
+  }
+
+  .warnbox{
+    margin:22px 0;padding:18px 20px;
+    border:1px solid rgba(165,42,60,0.4);
+    border-left:4px solid var(--critic);
+    background:rgba(165,42,60,0.05);
+    border-radius:0 4px 4px 0;
+  }
+  .warnbox b{
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+    color:var(--critic);display:block;margin-bottom:6px;
+  }
+  .warnbox p{margin:0;font-size:15px;max-width:none;}
+
+  /* ---------- Engineering mapping table ---------- */
+  table{
+    width:100%;border-collapse:collapse;margin:18px 0 26px;
+    font-size:14.5px;background:#FFFDF7;
+  }
+  th{
+    text-align:left;padding:10px 12px;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+    background:var(--ink);color:var(--paper);
+  }
+  td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  td:first-child{font-weight:700;white-space:nowrap;}
+  tr:nth-child(even) td{background:var(--paper-deep);}
+  .tbl-scroll{overflow-x:auto;}
+
+  /* ---------- References ---------- */
+  .refs{list-style:none;counter-reset:ref;}
+  .refs li{
+    counter-increment:ref;
+    position:relative;padding-left:42px;margin-bottom:14px;
+    font-size:15px;max-width:75ch;
+  }
+  .refs li::before{
+    content:'[' counter(ref) ']';
+    position:absolute;left:0;top:0;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:13px;color:var(--accent);font-weight:700;
+  }
+  .refs a{color:var(--accent);word-break:break-all;}
+  .refs .note{color:var(--ink-soft);font-style:italic;font-size:13.5px;display:block;}
+
+  footer{
+    margin-top:56px;border-top:3px double var(--rule);
+    padding:26px 0 48px;
+    font-family:'SF Mono','Menlo','Consolas',monospace;
+    font-size:12px;color:var(--ink-soft);text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--planner);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">Agentic AI · Field Notes · No. 7 · By Majid Mazouchi</div>
+    <h1>Don't build one super-agent.<br>Build a <em>team</em>.</h1>
+    <p class="standfirst">A plain-language explanation of how multi-agent AI systems work — roles, feedback loops, and teamwork — with practical notes for putting it into production.</p>
+    <div class="source-line">
+      Based on: IBM Technology — <a href="https://www.youtube.com/watch?v=kqj22mWIdjU" target="_blank" rel="noopener">"Building a Team of AI Agents: Roles, Feedback, &amp; Teamwork Explained"</a> (≈10 min)
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ======================= 1. The big idea ======================= -->
+  <section id="big-idea">
+    <div class="sec-label"><span class="num">01</span><h2>The big idea in one sentence</h2></div>
+
+    <div class="big-idea">
+      <div class="kicker">Core message</div>
+      <p>One agent that tries to do everything will do everything badly. A team of small, specialized agents — each with one clear job — does the work better, cheaper, and in a way you can actually debug.</p>
+    </div>
+
+    <p><strong>Why does a single agent struggle?</strong> Because a complex task forces it to plan, fetch data, call tools, do the work, check the quality, and write the final answer — all in one breath, inside one crowded context window. Each extra responsibility makes every other responsibility worse. Mistakes pile up and nobody catches them, because the same model that made the mistake is the one "checking" it.</p>
+
+    <div class="analogy">
+      <div class="left">
+        <h4>Human team analogy</h4>
+        <p>You would never hire one person to be the architect, the developer, the tester, the researcher, the project manager, and the presenter on the same project. You create roles, give each person a clear scope, and let them hand work to each other.</p>
+      </div>
+      <div>
+        <h4>The engineering name for this</h4>
+        <p>This is simply <strong>separation of concerns</strong>, applied to AI. Each agent gets a narrow responsibility, a bounded context, and a measurable output. Smaller scope → fewer confusions → easier testing → easier debugging.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 2. The seven roles ======================= -->
+  <section id="roles">
+    <div class="sec-label"><span class="num">02</span><h2>The seven roles on the team</h2></div>
+    <p>The video describes a typical roster. You don't need all seven on day one — but it helps to know the full cast before you decide who to "hire."</p>
+
+    <div class="roles">
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-planner">P</div>
+          <div class="role-title">Planner</div>
+          <div class="role-tag">thinks before anyone acts</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> The planner reads the user's request and breaks it into a numbered list of steps <em>before</em> any work starts. "Build me a market report" becomes: identify the market → fetch data → compare competitors → analyze risks → make charts → write report → send for review.</p>
+        </div>
+        <div class="pnote c-planner">
+          <b>Practical note</b>
+          <p>The planner's output should be a <em>plan</em> (a task list or task graph), never the work itself. If your planner starts writing the report, you've built it wrong. Give it a strong reasoning model — bad plans poison everything downstream.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-doer">D</div>
+          <div class="role-title">Doer / Executor</div>
+          <div class="role-tag">produces the actual work</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> The doer takes one step from the plan and executes it — writes the code, drafts the text, transforms the data. It's the worker on the assembly line. It's good at its small task, but it can't see the whole project, so its output may be locally right and globally inconsistent.</p>
+        </div>
+        <div class="pnote c-doer">
+          <b>Practical note</b>
+          <p>Treat the doer like a worker node: hand it a precise task, its inputs, its constraints, and the exact output format you expect. Never let the doer own the workflow — that's how you get an agent quietly redefining the goal mid-task.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-tool">T</div>
+          <div class="role-title">Tool Operator</div>
+          <div class="role-tag">hands on the real systems</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> Language models don't actually <em>know</em> what's in your database right now. The tool operator is the agent that touches the real world: it calls APIs, queries databases, runs scripts, reads files, and brings back facts.</p>
+        </div>
+        <div class="pnote c-tool">
+          <b>Practical note</b>
+          <p>This is your highest-risk role. Govern it with permissions, audit logs, read/write boundaries, and approval gates for anything destructive. And keep it dumb on purpose: it fetches structured evidence and returns it — it should not "reason freely" about what the evidence means, especially in safety-critical domains.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-learner">L</div>
+          <div class="role-title">Learner / Researcher</div>
+          <div class="role-tag">keeps the team grounded</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> The learner goes and finds outside information the team doesn't have — recent data, documents, announcements. In most real systems this is the RAG (retrieval-augmented generation) role: search a knowledge base, pull the relevant pieces, hand them over.</p>
+        </div>
+        <div class="pnote c-learner">
+          <b>Practical note</b>
+          <p>The skill here is not retrieval — it's <em>filtered</em> retrieval. A good learner decides what is relevant, fresh, and trustworthy, and it labels where each fact came from. If you can, tag evidence by reliability (e.g. deterministic extraction &gt; declared documentation &gt; LLM inference) so downstream agents know what they can lean on.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-critic">C</div>
+          <div class="role-title">Critic / Feedback Agent</div>
+          <div class="role-tag">the quality gate</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> The critic reviews what the others produced and hunts for problems: hallucinations, missing requirements, logical contradictions, weak evidence, unsafe assumptions, bad formatting. This is the feedback loop that makes the team better than a single agent.</p>
+        </div>
+        <div class="pnote c-critic">
+          <b>Practical note</b>
+          <p>A critic that just says "looks good" is useless. Force structured, actionable feedback: the issue, its severity, the evidence, and a recommended fix. Example: <em>"The output references signal X, but X is not in the extracted interface. Severity: High. Fix: replace with confirmed signal Y or mark unresolved."</em> In high-stakes systems, the critic is not optional — it is the safety layer.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-supervisor">S</div>
+          <div class="role-title">Supervisor</div>
+          <div class="role-tag">runtime governance</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> The supervisor watches the workflow while it runs. Are agents stuck in a loop? Did a tool call fail three times in a row? Is the budget blown? Should we retry, escalate to a human, or stop? The planner made the plan; the supervisor manages the execution.</p>
+        </div>
+        <div class="pnote c-supervisor">
+          <b>Practical note</b>
+          <p>Watch for the classics: infinite loops, repeated failed tool calls, conflicting outputs, over-budget runs, low-confidence conclusions, and unsafe write actions. Give the supervisor hard STOP conditions. In production, this role becomes your runtime governance layer — the thing that keeps an autonomous system from quietly going off the rails.</p>
+        </div>
+      </div>
+
+      <div class="role">
+        <div class="role-head">
+          <div class="role-badge b-presenter">Pr</div>
+          <div class="role-title">Presenter</div>
+          <div class="role-tag">the final voice</div>
+        </div>
+        <div class="role-body">
+          <p><strong>In simple words:</strong> Internal agent chatter is messy. The presenter takes the validated results and assembles them into the thing the user actually sees — a clean report, an email, a dashboard, a document.</p>
+        </div>
+        <div class="pnote c-presenter">
+          <b>Practical note</b>
+          <p>One iron rule: the presenter <em>formats</em>, it never <em>invents</em>. If a fact didn't survive the critic, it doesn't appear in the final output. Pick a strong writing model here — this role decides whether your sophisticated pipeline looks sophisticated to the user.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ======================= 3. How they work together ======================= -->
+  <section id="pipeline">
+    <div class="sec-label"><span class="num">03</span><h2>How the team works together</h2></div>
+    <p>A clean minimal workflow looks like an assembly line with one decision point. The supervisor sits at the gate: it accepts the work, sends it back for another pass, or escalates to a human.</p>
+
+    <div class="pipeline">
+      <div class="pl-user">USER REQUEST</div>
+      <div class="pl-arrow"></div>
+      <div class="pl-node"><span class="pl-role c-planner">Planner</span><span class="pl-desc">break the request into steps</span></div>
+      <div class="pl-arrow"></div>
+      <div class="pl-node"><span class="pl-role c-tool">Tool Operator</span> <span class="pl-role" style="color:var(--ink-soft)">/</span> <span class="pl-role c-learner">Learner</span><span class="pl-desc">gather facts and evidence</span></div>
+      <div class="pl-arrow"></div>
+      <div class="pl-node"><span class="pl-role c-doer">Doer</span><span class="pl-desc">produce the work product</span></div>
+      <div class="pl-arrow"></div>
+      <div class="pl-node"><span class="pl-role c-critic">Critic</span><span class="pl-desc">review against the evidence</span></div>
+      <div class="pl-arrow"></div>
+      <div class="pl-branch">
+        <span class="pl-role c-supervisor" style="font-family:'SF Mono','Menlo','Consolas',monospace;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Supervisor decision</span>
+        <div class="opts">
+          <span class="opt">accept</span><span class="opt">retry</span><span class="opt">escalate</span>
+        </div>
+      </div>
+      <div class="pl-arrow"></div>
+      <div class="pl-node"><span class="pl-role c-presenter">Presenter</span><span class="pl-desc">assemble the final answer</span></div>
+      <div class="pl-arrow"></div>
+      <div class="pl-user">FINAL ANSWER</div>
+    </div>
+
+    <h3>Start small, grow only when needed</h3>
+    <p>You almost never need all seven roles on day one. A sensible growth path:</p>
+    <ul class="ticklist">
+      <li><strong>Minimal production pattern:</strong> Planner + Tool Operator + Critic + Presenter. This already covers planning, grounding, quality, and output.</li>
+      <li><strong>Add later, when complexity demands it:</strong> Learner (when you need serious retrieval), Supervisor (when workflows get long enough to get stuck), then Domain Expert, Safety Reviewer, or Memory Manager roles.</li>
+    </ul>
+
+    <div class="warnbox">
+      <b>The one failure mode to avoid</b>
+      <p>Do not let your main "reasoning agent" also be the retriever, the verifier, the planner, and the final writer. That single decision creates exactly the failure modes multi-agent design exists to prevent: hallucination, circular reasoning ("I checked my own work and I agree with myself"), hidden assumptions, and zero traceability.</p>
+    </div>
+  </section>
+
+  <!-- ======================= 4. The four levers ======================= -->
+  <section id="levers">
+    <div class="sec-label"><span class="num">04</span><h2>Making each agent good at its job</h2></div>
+    <p>Defining the roles is half the work. The video names four levers for making each role actually perform — and each one has a clean HR analogy.</p>
+
+    <div class="levers">
+      <div class="lever">
+        <h4><span>4.1</span>Prompting</h4>
+        <p class="as">= writing the job description</p>
+        <p>The system prompt defines the agent's role, its boundaries, its expected output format, and what to do when it fails. Vague prompts produce vague employees.</p>
+      </div>
+      <div class="lever">
+        <h4><span>4.2</span>Model selection</h4>
+        <p class="as">= hiring the right person</p>
+        <p>Not every role needs the same (expensive) model. Planner and critic want strong reasoning; the tool operator wants reliable function-calling; the presenter wants strong writing; the learner wants retrieval performance. Match the model to the job and you cut cost without cutting quality.</p>
+      </div>
+      <div class="lever">
+        <h4><span>4.3</span>Tuning &amp; examples</h4>
+        <p class="as">= on-the-job training</p>
+        <p>Fine-tuning or just good few-shot examples make behavior consistent. A requirements critic, for example, learns fastest from examples of good requirements, unsupported claims, ambiguous references, and missing test procedures.</p>
+      </div>
+      <div class="lever">
+        <h4><span>4.4</span>Context</h4>
+        <p class="as">= the access policy</p>
+        <p>Each agent should receive <em>only</em> the context its job requires. Too much context confuses the model, raises cost, and increases hallucination risk. Context is need-to-know, not all-you-can-eat.</p>
+      </div>
+    </div>
+
+    <h3>Prompting: the difference in practice</h3>
+    <div class="prompt-compare">
+      <div class="prompt bad">
+        <span class="lab">✗ Weak job description</span>
+        You are a helpful AI. Analyze this system.
+      </div>
+      <div class="prompt good">
+        <span class="lab">✓ Real job description</span>
+        You are a Critic Agent. Your only job is to verify whether the generated requirement is supported by deterministic model evidence. Do not rewrite the requirement unless evidence is missing. Return PASS, FAIL, or NEEDS_REVIEW with cited evidence.
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 5. Engineering mapping ======================= -->
+  <section id="engineering">
+    <div class="sec-label"><span class="num">05</span><h2>Mapping this to a real engineering system</h2></div>
+    <p>The pattern becomes concrete when you map it onto a real domain — say, a knowledge engine for model-based automotive software (Simulink/TargetLink models, ARXML, A2L, requirement databases). The roles translate almost one-to-one:</p>
+
+    <div class="tbl-scroll">
+    <table>
+      <thead>
+        <tr><th>Generic role</th><th>Concrete agent in an engineering knowledge system</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--planner)">Planner</td>
+          <td>Decides the workflow per request: documentation generation, root-cause analysis, requirement tracing, or interface/ring analysis.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--tool)">Tool Operator</td>
+          <td><strong>Deterministic extractors and query services</strong> — not LLMs. They parse MDL/SLX, ARXML, and A2L files, query the signal/ring/requirement databases and the vector store, and return structured evidence only.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--learner)">Learner</td>
+          <td>The retrieval agent: pulls supporting documents and context, and labels every fact by evidence level — <span class="mono" style="font-size:12px">DETERMINISTIC &gt; DECLARATIVE &gt; LLM_INFERRED</span>.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--doer)">Doer</td>
+          <td>The domain-reasoning agent (e.g. motor-control reasoning). It reasons <em>only after</em> evidence has been retrieved — never from memory alone.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--critic)">Critic</td>
+          <td>The verifier: checks every generated requirement or conclusion against the evidence levels, flags unsupported signal references, and returns PASS / FAIL / NEEDS_REVIEW with citations.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--supervisor)">Supervisor</td>
+          <td>Controls retries, escalation to humans, missing-evidence handling, and hard STOP conditions for low-confidence or unsafe outcomes.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--presenter)">Presenter</td>
+          <td>The formatting layer that writes the final deliverable — documentation blocks, system or unit requirements, or a root-cause report — using only verified facts.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>Two design rules matter most in safety-relevant domains: <strong>extraction must be deterministic</strong> (parsers, not LLM guesses, decide what signals exist in a model), and <strong>the verifier is the safety layer</strong> — every LLM-generated claim passes through it before it reaches a human or a document.</p>
+  </section>
+
+  <!-- ======================= 6. Takeaways ======================= -->
+  <section id="takeaways">
+    <div class="sec-label"><span class="num">06</span><h2>Five things to remember</h2></div>
+    <ul class="ticklist">
+      <li><strong>One agent, one job.</strong> Narrow responsibility, bounded context, measurable output. That's the whole trick.</li>
+      <li><strong>Plans and execution are different jobs.</strong> The planner makes the plan; the supervisor manages reality when the plan meets it.</li>
+      <li><strong>Critics must be specific.</strong> Issue, severity, evidence, recommended fix — or the feedback loop is theater.</li>
+      <li><strong>Match models and context to roles.</strong> Expensive reasoning models for planning and critique; need-to-know context for everyone.</li>
+      <li><strong>Start with four roles</strong> (Planner, Tool Operator, Critic, Presenter) and add the rest only when the system's complexity earns it.</li>
+    </ul>
+  </section>
+
+  <!-- ======================= 7. References ======================= -->
+  <section id="references">
+    <div class="sec-label"><span class="num">07</span><h2>References &amp; further reading</h2></div>
+    <ol class="refs">
+      <li>
+        IBM Technology. <em>Building a Team of AI Agents: Roles, Feedback, &amp; Teamwork Explained.</em> YouTube, ≈10 min.
+        <a href="https://www.youtube.com/watch?v=kqj22mWIdjU" target="_blank" rel="noopener">youtube.com/watch?v=kqj22mWIdjU</a>
+        <span class="note">The primary source for this page: the seven roles and the four levers (prompting, model selection, tuning, context).</span>
+      </li>
+      <li>
+        IBM Think. <em>What Are AI Agents?</em>
+        <a href="https://www.ibm.com/think/topics/ai-agents" target="_blank" rel="noopener">ibm.com/think/topics/ai-agents</a>
+        <span class="note">IBM's foundational definition of agents as systems that autonomously design workflows and use tools.</span>
+      </li>
+      <li>
+        Anthropic. <em>Building Effective Agents.</em>
+        <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">anthropic.com/research/building-effective-agents</a>
+        <span class="note">Strongly aligned advice: prefer simple, composable patterns; add agentic complexity only when the task demands it.</span>
+      </li>
+      <li>
+        LangChain / LangGraph documentation. <em>Multi-Agent Systems.</em>
+        <a href="https://langchain-ai.github.io/langgraph/concepts/multi_agent/" target="_blank" rel="noopener">langchain-ai.github.io/langgraph/concepts/multi_agent</a>
+        <span class="note">Concrete implementation patterns for supervisor and hierarchical agent teams.</span>
+      </li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  AGENTIC AI · FIELD NOTES — COMPILED JUNE 2026
+</footer>
+
+</body>
+</html>

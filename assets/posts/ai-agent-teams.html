@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Team of AI Agents — A Plain-Language Monograph</title>
+<style>
+  :root{
+    --paper:#faf6ee;
+    --paper-deep:#f3ede0;
+    --ink:#1f2430;
+    --ink-soft:#4a5163;
+    --accent:#b34a2e;       /* terracotta-rust */
+    --accent-2:#1f6e6b;     /* deep teal */
+    --accent-3:#8a6d1f;     /* ochre */
+    --line:#d8cfba;
+    --card:#fffdf7;
+    --code-bg:#262b38;
+    --code-ink:#e8e3d4;
+    --ok:#2e7d4f;
+    --bad:#a3382c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia,'Times New Roman',serif;
+    line-height:1.72;
+    font-size:17px;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:0 28px;}
+
+  /* ---------- header ---------- */
+  header{
+    border-bottom:3px double var(--line);
+    padding:56px 0 36px;
+    background:linear-gradient(180deg,var(--paper-deep),var(--paper));
+  }
+  .eyebrow{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:12px;letter-spacing:0.22em;text-transform:uppercase;
+    color:var(--accent-2);font-weight:600;margin-bottom:14px;
+  }
+  h1{
+    font-size:clamp(30px,5vw,46px);
+    line-height:1.15;font-weight:700;letter-spacing:-0.01em;
+    margin-bottom:16px;
+  }
+  .subtitle{font-size:19px;color:var(--ink-soft);font-style:italic;max-width:700px;}
+  .meta{
+    margin-top:22px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:13px;color:var(--ink-soft);
+    display:flex;gap:22px;flex-wrap:wrap;
+  }
+  .meta span b{color:var(--accent);font-weight:600;}
+
+  /* ---------- toc ---------- */
+  nav.toc{
+    margin:34px 0 8px;padding:20px 24px;
+    background:var(--card);border:1px solid var(--line);border-radius:8px;
+  }
+  nav.toc h2{font-size:14px;letter-spacing:0.18em;text-transform:uppercase;
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:var(--accent-3);margin-bottom:10px;}
+  nav.toc ol{list-style:none;counter-reset:toc;columns:2;column-gap:36px;}
+  nav.toc li{counter-increment:toc;padding:4px 0;break-inside:avoid;}
+  nav.toc li::before{
+    content:counter(toc,decimal-leading-zero);
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;
+    color:var(--accent);margin-right:10px;font-weight:600;
+  }
+  nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--line);}
+  nav.toc a:hover{color:var(--accent);border-bottom-color:var(--accent);}
+  nav.toc .itag{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;
+    background:var(--accent-2);color:#fff;border-radius:3px;padding:1px 6px;
+    margin-left:6px;letter-spacing:0.08em;vertical-align:2px;
+  }
+  @media(max-width:640px){nav.toc ol{columns:1;}}
+
+  /* ---------- sections ---------- */
+  section{padding:44px 0 8px;}
+  .secnum{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:13px;letter-spacing:0.2em;color:var(--accent);font-weight:700;
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  h2.sec{
+    font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.2;
+    margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line);
+  }
+  h3{font-size:20px;margin:28px 0 10px;color:var(--ink);}
+  p{margin-bottom:16px;}
+  p.lede{font-size:19px;color:var(--ink-soft);}
+  strong{color:var(--accent-2);}
+  em{color:var(--ink-soft);}
+
+  /* ---------- callouts ---------- */
+  .keyidea{
+    margin:26px 0;padding:22px 26px;
+    background:var(--card);border-left:5px solid var(--accent);
+    border-radius:0 8px 8px 0;font-size:18px;
+  }
+  .keyidea .tag, .practical .tag, .warn .tag{
+    display:block;font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:11px;letter-spacing:0.2em;text-transform:uppercase;
+    font-weight:700;margin-bottom:8px;
+  }
+  .keyidea .tag{color:var(--accent);}
+  .practical{
+    margin:26px 0;padding:20px 24px;
+    background:#eef4f1;border:1px solid #c4d6cf;border-left:5px solid var(--accent-2);
+    border-radius:0 8px 8px 0;
+  }
+  .practical .tag{color:var(--accent-2);}
+  .practical ul{margin:6px 0 4px 20px;}
+  .practical li{margin-bottom:8px;}
+  .warn{
+    margin:26px 0;padding:20px 24px;
+    background:#f7efe6;border:1px solid #e2cdb2;border-left:5px solid var(--accent-3);
+    border-radius:0 8px 8px 0;
+  }
+  .warn .tag{color:var(--accent-3);}
+
+  /* ---------- role cards ---------- */
+  .roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin:24px 0;}
+  .role{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:20px 20px 16px;position:relative;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .role:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(31,36,48,.08);}
+  .role .icon{font-size:26px;margin-bottom:8px;}
+  .role h4{font-size:17px;margin-bottom:6px;color:var(--accent);}
+  .role p{font-size:15px;color:var(--ink-soft);margin-bottom:8px;line-height:1.55;}
+  .role .human{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;
+    color:var(--accent-2);font-weight:600;letter-spacing:0.04em;
+  }
+
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse;margin:22px 0;font-size:15.5px;background:var(--card);}
+  th{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;
+    letter-spacing:0.08em;text-transform:uppercase;text-align:left;
+    background:var(--ink);color:var(--paper);padding:10px 14px;
+  }
+  td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:nth-child(even) td{background:var(--paper-deep);}
+  td b{color:var(--accent);}
+  .tscroll{overflow-x:auto;}
+
+  /* ---------- diagram ---------- */
+  .diagram{
+    background:var(--code-bg);color:var(--code-ink);
+    font-family:'Consolas','SF Mono',Menlo,monospace;font-size:13.5px;
+    line-height:1.55;padding:24px 26px;border-radius:10px;
+    overflow-x:auto;white-space:pre;margin:24px 0;
+  }
+  .diagram .hl{color:#e8a061;}
+  .diagram .gl{color:#7fc8a9;}
+
+  /* ---------- interactive shared ---------- */
+  .ipanel{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:24px;margin:26px 0;
+  }
+  .ipanel .ititle{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:12px;letter-spacing:0.2em;text-transform:uppercase;
+    color:var(--accent-2);font-weight:700;margin-bottom:14px;
+  }
+  button.btn{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;
+    padding:9px 18px;border-radius:6px;border:1px solid var(--line);
+    background:var(--paper-deep);color:var(--ink);cursor:pointer;
+    transition:background .12s ease,color .12s ease;
+  }
+  button.btn:hover{background:var(--ink);color:var(--paper);}
+  button.btn.active{background:var(--accent-2);color:#fff;border-color:var(--accent-2);}
+  button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.btn.primary:hover{background:#943d25;}
+  button.btn:focus-visible{outline:3px solid var(--accent-3);outline-offset:2px;}
+  button.btn:disabled{opacity:.4;cursor:default;}
+
+  /* ---------- toggle comparison ---------- */
+  .togglebar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  .cmp-panel{display:none;}
+  .cmp-panel.show{display:block;}
+  .cmp-flow{
+    font-family:'Consolas','SF Mono',Menlo,monospace;font-size:13px;
+    background:var(--code-bg);color:var(--code-ink);border-radius:8px;
+    padding:18px 20px;white-space:pre;overflow-x:auto;margin:12px 0;line-height:1.6;
+  }
+  .verdict{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;}
+  .verdict span{padding:4px 12px;border-radius:14px;font-weight:600;}
+  .v-ok{background:#e2efe6;color:var(--ok);}
+  .v-bad{background:#f5e2de;color:var(--bad);}
+  .v-mid{background:#f2ecdc;color:var(--accent-3);}
+
+  /* ---------- workflow walkthrough ---------- */
+  .wfstages{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px;}
+  .wfstage{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;
+    padding:8px 14px;border-radius:18px;border:1.5px solid var(--line);
+    color:var(--ink-soft);background:var(--paper);transition:all .15s ease;
+  }
+  .wfstage.on{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.05);}
+  .wfstage.done{background:#e2efe6;color:var(--ok);border-color:#bcd8c6;}
+  .wfmsg{
+    min-height:150px;background:var(--paper-deep);border:1px dashed var(--line);
+    border-radius:8px;padding:18px 20px;margin-bottom:16px;
+  }
+  .wfmsg .who{
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;
+    letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:var(--accent);
+    margin-bottom:8px;
+  }
+  .wfmsg .txt{font-size:15.5px;}
+  .wfmsg .txt code{
+    font-family:'Consolas',Menlo,monospace;font-size:13px;background:#e9e2d0;
+    padding:1px 6px;border-radius:4px;color:var(--accent-2);
+  }
+  .wfnav{display:flex;gap:10px;align-items:center;}
+  .wfnav .count{font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:var(--ink-soft);margin-left:auto;}
+
+  /* ---------- trace log ---------- */
+  .trace{margin:22px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .trace-step{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--card);}
+  .trace-step:last-child{border-bottom:none;}
+  .trace-agent{
+    flex:0 0 168px;padding:14px 16px;
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;
+    color:#fff;background:var(--accent-2);display:flex;align-items:flex-start;
+  }
+  .trace-step:nth-child(even) .trace-agent{background:#2a8884;}
+  .trace-step.critical .trace-agent{background:var(--accent);}
+  .trace-body{padding:14px 18px;font-size:15px;flex:1;}
+  .trace-body .ev{
+    display:inline-block;font-family:'Consolas',Menlo,monospace;font-size:12px;
+    background:#e9e2d0;color:var(--accent-3);border-radius:4px;padding:1px 7px;margin:2px 2px 0 0;
+  }
+  @media(max-width:600px){
+    .trace-step{flex-direction:column;}
+    .trace-agent{flex:none;}
+  }
+
+  /* ---------- checklist ---------- */
+  .check-item{
+    display:flex;gap:14px;align-items:flex-start;padding:13px 4px;
+    border-bottom:1px dotted var(--line);font-size:16px;
+  }
+  .check-item input{margin-top:7px;width:17px;height:17px;accent-color:var(--accent-2);cursor:pointer;}
+  .check-item label{cursor:pointer;}
+  .check-result{
+    margin-top:18px;padding:16px 20px;border-radius:8px;font-size:16px;
+    background:var(--paper-deep);border:1px solid var(--line);
+  }
+  .check-result b{color:var(--accent);}
+
+  /* ---------- quiz ---------- */
+  .quiz-q{padding:18px 0;border-bottom:1px dotted var(--line);}
+  .quiz-q .qt{font-weight:700;margin-bottom:10px;}
+  .quiz-q .opt{display:flex;gap:10px;align-items:flex-start;padding:5px 0;font-size:15.5px;}
+  .quiz-q .opt input{margin-top:6px;accent-color:var(--accent);cursor:pointer;}
+  .quiz-q .opt label{cursor:pointer;}
+  .quiz-q .expl{
+    display:none;margin-top:10px;padding:12px 16px;border-radius:6px;font-size:14.5px;
+  }
+  .quiz-q.graded.right .expl{display:block;background:#e2efe6;color:var(--ok);}
+  .quiz-q.graded.wrong .expl{display:block;background:#f5e2de;color:var(--bad);}
+  .quiz-score{
+    margin-top:18px;font-size:18px;font-weight:700;color:var(--accent);
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+  }
+
+  /* ---------- references ---------- */
+  .refs{counter-reset:ref;margin:18px 0;}
+  .ref{
+    counter-increment:ref;display:flex;gap:14px;
+    padding:14px 0;border-bottom:1px dotted var(--line);font-size:15.5px;
+  }
+  .ref::before{
+    content:"[" counter(ref) "]";
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    color:var(--accent);font-weight:700;min-width:34px;
+  }
+  .ref a{color:var(--accent-2);word-break:break-all;}
+  .ref a:hover{color:var(--accent);}
+
+  footer{
+    margin-top:56px;padding:28px 0 44px;border-top:3px double var(--line);
+    font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:var(--ink-soft);
+    text-align:center;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+    html{scroll-behavior:auto;}
+    .wfstage.on{transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">Plain-Language Monograph · Agentic AI Series · Expanded Edition</div>
+    <h1>Building a Team of AI Agents</h1>
+    <p class="subtitle">Why one large language model is rarely enough — roles, memory, protocols, orchestration patterns, failure modes, costs, evaluation, and governance, explained like an engineering team.</p>
+    <div class="meta">
+      <span>By <b>Majid Mazouchi</b></span>
+      <span>Based on: <b>IBM Technology</b> — "Building a Team of AI Agents: Roles, Feedback &amp; Teamwork Explained"</span>
+      <span>Audience: <b>Engineers new to agentic AI</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">The core idea in one sentence</a></li>
+    <li><a href="#s2">What an AI agent actually is</a></li>
+    <li><a href="#s3">One agent vs. a team</a><span class="itag">interactive</span></li>
+    <li><a href="#s4">The six roles of an agent team</a></li>
+    <li><a href="#s5">Four levers that make agents good</a></li>
+    <li><a href="#s6">Memory: what agents remember</a></li>
+    <li><a href="#s7">How agents talk: MCP &amp; A2A</a></li>
+    <li><a href="#s8">Orchestration patterns</a></li>
+    <li><a href="#s9">Feedback loops — and their dangers</a></li>
+    <li><a href="#s10">Failure modes catalog</a></li>
+    <li><a href="#s11">A practical architecture</a><span class="itag">interactive</span></li>
+    <li><a href="#s12">Cost &amp; latency: the price of a team</a></li>
+    <li><a href="#s13">Evaluating an agent team</a></li>
+    <li><a href="#s14">Do you actually need multiple agents?</a><span class="itag">checklist</span></li>
+    <li><a href="#s15">Case study: engineering documentation</a></li>
+    <li><a href="#s16">Governance: the hard part</a></li>
+    <li><a href="#s17">Self-check quiz</a><span class="itag">interactive</span></li>
+    <li><a href="#s18">References</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="s1">
+  <div class="secnum">Section 01</div>
+  <h2 class="sec">The core idea in one sentence</h2>
+  <p class="lede">A single chatbot answers questions. A <strong>team of specialized agents</strong> — each with one clear job, connected by feedback and supervised by an orchestrator — can complete entire workflows.</p>
+  <div class="keyidea">
+    <span class="tag">Key idea</span>
+    Don't think of "an AI agent" as one magic chatbot. Think of it as a coordinated team: a planner, a doer, a tool user, a learner, a critic, and a supervisor — exactly like a human engineering team.
+  </div>
+  <p>This is the central message of the IBM Technology video. Humans solved the problem of complex work long ago: we split it into roles, give each person a clear responsibility, and add review and management on top. Agentic AI borrows the same playbook.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <div class="secnum">Section 02</div>
+  <h2 class="sec">What an AI agent actually is</h2>
+  <p>In simple words: a <strong>chatbot</strong> responds to a prompt and stops. An <strong>agent</strong> has a <em>goal</em>. It makes a plan, calls tools (search, databases, code execution, APIs), remembers context, and takes multiple steps until the goal is reached — or until it decides it cannot reach it.</p>
+  <p>IBM's working definition: an AI agent is a system that can <strong>autonomously perform tasks</strong> by designing its own workflow using the tools available to it. The keyword is <em>autonomously</em> — it decides the next step itself instead of waiting for you to type the next prompt.</p>
+  <div class="tscroll"><table>
+    <tr><th>Plain chatbot</th><th>AI agent</th></tr>
+    <tr><td>Reacts to one prompt at a time</td><td>Pursues a goal over many steps</td></tr>
+    <tr><td>Only generates text</td><td>Plans, calls tools, takes actions</td></tr>
+    <tr><td>No memory of the task state</td><td>Tracks progress, context, and intermediate results</td></tr>
+    <tr><td>You drive every step</td><td>It drives; you set the goal and the limits</td></tr>
+  </table></div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <div class="secnum">Section 03</div>
+  <h2 class="sec">One agent vs. a team — same task, two ways</h2>
+  <p>A single model asked to "do everything" tends to do everything <em>poorly</em>. Planning, coding, retrieving facts, and reviewing quality are different cognitive jobs. When one prompt has to cover all of them, the instructions blur and the model cuts corners.</p>
+  <p>Watch the same task — <em>"Write a verified summary of failure rates from our fleet database"</em> — handled both ways:</p>
+
+  <div class="ipanel">
+    <div class="ititle">Interactive · toggle between approaches</div>
+    <div class="togglebar">
+      <button class="btn active" id="cmpSingleBtn" onclick="showCmp('single')">Single agent</button>
+      <button class="btn" id="cmpTeamBtn" onclick="showCmp('team')">Agent team</button>
+    </div>
+
+    <div class="cmp-panel show" id="cmpSingle">
+      <div class="cmp-flow">USER ──► One LLM with one giant prompt:
+        "Query the database, analyze the failure rates,
+         check your work, and write a polished summary."
+
+LLM  ──► Queries DB (maybe with the wrong filter)
+     ──► Analyzes (mixes up two failure categories)
+     ──► "Checks its own work" (agrees with itself)
+     ──► Writes a fluent, confident, partly wrong summary
+
+USER ◄── One answer. No trace of where it went wrong.</div>
+      <div class="verdict">
+        <span class="v-ok">Fast</span>
+        <span class="v-ok">Cheap (1 model call chain)</span>
+        <span class="v-bad">Self-review is weak — the same weights that made the error judge it</span>
+        <span class="v-bad">No audit trail</span>
+      </div>
+    </div>
+
+    <div class="cmp-panel" id="cmpTeam">
+      <div class="cmp-flow">USER ──► Supervisor
+Supervisor ──► Planner:   "3 steps: query → analyze → summarize"
+Supervisor ──► Tool Agent: runs the SQL, returns raw rows  ◄ evidence
+Supervisor ──► Doer:       drafts the summary from the rows
+Supervisor ──► Critic:     "Category B rate doesn't match row 47.
+                            Revise." ◄ caught it!
+Supervisor ──► Doer:       fixes the number
+Supervisor ──► Critic:     "Consistent with evidence. Accept."
+USER ◄── Verified answer + full trace of every step</div>
+      <div class="verdict">
+        <span class="v-mid">Slower</span>
+        <span class="v-mid">~3–5× the tokens</span>
+        <span class="v-ok">Independent critic with fresh context catches the error</span>
+        <span class="v-ok">Every step logged and auditable</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="practical">
+    <span class="tag">Practical note — what the team buys you</span>
+    <ul>
+      <li><b>Sharper prompts.</b> A critic prompt can say "find mistakes, never fix them." A planner prompt can say "produce steps, never execute." Narrow instructions are followed far more reliably than broad ones.</li>
+      <li><b>Right model for the right job.</b> Strong reasoning model for planning and critique, code-tuned model for the doer, small cheap model for routing.</li>
+      <li><b>Independent review.</b> The critic sees the draft with <em>fresh context</em>, so it isn't anchored to the doer's mistakes — the core weakness of single-agent "self-checking."</li>
+      <li><b>Auditability.</b> Each role produces its own artifact (plan, draft, review, verdict), so you can trace exactly where a failure happened.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <div class="secnum">Section 04</div>
+  <h2 class="sec">The six roles of an agent team</h2>
+  <p>The video describes six recurring roles. Each maps cleanly onto a familiar human job:</p>
+
+  <div class="roles">
+    <div class="role">
+      <div class="icon">🗺️</div>
+      <h4>Planner</h4>
+      <p>Breaks a big goal into small, ordered steps. "Build me a mobile app" becomes: requirements → UI design → code → test → review → deploy.</p>
+      <span class="human">Human equivalent: System architect</span>
+    </div>
+    <div class="role">
+      <div class="icon">🔨</div>
+      <h4>Doer</h4>
+      <p>Produces the actual output — the code, the report, the document. It executes the plan rather than inventing one.</p>
+      <span class="human">Human equivalent: Engineer</span>
+    </div>
+    <div class="role">
+      <div class="icon">🔌</div>
+      <h4>Tool operator</h4>
+      <p>Knows how to call external systems: databases, APIs, web search, code runners, file systems, enterprise software.</p>
+      <span class="human">Human equivalent: Tools specialist</span>
+    </div>
+    <div class="role">
+      <div class="icon">📚</div>
+      <h4>Learner / researcher</h4>
+      <p>Fetches missing information from documents, knowledge bases, the web, or examples — so the doer doesn't have to guess.</p>
+      <span class="human">Human equivalent: Researcher</span>
+    </div>
+    <div class="role">
+      <div class="icon">🔍</div>
+      <h4>Critic</h4>
+      <p>Checks the output against the requirements, finds mistakes, and suggests improvements. It reviews; it never rewrites.</p>
+      <span class="human">Human equivalent: Reviewer</span>
+    </div>
+    <div class="role">
+      <div class="icon">🧭</div>
+      <h4>Supervisor</h4>
+      <p>Watches the whole workflow, routes work between agents, decides when the result is good enough, and stops the loop.</p>
+      <span class="human">Human equivalent: Project manager</span>
+    </div>
+  </div>
+
+  <div class="keyidea">
+    <span class="tag">Why it works</span>
+    Team design matters more than raw model power. A very strong LLM with poor orchestration still fails; a set of modest, well-bounded agents with good context and a real feedback loop is far more reliable.
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <div class="secnum">Section 05</div>
+  <h2 class="sec">Four levers that make each agent good</h2>
+  <p>Once the roles exist, quality comes from four design levers:</p>
+  <div class="tscroll"><table>
+    <tr><th>Lever</th><th>What it means</th><th>Practical note</th></tr>
+    <tr>
+      <td><b>1. Prompting</b></td>
+      <td>Each agent gets a clear, narrow job description.</td>
+      <td>Write prompts like job descriptions: responsibility, inputs, outputs, and explicit "do not" rules ("the critic never edits the draft").</td>
+    </tr>
+    <tr>
+      <td><b>2. Model selection</b></td>
+      <td>Different models for different jobs.</td>
+      <td>Reasoning-heavy roles (planner, critic) deserve the strongest model. Routing and formatting can run on small, cheap models.</td>
+    </tr>
+    <tr>
+      <td><b>3. Model tuning</b></td>
+      <td>Adjusting models so they behave consistently in a domain.</td>
+      <td>For enterprise work, consistency beats brilliance. Fine-tuning or strict configuration reduces day-to-day variance.</td>
+    </tr>
+    <tr>
+      <td><b>4. Context</b></td>
+      <td>The right information at the right time.</td>
+      <td>Too little context → hallucination. Too much irrelevant context → confusion. Curate what each agent sees.</td>
+    </tr>
+  </table></div>
+  <div class="practical">
+    <span class="tag">Practical note — context is the usual culprit</span>
+    <ul>
+      <li>When an agent team underperforms, check context routing before changing models. Most failures are "the doer never saw the relevant document," not "the model is too weak."</li>
+      <li>Give each agent <em>only</em> what its role needs. The critic needs the requirements and the draft — not the entire retrieval corpus.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <div class="secnum">Section 06</div>
+  <h2 class="sec">Memory: what agents remember, and for how long</h2>
+  <p>"Context" in Section 05 is really three different memories with three different lifetimes. Confusing them is a common design error.</p>
+  <div class="tscroll"><table>
+    <tr><th>Memory type</th><th>Lifetime</th><th>What it holds</th><th>Who needs it</th></tr>
+    <tr>
+      <td><b>Short-term (scratchpad)</b></td>
+      <td>One task</td>
+      <td>The current plan, intermediate results, tool outputs, draft versions. Lives in the context window.</td>
+      <td>Every agent, but only its own slice — the doer's scratchpad shouldn't leak into the critic's.</td>
+    </tr>
+    <tr>
+      <td><b>Shared (blackboard)</b></td>
+      <td>One workflow</td>
+      <td>The common task state all agents read and write: the accepted plan, the evidence list, the current verdict.</td>
+      <td>The supervisor owns it; agents get read access plus write access to their own fields.</td>
+    </tr>
+    <tr>
+      <td><b>Long-term / episodic</b></td>
+      <td>Across tasks</td>
+      <td>Past solutions, user preferences, domain facts — usually a vector store or database queried on demand.</td>
+      <td>The learner/researcher primarily; others through it.</td>
+    </tr>
+  </table></div>
+  <div class="practical">
+    <span class="tag">Practical notes</span>
+    <ul>
+      <li><b>Blackboard beats broadcast.</b> Writing shared state to one structured store, instead of stuffing every message into every agent's prompt, cuts token costs sharply and prevents context overflow on long tasks.</li>
+      <li><b>Keep the critic's memory clean.</b> If the critic sees the doer's full reasoning trace, it tends to be persuaded by it. Give it the draft and the evidence — not the doer's justifications.</li>
+      <li><b>Long-term memory needs hygiene.</b> Stale or wrong entries get retrieved forever. Add timestamps, source pointers, and a way to expire or correct entries from day one.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <div class="secnum">Section 07</div>
+  <h2 class="sec">How agents talk: MCP and A2A</h2>
+  <p>Two open protocols are emerging as the standard wiring for agent systems. They solve different problems and complement each other:</p>
+  <h3>MCP — Model Context Protocol (agent ↔ tools &amp; data)</h3>
+  <p>MCP, introduced by Anthropic, standardizes how an agent connects to <strong>tools, data sources, and services</strong>. Instead of writing custom glue code for every database, file system, or API, you run an <em>MCP server</em> that exposes them in one uniform format any MCP-capable agent can use. Think of it as <em>USB-C for tools</em>: one connector shape, many devices.</p>
+  <h3>A2A — Agent-to-Agent Protocol (agent ↔ agent)</h3>
+  <p>A2A, introduced by Google and now hosted by the Linux Foundation, standardizes how <strong>agents discover and talk to each other</strong> — across vendors, frameworks, and companies. Each agent publishes an "agent card" describing what it can do; other agents can then delegate tasks to it, track progress, and receive results, without sharing internal memory or prompts.</p>
+  <div class="tscroll"><table>
+    <tr><th></th><th>MCP</th><th>A2A</th></tr>
+    <tr><td><b>Connects</b></td><td>An agent to tools and data</td><td>An agent to other agents</td></tr>
+    <tr><td><b>Analogy</b></td><td>USB-C port for capabilities</td><td>A common business language between teams</td></tr>
+    <tr><td><b>Typical use</b></td><td>"Query this database," "read this file," "call this API"</td><td>"Delegate this sub-task to the specialist agent and await its result"</td></tr>
+    <tr><td><b>Inside the team metaphor</b></td><td>How the tool operator holds its tools</td><td>How the supervisor assigns work to teammates</td></tr>
+  </table></div>
+  <div class="practical">
+    <span class="tag">Practical note</span>
+    <ul>
+      <li>Within one application, most frameworks (LangGraph, AutoGen, CrewAI) handle agent-to-agent messaging internally — you don't need A2A inside a single process. A2A matters when agents from <em>different systems or vendors</em> must cooperate.</li>
+      <li>Adopt MCP early even in single-agent systems: tool definitions you write once stay reusable as the team grows.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <div class="secnum">Section 08</div>
+  <h2 class="sec">Orchestration patterns: four ways to arrange the team</h2>
+  <p>"Multi-agent" is not one architecture. Four patterns cover most real systems:</p>
+  <div class="tscroll"><table>
+    <tr><th>Pattern</th><th>Shape</th><th>Strengths</th><th>Weaknesses</th><th>Pick when…</th></tr>
+    <tr>
+      <td><b>Sequential pipeline</b></td>
+      <td>A → B → C → D, fixed order</td>
+      <td>Simple, predictable, easy to debug and audit</td>
+      <td>Rigid; can't adapt when a step fails or the task varies</td>
+      <td>The workflow is genuinely fixed (e.g., extract → draft → verify → format)</td>
+    </tr>
+    <tr>
+      <td><b>Supervisor (hub-and-spoke)</b></td>
+      <td>One orchestrator routes all work to specialists</td>
+      <td>Central control, clear stop conditions, easiest governance</td>
+      <td>Supervisor is a bottleneck and single point of failure; its routing quality caps the system</td>
+      <td>You need auditability and bounded behavior — the default for enterprise</td>
+    </tr>
+    <tr>
+      <td><b>Hierarchical</b></td>
+      <td>Supervisors of supervisors; teams within teams</td>
+      <td>Scales to large problems; each sub-team stays simple</td>
+      <td>More layers = more latency, more cost, harder tracing</td>
+      <td>The task naturally decomposes into sub-projects (e.g., per-subsystem documentation)</td>
+    </tr>
+    <tr>
+      <td><b>Peer-to-peer (swarm)</b></td>
+      <td>Agents hand off to each other directly, no boss</td>
+      <td>Flexible, resilient, no central bottleneck</td>
+      <td>Hardest to bound and audit; loops and drift are common</td>
+      <td>Exploratory tasks where adaptability beats predictability — rarely first choice in regulated domains</td>
+    </tr>
+  </table></div>
+  <div class="keyidea">
+    <span class="tag">Rule of thumb</span>
+    Start with a <strong>sequential pipeline</strong>. Upgrade to a <strong>supervisor</strong> when tasks vary. Go <strong>hierarchical</strong> only when one supervisor visibly drowns. Treat <strong>swarms</strong> as research until you have monitoring you trust.
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <div class="secnum">Section 09</div>
+  <h2 class="sec">Feedback loops — and their dangers</h2>
+  <p>A good multi-agent system does not generate one answer and stop. It drafts, reviews, revises, and only then delivers. Agents can use feedback from other agents <em>or from humans</em> to improve their output — this reflection step is where most of the quality gain comes from.</p>
+  <p>But the feedback loop is also the riskiest component:</p>
+  <div class="warn">
+    <span class="tag">Caution</span>
+    Unbounded agent-to-agent conversation can loop forever, overuse tools (and burn budget), or reinforce each other's mistakes — two confident agents agreeing on a wrong answer feels like consensus but isn't. Multi-agent orchestration <em>will</em> malfunction without monitoring.
+  </div>
+  <div class="practical">
+    <span class="tag">Practical note — bounding the loop</span>
+    <ul>
+      <li>Set a <b>maximum revision count</b> (2–3 rounds is usually enough; quality gains flatten quickly after that).</li>
+      <li>Set <b>tool-call budgets</b> per task and per agent, and log every call.</li>
+      <li>Give the supervisor <b>explicit stop conditions</b>: "accept," "reject and escalate to a human," "out of budget." Never rely on agents to decide spontaneously that they are done.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <div class="secnum">Section 10</div>
+  <h2 class="sec">Failure modes catalog</h2>
+  <p>Every one of these will eventually appear in a real deployment. Knowing the symptom in advance is half the cure:</p>
+  <div class="tscroll"><table>
+    <tr><th>Failure mode</th><th>Symptom you'll see</th><th>Mitigation</th></tr>
+    <tr>
+      <td><b>Infinite loop</b></td>
+      <td>Critic and doer ping-pong revisions forever; latency and cost climb with no convergence.</td>
+      <td>Hard iteration cap; supervisor escalates to a human after N rounds; require the critic to output a bounded verdict (accept / revise / escalate), never open-ended chat.</td>
+    </tr>
+    <tr>
+      <td><b>Sycophantic consensus</b></td>
+      <td>Agents quickly "agree" — the critic rubber-stamps whatever the doer wrote. Output is fluent and wrong.</td>
+      <td>Give the critic ground-truth evidence, not the doer's reasoning; use a different model for the critic; reward finding issues ("list at least the 3 weakest claims") rather than approval.</td>
+    </tr>
+    <tr>
+      <td><b>Context poisoning</b></td>
+      <td>One early wrong "fact" propagates: every downstream agent repeats and builds on it.</td>
+      <td>Tag every claim with its source; let deterministic extraction outrank LLM inference; re-verify key facts at the final gate instead of trusting upstream agents.</td>
+    </tr>
+    <tr>
+      <td><b>Tool overuse</b></td>
+      <td>An agent calls search or a database dozens of times per task; bills spike, rate limits trip.</td>
+      <td>Per-agent tool budgets; cache repeated queries; make the agent state <em>why</em> it needs each call; alert on outlier call counts.</td>
+    </tr>
+    <tr>
+      <td><b>Role bleed</b></td>
+      <td>The critic starts rewriting the draft; the planner starts executing; outputs become untraceable.</td>
+      <td>Explicit "do not" rules in every prompt; structured output schemas that physically can't carry the wrong content (a critic schema has no "revised draft" field).</td>
+    </tr>
+    <tr>
+      <td><b>Lost context / overflow</b></td>
+      <td>On long tasks, early decisions vanish from the window; agents contradict the original plan.</td>
+      <td>Blackboard memory for durable state; summarize-and-pin the accepted plan; don't rely on raw chat history as the system of record.</td>
+    </tr>
+    <tr>
+      <td><b>Silent partial failure</b></td>
+      <td>A tool call fails, the agent improvises a plausible value, and nobody notices.</td>
+      <td>Fail loudly: tool errors must surface to the supervisor as structured events, never be paraphrased away; verifier checks that every claimed tool result has a matching log entry.</td>
+    </tr>
+  </table></div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <div class="secnum">Section 11</div>
+  <h2 class="sec">A practical architecture — walk through it</h2>
+  <p>Put together, a typical multi-agent workflow looks like this:</p>
+  <div class="diagram"><span class="hl">User Goal</span>
+    │
+    ▼
+<span class="gl">Supervisor / Orchestrator</span>   ← owns stop conditions &amp; budgets
+    │
+    ▼
+Planner Agent ──► Task decomposition
+    │
+    ├──────────────┬──────────────┐
+    ▼              ▼              ▼
+Research Agent  Tool Agent     Doer Agent
+(finds info)   (calls APIs)   (creates output)
+    └──────────────┴──────────────┘
+                   │
+                   ▼
+<span class="hl">Critic / Verifier Agent</span>      ← checks facts, not just grammar
+                   │
+            ┌──────┴──────┐
+            ▼             ▼
+      Revision loop   Accept
+      (bounded!)         │
+                         ▼
+              <span class="gl">Final answer / action</span></div>
+
+  <p>Now step through a live example — <em>"Summarize last quarter's top three warranty failure causes for the fleet"</em> — and watch the message at each hop:</p>
+
+  <div class="ipanel">
+    <div class="ititle">Interactive · step-by-step workflow walkthrough</div>
+    <div class="wfstages" id="wfStages"></div>
+    <div class="wfmsg">
+      <div class="who" id="wfWho"></div>
+      <div class="txt" id="wfTxt"></div>
+    </div>
+    <div class="wfnav">
+      <button class="btn" id="wfPrev" onclick="wfStep(-1)">◀ Back</button>
+      <button class="btn primary" id="wfNext" onclick="wfStep(1)">Next ▶</button>
+      <button class="btn" onclick="wfReset()">Restart</button>
+      <span class="count" id="wfCount"></span>
+    </div>
+  </div>
+
+  <p>Notice two things. First, the supervisor sits <em>above</em> the loop, not inside it — it referees but does not produce content. Second, the critic sits <em>between</em> the doer and the final answer: nothing ships unreviewed.</p>
+</section>
+
+<!-- 12 -->
+<section id="s12">
+  <div class="secnum">Section 12</div>
+  <h2 class="sec">Cost &amp; latency: the price of a team</h2>
+  <p>Multi-agent systems multiply token usage. Every hop re-sends context, and every revision round repeats the doer + critic pair. A task that costs one unit as a single prompt commonly costs <strong>3–10×</strong> as an agent team — more if context is broadcast instead of routed.</p>
+  <div class="tscroll"><table>
+    <tr><th>Driver</th><th>Why it multiplies cost</th><th>Countermeasure</th></tr>
+    <tr><td><b>Context re-sending</b></td><td>Each agent call resends shared background in its prompt.</td><td>Blackboard memory + per-role context slices; prompt caching where the platform supports it.</td></tr>
+    <tr><td><b>Revision rounds</b></td><td>Each loop ≈ one doer call + one critic call.</td><td>Cap at 2–3 rounds; require the critic to list <em>all</em> issues in one pass instead of one per round.</td></tr>
+    <tr><td><b>Oversized models everywhere</b></td><td>Using the flagship model for routing and formatting wastes most of its capability.</td><td>Tier the models: flagship for planner/critic, mid-tier for the doer, small for routing.</td></tr>
+    <tr><td><b>Latency stacking</b></td><td>Sequential hops add up — five 4-second calls is a 20-second answer.</td><td>Parallelize independent agents (research ∥ tool calls); stream partial results to the user.</td></tr>
+  </table></div>
+  <div class="practical">
+    <span class="tag">Rules of thumb — when a single agent wins</span>
+    <ul>
+      <li>The task fits comfortably in one context window <em>and</em> a wrong answer is cheap to detect → one well-prompted agent is usually better value.</li>
+      <li>Interactive, latency-sensitive use (a user waiting on chat) tolerates at most one review hop. Deep multi-agent pipelines belong in batch/background jobs.</li>
+      <li>If your critic almost never finds anything, you're paying for review theater — either sharpen the critic or remove it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="s13">
+  <div class="secnum">Section 13</div>
+  <h2 class="sec">Evaluating an agent team</h2>
+  <p>You cannot improve what you don't measure — and agent teams fail in ways unit tests don't catch. A practical evaluation stack has four layers:</p>
+  <h3>1. Golden dataset (end-to-end)</h3>
+  <p>Collect 30–100 representative tasks with known-good answers. Run the full team against them on every change — prompts, models, and orchestration logic all regress silently otherwise. Track exact-match where possible and rubric scores where not.</p>
+  <h3>2. Per-agent unit evaluation</h3>
+  <p>Test each role in isolation with fixed inputs: does the planner produce valid, complete plans? Does the critic catch seeded errors? Deliberately inject known mistakes into drafts and measure the critic's <strong>catch rate</strong> — this is the single most informative metric in the system.</p>
+  <h3>3. LLM-as-judge — including judging the critic</h3>
+  <p>Use a strong model with a written rubric to grade outputs at scale, and spot-check a sample by hand to calibrate the judge. Crucially, the judge also audits the <em>critic</em>: sycophantic consensus (Section 10) is invisible unless someone grades the grader.</p>
+  <h3>4. Trace review</h3>
+  <p>Log every message, tool call, and verdict as a structured trace. Review failed traces weekly: most systematic problems (role bleed, context poisoning, silent tool failures) are obvious in traces and invisible in aggregate metrics.</p>
+  <div class="practical">
+    <span class="tag">Practical note — minimum viable evaluation</span>
+    <ul>
+      <li>Day one: structured trace logging. You can't debug what you didn't record.</li>
+      <li>Week one: a 30-task golden set wired into CI for prompts the same way tests gate code.</li>
+      <li>Month one: seeded-error tests for the critic, with catch-rate tracked over time.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 14 -->
+<section id="s14">
+  <div class="secnum">Section 14</div>
+  <h2 class="sec">Do you actually need multiple agents?</h2>
+  <p>Before committing to the architecture, answer honestly. Check every statement that is true for your task:</p>
+  <div class="ipanel">
+    <div class="ititle">Interactive · decision checklist</div>
+    <div id="checklist">
+      <div class="check-item"><input type="checkbox" id="c1" onchange="scoreCheck()"><label for="c1">The task has <b>distinct phases</b> (gather → produce → verify) that need genuinely different instructions or models.</label></div>
+      <div class="check-item"><input type="checkbox" id="c2" onchange="scoreCheck()"><label for="c2">Wrong answers are <b>expensive or hard to spot</b>, so independent review adds real value.</label></div>
+      <div class="check-item"><input type="checkbox" id="c3" onchange="scoreCheck()"><label for="c3">The task needs <b>multiple tools or data sources</b> with non-trivial coordination between them.</label></div>
+      <div class="check-item"><input type="checkbox" id="c4" onchange="scoreCheck()"><label for="c4">The full task <b>doesn't fit one context window</b>, or single-prompt attempts visibly degrade midway.</label></div>
+      <div class="check-item"><input type="checkbox" id="c5" onchange="scoreCheck()"><label for="c5">You need an <b>audit trail</b> — per-step artifacts for compliance, safety, or debugging.</label></div>
+      <div class="check-item"><input type="checkbox" id="c6" onchange="scoreCheck()"><label for="c6">The workload <b>runs in background/batch</b>, so 3–10× latency and cost are acceptable.</label></div>
+      <div class="check-item"><input type="checkbox" id="c7" onchange="scoreCheck()"><label for="c7">You have (or will build) <b>monitoring and evaluation</b> — traces, golden sets, budgets — before scaling up.</label></div>
+    </div>
+    <div class="check-result" id="checkResult">Check the statements that apply — a recommendation appears here.</div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section id="s15">
+  <div class="secnum">Section 15</div>
+  <h2 class="sec">Case study: an engineering documentation assistant</h2>
+  <p>To make this concrete, here is how the role pattern maps onto a real engineering use case — an assistant that documents Simulink / TargetLink motor-control software from model files, ARXML interface descriptions, and A2L calibration files:</p>
+  <div class="tscroll"><table>
+    <tr><th>Agent</th><th>Job in this system</th></tr>
+    <tr><td><b>Ring Builder</b></td><td>Determines the task/ring context from the model, ARXML, and A2L files (the planner role, specialized for the domain).</td></tr>
+    <tr><td><b>Requirements Agent</b></td><td>Generates system and unit requirements (a doer).</td></tr>
+    <tr><td><b>Autodoc Agent</b></td><td>Writes subsystem behavior, inputs, outputs, and purpose (a doer).</td></tr>
+    <tr><td><b>Calibration Agent</b></td><td>Finds calibrations and signal dependencies (a researcher / tool operator).</td></tr>
+    <tr><td><b>Verifier Agent</b></td><td>Checks every statement against MDL/SLX/ARXML evidence (a critic, mechanical).</td></tr>
+    <tr><td><b>Critic Agent</b></td><td>Flags hallucinations, missing signals, and weak evidence (a critic, judgmental).</td></tr>
+    <tr><td><b>Supervisor</b></td><td>Decides when the documentation is acceptable or must be revised.</td></tr>
+  </table></div>
+
+  <h3>Worked example: one autodoc request, end to end</h3>
+  <p>Request: <em>"Document the torque limiter subsystem."</em> Follow the trace — note how every claim carries an evidence pointer, and how the verifier and critic act differently:</p>
+
+  <div class="trace">
+    <div class="trace-step">
+      <div class="trace-agent">1 · Supervisor</div>
+      <div class="trace-body">Receives the request. Opens a task on the blackboard with budget: max 2 revision rounds, 40 tool calls. Routes to Ring Builder.</div>
+    </div>
+    <div class="trace-step">
+      <div class="trace-agent">2 · Ring Builder</div>
+      <div class="trace-body">Parses the model and locates the subsystem and its interfaces. Pins the ring context to the blackboard.<br>
+      <span class="ev">SLX: TrqLimiter/ subsystem block</span> <span class="ev">ARXML: IF_TrqReq, IF_TrqMax</span></div>
+    </div>
+    <div class="trace-step">
+      <div class="trace-agent">3 · Calibration Agent</div>
+      <div class="trace-body">Queries the A2L for calibrations referenced inside the ring; finds the torque ceiling map and ramp-rate limit, with their dependencies on motor temperature.<br>
+      <span class="ev">A2L: TrqMaxMap_T [Nm vs °C]</span> <span class="ev">A2L: TrqRampLim [Nm/s]</span></div>
+    </div>
+    <div class="trace-step">
+      <div class="trace-agent">4 · Autodoc Agent</div>
+      <div class="trace-body">Drafts the documentation block: Purpose, Behavior ("limits requested torque to a temperature-dependent ceiling and bounds its rate of change"), Inputs, Outputs — citing the pinned evidence for each statement.</div>
+    </div>
+    <div class="trace-step critical">
+      <div class="trace-agent">5 · Verifier</div>
+      <div class="trace-body">Mechanical check of every claim against the files. Finds one mismatch: the draft lists 3 inputs, but the subsystem port count is 4 — the motor-temperature input was omitted.<br>
+      <span class="ev">SLX: Inport count = 4 ≠ draft count = 3</span> → verdict: <b>revise</b></div>
+    </div>
+    <div class="trace-step">
+      <div class="trace-agent">6 · Autodoc Agent</div>
+      <div class="trace-body">Revision round 1 of 2: adds the missing motor-temperature input and its role in selecting the ceiling from the map.</div>
+    </div>
+    <div class="trace-step critical">
+      <div class="trace-agent">7 · Critic</div>
+      <div class="trace-body">Judgmental pass: evidence coverage is complete, but flags one weakly supported sentence ("ensures smooth driver feel") as inference, not evidence — recommends rephrasing as a design intent note or removal. Verdict: <b>accept with minor edit</b>.</div>
+    </div>
+    <div class="trace-step">
+      <div class="trace-agent">8 · Supervisor</div>
+      <div class="trace-body">Applies the minor edit policy, closes the task within budget (1 of 2 revision rounds used, 17 of 40 tool calls), and releases the documentation — with the full trace attached for human review.</div>
+    </div>
+  </div>
+
+  <div class="keyidea">
+    <span class="tag">The most important agent</span>
+    In safety-relevant engineering domains, the <strong>verifier/critic is the agent that matters most</strong>. Without it, the system writes beautiful but wrong requirements. The team must be <em>evidence-gated</em>: deterministic facts extracted from MDL/ARXML/A2L always outrank LLM inference — exactly what step 5 demonstrates.
+  </div>
+</section>
+
+<!-- 16 -->
+<section id="s16">
+  <div class="secnum">Section 16</div>
+  <h2 class="sec">Governance: the hard part</h2>
+  <p>The video's idea is correct, but the real engineering challenge is not "adding more agents." It is <strong>agent governance</strong> — the rules that keep the team honest:</p>
+  <div class="practical">
+    <span class="tag">Five governance rules</span>
+    <ul>
+      <li><b>Narrow responsibility.</b> Each agent does one thing. If a prompt needs the word "also," it probably describes two agents.</li>
+      <li><b>Evidence on every output.</b> Each claim should carry a pointer to its source — a file, a signal, a tool result. No evidence, no claim.</li>
+      <li><b>Supervisor-enforced stop conditions.</b> Iteration limits, budgets, and escalation paths are decided up front, not negotiated by the agents.</li>
+      <li><b>Critics check facts, not grammar.</b> A critic that only polishes wording adds cost without adding safety. It must verify factual consistency against ground truth.</li>
+      <li><b>Bounded, logged, auditable tool calls.</b> Every external action is rate-limited, recorded, and reviewable after the fact.</li>
+    </ul>
+  </div>
+  <p>For enterprise engineering work, the winning execution order is:</p>
+  <div class="diagram"><span class="gl">1. Deterministic extraction first</span>   parse files, read signals — no LLM guessing
+<span class="gl">2. LLM reasoning second</span>            interpret, summarize, connect
+<span class="hl">3. Verifier / critic third</span>         check every claim against the evidence
+<span class="hl">4. Human approval last</span>             for any high-impact output</div>
+  <p>That pipeline is far stronger than a loose "chat between agents" architecture — it keeps the creativity of LLMs while anchoring every result to verifiable ground truth.</p>
+</section>
+
+<!-- 17 -->
+<section id="s17">
+  <div class="secnum">Section 17</div>
+  <h2 class="sec">Self-check quiz</h2>
+  <p>Five questions covering the whole monograph. Pick an answer for each, then grade yourself:</p>
+  <div class="ipanel">
+    <div class="ititle">Interactive · 5-question quiz</div>
+
+    <div class="quiz-q" data-answer="b" id="q1">
+      <div class="qt">1. What is the key difference between a chatbot and an AI agent?</div>
+      <div class="opt"><input type="radio" name="q1" value="a" id="q1a"><label for="q1a">An agent uses a bigger language model</label></div>
+      <div class="opt"><input type="radio" name="q1" value="b" id="q1b"><label for="q1b">An agent pursues a goal over multiple steps, planning and calling tools autonomously</label></div>
+      <div class="opt"><input type="radio" name="q1" value="c" id="q1c"><label for="q1c">An agent always involves multiple models working together</label></div>
+      <div class="expl">An agent's defining trait is goal-directed autonomy — planning, tool use, and multi-step action. Model size and model count are orthogonal (Section 02).</div>
+    </div>
+
+    <div class="quiz-q" data-answer="c" id="q2">
+      <div class="qt">2. Why is a separate critic agent more reliable than asking the doer to "check its own work"?</div>
+      <div class="opt"><input type="radio" name="q2" value="a" id="q2a"><label for="q2a">Critic models are specially trained to find errors</label></div>
+      <div class="opt"><input type="radio" name="q2" value="b" id="q2b"><label for="q2b">It's cheaper to run two small calls than one large one</label></div>
+      <div class="opt"><input type="radio" name="q2" value="c" id="q2c"><label for="q2c">The critic reviews with fresh context, so it isn't anchored to the doer's reasoning and mistakes</label></div>
+      <div class="expl">Self-review is weak because the same context (and often the same flawed reasoning) that produced the error also judges it. Independent context is the fix (Sections 03, 06).</div>
+    </div>
+
+    <div class="quiz-q" data-answer="a" id="q3">
+      <div class="qt">3. Which orchestration pattern is the recommended default for auditable enterprise systems?</div>
+      <div class="opt"><input type="radio" name="q3" value="a" id="q3a"><label for="q3a">Supervisor (hub-and-spoke)</label></div>
+      <div class="opt"><input type="radio" name="q3" value="b" id="q3b"><label for="q3b">Peer-to-peer swarm</label></div>
+      <div class="opt"><input type="radio" name="q3" value="c" id="q3c"><label for="q3c">Fully hierarchical from day one</label></div>
+      <div class="expl">The supervisor pattern gives central control, clear stop conditions, and the easiest governance. Swarms are hardest to bound; hierarchy is for when one supervisor drowns (Section 08).</div>
+    </div>
+
+    <div class="quiz-q" data-answer="b" id="q4">
+      <div class="qt">4. "Two confident agents quickly agree on a fluent but wrong answer." Which failure mode is this?</div>
+      <div class="opt"><input type="radio" name="q4" value="a" id="q4a"><label for="q4a">Context poisoning</label></div>
+      <div class="opt"><input type="radio" name="q4" value="b" id="q4b"><label for="q4b">Sycophantic consensus</label></div>
+      <div class="opt"><input type="radio" name="q4" value="c" id="q4c"><label for="q4c">Role bleed</label></div>
+      <div class="expl">Agreement that feels like consensus but isn't — mitigated by giving the critic independent evidence, a different model, and an incentive to find issues (Section 10).</div>
+    </div>
+
+    <div class="quiz-q" data-answer="c" id="q5">
+      <div class="qt">5. In a safety-relevant engineering pipeline, what should outrank LLM inference?</div>
+      <div class="opt"><input type="radio" name="q5" value="a" id="q5a"><label for="q5a">The supervisor's judgment</label></div>
+      <div class="opt"><input type="radio" name="q5" value="b" id="q5b"><label for="q5b">The largest available model's answer</label></div>
+      <div class="opt"><input type="radio" name="q5" value="c" id="q5c"><label for="q5c">Deterministic facts extracted from the source files</label></div>
+      <div class="expl">Evidence-gating: deterministic extraction first, LLM reasoning second, verification third, human approval last (Sections 15–16).</div>
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn primary" onclick="gradeQuiz()">Check answers</button>
+      <button class="btn" onclick="resetQuiz()">Reset</button>
+      <span class="quiz-score" id="quizScore"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 18 -->
+<section id="s18">
+  <div class="secnum">Section 18</div>
+  <h2 class="sec">References</h2>
+  <div class="refs">
+    <div class="ref"><span>IBM Technology (YouTube), <em>"Building a Team of AI Agents: Roles, Feedback &amp; Teamwork Explained."</em> The source video for this monograph. <a href="https://www.youtube.com/@IBMTechnology" target="_blank" rel="noopener">youtube.com/@IBMTechnology</a></span></div>
+    <div class="ref"><span>IBM Think, <em>"What Are AI Agents?"</em> — IBM's definition of agents as systems that autonomously perform tasks by designing workflows with available tools. <a href="https://www.ibm.com/think/topics/ai-agents" target="_blank" rel="noopener">ibm.com/think/topics/ai-agents</a></span></div>
+    <div class="ref"><span>IBM Think, <em>"What Is AI Agent Orchestration?"</em> — coordination patterns, supervisor architectures, and known failure modes such as runaway loops. <a href="https://www.ibm.com/think/topics/ai-agent-orchestration" target="_blank" rel="noopener">ibm.com/think/topics/ai-agent-orchestration</a></span></div>
+    <div class="ref"><span>IBM Think, <em>"What Is AI Agent Memory?"</em> — short-term, long-term, and shared memory in agent systems. <a href="https://www.ibm.com/think/topics/ai-agent-memory" target="_blank" rel="noopener">ibm.com/think/topics/ai-agent-memory</a></span></div>
+    <div class="ref"><span>Anthropic, <em>"Introducing the Model Context Protocol (MCP)"</em> and the MCP specification — the open standard for connecting agents to tools and data. <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">modelcontextprotocol.io</a></span></div>
+    <div class="ref"><span>A2A Project (Linux Foundation), <em>Agent-to-Agent Protocol</em> — the open standard for inter-agent discovery and task delegation, originally introduced by Google. <a href="https://a2a-protocol.org" target="_blank" rel="noopener">a2a-protocol.org</a></span></div>
+    <div class="ref"><span>Anthropic Engineering, <em>"Building Effective Agents"</em> — workflow patterns, when to add (and not add) agentic complexity. <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">anthropic.com/research/building-effective-agents</a></span></div>
+    <div class="ref"><span>Framework documentation implementing these patterns in practice: LangGraph (graph-based supervision), AutoGen (conversational multi-agent), CrewAI (role-based crews). <a href="https://langchain-ai.github.io/langgraph/" target="_blank" rel="noopener">langgraph docs</a> · <a href="https://microsoft.github.io/autogen/" target="_blank" rel="noopener">autogen docs</a> · <a href="https://docs.crewai.com/" target="_blank" rel="noopener">crewai docs</a></span></div>
+  </div>
+  <div class="warn">
+    <span class="tag">A note on sources</span>
+    This monograph is a plain-language study companion based on the video's topic and public summaries — not a verbatim transcript. For exact quotes and demos, watch the original IBM Technology video. Protocol and framework details reflect public documentation; verify version-specific behavior against the linked sources.
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Plain-Language Monograph · Agentic AI Series · Expanded Edition — prepared as a study companion, June 2026
+</footer>
+
+<script>
+/* ---------- toggle comparison ---------- */
+function showCmp(which){
+  document.getElementById('cmpSingle').classList.toggle('show', which==='single');
+  document.getElementById('cmpTeam').classList.toggle('show', which==='team');
+  document.getElementById('cmpSingleBtn').classList.toggle('active', which==='single');
+  document.getElementById('cmpTeamBtn').classList.toggle('active', which==='team');
+}
+
+/* ---------- workflow walkthrough ---------- */
+const wfData = [
+  {stage:'User', who:'User → Supervisor',
+   txt:'"Summarize last quarter\'s top three warranty failure causes for the fleet." The supervisor opens a task with a budget: <code>max 2 revision rounds · 30 tool calls</code>.'},
+  {stage:'Supervisor', who:'Supervisor → Planner',
+   txt:'"Decompose this goal. Output an ordered step list only — do not execute anything."'},
+  {stage:'Planner', who:'Planner → Supervisor',
+   txt:'Plan: <code>1) query warranty DB for Q1</code> → <code>2) rank causes by claim count and cost</code> → <code>3) draft summary</code> → <code>4) verify against raw data</code>. The supervisor pins this plan to the blackboard.'},
+  {stage:'Tool Agent', who:'Tool Agent → blackboard',
+   txt:'Runs the SQL query. Returns 4,182 claim rows grouped by failure cause, attached as structured evidence: <code>evidence_id: WQ1-rows</code>. No interpretation — raw facts only.'},
+  {stage:'Research Agent', who:'Research Agent → blackboard',
+   txt:'In parallel, retrieves context from the knowledge base: the top cause had a service bulletin issued in February. Attached as <code>evidence_id: SB-2026-014</code>.'},
+  {stage:'Doer', who:'Doer → Supervisor',
+   txt:'Drafts the summary from the blackboard evidence: top three causes with claim counts, costs, and the bulletin context — each sentence tagged with its evidence id.'},
+  {stage:'Critic', who:'Critic → Supervisor',
+   txt:'Checks the draft against <code>WQ1-rows</code> with fresh context (it never sees the doer\'s reasoning). Finds the #2 and #3 causes swapped when ranked by cost rather than count. Verdict: <code>revise</code> — one bounded, specific issue.'},
+  {stage:'Doer', who:'Doer → Supervisor (revision 1 of 2)',
+   txt:'Clarifies the ranking criterion and corrects the order. Re-tags evidence.'},
+  {stage:'Critic', who:'Critic → Supervisor',
+   txt:'Re-checks only the changed claims. All consistent with evidence. Verdict: <code>accept</code>.'},
+  {stage:'Done', who:'Supervisor → User',
+   txt:'Closes the task within budget (1 revision round, 9 tool calls) and delivers the verified summary <em>with the full trace attached</em>. Done — and auditable.'}
+];
+let wfIdx = 0;
+function wfRender(){
+  const stagesEl = document.getElementById('wfStages');
+  const names = [...new Set(wfData.map(d=>d.stage))];
+  stagesEl.innerHTML = '';
+  names.forEach(n=>{
+    const span = document.createElement('span');
+    span.className = 'wfstage';
+    const lastIdxOfName = wfData.map(d=>d.stage).lastIndexOf(n);
+    if (wfData[wfIdx].stage === n) span.classList.add('on');
+    else if (lastIdxOfName < wfIdx) span.classList.add('done');
+    span.textContent = n;
+    stagesEl.appendChild(span);
+  });
+  document.getElementById('wfWho').textContent = wfData[wfIdx].who;
+  document.getElementById('wfTxt').innerHTML = wfData[wfIdx].txt;
+  document.getElementById('wfCount').textContent = 'Step ' + (wfIdx+1) + ' of ' + wfData.length;
+  document.getElementById('wfPrev').disabled = wfIdx===0;
+  document.getElementById('wfNext').disabled = wfIdx===wfData.length-1;
+}
+function wfStep(d){ wfIdx = Math.min(Math.max(wfIdx+d,0), wfData.length-1); wfRender(); }
+function wfReset(){ wfIdx = 0; wfRender(); }
+wfRender();
+
+/* ---------- checklist ---------- */
+function scoreCheck(){
+  const n = ['c1','c2','c3','c4','c5','c6','c7'].filter(id=>document.getElementById(id).checked).length;
+  const out = document.getElementById('checkResult');
+  let msg;
+  if(n<=2) msg = '<b>'+n+' of 7</b> — a single well-prompted agent (perhaps with one review pass) is probably the better choice. Multi-agent overhead would likely exceed its benefit here.';
+  else if(n<=4) msg = '<b>'+n+' of 7</b> — borderline. Start with a simple sequential pipeline (2–3 agents) and only add roles when a specific failure justifies each one.';
+  else msg = '<b>'+n+' of 7</b> — a strong case for a supervised agent team. Begin with the supervisor pattern, evidence-gating, and a bounded critic loop from day one.';
+  out.innerHTML = msg;
+}
+
+/* ---------- quiz ---------- */
+function gradeQuiz(){
+  let score = 0, answered = 0;
+  ['q1','q2','q3','q4','q5'].forEach(id=>{
+    const q = document.getElementById(id);
+    const sel = document.querySelector('input[name="'+id+'"]:checked');
+    q.classList.remove('graded','right','wrong');
+    if(sel){
+      answered++;
+      q.classList.add('graded', sel.value===q.dataset.answer ? 'right' : 'wrong');
+      if(sel.value===q.dataset.answer) score++;
+    }
+  });
+  const el = document.getElementById('quizScore');
+  if(answered<5){ el.textContent = 'Answer all 5 questions first ('+answered+'/5 answered).'; return; }
+  const verdicts = ['Time to re-read!','Worth another pass.','Solid foundation.','Strong grasp.','Nearly there.','Perfect score — go build the team.'];
+  el.textContent = 'Score: '+score+' / 5 — '+verdicts[score];
+}
+function resetQuiz(){
+  ['q1','q2','q3','q4','q5'].forEach(id=>{
+    document.getElementById(id).classList.remove('graded','right','wrong');
+    document.querySelectorAll('input[name="'+id+'"]').forEach(r=>r.checked=false);
+  });
+  document.getElementById('quizScore').textContent='';
+}
+</script>
+
+</body>
+</html>

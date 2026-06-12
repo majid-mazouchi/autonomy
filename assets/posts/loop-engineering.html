@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loop Engineering — A Field Guide to Feedback</title>
+<style>
+/* ============ Token system — warm paper monograph ============ */
+:root{
+  --paper:#F7F3E8;
+  --panel:#FFFDF6;
+  --ink:#21242E;
+  --ink-soft:#5A5E6B;
+  --rule:#D8D0BC;
+  --blue:#1F5FA8;      /* measurement / feedback */
+  --orange:#D2611C;    /* command / control action */
+  --green:#2E7D4F;     /* plant / physical output */
+  --red:#B6382E;       /* error / disturbance */
+  --gold:#A8842C;      /* margins / cautions */
+  --mono:"SF Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17.5px;
+  line-height:1.65;
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 22px}
+a{color:var(--blue)}
+code{font-family:var(--mono);font-size:.85em;background:#EFE9D8;padding:1px 5px;border-radius:4px}
+.eq{
+  font-family:var(--mono);font-size:.92em;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--blue);
+  border-radius:6px;padding:12px 16px;margin:18px 0;overflow-x:auto;white-space:nowrap;
+}
+/* ---------- header / hero ---------- */
+header.hero{
+  border-bottom:3px double var(--rule);
+  padding:54px 0 38px;
+  background:
+    radial-gradient(1100px 380px at 75% -80px, rgba(31,95,168,.07), transparent 65%),
+    var(--paper);
+}
+.kicker{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--orange);margin-bottom:14px;
+}
+h1{
+  font-size:clamp(34px,5.4vw,56px);
+  line-height:1.06;font-weight:700;letter-spacing:-.01em;margin-bottom:14px;
+}
+h1 .lt{color:var(--blue);font-style:italic}
+.dek{font-size:clamp(17px,2.2vw,20px);color:var(--ink-soft);max-width:60ch;margin-bottom:30px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center}
+@media(max-width:780px){.hero-grid{grid-template-columns:1fr}}
+/* animated loop signature */
+.loop-svg{width:100%;height:auto;display:block}
+.flow{
+  stroke-dasharray:7 9;
+  animation:flow 1.5s linear infinite;
+}
+@keyframes flow{to{stroke-dashoffset:-32}}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+/* ---------- table of contents ---------- */
+nav.toc{
+  border:1px solid var(--rule);background:var(--panel);border-radius:10px;
+  padding:18px 22px;margin:34px 0 8px;
+}
+nav.toc .t{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px}
+nav.toc ol{list-style:none;columns:2;column-gap:28px}
+@media(max-width:640px){nav.toc ol{columns:1}}
+nav.toc li{padding:4px 0;break-inside:avoid}
+nav.toc a{text-decoration:none;border-bottom:1px dotted var(--blue)}
+nav.toc .n{font-family:var(--mono);font-size:.8em;color:var(--orange);margin-right:8px}
+/* ---------- sections ---------- */
+section{padding:44px 0 8px}
+.secno{
+  font-family:var(--mono);font-size:13px;color:var(--orange);letter-spacing:.18em;
+  text-transform:uppercase;margin-bottom:6px;
+}
+h2{font-size:clamp(25px,3.4vw,33px);line-height:1.15;margin-bottom:16px}
+h3{font-size:20px;margin:26px 0 10px}
+p{margin:0 0 15px;max-width:72ch}
+ul.notes{margin:0 0 16px 22px;max-width:72ch}
+ul.notes li{margin-bottom:9px}
+/* figure shells */
+figure{
+  background:var(--panel);border:1px solid var(--rule);border-radius:10px;
+  padding:20px 18px 14px;margin:24px 0;
+}
+figcaption{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);
+  border-top:1px dashed var(--rule);margin-top:14px;padding-top:10px;line-height:1.5;
+}
+figcaption b{color:var(--ink)}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:var(--mono)}
+/* callout cards */
+.card{
+  border:1px solid var(--rule);border-left:5px solid var(--gold);
+  background:var(--panel);border-radius:8px;padding:14px 18px;margin:20px 0;max-width:72ch;
+}
+.card .ct{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.card.blue{border-left-color:var(--blue)}
+.card.blue .ct{color:var(--blue)}
+.card.red{border-left-color:var(--red)}
+.card.red .ct{color:var(--red)}
+.card p:last-child{margin-bottom:0}
+/* ---------- interactive labs ---------- */
+.lab{
+  background:linear-gradient(180deg,#FFFEFA, #FBF7EA);
+  border:1px solid var(--rule);border-radius:12px;
+  padding:22px;margin:26px 0;
+  box-shadow:0 1px 0 rgba(0,0,0,.04);
+}
+.lab .lt{
+  font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:4px;
+}
+.lab h3{margin-top:0}
+.controls{display:flex;flex-wrap:wrap;gap:16px 26px;margin:14px 0 8px}
+.ctrl{min-width:190px;flex:1}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--ink-soft)}
+.ctrl label output{color:var(--ink);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--orange);margin-top:4px}
+.toggles{display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono);font-size:13.5px;margin:6px 0 4px}
+.toggles label{display:flex;gap:7px;align-items:center;cursor:pointer}
+input[type=checkbox]{accent-color:var(--blue);width:16px;height:16px}
+.readouts{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.ro{
+  background:var(--paper);border:1px solid var(--rule);border-radius:8px;
+  padding:8px 14px;font-family:var(--mono);font-size:13px;min-width:120px;
+}
+.ro .rl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.ro .rv{font-size:18px;font-weight:700}
+.rv.good{color:var(--green)} .rv.warn{color:var(--gold)} .rv.bad{color:var(--red)}
+canvas.plot{width:100%;border:1px solid var(--rule);border-radius:8px;background:#FFFEF9;display:block;margin-top:10px}
+.plotlab{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:6px}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+.presets button{
+  font-family:var(--mono);font-size:12.5px;border:1px solid var(--rule);
+  background:var(--panel);color:var(--ink);border-radius:20px;padding:6px 14px;cursor:pointer;
+}
+.presets button:hover{border-color:var(--orange);color:var(--orange)}
+.presets button:focus-visible, input:focus-visible, a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* legend chips */
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+/* tables */
+table{border-collapse:collapse;width:100%;margin:18px 0;font-size:15.5px;background:var(--panel)}
+th,td{border:1px solid var(--rule);padding:9px 12px;text-align:left;vertical-align:top}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;background:#F1EBDA}
+td code{white-space:nowrap}
+/* references */
+ol.refs{margin:14px 0 30px 24px}
+ol.refs li{margin-bottom:11px;max-width:75ch}
+footer{
+  border-top:3px double var(--rule);margin-top:50px;padding:26px 0 50px;
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="kicker">Control Systems · Field Guide No. 1 · By Majid Mazouchi</div>
+    <h1>Loop Engineering<br><span class="lt">measure → compare → correct → repeat</span></h1>
+    <p class="dek">How feedback loops are designed, shaped, and debugged — explained in plain words, with block diagrams, two interactive labs you can play with, and the practical rules that keep real loops alive on real hardware.</p>
+    <div class="hero-grid">
+      <div>
+        <p>A control loop is the simplest powerful idea in engineering: <b>measure</b> what the system is doing, <b>compare</b> it with what you want, and <b>push back against the difference</b> — thousands of times per second. Loop engineering is the craft of making that cycle fast enough to be useful, calm enough to be stable, and tough enough to survive noise, delays, and a plant that never matches its datasheet.</p>
+        <p style="margin-bottom:0">The same loop runs your home thermostat at one decision per minute and the current controller of a traction motor at 10,000 decisions per second. Only the speed changes — the anatomy is identical.</p>
+      </div>
+      <svg class="loop-svg" viewBox="0 0 420 300" role="img" aria-label="Animated feedback loop: setpoint, error, controller, plant, sensor, feedback">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L8,4.5 L0,9 z" fill="#21242E"/>
+          </marker>
+        </defs>
+        <!-- forward path -->
+        <line x1="14" y1="90" x2="78" y2="90" stroke="#D2611C" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <text x="14" y="76" font-size="13" fill="#D2611C">setpoint r</text>
+        <circle cx="96" cy="90" r="16" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.5"/>
+        <text x="89" y="95" font-size="14" fill="#B6382E">Σ</text>
+        <text x="104" y="118" font-size="12" fill="#B6382E">e = r − y</text>
+        <line x1="112" y1="90" x2="158" y2="90" stroke="#B6382E" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <rect x="160" y="66" width="92" height="48" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2.5"/>
+        <text x="178" y="95" font-size="14" fill="#D2611C">Controller</text>
+        <line x1="252" y1="90" x2="298" y2="90" stroke="#D2611C" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <rect x="300" y="66" width="78" height="48" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2.5"/>
+        <text x="320" y="95" font-size="14" fill="#2E7D4F">Plant</text>
+        <line x1="378" y1="90" x2="408" y2="90" stroke="#2E7D4F" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <text x="376" y="76" font-size="13" fill="#2E7D4F">output y</text>
+        <!-- feedback path -->
+        <line x1="396" y1="90" x2="396" y2="208" stroke="#1F5FA8" stroke-width="2.5" class="flow"/>
+        <line x1="396" y1="208" x2="262" y2="208" stroke="#1F5FA8" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <rect x="174" y="184" width="86" height="48" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2.5"/>
+        <text x="195" y="213" font-size="14" fill="#1F5FA8">Sensor</text>
+        <line x1="174" y1="208" x2="96" y2="208" stroke="#1F5FA8" stroke-width="2.5" class="flow"/>
+        <line x1="96" y1="208" x2="96" y2="110" stroke="#1F5FA8" stroke-width="2.5" marker-end="url(#ah)" class="flow"/>
+        <text x="62" y="160" font-size="13" fill="#1F5FA8">− y</text>
+        <text x="246" y="258" font-size="12.5" fill="#5A5E6B">the loop closes ~100–10,000×/s</text>
+      </svg>
+    </div>
+
+    <nav class="toc" aria-label="Contents">
+      <div class="t">Contents</div>
+      <ol>
+        <li><span class="n">01</span><a href="#s1">What a loop is (and isn't)</a></li>
+        <li><span class="n">02</span><a href="#s2">Anatomy of a real loop</a></li>
+        <li><span class="n">03</span><a href="#s3">The loop gain L(s) — speed vs. safety</a></li>
+        <li><span class="n">04</span><a href="#s4">Lab A · Crossover &amp; margin explorer</a></li>
+        <li><span class="n">05</span><a href="#s5">Sensitivity &amp; the waterbed effect</a></li>
+        <li><span class="n">06</span><a href="#s6">PID in plain words · Lab B</a></li>
+        <li><span class="n">07</span><a href="#s7">Cascade loops (the FOC example)</a></li>
+        <li><span class="n">08</span><a href="#s8">Practical notes from the trenches</a></li>
+        <li><span class="n">09</span><a href="#s9">A loop engineering workflow</a></li>
+        <li><span class="n">10</span><a href="#s10">References &amp; further reading</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+
+<!-- ============ 01 ============ -->
+<section id="s1">
+  <div class="secno">§ 01</div>
+  <h2>What a loop is (and isn't)</h2>
+  <p>Suppose you want a motor to spin at exactly 3,000 rpm. The <b>open-loop</b> way is to look up how much voltage usually gives 3,000 rpm, apply it, and hope. It works until the load changes, the magnets warm up, or the supply sags — and then the speed drifts and nothing notices.</p>
+  <p>The <b>closed-loop</b> way is to measure the actual speed, subtract it from 3,000 rpm, and let that difference — the <b>error</b> — decide the voltage. If the motor slows under load, the error grows and the controller automatically pushes harder. Nobody recomputed anything; the loop self-corrects.</p>
+
+  <figure>
+    <svg class="diagram" viewBox="0 0 760 270" role="img" aria-label="Open loop versus closed loop block diagrams">
+      <defs>
+        <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 z" fill="#21242E"/>
+        </marker>
+      </defs>
+      <!-- OPEN LOOP -->
+      <text x="20" y="32" font-size="14" fill="#B6382E" font-weight="bold">OPEN LOOP — act, then hope</text>
+      <line x1="20" y1="80" x2="92" y2="80" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <text x="20" y="66" font-size="12" fill="#5A5E6B">command</text>
+      <rect x="94" y="56" width="120" height="48" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2"/>
+      <text x="110" y="85" font-size="13" fill="#D2611C">Lookup / gain</text>
+      <line x1="214" y1="80" x2="286" y2="80" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="288" y="56" width="92" height="48" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2"/>
+      <text x="312" y="85" font-size="13" fill="#2E7D4F">Plant</text>
+      <line x1="380" y1="80" x2="448" y2="80" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <text x="392" y="66" font-size="12" fill="#5A5E6B">output drifts</text>
+      <line x1="334" y1="20" x2="334" y2="52" stroke="#B6382E" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+      <text x="344" y="26" font-size="12" fill="#B6382E">disturbance hits — no one reacts</text>
+      <!-- CLOSED LOOP -->
+      <text x="20" y="152" font-size="14" fill="#2E7D4F" font-weight="bold">CLOSED LOOP — act, measure, correct</text>
+      <line x1="20" y1="200" x2="68" y2="200" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <circle cx="84" cy="200" r="14" fill="#FFFDF6" stroke="#B6382E" stroke-width="2"/>
+      <text x="78" y="205" font-size="13" fill="#B6382E">Σ</text>
+      <line x1="98" y1="200" x2="146" y2="200" stroke="#B6382E" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="148" y="176" width="118" height="48" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2"/>
+      <text x="166" y="205" font-size="13" fill="#D2611C">Controller</text>
+      <line x1="266" y1="200" x2="318" y2="200" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="320" y="176" width="92" height="48" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2"/>
+      <text x="344" y="205" font-size="13" fill="#2E7D4F">Plant</text>
+      <line x1="412" y1="200" x2="478" y2="200" stroke="#21242E" stroke-width="2" marker-end="url(#a2)"/>
+      <text x="424" y="186" font-size="12" fill="#5A5E6B">output holds</text>
+      <line x1="366" y1="140" x2="366" y2="172" stroke="#B6382E" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+      <text x="376" y="146" font-size="12" fill="#B6382E">same disturbance — loop pushes back</text>
+      <line x1="452" y1="200" x2="452" y2="248" stroke="#1F5FA8" stroke-width="2"/>
+      <line x1="452" y1="248" x2="84" y2="248" stroke="#1F5FA8" stroke-width="2"/>
+      <line x1="84" y1="248" x2="84" y2="216" stroke="#1F5FA8" stroke-width="2" marker-end="url(#a2)"/>
+      <text x="240" y="242" font-size="12" fill="#1F5FA8">measurement (the loop)</text>
+    </svg>
+    <figcaption><b>Fig. 1 — Open vs. closed loop.</b> The only structural difference is the blue wire. That wire buys disturbance rejection and accuracy — and introduces a brand-new failure mode: instability. Loop engineering is the management of that trade.</figcaption>
+  </figure>
+
+  <div class="card blue">
+    <div class="ct">The core trade in one sentence</div>
+    <p>Feedback turns "how well do you know the plant?" into "how fast can you measure and react?" — but the price is that an over-eager loop can chase its own tail and oscillate. Everything below is about buying speed without losing stability.</p>
+  </div>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="s2">
+  <div class="secno">§ 02</div>
+  <h2>Anatomy of a real loop</h2>
+  <p>Textbook loops have three blocks. Real loops have at least six, and the extra ones are where the trouble lives. The diagram below shows where the real world injects itself: a <b>load disturbance d</b> entering at the plant input (load torque, supply sag, a hill), and <b>measurement noise n</b> entering at the sensor (quantization, EMI, resolver ripple).</p>
+
+  <figure>
+    <svg class="diagram" viewBox="0 0 860 290" role="img" aria-label="Full loop anatomy with disturbance and noise injection points">
+      <defs>
+        <marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 z" fill="#21242E"/>
+        </marker>
+      </defs>
+      <line x1="16" y1="120" x2="70" y2="120" stroke="#D2611C" stroke-width="2.2" marker-end="url(#a3)"/>
+      <text x="14" y="104" font-size="13" fill="#D2611C">r  setpoint</text>
+      <circle cx="88" cy="120" r="15" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.2"/>
+      <text x="81" y="125" font-size="13" fill="#B6382E">Σ</text>
+      <text x="64" y="150" font-size="12" fill="#B6382E">e = r − y_m</text>
+      <line x1="103" y1="120" x2="150" y2="120" stroke="#B6382E" stroke-width="2.2" marker-end="url(#a3)"/>
+      <rect x="152" y="94" width="128" height="52" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2.2"/>
+      <text x="170" y="116" font-size="13" fill="#D2611C">Controller C(s)</text>
+      <text x="170" y="134" font-size="11" fill="#5A5E6B">PID, lead-lag, …</text>
+      <line x1="280" y1="120" x2="326" y2="120" stroke="#21242E" stroke-width="2.2" marker-end="url(#a3)"/>
+      <text x="288" y="108" font-size="12" fill="#5A5E6B">u</text>
+      <rect x="328" y="94" width="118" height="52" rx="8" fill="#FFFDF6" stroke="#A8842C" stroke-width="2.2"/>
+      <text x="346" y="116" font-size="13" fill="#A8842C">Actuator</text>
+      <text x="346" y="134" font-size="11" fill="#5A5E6B">sat. ± limits, delay</text>
+      <!-- disturbance sum -->
+      <line x1="446" y1="120" x2="492" y2="120" stroke="#21242E" stroke-width="2.2" marker-end="url(#a3)"/>
+      <circle cx="508" cy="120" r="13" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.2"/>
+      <text x="502" y="125" font-size="12" fill="#B6382E">+</text>
+      <line x1="508" y1="56" x2="508" y2="104" stroke="#B6382E" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#a3)"/>
+      <text x="470" y="44" font-size="13" fill="#B6382E">d  load disturbance</text>
+      <line x1="521" y1="120" x2="566" y2="120" stroke="#21242E" stroke-width="2.2" marker-end="url(#a3)"/>
+      <rect x="568" y="94" width="110" height="52" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2.2"/>
+      <text x="588" y="116" font-size="13" fill="#2E7D4F">Plant P(s)</text>
+      <text x="588" y="134" font-size="11" fill="#5A5E6B">the physics</text>
+      <line x1="678" y1="120" x2="742" y2="120" stroke="#2E7D4F" stroke-width="2.2" marker-end="url(#a3)"/>
+      <text x="694" y="106" font-size="13" fill="#2E7D4F">y  true output</text>
+      <!-- feedback path -->
+      <line x1="724" y1="120" x2="724" y2="226" stroke="#1F5FA8" stroke-width="2.2"/>
+      <line x1="724" y1="226" x2="560" y2="226" stroke="#1F5FA8" stroke-width="2.2" marker-end="url(#a3)"/>
+      <rect x="448" y="200" width="110" height="52" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2.2"/>
+      <text x="466" y="222" font-size="13" fill="#1F5FA8">Sensor +</text>
+      <text x="466" y="240" font-size="13" fill="#1F5FA8">filter H(s)</text>
+      <!-- noise -->
+      <circle cx="412" cy="226" r="13" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.2"/>
+      <text x="406" y="231" font-size="12" fill="#B6382E">+</text>
+      <line x1="448" y1="226" x2="426" y2="226" stroke="#1F5FA8" stroke-width="2.2" marker-end="url(#a3)"/>
+      <line x1="412" y1="278" x2="412" y2="240" stroke="#B6382E" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#a3)"/>
+      <text x="372" y="284" font-size="13" fill="#B6382E">n  sensor noise</text>
+      <line x1="399" y1="226" x2="88" y2="226" stroke="#1F5FA8" stroke-width="2.2"/>
+      <line x1="88" y1="226" x2="88" y2="136" stroke="#1F5FA8" stroke-width="2.2" marker-end="url(#a3)"/>
+      <text x="196" y="220" font-size="12" fill="#1F5FA8">y_m  measured output</text>
+    </svg>
+    <figcaption><b>Fig. 2 — The loop you actually ship.</b> The two dashed red arrows are the enemies. A good loop must reject <b>d</b> (which wants high loop gain at low frequency) while ignoring <b>n</b> (which wants low loop gain at high frequency). That conflict is the whole game.</figcaption>
+  </figure>
+
+  <h3>The vocabulary, in plain words</h3>
+  <table>
+    <tr><th>Term</th><th>Plain meaning</th><th>In a motor drive</th></tr>
+    <tr><td><b>Setpoint r</b></td><td>What you want</td><td>Torque / current command from the driver's pedal</td></tr>
+    <tr><td><b>Error e</b></td><td>How wrong you currently are</td><td>i*<sub>q</sub> − i<sub>q,measured</sub></td></tr>
+    <tr><td><b>Controller C</b></td><td>The recipe: error in, effort out</td><td>PI current regulator in the ISR</td></tr>
+    <tr><td><b>Actuator</b></td><td>The muscle (always limited)</td><td>Inverter — voltage clamps at the DC-link hexagon</td></tr>
+    <tr><td><b>Plant P</b></td><td>The physics you don't fully control</td><td>Stator R-L dynamics, back-EMF, mechanics</td></tr>
+    <tr><td><b>Sensor H</b></td><td>The eyes (delayed, noisy, quantized)</td><td>Current shunts + ADC, resolver/encoder</td></tr>
+    <tr><td><b>Bandwidth</b></td><td>How fast the loop can usefully respond</td><td>Current loop ≈ 1–3 kHz; speed loop ≈ 50–200 Hz</td></tr>
+  </table>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="s3">
+  <div class="secno">§ 03</div>
+  <h2>The loop gain L(s) — one curve that decides everything</h2>
+  <p>Walk once around the loop and multiply what you pass through: controller × plant × sensor. That product is the <b>loop transfer function</b>:</p>
+  <div class="eq">L(s) = C(s) · P(s) · H(s)</div>
+  <p>Almost every property of the closed loop can be read off the frequency response of this single curve. Loop engineering is often literally called <b>loop shaping</b>: you bend |L(jω)| into the right profile.</p>
+  <ul class="notes">
+    <li><b>Where |L| is large (low frequencies):</b> the loop dominates the physics. Errors and disturbances are squashed by a factor of roughly |L|. You want lots of gain here — an integrator gives you infinite gain at DC, which is why steady-state error vanishes.</li>
+    <li><b>Crossover frequency ω<sub>c</sub> (where |L| = 1, i.e., 0 dB):</b> the speed of your loop. Rise time ≈ 1.5/ω<sub>c</sub> to 2/ω<sub>c</sub>. Pushing ω<sub>c</sub> up makes everything snappier.</li>
+    <li><b>Where |L| is small (high frequencies):</b> the loop gives up, on purpose. Sensor noise and unmodeled resonances live here; you want the loop deaf to them.</li>
+  </ul>
+
+  <h3>Margins: how close to the cliff you're standing</h3>
+  <p>A loop goes unstable when the signal coming back around arrives <b>as large as it left and exactly inverted</b> — then the loop feeds itself. Margins measure your distance from that condition:</p>
+  <ul class="notes">
+    <li><b>Phase margin (PM):</b> at crossover, how many degrees of extra phase lag you can absorb before the returning signal is fully inverted. Plain words: <i>how much extra delay the loop can tolerate.</i> Rules of thumb: PM &gt; 60° = calm, 45° = brisk with mild overshoot, &lt; 30° = ringing, 0° = oscillator.</li>
+    <li><b>Gain margin (GM):</b> how much you could multiply the gain before instability. Plain words: <i>how much the plant gain can grow (hot magnets, light load, aging) before the loop sings.</i> Aim for GM ≥ 2× (6 dB).</li>
+  </ul>
+  <div class="card red">
+    <div class="ct">Why delay is the universal villain</div>
+    <p>A pure time delay T<sub>d</sub> costs phase linearly with frequency: φ = −ω·T<sub>d</sub> (radians), with no change in gain. Every sample period, ADC conversion, PWM update, filter, and bus hop eats phase margin at your crossover. This is why "just filter the noise harder" so often destabilizes a loop: the filter's lag spends the phase budget you were living on.</p>
+  </div>
+</section>
+
+<!-- ============ 04 — LAB A ============ -->
+<section id="s4">
+  <div class="secno">§ 04 · Interactive</div>
+  <h2>Lab A — Crossover &amp; margin explorer</h2>
+  <p>Below is a classic loop: an integrator (for zero steady-state error) plus two lags (actuator + sensor dynamics): <code>L(s) = K / [ s (0.5s+1)(0.1s+1) ]</code>. Drag the gain. Watch the crossover slide right (faster loop), the phase margin shrink, and the step response start to ring. Around <b>K ≈ 12</b> the gain margin hits 0 dB and the loop becomes a sine-wave generator.</p>
+
+  <div class="lab">
+    <div class="lt">Lab A · live simulation</div>
+    <h3>One knob, three consequences</h3>
+    <div class="controls">
+      <div class="ctrl" style="max-width:420px">
+        <label>Loop gain K <output id="kOut">2.0</output></label>
+        <input type="range" id="kSlider" min="0.2" max="15" step="0.1" value="2" aria-label="Loop gain K">
+      </div>
+    </div>
+    <div class="readouts">
+      <div class="ro"><div class="rl">Crossover ω_c</div><div class="rv" id="roWc">—</div></div>
+      <div class="ro"><div class="rl">Phase margin</div><div class="rv" id="roPm">—</div></div>
+      <div class="ro"><div class="rl">Gain margin</div><div class="rv" id="roGm">—</div></div>
+      <div class="ro"><div class="rl">Verdict</div><div class="rv" id="roVerdict">—</div></div>
+    </div>
+    <canvas class="plot" id="bodeCanvas" height="240" aria-label="Loop gain magnitude vs frequency"></canvas>
+    <div class="plotlab">|L(jω)| in dB vs. frequency (log). Orange dot = crossover. Dashed line = 0 dB.</div>
+    <canvas class="plot" id="stepCanvas" height="240" aria-label="Closed loop step response"></canvas>
+    <div class="plotlab">Closed-loop step response y(t). Dashed line = setpoint.</div>
+    <div class="legend">
+      <span><i style="background:#1F5FA8"></i>output y</span>
+      <span><i style="background:#9aa0ad"></i>setpoint</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">What to notice</div>
+    <p>Speed and stability are the <b>same knob viewed from two sides</b>. K = 2 is calm but lazy; K = 7 is fast but rings; K = 12 oscillates forever. A loop engineer doesn't ask "what gain?" — they ask "what crossover frequency does the application need, and do I have the phase budget to afford it?"</p>
+  </div>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="s5">
+  <div class="secno">§ 05</div>
+  <h2>Sensitivity &amp; the waterbed effect</h2>
+  <p>Two transfer functions summarize what the closed loop does to the outside world, and they are locked together:</p>
+  <div class="eq">S(s) = 1 / (1 + L)   ← error/disturbance amplification      T(s) = L / (1 + L)   ← reference &amp; noise tracking      S + T = 1, always</div>
+  <ul class="notes">
+    <li><b>|S| small</b> = disturbances rejected, modeling errors forgiven. You get this where |L| is large.</li>
+    <li><b>|T| small</b> = sensor noise ignored, unmodeled high-frequency dynamics not excited. You get this where |L| is small.</li>
+    <li>Because S + T = 1 at every frequency, you can never have both small at once. You <b>allocate frequencies</b>: S small below crossover, T small above it.</li>
+  </ul>
+  <p>Worse, for most real plants Bode's integral says the area of log|S| below 0 dB must be balanced by area above it: push the sensitivity down at low frequency and it <b>pops up</b> somewhere in the mid band — like pressing on a waterbed. That bump (peak of |S|, written M<sub>s</sub>) is your fragility. Keeping <b>M<sub>s</sub> ≤ 1.6–2.0</b> is a standard, very practical robustness spec. Lab A plots |S| live so you can watch the bed squirm:</p>
+
+  <div class="lab">
+    <div class="lt">Lab A continued · sensitivity view</div>
+    <canvas class="plot" id="sensCanvas" height="220" aria-label="Sensitivity magnitude vs frequency"></canvas>
+    <div class="plotlab">|S(jω)| in dB for the current gain K (blue) vs. K = 2 baseline (gray). Watch the mid-band hump grow as you raise K in Lab A — that's the waterbed paying you back.</div>
+    <div class="readouts">
+      <div class="ro"><div class="rl">Peak sensitivity Ms</div><div class="rv" id="roMs">—</div></div>
+    </div>
+  </div>
+</section>
+<!-- ============ 06 — PID + LAB B ============ -->
+<section id="s6">
+  <div class="secno">§ 06 · Interactive</div>
+  <h2>PID in plain words — and a sandbox to break it</h2>
+  <p>Over 90% of industrial loops use PID or a subset of it. Each term answers a different question about the error:</p>
+  <table>
+    <tr><th>Term</th><th>Question it answers</th><th>Plain-words behavior</th><th>Too much of it</th></tr>
+    <tr><td><b>P</b> — proportional</td><td>How wrong am I <i>now</i>?</td><td>Push in proportion to the error. The workhorse.</td><td>Ringing; never quite reaches target alone</td></tr>
+    <tr><td><b>I</b> — integral</td><td>How wrong have I been <i>lately</i>?</td><td>Keep nudging while any error persists → zero steady-state error</td><td>Sluggish recovery, windup, slow oscillation</td></tr>
+    <tr><td><b>D</b> — derivative</td><td>Which way is the error <i>heading</i>?</td><td>Brake early when approaching the target → damping</td><td>Amplifies sensor noise; chatters the actuator</td></tr>
+  </table>
+  <div class="eq">u(t) = Kp·e(t) + Ki·∫e dt + Kd·de/dt        (D implemented on the measurement, through a filter)</div>
+
+  <p>The lab below runs a live plant — two lags plus a transport delay, <code>P(s) = 2·e^(−0.1s) / [(s+1)(0.3s+1)]</code> — with a setpoint step at t = 0.5 s and a <b>load disturbance kicking in at t = 8 s</b>. Tune it. Then enable actuator saturation and watch integral windup ruin your day — and anti-windup fix it.</p>
+
+  <div class="lab">
+    <div class="lt">Lab B · live PID playground</div>
+    <h3>Tune the loop, then survive the disturbance</h3>
+    <div class="presets">
+      <button data-p="0.8,0.3,0">Sluggish</button>
+      <button data-p="2.2,1.2,0.25">Balanced</button>
+      <button data-p="5,2.5,0.45">Aggressive</button>
+      <button data-p="7.5,4.5,0">Oscillatory</button>
+      <button data-p="2.2,0,0.25">No integral (see the offset)</button>
+    </div>
+    <div class="controls">
+      <div class="ctrl"><label>Kp — proportional <output id="kpOut">2.2</output></label>
+        <input type="range" id="kp" min="0" max="10" step="0.1" value="2.2"></div>
+      <div class="ctrl"><label>Ki — integral <output id="kiOut">1.2</output></label>
+        <input type="range" id="ki" min="0" max="8" step="0.1" value="1.2"></div>
+      <div class="ctrl"><label>Kd — derivative <output id="kdOut">0.25</output></label>
+        <input type="range" id="kd" min="0" max="2" step="0.05" value="0.25"></div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="satChk"> Actuator saturation (|u| ≤ 3)</label>
+      <label><input type="checkbox" id="awChk" checked> Anti-windup (conditional integration)</label>
+    </div>
+    <div class="readouts">
+      <div class="ro"><div class="rl">Overshoot</div><div class="rv" id="roOs">—</div></div>
+      <div class="ro"><div class="rl">Settling (±2%)</div><div class="rv" id="roTs">—</div></div>
+      <div class="ro"><div class="rl">Dist. dip @ t=8s</div><div class="rv" id="roDip">—</div></div>
+      <div class="ro"><div class="rl">Steady-state error</div><div class="rv" id="roSse">—</div></div>
+    </div>
+    <canvas class="plot" id="pidCanvas" height="260" aria-label="PID closed loop response"></canvas>
+    <div class="plotlab">Output y(t) — setpoint step at 0.5 s, load disturbance at 8 s (red marker).</div>
+    <canvas class="plot" id="uCanvas" height="120" aria-label="Control effort"></canvas>
+    <div class="plotlab">Control effort u(t). With saturation on, the gold band shows the ±3 actuator limit.</div>
+    <div class="legend">
+      <span><i style="background:#1F5FA8"></i>output y</span>
+      <span><i style="background:#9aa0ad"></i>setpoint r</span>
+      <span><i style="background:#D2611C"></i>effort u</span>
+      <span><i style="background:#B6382E"></i>disturbance onset</span>
+    </div>
+  </div>
+
+  <h3>Experiments worth running</h3>
+  <ul class="notes">
+    <li><b>Kill Ki</b> (last preset): the output parks <i>below</i> the setpoint forever. Only the integrator can hold against a constant load with zero error.</li>
+    <li><b>Aggressive preset + saturation ON + anti-windup OFF:</b> the integrator keeps charging while the actuator is pinned; when the output finally arrives, the stored "debt" blows it far past the target. Flip anti-windup back on and compare. This single bug has bent real robot arms.</li>
+    <li><b>Raise Kd slowly from 0 at high Kp:</b> watch ringing die — derivative is damping. Then imagine each wiggle of u multiplied onto a noisy sensor; that's why D is always filtered, and often simply omitted in current loops.</li>
+  </ul>
+</section>
+
+<!-- ============ 07 ============ -->
+<section id="s7">
+  <div class="secno">§ 07</div>
+  <h2>Cascade loops — loops inside loops</h2>
+  <p>Real systems rarely use one loop. They nest them: a fast inner loop tames the messy fast physics and presents a clean, simple "virtual plant" to a slower outer loop. The canonical example is field-oriented control of a PM machine:</p>
+
+  <figure>
+    <svg class="diagram" viewBox="0 0 880 250" role="img" aria-label="Cascade control structure: position, speed, and current loops around a motor">
+      <defs>
+        <marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 z" fill="#21242E"/>
+        </marker>
+      </defs>
+      <!-- outer box labels -->
+      <rect x="252" y="30" width="600" height="178" rx="10" fill="none" stroke="#D8D0BC" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <text x="266" y="52" font-size="12" fill="#5A5E6B">speed loop  ~100–200 Hz</text>
+      <rect x="470" y="62" width="368" height="122" rx="10" fill="none" stroke="#D8D0BC" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <text x="484" y="82" font-size="12" fill="#5A5E6B">current loop  ~1–3 kHz</text>
+      <!-- chain -->
+      <text x="14" y="112" font-size="13" fill="#D2611C">ω* speed cmd</text>
+      <line x1="16" y1="128" x2="60" y2="128" stroke="#D2611C" stroke-width="2.2" marker-end="url(#a4)"/>
+      <circle cx="76" cy="128" r="13" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.2"/>
+      <text x="70" y="133" font-size="12" fill="#B6382E">Σ</text>
+      <line x1="89" y1="128" x2="128" y2="128" stroke="#21242E" stroke-width="2.2" marker-end="url(#a4)"/>
+      <rect x="130" y="104" width="112" height="48" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2.2"/>
+      <text x="142" y="126" font-size="12.5" fill="#D2611C">Speed PI</text>
+      <text x="142" y="142" font-size="11" fill="#5A5E6B">→ iq* (torque)</text>
+      <line x1="242" y1="128" x2="290" y2="128" stroke="#21242E" stroke-width="2.2" marker-end="url(#a4)"/>
+      <circle cx="306" cy="128" r="13" fill="#FFFDF6" stroke="#B6382E" stroke-width="2.2"/>
+      <text x="300" y="133" font-size="12" fill="#B6382E">Σ</text>
+      <line x1="319" y1="128" x2="356" y2="128" stroke="#21242E" stroke-width="2.2" marker-end="url(#a4)"/>
+      <rect x="358" y="104" width="118" height="48" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2.2"/>
+      <text x="372" y="126" font-size="12.5" fill="#1F5FA8">Current PI</text>
+      <text x="372" y="142" font-size="11" fill="#5A5E6B">(dq frame)</text>
+      <line x1="476" y1="128" x2="514" y2="128" stroke="#21242E" stroke-width="2.2" marker-end="url(#a4)"/>
+      <rect x="516" y="104" width="106" height="48" rx="8" fill="#FFFDF6" stroke="#A8842C" stroke-width="2.2"/>
+      <text x="530" y="126" font-size="12.5" fill="#A8842C">Inverter</text>
+      <text x="530" y="142" font-size="11" fill="#5A5E6B">SVM + delay</text>
+      <line x1="622" y1="128" x2="660" y2="128" stroke="#21242E" stroke-width="2.2" marker-end="url(#a4)"/>
+      <rect x="662" y="104" width="96" height="48" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2.2"/>
+      <text x="684" y="126" font-size="12.5" fill="#2E7D4F">PMSM</text>
+      <text x="676" y="142" font-size="11" fill="#5A5E6B">R-L + EMF</text>
+      <line x1="758" y1="128" x2="828" y2="128" stroke="#2E7D4F" stroke-width="2.2" marker-end="url(#a4)"/>
+      <text x="788" y="114" font-size="12.5" fill="#2E7D4F">torque, ω</text>
+      <!-- inner feedback: current -->
+      <line x1="700" y1="152" x2="700" y2="176" stroke="#1F5FA8" stroke-width="2" />
+      <line x1="700" y1="176" x2="306" y2="176" stroke="#1F5FA8" stroke-width="2"/>
+      <line x1="306" y1="176" x2="306" y2="141" stroke="#1F5FA8" stroke-width="2" marker-end="url(#a4)"/>
+      <text x="486" y="170" font-size="11.5" fill="#1F5FA8">measured iq (shunt + ADC)</text>
+      <!-- outer feedback: speed -->
+      <line x1="800" y1="128" x2="800" y2="226" stroke="#1F5FA8" stroke-width="2"/>
+      <line x1="800" y1="226" x2="76" y2="226" stroke="#1F5FA8" stroke-width="2"/>
+      <line x1="76" y1="226" x2="76" y2="141" stroke="#1F5FA8" stroke-width="2" marker-end="url(#a4)"/>
+      <text x="356" y="220" font-size="11.5" fill="#1F5FA8">measured ω (resolver / encoder)</text>
+    </svg>
+    <figcaption><b>Fig. 3 — Cascade structure of an FOC drive.</b> The current loop's only job is to make "commanded torque = delivered torque" look instantaneous to the speed loop. A position loop (servo, steering) would wrap a third ring around this one at ~10–30 Hz.</figcaption>
+  </figure>
+
+  <ul class="notes">
+    <li><b>The separation rule:</b> make each inner loop <b>5–10× faster</b> (in bandwidth) than the loop wrapped around it. Then the outer loop can treat the inner one as a unity gain block, and you can tune them <b>one at a time, inside-out</b>.</li>
+    <li><b>Why bother:</b> the inner loop linearizes and protects. Current limiting lives in the inner loop, so the outer loop physically cannot overcurrent the machine no matter how badly it's tuned.</li>
+    <li><b>Failure smell:</b> if inner and outer bandwidths creep within ~3× of each other, they start fighting — you'll see beat-like oscillations that no single-loop retune fixes. Slow the outer loop or speed the inner one.</li>
+  </ul>
+</section>
+
+<!-- ============ 08 ============ -->
+<section id="s8">
+  <div class="secno">§ 08</div>
+  <h2>Practical notes from the trenches</h2>
+  <ul class="notes">
+    <li><b>Sample fast enough, then stop.</b> Rule of thumb: sample at 10–30× the intended closed-loop bandwidth. Each sample period costs ≈ ω<sub>c</sub>·T<sub>s</sub>·(180/π)·1.5 degrees of phase (sampler + ZOH + compute latency). A 100 Hz loop at 1 kHz sampling has already spent ~27° of its budget before you wrote a line of control law.</li>
+    <li><b>Know your delay budget.</b> Add up: ADC conversion + ISR latency + PWM update (often 1.5 T<sub>s</sub> total in digital drives) + filter group delays + any bus hops. If total delay × ω<sub>c</sub> &gt; ~0.5 rad, the crossover you want is not affordable.</li>
+    <li><b>Always implement anti-windup</b> wherever an integrator can meet a limit — actuator saturation, rate limits, mode switches. Clamping (conditional integration) or back-calculation both work; shipping without either is a latent defect, not a tuning choice.</li>
+    <li><b>Derivative on measurement, through a filter.</b> Differentiating the error makes the controller kick on every setpoint step ("derivative kick"); differentiating the raw sensor amplifies noise by ω. Use d(−y<sub>f</sub>)/dt with a filter pole 5–10× above crossover.</li>
+    <li><b>Bumpless everything.</b> Manual→auto transfer, gain scheduling steps, and mode changes must initialize the integrator so u is continuous. Loops rarely die in steady state; they die at transitions.</li>
+    <li><b>Identify before you tune.</b> A 10-minute step or relay test that gives you gain, dominant time constant, and dead time beats an afternoon of knob-twiddling. SIMC/lambda tuning then gives near-optimal PI gains from those three numbers.</li>
+    <li><b>Feedforward is free performance.</b> Anything you can predict (commanded trajectory, measured load, back-EMF, cross-coupling ω·L·i in dq frames) should be fed forward; feedback then only cleans up the residual. Decoupling feedforward is why dq current loops can be tuned as two independent first-order plants.</li>
+    <li><b>Filters are loop components.</b> Every notch and low-pass you add to "clean the signal" is inside the loop and pays phase. Place sensor filters with the same care as controller poles — and re-check margins after.</li>
+    <li><b>Respect the unstable-pole / RHP-zero speed limits.</b> Non-minimum-phase zeros cap your achievable bandwidth (ω<sub>c</sub> ≲ z/2); unstable poles set a floor (ω<sub>c</sub> ≳ 2p). No tuning cleverness moves these walls — only redesigning the plant or sensing does.</li>
+    <li><b>Log the loop, not just the output.</b> Record r, y, u, and e together. Saturation, quantization, and windup are invisible in y alone but obvious in u.</li>
+  </ul>
+</section>
+
+<!-- ============ 09 ============ -->
+<section id="s9">
+  <div class="secno">§ 09</div>
+  <h2>A loop engineering workflow</h2>
+  <p>The order matters. Most loop debugging pain comes from doing step 6 before steps 1–5.</p>
+  <figure>
+    <svg class="diagram" viewBox="0 0 880 150" role="img" aria-label="Seven step loop engineering workflow">
+      <defs>
+        <marker id="a5" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 z" fill="#21242E"/>
+        </marker>
+      </defs>
+      <g font-size="11.5">
+        <rect x="8"   y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2"/>
+        <text x="18" y="58" fill="#1F5FA8">1. Define spec:</text><text x="18" y="74" fill="#5A5E6B">bandwidth, Ms,</text><text x="18" y="88" fill="#5A5E6B">disturbance size</text>
+        <line x1="116" y1="65" x2="130" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="132" y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2"/>
+        <text x="142" y="58" fill="#1F5FA8">2. Identify plant</text><text x="142" y="74" fill="#5A5E6B">step / relay /</text><text x="142" y="88" fill="#5A5E6B">freq sweep</text>
+        <line x1="240" y1="65" x2="254" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="256" y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#1F5FA8" stroke-width="2"/>
+        <text x="266" y="58" fill="#1F5FA8">3. Audit delays</text><text x="266" y="74" fill="#5A5E6B">&amp; noise; set the</text><text x="266" y="88" fill="#5A5E6B">phase budget</text>
+        <line x1="364" y1="65" x2="378" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="380" y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2"/>
+        <text x="390" y="58" fill="#D2611C">4. Shape L(s)</text><text x="390" y="74" fill="#5A5E6B">pick ωc, design</text><text x="390" y="88" fill="#5A5E6B">C, add feedfwd</text>
+        <line x1="488" y1="65" x2="502" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="504" y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#D2611C" stroke-width="2"/>
+        <text x="514" y="58" fill="#D2611C">5. Verify margins</text><text x="514" y="74" fill="#5A5E6B">PM, GM, Ms in</text><text x="514" y="88" fill="#5A5E6B">sim + worst case</text>
+        <line x1="612" y1="65" x2="626" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="628" y="34" width="108" height="62" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2"/>
+        <text x="638" y="58" fill="#2E7D4F">6. Commission</text><text x="638" y="74" fill="#5A5E6B">soft limits, log</text><text x="638" y="88" fill="#5A5E6B">r, y, u, e</text>
+        <line x1="736" y1="65" x2="750" y2="65" stroke="#21242E" stroke-width="2" marker-end="url(#a5)"/>
+        <rect x="752" y="34" width="118" height="62" rx="8" fill="#FFFDF6" stroke="#2E7D4F" stroke-width="2"/>
+        <text x="762" y="58" fill="#2E7D4F">7. Stress &amp; guard</text><text x="762" y="74" fill="#5A5E6B">temp, load, aging;</text><text x="762" y="88" fill="#5A5E6B">monitor margins</text>
+        <path d="M 811 96 L 811 126 L 62 126 L 62 100" fill="none" stroke="#9aa0ad" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#a5)"/>
+        <text x="350" y="120" fill="#5A5E6B" font-size="11">iterate — specs and plants both drift</text>
+      </g>
+    </svg>
+    <figcaption><b>Fig. 4 — The workflow.</b> Steps 1–3 are paperwork and measurement, not glamour — and they decide whether step 4 is even possible.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <div class="secno">§ 10</div>
+  <h2>References &amp; further reading</h2>
+  <ol class="refs">
+    <li>K. J. Åström &amp; R. M. Murray, <i>Feedback Systems: An Introduction for Scientists and Engineers</i>, 2nd ed., Princeton University Press, 2021. Freely available online — the best plain-language treatment of loop shaping, sensitivity, and fundamental limits. <a href="https://fbswiki.org" rel="noopener">fbswiki.org</a></li>
+    <li>K. J. Åström &amp; T. Hägglund, <i>Advanced PID Control</i>, ISA, 2006. The definitive practical PID reference: anti-windup, filtering, bumpless transfer, relay autotuning.</li>
+    <li>S. Skogestad, "Simple analytic rules for model reduction and PID controller tuning" (SIMC), <i>Journal of Process Control</i>, 13(4), 2003. Three plant numbers in, near-optimal PI/PID gains out.</li>
+    <li>S. Skogestad &amp; I. Postlethwaite, <i>Multivariable Feedback Control: Analysis and Design</i>, 2nd ed., Wiley, 2005. Loop shaping, S/T trade-offs, and robustness done rigorously.</li>
+    <li>G. F. Franklin, J. D. Powell &amp; A. Emami-Naeini, <i>Feedback Control of Dynamic Systems</i>, 8th ed., Pearson, 2019. The standard undergraduate path: Bode design, margins, digital implementation.</li>
+    <li>J. C. Doyle, B. A. Francis &amp; A. R. Tannenbaum, <i>Feedback Control Theory</i>, Macmillan, 1992 (free online). Short, sharp treatment of S+T=1, Bode integrals, and why the waterbed cannot be drained.</li>
+    <li>H. W. Bode, <i>Network Analysis and Feedback Amplifier Design</i>, Van Nostrand, 1945. Where gain/phase margins and the integral constraints were born — telephone amplifiers, not motors, but the same loops.</li>
+    <li>R. D. Lorenz, T. A. Lipo &amp; D. W. Novotny, "Motion control with induction motors," <i>Proceedings of the IEEE</i>, 82(8), 1994 — and any modern FOC text (e.g., Mohan, <i>Advanced Electric Drives</i>) for the cascade current/speed architecture of §07.</li>
+    <li>G. Ellis, <i>Control System Design Guide</i>, 4th ed., Elsevier, 2012. The practitioner's bench book: delays, filters in the loop, resonance, and servo commissioning checklists.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">LOOP ENGINEERING · interactive monograph · simulations run locally in your browser (forward-Euler, dt = 2 ms) · no libraries, no network</div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c){
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth || c.parentElement.clientWidth;
+  const h = parseInt(c.getAttribute('height'),10);
+  c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function frame(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+function gridY(ctx,w,x0,x1,y,label){
+  ctx.strokeStyle='#E7E0CC'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+  if(label!==undefined){ ctx.fillStyle='#8a8e99'; ctx.font='10.5px monospace'; ctx.fillText(label, 4, y-3); }
+}
+
+/* =========================================================
+   LAB A — L(s) = K / [ s (0.5s+1)(0.1s+1) ]
+   ========================================================= */
+const T1=0.5, T2=0.1;
+function magL(K,w){ return K/(w*Math.sqrt(1+(T1*w)**2)*Math.sqrt(1+(T2*w)**2)); }
+function phL(w){ return -90 - Math.atan(T1*w)*180/Math.PI - Math.atan(T2*w)*180/Math.PI; }
+
+function marginsA(K){
+  // gain crossover: bisection on magL == 1 over [1e-3, 1e3]
+  let lo=1e-3, hi=1e3, wc=null;
+  if(magL(K,lo)>1 && magL(K,hi)<1){
+    for(let i=0;i<70;i++){ const m=Math.sqrt(lo*hi); (magL(K,m)>1)?(lo=m):(hi=m); }
+    wc=Math.sqrt(lo*hi);
+  }
+  const pm = wc? 180+phL(wc) : null;
+  const wpc = Math.sqrt(1/(T1*T2));            // phase = -180 here (exact)
+  const gm = 1/magL(K,wpc);                    // linear; dB = 20log10
+  return {wc,pm,wpc,gm};
+}
+
+const kSlider=document.getElementById('kSlider'), kOut=document.getElementById('kOut');
+const roWc=document.getElementById('roWc'), roPm=document.getElementById('roPm'),
+      roGm=document.getElementById('roGm'), roVerdict=document.getElementById('roVerdict'),
+      roMs=document.getElementById('roMs');
+const bodeC=document.getElementById('bodeCanvas'), stepC=document.getElementById('stepCanvas'),
+      sensC=document.getElementById('sensCanvas');
+
+function drawBode(K,m){
+  const {ctx,w,h}=setupCanvas(bodeC); frame(ctx,w,h);
+  const padL=44,padR=12,padT=10,padB=24;
+  const wMin=0.01,wMax=100, dbMin=-50,dbMax=50;
+  const X=wv=> padL + (Math.log10(wv)-Math.log10(wMin))/(Math.log10(wMax)-Math.log10(wMin))*(w-padL-padR);
+  const Y=db=> padT + (dbMax-db)/(dbMax-dbMin)*(h-padT-padB);
+  // grid
+  for(const db of [-40,-20,0,20,40]){ ctx.strokeStyle = db===0 ? '#b9aF93':'#E7E0CC'; ctx.setLineDash(db===0?[5,4]:[]);
+    ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,Y(db)); ctx.lineTo(w-padR,Y(db)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#8a8e99'; ctx.font='10.5px monospace'; ctx.fillText(db+' dB',4,Y(db)+3); }
+  for(const wd of [0.01,0.1,1,10,100]){ ctx.strokeStyle='#EFE9D8'; ctx.beginPath(); ctx.moveTo(X(wd),padT); ctx.lineTo(X(wd),h-padB); ctx.stroke();
+    ctx.fillStyle='#8a8e99'; ctx.fillText(wd+'', X(wd)-8, h-8); }
+  ctx.fillText('ω (rad/s)', w-70, h-8);
+  // curve
+  ctx.strokeStyle='#1F5FA8'; ctx.lineWidth=2.2; ctx.beginPath();
+  let first=true;
+  for(let i=0;i<=400;i++){
+    const wv=Math.pow(10, Math.log10(wMin)+i/400*(Math.log10(wMax)-Math.log10(wMin)));
+    const db=Math.max(dbMin,Math.min(dbMax,20*Math.log10(magL(K,wv))));
+    first?ctx.moveTo(X(wv),Y(db)):ctx.lineTo(X(wv),Y(db)); first=false;
+  }
+  ctx.stroke();
+  // crossover dot
+  if(m.wc){ ctx.fillStyle='#D2611C'; ctx.beginPath(); ctx.arc(X(m.wc),Y(0),5,0,7); ctx.fill();
+    ctx.fillStyle='#D2611C'; ctx.font='11px monospace'; ctx.fillText('ωc='+m.wc.toFixed(2), X(m.wc)+8, Y(0)-8); }
+}
+
+function simStepA(K){
+  const dt=0.002, T=30, n=Math.round(T/dt);
+  let z1=0,z2=0,y=0; const ys=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const u=K*(1-y);
+    z1 += dt*(u-z1)/T2;
+    z2 += dt*(z1-z2)/T1;
+    y  += dt*z2;
+    if(!isFinite(y)||Math.abs(y)>1e3){ y=Math.sign(y)*1e3; }
+    ys[i]=y;
+  }
+  return {ys,dt,T};
+}
+
+function drawStepA(K){
+  const {ys,T}=simStepA(K);
+  const {ctx,w,h}=setupCanvas(stepC); frame(ctx,w,h);
+  const padL=36,padR=10,padT=10,padB=22, yMin=-0.2,yMax=2.2;
+  const X=t=> padL + t/T*(w-padL-padR);
+  const Y=v=> padT + (yMax-Math.max(yMin,Math.min(yMax,v)))/(yMax-yMin)*(h-padT-padB);
+  for(const g of [0,0.5,1,1.5,2]) gridY(ctx,w,padL,w-padR,Y(g),g.toFixed(1));
+  for(const t of [0,5,10,15,20,25,30]){ ctx.fillStyle='#8a8e99'; ctx.font='10.5px monospace'; ctx.fillText(t+'s', X(t)-6, h-8); }
+  ctx.strokeStyle='#9aa0ad'; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(padL,Y(1)); ctx.lineTo(w-padR,Y(1)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#1F5FA8'; ctx.lineWidth=2.2; ctx.beginPath();
+  for(let i=0;i<ys.length;i+=4){ const t=i*0.002, v=ys[i]; (i===0)?ctx.moveTo(X(t),Y(v)):ctx.lineTo(X(t),Y(v)); }
+  ctx.stroke();
+}
+
+let baseS=null;
+function sensCurve(K){
+  const pts=[];
+  for(let i=0;i<=400;i++){
+    const wv=Math.pow(10,-2+i/400*4); // 0.01..100
+    const re=1, ml=magL(K,wv), ph=phL(wv)*Math.PI/180;
+    const Lre=ml*Math.cos(ph), Lim=ml*Math.sin(ph);
+    const den=Math.hypot(1+Lre,Lim);
+    pts.push([wv, 1/den]);
+  }
+  return pts;
+}
+function drawSens(K){
+  if(!baseS) baseS=sensCurve(2);
+  const cur=sensCurve(K);
+  const {ctx,w,h}=setupCanvas(sensC); frame(ctx,w,h);
+  const padL=44,padR=12,padT=10,padB=24, dbMin=-40,dbMax=20;
+  const X=wv=> padL + (Math.log10(wv)+2)/4*(w-padL-padR);
+  const Y=db=> padT + (dbMax-db)/(dbMax-dbMin)*(h-padT-padB);
+  for(const db of [-40,-20,0,20]){ ctx.strokeStyle= db===0?'#b9aF93':'#E7E0CC'; ctx.setLineDash(db===0?[5,4]:[]);
+    ctx.beginPath(); ctx.moveTo(padL,Y(db)); ctx.lineTo(w-padR,Y(db)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#8a8e99'; ctx.font='10.5px monospace'; ctx.fillText(db+' dB',4,Y(db)+3); }
+  for(const wd of [0.01,0.1,1,10,100]){ ctx.fillStyle='#8a8e99'; ctx.fillText(wd+'', X(wd)-8, h-8); }
+  ctx.fillText('ω (rad/s)', w-70, h-8);
+  function plot(pts,color,lw){
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.beginPath(); let f=true;
+    for(const [wv,m] of pts){ const db=Math.max(dbMin,Math.min(dbMax,20*Math.log10(m)));
+      f?ctx.moveTo(X(wv),Y(db)):ctx.lineTo(X(wv),Y(db)); f=false; }
+    ctx.stroke();
+  }
+  plot(baseS,'#b9bcc4',1.6);
+  plot(cur,'#1F5FA8',2.2);
+  let Ms=0; for(const [,m] of cur) Ms=Math.max(Ms,m);
+  roMs.textContent = isFinite(Ms)? Ms.toFixed(2)+'×' : '∞';
+  roMs.className = 'rv ' + (Ms<=1.6?'good':(Ms<=2.2?'warn':'bad'));
+}
+
+function updateA(){
+  const K=parseFloat(kSlider.value); kOut.textContent=K.toFixed(1);
+  const m=marginsA(K);
+  roWc.textContent = m.wc? m.wc.toFixed(2)+' rad/s':'—';
+  if(m.pm!==null){
+    roPm.textContent=m.pm.toFixed(1)+'°';
+    roPm.className='rv '+(m.pm>45?'good':(m.pm>25?'warn':'bad'));
+  } else { roPm.textContent='—'; roPm.className='rv'; }
+  const gmDb=20*Math.log10(m.gm);
+  roGm.textContent=gmDb.toFixed(1)+' dB';
+  roGm.className='rv '+(gmDb>6?'good':(gmDb>2?'warn':'bad'));
+  let v,vc;
+  if(gmDb<=0){v='UNSTABLE';vc='bad';}
+  else if(m.pm<25||gmDb<3){v='fragile';vc='bad';}
+  else if(m.pm<45||gmDb<6){v='brisk';vc='warn';}
+  else {v='robust';vc='good';}
+  roVerdict.textContent=v; roVerdict.className='rv '+vc;
+  drawBode(K,m); drawStepA(K); drawSens(K);
+}
+kSlider.addEventListener('input',updateA);
+
+/* =========================================================
+   LAB B — PID on P(s)=2 e^{-0.1 s} / [(s+1)(0.3s+1)]
+   ========================================================= */
+const kp=document.getElementById('kp'), ki=document.getElementById('ki'), kd=document.getElementById('kd');
+const kpOut=document.getElementById('kpOut'), kiOut=document.getElementById('kiOut'), kdOut=document.getElementById('kdOut');
+const satChk=document.getElementById('satChk'), awChk=document.getElementById('awChk');
+const roOs=document.getElementById('roOs'), roTs=document.getElementById('roTs'),
+      roDip=document.getElementById('roDip'), roSse=document.getElementById('roSse');
+const pidC=document.getElementById('pidCanvas'), uC=document.getElementById('uCanvas');
+
+function simPID(Kp,Ki,Kd,sat,aw){
+  const dt=0.002, T=16, n=Math.round(T/dt);
+  const delayN=Math.round(0.1/dt);
+  const buf=new Float32Array(delayN);
+  let bi=0, x1=0, y=0, I=0, yf=0;
+  const tauf=0.05, U=3;
+  const ys=new Float32Array(n), us=new Float32Array(n), rs=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const t=i*dt;
+    const r=(t>=0.5)?1:0;
+    const dist=(t>=8)?-0.8:0;
+    const e=r-y;
+    // filtered derivative on measurement
+    const dyf=(y-yf)/tauf; yf+=dt*dyf;
+    const dterm=-Kd*dyf;
+    let u0=Kp*e + I + dterm;
+    let u=u0;
+    if(sat) u=Math.max(-U,Math.min(U,u0));
+    // conditional integration anti-windup
+    const winding = sat && (u!==u0) && (Math.sign(e)===Math.sign(u0));
+    if(!(aw&&winding)) I+=Ki*e*dt;
+    // transport delay
+    const ud=buf[bi]; buf[bi]=u; bi=(bi+1)%delayN;
+    // plant: 2/(0.3s+1)(s+1)
+    x1 += dt*(2*(ud+dist)-x1)/0.3;
+    y  += dt*(x1-y);
+    if(!isFinite(y)||Math.abs(y)>50){ y=Math.sign(y)*50; }
+    ys[i]=y; us[i]=u; rs[i]=r;
+  }
+  return {ys,us,rs,dt,T,U,n};
+}
+
+function metricsB(s){
+  const i0=Math.round(0.5/s.dt), i8=Math.round(8/s.dt);
+  let peak=-1e9; for(let i=i0;i<i8;i++) peak=Math.max(peak,s.ys[i]);
+  const os=(peak-1)*100;
+  // settling within ±2% before disturbance
+  let ts=null;
+  for(let i=i8-1;i>=i0;i--){ if(Math.abs(s.ys[i]-1)>0.02){ ts=(i+1)*s.dt-0.5; break; } }
+  if(ts===null) ts=0;
+  // disturbance dip
+  let dip=0; for(let i=i8;i<s.n;i++) dip=Math.min(dip,s.ys[i]-1);
+  // steady-state error just before disturbance
+  const sse=1-s.ys[i8-1];
+  return {os,ts,dip,sse, settled: ts<7.4};
+}
+
+function drawPID(s,m){
+  const {ctx,w,h}=setupCanvas(pidC); frame(ctx,w,h);
+  const padL=36,padR=10,padT=10,padB=22, yMin=-0.4,yMax=2.0;
+  const X=t=> padL+t/s.T*(w-padL-padR);
+  const Y=v=> padT+(yMax-Math.max(yMin,Math.min(yMax,v)))/(yMax-yMin)*(h-padT-padB);
+  for(const g of [-0,0.5,1,1.5,2]) gridY(ctx,w,padL,w-padR,Y(g),g.toFixed(1));
+  for(const t of [0,4,8,12,16]){ ctx.fillStyle='#8a8e99'; ctx.font='10.5px monospace'; ctx.fillText(t+'s',X(t)-6,h-8); }
+  // disturbance marker
+  ctx.strokeStyle='#B6382E'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(X(8),padT); ctx.lineTo(X(8),h-padB); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#B6382E'; ctx.font='10.5px monospace'; ctx.fillText('load hits',X(8)+5,padT+12);
+  // setpoint
+  ctx.strokeStyle='#9aa0ad'; ctx.lineWidth=1.6; ctx.setLineDash([5,4]); ctx.beginPath();
+  for(let i=0;i<s.n;i+=8){ const t=i*s.dt; (i===0)?ctx.moveTo(X(t),Y(s.rs[i])):ctx.lineTo(X(t),Y(s.rs[i])); }
+  ctx.stroke(); ctx.setLineDash([]);
+  // output
+  ctx.strokeStyle='#1F5FA8'; ctx.lineWidth=2.2; ctx.beginPath();
+  for(let i=0;i<s.n;i+=2){ const t=i*s.dt; (i===0)?ctx.moveTo(X(t),Y(s.ys[i])):ctx.lineTo(X(t),Y(s.ys[i])); }
+  ctx.stroke();
+}
+function drawU(s){
+  const {ctx,w,h}=setupCanvas(uC); frame(ctx,w,h);
+  const padL=36,padR=10,padT=8,padB=18, uMin=-4.5,uMax=8;
+  const X=t=> padL+t/s.T*(w-padL-padR);
+  const Y=v=> padT+(uMax-Math.max(uMin,Math.min(uMax,v)))/(uMax-uMin)*(h-padT-padB);
+  if(satChk.checked){ ctx.fillStyle='rgba(168,132,44,0.12)';
+    ctx.fillRect(padL,Y(s.U),w-padL-padR,Y(-s.U)-Y(s.U));
+  }
+  for(const g of [-3,0,3,6]) gridY(ctx,w,padL,w-padR,Y(g),g+'');
+  ctx.strokeStyle='#D2611C'; ctx.lineWidth=1.8; ctx.beginPath();
+  for(let i=0;i<s.n;i+=2){ const t=i*s.dt; (i===0)?ctx.moveTo(X(t),Y(s.us[i])):ctx.lineTo(X(t),Y(s.us[i])); }
+  ctx.stroke();
+}
+
+function updateB(){
+  const Kp=parseFloat(kp.value), Ki=parseFloat(ki.value), Kd=parseFloat(kd.value);
+  kpOut.textContent=Kp.toFixed(1); kiOut.textContent=Ki.toFixed(1); kdOut.textContent=Kd.toFixed(2);
+  const s=simPID(Kp,Ki,Kd,satChk.checked,awChk.checked);
+  const m=metricsB(s);
+  roOs.textContent=(m.os<0?0:m.os).toFixed(0)+' %';
+  roOs.className='rv '+(m.os<10?'good':(m.os<30?'warn':'bad'));
+  roTs.textContent=m.settled? m.ts.toFixed(1)+' s' : '> 7.5 s';
+  roTs.className='rv '+(m.settled&&m.ts<2?'good':(m.settled?'warn':'bad'));
+  roDip.textContent=m.dip.toFixed(2);
+  roDip.className='rv '+(m.dip>-0.15?'good':(m.dip>-0.4?'warn':'bad'));
+  roSse.textContent=Math.abs(m.sse)<0.005? '≈ 0':m.sse.toFixed(2);
+  roSse.className='rv '+(Math.abs(m.sse)<0.02?'good':'bad');
+  drawPID(s,m); drawU(s);
+}
+[kp,ki,kd].forEach(el=>el.addEventListener('input',updateB));
+[satChk,awChk].forEach(el=>el.addEventListener('change',updateB));
+document.querySelectorAll('.presets button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const [a,c,d]=b.dataset.p.split(',').map(Number);
+    kp.value=a; ki.value=c; kd.value=d; updateB();
+  });
+});
+
+/* ---------- init + resize ---------- */
+function redrawAll(){ updateA(); updateB(); }
+let rto=null;
+window.addEventListener('resize',()=>{ clearTimeout(rto); rto=setTimeout(redrawAll,150); });
+redrawAll();
+})();
+</script>
+</body>
+</html>

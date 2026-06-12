@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Compression, Explained Simply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f3ea;
+    --paper-deep:#efe9da;
+    --ink:#1c1a15;
+    --ink-soft:#4d4738;
+    --rule:#d8d0bc;
+    --blue:#0f4fc4;
+    --orange:#d9551a;
+    --green:#1c7a4a;
+    --card:#fffdf6;
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:18px;
+    line-height:1.65;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px}
+
+  /* ---------- Header ---------- */
+  header{
+    border-bottom:3px solid var(--ink);
+    padding:56px 0 36px;
+    background:
+      linear-gradient(transparent 97%, rgba(15,79,196,.10) 97%),
+      var(--paper);
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:900;
+    font-size:clamp(38px, 6.4vw, 64px);
+    line-height:1.04;
+    letter-spacing:-.01em;
+  }
+  h1 .thin{font-weight:400;font-style:italic;color:var(--ink-soft)}
+  .standfirst{
+    margin-top:20px;
+    font-size:20px;
+    max-width:680px;
+    color:var(--ink-soft);
+  }
+  .meta{
+    margin-top:22px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .meta span::before{content:"— ";color:var(--blue)}
+
+  /* ---------- TOC ---------- */
+  nav.toc{
+    border-bottom:1px solid var(--rule);
+    padding:18px 0;
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  nav.toc .wrap{display:flex;flex-wrap:wrap;gap:6px 18px}
+  nav.toc a{color:var(--ink-soft);text-decoration:none}
+  nav.toc a:hover{color:var(--blue);text-decoration:underline}
+  nav.toc a b{color:var(--blue);font-weight:500}
+
+  /* ---------- Sections ---------- */
+  section{padding:48px 0;border-bottom:1px solid var(--rule)}
+  h2{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:clamp(26px,3.6vw,34px);
+    line-height:1.15;
+    margin-bottom:8px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--orange);
+    margin-bottom:10px;
+  }
+  h3{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:21px;
+    margin:28px 0 8px;
+  }
+  p{margin:14px 0;max-width:700px}
+  strong{font-weight:600}
+  .lede p:first-of-type{font-size:19.5px}
+  a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:3px}
+  code{
+    font-family:var(--mono);
+    font-size:.86em;
+    background:var(--paper-deep);
+    padding:2px 6px;
+    border-radius:4px;
+  }
+
+  .plain{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-left:5px solid var(--green);
+    padding:18px 22px;
+    margin:22px 0;
+    max-width:700px;
+    border-radius:0 8px 8px 0;
+  }
+  .plain .tag{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--green);
+    display:block;
+    margin-bottom:6px;
+  }
+  .plain p{margin:6px 0}
+
+  .note{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-left:5px solid var(--orange);
+    padding:18px 22px;
+    margin:22px 0;
+    max-width:700px;
+    border-radius:0 8px 8px 0;
+  }
+  .note .tag{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--orange);
+    display:block;
+    margin-bottom:6px;
+  }
+  .note p{margin:6px 0}
+
+  /* ---------- Calculator ---------- */
+  .ladder{
+    margin:30px 0 10px;
+    border:1.5px solid var(--ink);
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--card);
+  }
+  .ladder-head{
+    padding:16px 22px;
+    border-bottom:1.5px solid var(--ink);
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    flex-wrap:wrap;
+    background:var(--paper-deep);
+  }
+  .ladder-head .t{font-family:'Fraunces',serif;font-weight:700;font-size:19px}
+  .ladder-head .s{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .controls{
+    display:flex;
+    gap:16px 26px;
+    flex-wrap:wrap;
+    padding:16px 22px 4px;
+  }
+  .ctrl-group{display:flex;flex-direction:column;gap:6px}
+  .ctrl-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  .btns button{
+    font-family:var(--mono);
+    font-size:12.5px;
+    padding:7px 11px;
+    border:1.5px solid var(--ink);
+    background:var(--card);
+    color:var(--ink);
+    border-radius:6px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .btns button:hover{background:var(--paper-deep)}
+  .btns button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .btns button.on{background:var(--ink);color:var(--paper)}
+  .sliders{
+    display:flex;
+    gap:16px 30px;
+    flex-wrap:wrap;
+    padding:10px 22px 4px;
+  }
+  .slider-group{display:flex;flex-direction:column;gap:4px;min-width:220px;flex:1 1 220px;max-width:330px}
+  .slider-group .row{display:flex;justify-content:space-between;align-items:baseline}
+  .slider-group .val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:4px;border-radius:2px;
+    background:var(--rule);outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:18px;height:18px;border-radius:50%;
+    background:var(--blue);border:2px solid var(--card);
+    box-shadow:0 0 0 1.5px var(--ink);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;
+    background:var(--blue);border:2px solid var(--card);
+    box-shadow:0 0 0 1.5px var(--ink);cursor:pointer;
+  }
+  input[type=range]:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+  .readout{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(135px,1fr));
+    gap:14px;
+    padding:20px 22px;
+  }
+  .stat{border-top:3px solid var(--blue);padding-top:8px}
+  .stat .n{font-family:var(--mono);font-weight:600;font-size:23px;line-height:1.1}
+  .stat .l{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px}
+  .stat.save{border-top-color:var(--green)}
+  .stat.save .n{color:var(--green)}
+  .stat.cost{border-top-color:var(--orange)}
+  .stat.cost .n{color:var(--orange)}
+  .gpu-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:0 22px 22px;
+    align-items:center;
+  }
+  .gpu{
+    width:54px;height:36px;
+    border:1.5px solid var(--ink);
+    border-radius:5px;
+    position:relative;
+    background:linear-gradient(180deg, #fff 0%, var(--paper-deep) 100%);
+    font-family:var(--mono);
+    font-size:9.5px;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding-bottom:3px;
+    color:var(--ink-soft);
+    overflow:hidden;
+  }
+  .gpu .fill{
+    position:absolute;left:0;bottom:0;width:100%;
+    background:rgba(15,79,196,.32);
+    transition:height .35s ease;
+  }
+  .gpu.hot .fill{background:rgba(217,85,26,.4)}
+  .gpu-caption{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .fineprint{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);padding:0 22px 18px;max-width:none}
+
+  /* ---------- Tables ---------- */
+  .tbl-scroll{overflow-x:auto;margin:22px 0}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:16px;
+    background:var(--card);
+  }
+  th,td{
+    border:1px solid var(--rule);
+    padding:10px 14px;
+    text-align:left;
+    vertical-align:top;
+  }
+  th{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    background:var(--paper-deep);
+  }
+  td code{background:transparent;padding:0}
+  .num{font-family:var(--mono);font-size:14.5px;white-space:nowrap}
+
+  /* duo / contrast cards */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+  @media (max-width:680px){.duo{grid-template-columns:1fr}}
+  .duo .card{
+    background:var(--card);
+    border:1.5px solid var(--ink);
+    border-radius:8px;
+    padding:16px 18px;
+  }
+  .duo .card .h{font-family:'Fraunces',serif;font-weight:700;font-size:18px;margin-bottom:6px}
+  .duo .card .h.b{color:var(--blue)}
+  .duo .card .h.o{color:var(--orange)}
+  .duo .card p{font-size:15.5px;margin:8px 0}
+
+  /* workflow */
+  .flow{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:stretch;
+    margin:24px 0;
+  }
+  .step{
+    flex:1 1 150px;
+    background:var(--card);
+    border:1.5px solid var(--ink);
+    border-radius:8px;
+    padding:14px 16px;
+    min-width:150px;
+  }
+  .step .k{font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.1em;text-transform:uppercase}
+  .step .t{font-family:'Fraunces',serif;font-weight:600;font-size:17px;margin:4px 0 4px}
+  .step .d{font-size:14.5px;color:var(--ink-soft);line-height:1.45}
+  .arrow{align-self:center;font-family:var(--mono);color:var(--ink-soft);font-size:18px}
+
+  /* code blocks */
+  pre.codeblock{
+    background:#262219;
+    color:#f0ead8;
+    font-family:var(--mono);
+    font-size:13.5px;
+    line-height:1.55;
+    padding:18px 20px;
+    border-radius:8px;
+    overflow-x:auto;
+    margin:18px 0;
+    border:1.5px solid var(--ink);
+  }
+  pre.codeblock .c{color:#9a937e}      /* comment */
+  pre.codeblock .k{color:#7fb4ff}      /* keyword-ish */
+  pre.codeblock .s{color:#ffc28a}      /* string */
+  .code-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-soft);margin:20px 0 -10px;
+  }
+
+  /* flowchart */
+  .fc{margin:26px 0;max-width:760px}
+  .fc-q{
+    background:var(--paper-deep);
+    border:1.5px solid var(--ink);
+    border-radius:8px;
+    padding:12px 18px;
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:17px;
+    text-align:center;
+    max-width:460px;
+    margin:0 auto;
+  }
+  .fc-split{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;
+    position:relative;
+  }
+  @media (max-width:620px){.fc-split{grid-template-columns:1fr}}
+  .fc-branch{display:flex;flex-direction:column;gap:10px}
+  .fc-ans{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--blue);text-align:center;
+  }
+  .fc-node{
+    background:var(--card);
+    border:1.5px solid var(--ink);
+    border-radius:8px;
+    padding:12px 16px;
+    font-size:15px;
+  }
+  .fc-node .fh{font-family:'Fraunces',serif;font-weight:600;font-size:16px}
+  .fc-rec{
+    border-left:5px solid var(--green);
+  }
+  .fc-rec .fmt{font-family:var(--mono);font-weight:600;color:var(--green);font-size:14px}
+  .fc-down{text-align:center;font-family:var(--mono);color:var(--ink-soft);margin:4px 0;font-size:15px}
+
+  /* glossary */
+  .glossary{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    gap:14px;
+    margin:24px 0;
+  }
+  .gl{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-top:3px solid var(--blue);
+    border-radius:0 0 8px 8px;
+    padding:12px 16px;
+  }
+  .gl .gt{font-family:var(--mono);font-weight:600;font-size:13.5px;margin-bottom:4px}
+  .gl .gd{font-size:14.5px;color:var(--ink-soft);line-height:1.5}
+
+  /* pitfalls */
+  .pitfalls{counter-reset:pit;margin:24px 0;max-width:720px}
+  .pit{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-left:5px solid var(--orange);
+    border-radius:0 8px 8px 0;
+    padding:14px 18px 14px 58px;
+    margin:12px 0;
+    position:relative;
+  }
+  .pit::before{
+    counter-increment:pit;
+    content:counter(pit, decimal-leading-zero);
+    position:absolute;left:16px;top:14px;
+    font-family:var(--mono);font-weight:600;font-size:15px;color:var(--orange);
+  }
+  .pit .ph{font-family:'Fraunces',serif;font-weight:600;font-size:17px}
+  .pit p{font-size:15.5px;margin:6px 0 0;max-width:none}
+
+  /* references */
+  ol.refs{margin:18px 0 0 22px;max-width:740px}
+  ol.refs li{margin:12px 0;font-size:16.5px}
+  ol.refs .rt{font-style:italic}
+
+  footer{
+    padding:36px 0 60px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  footer .rule{height:3px;background:var(--ink);margin-bottom:18px}
+
+  ul.clean{margin:10px 0 10px 22px;max-width:700px}
+  ul.clean li{margin:8px 0}
+
+  @media (max-width:560px){
+    body{font-size:16.5px}
+    .readout{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">Engineering Note · Inference Optimization</div>
+    <h1>LLM Compression,<br><span class="thin">explained simply</span></h1>
+    <p class="standfirst">Why running a large language model costs more than training it ever did — and how quantization, distillation, KV-cache tricks, and friends shrink the bill without (much) hurting the answers.</p>
+    <div class="meta">
+      <span>By <b>Majid Mazouchi</b></span>
+      <span>Based on IBM Technology's talk by Cedric Clyburn, extended</span>
+      <span>June 2026</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <div class="wrap">
+    <a href="#s1"><b>01</b> Problem</a>
+    <a href="#s2"><b>02</b> Memory math</a>
+    <a href="#s3"><b>03</b> Calculator</a>
+    <a href="#s4"><b>04</b> Quantization</a>
+    <a href="#s5"><b>05</b> KV cache</a>
+    <a href="#s6"><b>06</b> Wider toolbox</a>
+    <a href="#s7"><b>07</b> Latency vs throughput</a>
+    <a href="#s8"><b>08</b> Decision guide</a>
+    <a href="#s9"><b>09</b> Workflow &amp; code</a>
+    <a href="#s10"><b>10</b> Evidence</a>
+    <a href="#s11"><b>11</b> Pitfalls</a>
+    <a href="#s12"><b>12</b> Takeaway</a>
+    <a href="#s13"><b>13</b> Glossary</a>
+    <a href="#s14"><b>14</b> References</a>
+  </div>
+</nav>
+
+<!-- 1. The problem -->
+<section class="lede" id="s1">
+  <div class="wrap">
+    <div class="kicker">01 · The Problem</div>
+    <h2>Training is a one-time cost. Inference never stops.</h2>
+    <p>It's tempting to think the expensive part of an LLM is training it. In production, the opposite is usually true: training happens once, but <strong>inference happens every single time anyone uses the model</strong>. Every chatbot reply, every RAG query, every agent step, every batch summarization job burns GPU memory and compute — again and again, all day, every day.</p>
+    <p>So the practical question for anyone deploying these systems is not "how do we train a better model?" It's: <strong>how do we serve the model we have, faster and cheaper, without wrecking its quality?</strong></p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>An LLM is like a delivery truck. Buying the truck (training) is expensive once. Fuel and driver hours (inference) cost you forever. Compression is about getting the same deliveries done with a smaller, cheaper truck.</p>
+    </div>
+    <p>When engineers measure whether they've succeeded, four numbers dominate:</p>
+    <ul class="clean">
+      <li><strong>Time-to-first-token</strong> — how long the user waits before anything appears.</li>
+      <li><strong>Tokens per second</strong> — how fast the answer streams (or how fast a batch job churns).</li>
+      <li><strong>GPU memory</strong> — how many (and which) cards you need to even load the model.</li>
+      <li><strong>Benchmark accuracy</strong> — whether the model still answers as well as before.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 2. Where the memory goes -->
+<section id="s2">
+  <div class="wrap">
+    <div class="kicker">02 · Where the Memory Goes</div>
+    <h2>A model is just billions of numbers — and numbers have a size</h2>
+    <p>A model's parameters (its "weights") are stored as numbers, and the <strong>numeric format</strong> you choose decides how many bytes each one takes. That single choice dominates memory:</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead>
+        <tr><th>Format</th><th>Bytes per parameter</th><th>Rough idea</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>FP32</code></td><td class="num">4 bytes</td><td>Full precision. Mostly used in training, rarely needed to serve.</td></tr>
+        <tr><td><code>FP16 / BF16</code></td><td class="num">2 bytes</td><td>The standard "half precision" most models ship in.</td></tr>
+        <tr><td><code>INT8 / FP8</code></td><td class="num">1 byte</td><td>Half the memory of BF16. Usually near-lossless with modern methods.</td></tr>
+        <tr><td><code>INT4</code></td><td class="num">0.5 bytes</td><td>A quarter of BF16. Aggressive — needs careful calibration.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>The arithmetic is brutally simple: <strong>memory ≈ parameters × bytes per parameter</strong>. A 109-billion-parameter model in BF16 is roughly 109B × 2 bytes ≈ <strong>~220 GB just for the weights</strong> — before you add the KV cache and runtime overhead. That's already past two 80 GB GPUs and into a third.</p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>Imagine writing 109 billion numbers in a notebook. You can write each one in long form (BF16), shorthand (INT8), or very tight shorthand (INT4). Same numbers, smaller notebook. Quantization is choosing the shorthand carefully so nothing important gets lost.</p>
+    </div>
+    <h3>Notation you'll see in the wild: W4A16, W8A8, …</h3>
+    <p>Quantization configs are often written as <code>W&lt;weights&gt;A&lt;activations&gt;</code>. <strong>W4A16</strong> means 4-bit weights with 16-bit activations (weight-only quantization). <strong>W8A8</strong> means 8-bit weights <em>and</em> 8-bit activations (full low-precision compute). This little code tells you both how much memory you save and which GPU math units get used.</p>
+  </div>
+</section>
+
+<!-- 3. Interactive calculator -->
+<section id="s3">
+  <div class="wrap">
+    <div class="kicker">03 · See It Yourself</div>
+    <h2>The deployment calculator</h2>
+    <p>Pick a model, a precision, a context length, a batch size, and a GPU. Watch the weight memory, the KV cache, the GPU count, and the <strong>monthly bill</strong> change. This is the whole economic argument for compression in one widget.</p>
+
+    <div class="ladder">
+      <div class="ladder-head">
+        <div class="t">Memory &amp; cost calculator</div>
+        <div class="s">total ≈ weights + KV cache · cost = GPUs × $/hr × 730 h</div>
+      </div>
+      <div class="controls">
+        <div class="ctrl-group">
+          <div class="ctrl-label">Model</div>
+          <div class="btns" id="modelBtns">
+            <button data-i="0">Llama 8B</button>
+            <button data-i="1">Llama 70B</button>
+            <button data-i="2" class="on">Llama 4 Scout · 109B</button>
+            <button data-i="3">Llama 4 Maverick · 400B</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Weight precision</div>
+          <div class="btns" id="precBtns">
+            <button data-b="4">FP32</button>
+            <button data-b="2" class="on">BF16</button>
+            <button data-b="1">INT8 / FP8</button>
+            <button data-b="0.5">INT4</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">KV cache precision</div>
+          <div class="btns" id="kvBtns">
+            <button data-k="1" class="on">FP16</button>
+            <button data-k="0.5">FP8 / INT8</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Hardware</div>
+          <div class="btns" id="hwBtns">
+            <button data-g="80" data-r="1.7" class="on">A100 80GB</button>
+            <button data-g="80" data-r="2.9">H100 80GB</button>
+            <button data-g="48" data-r="0.9">L40S 48GB</button>
+            <button data-g="24" data-r="0.35">RTX 4090 24GB</button>
+          </div>
+        </div>
+      </div>
+      <div class="sliders">
+        <div class="slider-group">
+          <div class="row"><span class="ctrl-label">Context length</span><span class="val" id="ctxVal">8k tokens</span></div>
+          <input type="range" id="ctxSlider" min="0" max="7" step="1" value="3" aria-label="Context length">
+        </div>
+        <div class="slider-group">
+          <div class="row"><span class="ctrl-label">Concurrent sequences (batch)</span><span class="val" id="batchVal">4</span></div>
+          <input type="range" id="batchSlider" min="0" max="6" step="1" value="2" aria-label="Concurrent sequences">
+        </div>
+      </div>
+      <div class="readout">
+        <div class="stat"><div class="n" id="memOut">—</div><div class="l">Weights</div></div>
+        <div class="stat"><div class="n" id="kvOut">—</div><div class="l">KV cache</div></div>
+        <div class="stat"><div class="n" id="totOut">—</div><div class="l">Total</div></div>
+        <div class="stat"><div class="n" id="gpuOut">—</div><div class="l" id="gpuLbl">× GPUs</div></div>
+        <div class="stat save"><div class="n" id="saveOut">—</div><div class="l">vs BF16/FP16</div></div>
+        <div class="stat cost"><div class="n" id="costOut">—</div><div class="l">est. $/month</div></div>
+      </div>
+      <div class="gpu-row" id="gpuRow"></div>
+      <div class="fineprint">Estimates for intuition only. KV-per-token figures are approximations from each model's layer/head geometry; runtime overhead, activations, and engine reserve memory are not included. Cloud prices are rough mid-2026 on-demand rates and vary widely by provider.</div>
+    </div>
+
+    <p style="margin-top:24px">This extends the example from the talk: <strong>Llama 4 Scout (~109B)</strong> needs about three 80 GB GPUs in BF16, about two at INT8 — and at INT4 it can fit on <strong>one</strong> 80 GB GPU with room left over for the KV cache. Now crank the context to 128k with a batch of 16 and watch the KV cache become the problem — that's the part most back-of-envelope estimates miss.</p>
+    <div class="plain">
+      <span class="tag">Try this</span>
+      <p>Set Llama 8B · INT4 · RTX 4090 — a flagship-class small model running on a gaming card at home. Then set Maverick 400B · BF16 · A100 and look at the monthly cost. That spread is the entire compression business case.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Quantization -->
+<section id="s4">
+  <div class="wrap">
+    <div class="kicker">04 · The Main Technique</div>
+    <h2>Quantization: same model, smaller numbers</h2>
+    <p><strong>Quantization</strong> means storing (and sometimes computing with) the model's numbers in a lower-precision format — BF16 → INT8 → INT4. Less memory per number means a smaller model, less data moving between GPU memory and compute units, and usually faster inference.</p>
+    <p>The catch: lower precision introduces rounding error. Naively rounding every weight degrades quality. The reason quantization works so well today is that modern methods are <strong>error-aware</strong>:</p>
+    <ul class="clean">
+      <li><strong>GPTQ</strong> quantizes weights layer by layer while using a small calibration dataset to minimize the output error each step introduces — instead of rounding blindly.</li>
+      <li><strong>AWQ</strong> observes which weight channels matter most to the activations and protects them, scaling the rest more aggressively.</li>
+      <li><strong>SparseGPT</strong> applies the same idea to <strong>pruning</strong>: it can remove a large fraction of weights (set them to zero) in one shot, with minimal accuracy loss, and combines with quantization.</li>
+    </ul>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>Naive quantization is like compressing a photo by deleting every other pixel. GPTQ is like a smart compressor that looks at the picture and decides where detail matters — keeping the face sharp and letting the sky get blurry.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>As a rule of thumb in 2025–26: <strong>INT8/FP8 is usually near-free</strong> in quality for most models, while <strong>INT4 is usually fine but worth checking</strong> — especially for math, code, long-context, and tool-calling behavior, which degrade before casual chat does. Section 10 puts numbers on this.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. KV cache -->
+<section id="s5">
+  <div class="wrap">
+    <div class="kicker">05 · The Other Memory Hog</div>
+    <h2>The KV cache: where long contexts eat your GPU</h2>
+    <p>Weights are only half the memory story. To generate each new token, a transformer attends over every previous token — and to avoid recomputing them, it caches each token's <strong>K</strong>ey and <strong>V</strong>alue vectors for every layer. That's the <strong>KV cache</strong>, and it grows with <em>every token in every active conversation</em>:</p>
+    <p style="font-family:var(--mono);font-size:15px;background:var(--paper-deep);padding:14px 18px;border-radius:8px;max-width:700px">
+      KV bytes ≈ 2 (K&amp;V) × layers × KV-heads × head-dim × bytes/value × context × batch
+    </p>
+    <p>Concrete feel: Llama 3.1 8B at FP16 stores roughly <strong>0.125 MB per token</strong>. One 32k-token conversation ≈ 4 GB. Sixteen concurrent 32k conversations ≈ <strong>64 GB — more than the model's own weights</strong>. For long-context RAG and agent workloads, the cache, not the weights, is what runs you out of memory.</p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>The weights are the librarian's brain — fixed size. The KV cache is the pile of open books on the desk: one pile per reader, growing with every page. Serve enough readers with long books and the desk overflows long before the librarian forgets anything.</p>
+    </div>
+    <h3>What to do about it</h3>
+    <ul class="clean">
+      <li><strong>Quantize the cache too.</strong> FP8/INT8 KV cache halves it, usually with negligible quality loss. (Toggle it in the calculator above.)</li>
+      <li><strong>Grouped-query attention (GQA)</strong> — most modern models already share KV heads across query heads, cutting the cache 4–8× vs. older architectures. This is why per-token figures are smaller than naive math suggests.</li>
+      <li><strong>PagedAttention (vLLM)</strong> manages the cache in pages like an OS manages RAM, eliminating fragmentation and over-allocation — one of the main reasons vLLM became the default serving engine.</li>
+      <li><strong>Prefix caching</strong> reuses the cache for shared prompt prefixes (system prompts, RAG boilerplate) across requests.</li>
+    </ul>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>If you're sizing hardware for a RAG or agent system, estimate KV cache at your <strong>p95 context length × expected concurrency</strong>, not the demo's 2k-token chat. This is the single most common reason "it fit on my machine" deployments fall over in production.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Wider toolbox -->
+<section id="s6">
+  <div class="wrap">
+    <div class="kicker">06 · The Wider Toolbox</div>
+    <h2>Beyond quantization: three more ways to cheaper tokens</h2>
+
+    <h3>Distillation: teach a small model to imitate a big one</h3>
+    <p><strong>Knowledge distillation</strong> trains a small "student" model on the outputs (and sometimes the internal probability distributions) of a large "teacher." The student learns not just the right answers, but the teacher's <em>way of being uncertain</em> — which is far richer training signal than raw text. This is a big part of how modern 7–8B models punch so far above their weight: many are distilled from much larger siblings.</p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>Quantization shrinks the same brain. Distillation raises a smaller brain with a brilliant private tutor. The student never matches the tutor everywhere, but on the topics it was tutored in, it gets remarkably close — at a tenth of the cost.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Distillation shines when your workload is <strong>narrow</strong> (classification, extraction, a specific domain): a distilled or fine-tuned small model often beats a quantized large one on cost <em>and</em> latency. For broad open-ended assistants, large-but-quantized usually wins on quality.</p>
+    </div>
+
+    <h3>MoE sparsity: why "400B" isn't what it seems</h3>
+    <p>Mixture-of-Experts models like Llama 4 Maverick have <strong>~400B total parameters but only ~17B active per token</strong> — a router picks a few "expert" subnetworks for each token. This makes <em>compute</em> cheap per token. But here's the trap: <strong>all 400B weights must still sit in GPU memory</strong>, because any expert might be chosen next. MoE compresses your compute bill, not your memory bill — which is exactly why quantizing MoE models is so attractive: it attacks the one cost MoE doesn't fix.</p>
+
+    <h3>Speculative decoding: the non-compression speedup</h3>
+    <p>Worth knowing as the other big inference lever, even though it changes nothing about model size:</p>
+    <div class="duo">
+      <div class="card">
+        <div class="h b">Compression (quantization, pruning, distillation)</div>
+        <p>Makes the model itself smaller/cheaper. Reduces memory, GPU count, and cost per token. Quality can change — you must evaluate.</p>
+      </div>
+      <div class="card">
+        <div class="h o">Speculative decoding</div>
+        <p>Keeps the model exactly as is. A small "draft" model proposes several tokens ahead; the big model verifies them in one pass. Output is <strong>provably identical</strong> to the big model alone — just 2–3× faster when the draft guesses well. Costs extra memory (you host two models).</p>
+      </div>
+    </div>
+    <p>The two stack: a quantized target model with a quantized draft model is a common production combo.</p>
+  </div>
+</section>
+
+<!-- 7. Latency vs throughput -->
+<section id="s7">
+  <div class="wrap">
+    <div class="kicker">07 · Matching the Method to the Workload</div>
+    <h2>Latency workloads vs. throughput workloads</h2>
+    <p>There is no single "best" quantization scheme — it depends on what the system does all day.</p>
+    <h3>Interactive (latency matters)</h3>
+    <p>Chatbots, RAG assistants, agents. The user is watching the screen, so <strong>time-to-first-token</strong> and smooth streaming win. These systems often run at low batch sizes and don't saturate the GPU. Here, <strong>weight-only quantization</strong> (W4A16, W8A16) is attractive: it cuts memory and weight-loading time without adding much runtime conversion overhead.</p>
+    <h3>Offline / batched (throughput matters)</h3>
+    <p>Summarizing thousands of documents, processing transcripts overnight, bulk classification. Nobody is staring at a spinner; you care about total <strong>tokens per second</strong> with the GPUs fully loaded. Here, <strong>W8A8 (INT8 or FP8)</strong> pays off, because the GPU's low-precision matrix units (tensor cores) get used at full tilt.</p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>A taxi and a freight train are optimized differently. The taxi (chatbot) must pick you up <em>now</em>; the train (batch job) must move the most cargo per hour. Quantization choices follow the same split.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Decide your workload type <em>before</em> choosing a scheme. A common mistake is benchmarking a quantized model at batch size 1, seeing great latency, then deploying it for heavy batch traffic where a different format would have doubled throughput.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Decision flowchart -->
+<section id="s8">
+  <div class="wrap">
+    <div class="kicker">08 · Decision Guide</div>
+    <h2>Which format should I pick?</h2>
+    <p>A simplified field guide — start at the top, follow your answers down.</p>
+
+    <div class="fc">
+      <div class="fc-q">What does the system do all day?</div>
+      <div class="fc-split">
+        <div class="fc-branch">
+          <div class="fc-ans">Interactive — users waiting (chat, RAG, agents)</div>
+          <div class="fc-node"><span class="fh">Memory tight, or model barely fits?</span></div>
+          <div class="fc-node fc-rec">
+            <span class="fmt">Yes → W4A16 (GPTQ or AWQ)</span>
+            <p style="margin:6px 0 0;font-size:14.5px">4× weight savings, low overhead at small batch. Verify quality on math/code/tools.</p>
+          </div>
+          <div class="fc-node fc-rec">
+            <span class="fmt">No → W8A16, or FP8 if Hopper+</span>
+            <p style="margin:6px 0 0;font-size:14.5px">Near-lossless, comfortable headroom for KV cache.</p>
+          </div>
+        </div>
+        <div class="fc-branch">
+          <div class="fc-ans">Batched / offline — throughput is king</div>
+          <div class="fc-node"><span class="fh">Does the GPU support FP8 (H100/H200, L40S+)?</span></div>
+          <div class="fc-node fc-rec">
+            <span class="fmt">Yes → FP8 W8A8 (+ FP8 KV cache)</span>
+            <p style="margin:6px 0 0;font-size:14.5px">Best throughput per dollar on modern hardware; quality near-identical.</p>
+          </div>
+          <div class="fc-node fc-rec">
+            <span class="fmt">No (Ampere/A100) → INT8 W8A8 (SmoothQuant/GPTQ)</span>
+            <p style="margin:6px 0 0;font-size:14.5px">Uses INT8 tensor cores; calibrate activations carefully.</p>
+          </div>
+        </div>
+      </div>
+      <div class="fc-down">↓ in all branches</div>
+      <div class="fc-q" style="max-width:620px">Long contexts or high concurrency? Quantize the KV cache (FP8/INT8) and enable prefix caching. Fine-tuned model? Quantize <em>after</em> fine-tuning, calibrating on your own data.</div>
+    </div>
+
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>Two shortcuts that save days: (1) for popular open models, <strong>pre-quantized checkpoints</strong> (GPTQ/AWQ/FP8) are already on Hugging Face — start there; (2) whatever you pick, the serving engine matters as much as the format — the same W4A16 checkpoint can differ 2× in throughput between engines and kernel versions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Workflow + code -->
+<section id="s9">
+  <div class="wrap">
+    <div class="kicker">09 · How It's Actually Done</div>
+    <h2>The compression workflow — with the actual commands</h2>
+    <p>In practice, the pipeline is short and very repeatable:</p>
+    <div class="flow">
+      <div class="step"><div class="k">Step 1</div><div class="t">Get the model</div><div class="d">Pull the base model from Hugging Face (or your internal registry).</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="k">Step 2</div><div class="t">Compress</div><div class="d">Apply GPTQ, SparseGPT, FP8, etc. with <strong>LLM Compressor</strong>, using a small calibration set.</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="k">Step 3</div><div class="t">Save</div><div class="d">Export the compressed checkpoint in a standard format.</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="k">Step 4</div><div class="t">Serve</div><div class="d">Deploy with an inference engine such as <strong>vLLM</strong>, which reads the compressed formats natively.</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="k">Step 5</div><div class="t">Evaluate</div><div class="d">Test on <em>your</em> tasks, not just public benchmarks. Then ship.</div></div>
+    </div>
+
+    <div class="code-label">Quantize with LLM Compressor (W4A16 via GPTQ)</div>
+<pre class="codeblock"><span class="c"># pip install llmcompressor</span>
+<span class="k">from</span> llmcompressor <span class="k">import</span> oneshot
+<span class="k">from</span> llmcompressor.modifiers.quantization <span class="k">import</span> GPTQModifier
+
+oneshot(
+    model=<span class="s">"meta-llama/Llama-3.1-8B-Instruct"</span>,
+    dataset=<span class="s">"open_platypus"</span>,          <span class="c"># small calibration set</span>
+    recipe=GPTQModifier(targets=<span class="s">"Linear"</span>, scheme=<span class="s">"W4A16"</span>,
+                        ignore=[<span class="s">"lm_head"</span>]),
+    output_dir=<span class="s">"Llama-3.1-8B-Instruct-W4A16"</span>,
+    max_seq_length=2048,
+    num_calibration_samples=512,
+)</pre>
+
+    <div class="code-label">Serve it with vLLM</div>
+<pre class="codeblock"><span class="c"># pip install vllm</span>
+vllm serve ./Llama-3.1-8B-Instruct-W4A16 \
+    --max-model-len 32768 \
+    --kv-cache-dtype fp8        <span class="c"># quantize the KV cache too</span>
+
+<span class="c"># ...then call it like any OpenAI-compatible endpoint:</span>
+curl http://localhost:8000/v1/chat/completions \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"model": "Llama-3.1-8B-Instruct-W4A16",
+       "messages": [{"role":"user","content":"Hello"}]}'</span></pre>
+
+    <div class="code-label">Sanity-check quality before shipping</div>
+<pre class="codeblock"><span class="c"># pip install lm-eval  — run the same suite on base vs compressed</span>
+lm_eval --model vllm \
+  --model_args pretrained=./Llama-3.1-8B-Instruct-W4A16 \
+  --tasks gsm8k,mmlu --batch_size auto</pre>
+
+    <div class="note">
+      <span class="tag">Practical note — the caution that matters most</span>
+      <p>Compression does not remove the need for testing. A model can hold its score on MMLU and still behave differently on your domain-specific tasks: long-context RAG, code generation, structured output, tool calling. <strong>Evaluate the compressed model on your own workload before trusting it.</strong> Many teams keep a small "golden set" of real prompts and diff the outputs before/after quantization.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Evidence -->
+<section id="s10">
+  <div class="wrap">
+    <div class="kicker">10 · The Evidence</div>
+    <h2>How much accuracy do you actually lose?</h2>
+    <p>"Near-lossless" is a claim, so here are representative numbers. A large-scale study from the vLLM/Neural Magic team (<a href="https://arxiv.org/abs/2411.02355">arXiv:2411.02355</a>, ~500k evaluations across the Llama 3.1 family) measured <strong>accuracy recovery</strong> — the compressed model's score as a percentage of the original's — across academic and real-world benchmarks:</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead>
+        <tr><th>Scheme</th><th>Memory vs BF16</th><th>Typical accuracy recovery</th><th>Reading</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>FP8 (W8A8)</code></td><td class="num">~50%</td><td class="num">~99–100%</td><td>Effectively lossless across model sizes and tasks.</td></tr>
+        <tr><td><code>INT8 (W8A8)</code></td><td class="num">~50%</td><td class="num">~98–99%</td><td>Near-lossless when activations are calibrated well.</td></tr>
+        <tr><td><code>INT4 (W4A16)</code></td><td class="num">~25%</td><td class="num">~96–99%</td><td>Usually fine; gaps show up first on hard reasoning, math, and code.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Two honest caveats: recovery varies by <strong>model size</strong> (small models are more fragile under INT4 than large ones) and by <strong>task type</strong> (multi-step reasoning and strict structured output degrade before knowledge recall does). Which is precisely why the published averages are a starting point — and your golden set is the finish line.</p>
+    <div class="plain">
+      <span class="tag">In plain words</span>
+      <p>Cutting memory in half typically costs about as much accuracy as a rounding error. Cutting it to a quarter usually costs a point or two — noticeable only where the model was already working hardest.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Pitfalls -->
+<section id="s11">
+  <div class="wrap">
+    <div class="kicker">11 · Field Notes</div>
+    <h2>Common pitfalls</h2>
+    <div class="pitfalls">
+      <div class="pit">
+        <div class="ph">Quantizing before fine-tuning</div>
+        <p>Fine-tune first, quantize last. Quantizing and then fine-tuning (without QLoRA-style machinery) fights the rounding at every step; quantizing the finished model preserves what you trained.</p>
+      </div>
+      <div class="pit">
+        <div class="ph">Calibration-set mismatch</div>
+        <p>GPTQ/AWQ minimize error <em>on the calibration data</em>. Calibrating a code assistant on Wikipedia text quietly optimizes for the wrong distribution. Use a few hundred samples that look like production traffic.</p>
+      </div>
+      <div class="pit">
+        <div class="ph">The batch-1 benchmarking trap</div>
+        <p>Measuring latency at batch size 1, then deploying under concurrent load. Weight-only formats that shine at batch 1 can fall behind W8A8 at batch 32. Benchmark at your real concurrency.</p>
+      </div>
+      <div class="pit">
+        <div class="ph">Forgetting the KV cache in sizing</div>
+        <p>"The weights fit" is not "the deployment fits." Size for p95 context × concurrency, or the first long-context burst will OOM the server.</p>
+      </div>
+      <div class="pit">
+        <div class="ph">Evaluating only on public benchmarks</div>
+        <p>MMLU can hold steady while tool-calling reliability or JSON validity drops. Benchmarks are necessary, not sufficient — diff a golden set of your own prompts.</p>
+      </div>
+      <div class="pit">
+        <div class="ph">Ignoring hardware-format fit</div>
+        <p>FP8 needs Hopper-class GPUs or newer; on an A100 it falls back or fails. Marlin/INT4 kernels vary by engine version. Confirm the format is <em>accelerated</em>, not just supported, on your cards.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12. Takeaway -->
+<section id="s12">
+  <div class="wrap">
+    <div class="kicker">12 · The Takeaway</div>
+    <h2>Compression is an economics decision, not a party trick</h2>
+    <p>LLM compression — chiefly quantization, with pruning, distillation, and KV-cache management alongside — is one of the main reasons generative AI is deployable at scale. It is not about saving disk space. It directly determines <strong>how many GPUs you buy, how fast users see tokens, how much each request costs, and which models are even feasible</strong> for your application.</p>
+    <p>The short version to remember:</p>
+    <ul class="clean">
+      <li>Memory ≈ parameters × bytes per parameter — plus a KV cache that grows with context × concurrency.</li>
+      <li>INT8/FP8 ≈ half the memory, ~99% accuracy recovery. INT4 ≈ a quarter, ~96–99% — verify it.</li>
+      <li>Pick the format for the workload: weight-only (W4A16) for latency, W8A8 for throughput; quantize the KV cache for long contexts.</li>
+      <li>Distill when the task is narrow; quantize when you need the big model's breadth; speculative decoding stacks on top of either.</li>
+      <li>Always evaluate on your own tasks. Benchmarks are necessary, not sufficient.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 13. Glossary -->
+<section id="s13">
+  <div class="wrap">
+    <div class="kicker">13 · Quick Reference</div>
+    <h2>Glossary</h2>
+    <div class="glossary">
+      <div class="gl"><div class="gt">Quantization</div><div class="gd">Storing model numbers in fewer bits (BF16 → INT8 → INT4) to cut memory and speed up inference.</div></div>
+      <div class="gl"><div class="gt">Calibration set</div><div class="gd">A few hundred representative samples used by GPTQ/AWQ to decide where rounding error hurts least.</div></div>
+      <div class="gl"><div class="gt">W4A16 / W8A8</div><div class="gd">Shorthand for weight/activation precision: 4-bit weights with 16-bit activations; 8-bit both.</div></div>
+      <div class="gl"><div class="gt">KV cache</div><div class="gd">Per-token Key/Value vectors cached per layer so attention doesn't recompute history. Grows with context × batch.</div></div>
+      <div class="gl"><div class="gt">Tensor cores</div><div class="gd">GPU matrix units that run low-precision math (INT8/FP8) much faster than full precision — the hardware reason quantization speeds things up.</div></div>
+      <div class="gl"><div class="gt">Pruning / sparsity</div><div class="gd">Removing (zeroing) weights that contribute little. SparseGPT does this in one shot post-training.</div></div>
+      <div class="gl"><div class="gt">Distillation</div><div class="gd">Training a small student model to imitate a large teacher's outputs and probability distributions.</div></div>
+      <div class="gl"><div class="gt">MoE (Mixture of Experts)</div><div class="gd">Architecture where a router activates a few expert subnetworks per token: cheap compute, full-size memory.</div></div>
+      <div class="gl"><div class="gt">Speculative decoding</div><div class="gd">A draft model guesses several tokens; the target model verifies in one pass. Identical outputs, 2–3× faster.</div></div>
+      <div class="gl"><div class="gt">Time-to-first-token</div><div class="gd">User-perceived startup latency: prompt processing time before the first output token streams.</div></div>
+      <div class="gl"><div class="gt">Perplexity</div><div class="gd">A quick proxy metric for language-model quality; useful for smoke tests, not a substitute for task evals.</div></div>
+      <div class="gl"><div class="gt">Accuracy recovery</div><div class="gd">Compressed model's benchmark score as a percentage of the original's — the standard way to report quantization quality.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14. References -->
+<section id="s14">
+  <div class="wrap">
+    <div class="kicker">14 · References &amp; Further Reading</div>
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Cedric Clyburn (IBM Technology), <span class="rt">LLM Compression Explained: Build Faster, Efficient AI Models</span> — YouTube, video ID <code>wIXr22QTEHg</code>. The talk this page is based on.</li>
+      <li>Frantar, E., Ashkboos, S., Hoefler, T., Alistarh, D., <span class="rt">GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers</span> — <a href="https://arxiv.org/abs/2210.17323">arXiv:2210.17323</a>.</li>
+      <li>Frantar, E., Alistarh, D., <span class="rt">SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot</span> — <a href="https://arxiv.org/abs/2301.00774">arXiv:2301.00774</a>.</li>
+      <li>Lin, J. et al., <span class="rt">AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration</span> — <a href="https://arxiv.org/abs/2306.00978">arXiv:2306.00978</a>.</li>
+      <li>Kurtić, E. et al., <span class="rt">"Give Me BF16 or Give Me Death"? Accuracy-Performance Trade-Offs in LLM Quantization</span> — <a href="https://arxiv.org/abs/2411.02355">arXiv:2411.02355</a>. Source for the accuracy-recovery figures in Section 10.</li>
+      <li>Hinton, G., Vinyals, O., Dean, J., <span class="rt">Distilling the Knowledge in a Neural Network</span> — <a href="https://arxiv.org/abs/1503.02531">arXiv:1503.02531</a>.</li>
+      <li>Leviathan, Y., Kalman, M., Matias, Y., <span class="rt">Fast Inference from Transformers via Speculative Decoding</span> — <a href="https://arxiv.org/abs/2211.17192">arXiv:2211.17192</a>.</li>
+      <li>Xiao, G. et al., <span class="rt">SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</span> — <a href="https://arxiv.org/abs/2211.10438">arXiv:2211.10438</a>.</li>
+      <li>Kwon, W. et al., <span class="rt">Efficient Memory Management for Large Language Model Serving with PagedAttention</span> (vLLM) — <a href="https://arxiv.org/abs/2309.06180">arXiv:2309.06180</a>; project: <a href="https://github.com/vllm-project/vllm">github.com/vllm-project/vllm</a>.</li>
+      <li><span class="rt">LLM Compressor</span> — open-source compression toolkit in the vLLM ecosystem: <a href="https://github.com/vllm-project/llm-compressor">github.com/vllm-project/llm-compressor</a>.</li>
+      <li>Hugging Face docs, <span class="rt">Quantization</span> — <a href="https://huggingface.co/docs/transformers/quantization">huggingface.co/docs/transformers/quantization</a>.</li>
+      <li>EleutherAI, <span class="rt">lm-evaluation-harness</span> — <a href="https://github.com/EleutherAI/lm-evaluation-harness">github.com/EleutherAI/lm-evaluation-harness</a>. Standard tool for before/after quality checks.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="rule"></div>
+    Prepared as a plain-language study note · Figures are order-of-magnitude estimates for intuition, not procurement guidance.
+  </div>
+</footer>
+
+<script>
+(function(){
+  // Model presets: params in billions, approx KV MB per token at FP16
+  // (derived from layer count x KV heads x head dim with GQA; rough)
+  const MODELS = [
+    {name:'Llama 8B',      p:8,   kv:0.125},
+    {name:'Llama 70B',     p:70,  kv:0.3125},
+    {name:'Scout 109B',    p:109, kv:0.19},
+    {name:'Maverick 400B', p:400, kv:0.19}
+  ];
+  const CTX   = [1024,2048,4096,8192,16384,32768,65536,131072];
+  const BATCH = [1,2,4,8,16,32,64];
+  const HOURS_PER_MONTH = 730;
+
+  let model = MODELS[2];
+  let bytes = 2;        // weight bytes/param
+  let kvScale = 1;      // 1 = FP16 KV, 0.5 = FP8/INT8 KV
+  let gpuGB = 80, rate = 1.7, hwName = 'A100';
+  let ctxIdx = 3, batchIdx = 2;
+
+  const $ = id => document.getElementById(id);
+
+  function fmtGB(gb){
+    if (gb >= 1000) return (gb/1000).toFixed(2).replace(/\.?0+$/,'') + ' TB';
+    if (gb < 10) return gb.toFixed(1).replace(/\.0$/,'') + ' GB';
+    return Math.round(gb) + ' GB';
+  }
+  function fmtMoney(x){
+    if (x >= 1000) return '$' + (x/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+    return '$' + Math.round(x);
+  }
+  function fmtCtx(t){ return (t/1024) + 'k tokens'; }
+
+  function render(){
+    const ctx = CTX[ctxIdx], batch = BATCH[batchIdx];
+    const wGB  = model.p * bytes;                       // weights
+    const kvGB = model.kv * kvScale * ctx * batch / 1024; // MB/token -> GB
+    const tot  = wGB + kvGB;
+    const baseTot = model.p * 2 + model.kv * 1 * ctx * batch / 1024; // BF16 + FP16 KV
+    const gpus = Math.max(1, Math.ceil(tot / gpuGB));
+    const monthly = gpus * rate * HOURS_PER_MONTH;
+
+    $('memOut').textContent = fmtGB(wGB);
+    $('kvOut').textContent  = fmtGB(kvGB);
+    $('totOut').textContent = fmtGB(tot);
+    $('gpuOut').textContent = gpus;
+    $('gpuLbl').textContent = '× ' + hwName;
+    $('costOut').textContent = fmtMoney(monthly);
+    $('ctxVal').textContent = fmtCtx(ctx);
+    $('batchVal').textContent = batch;
+
+    if (Math.abs(tot - baseTot) < 1e-9){
+      $('saveOut').textContent = '—';
+    } else if (tot > baseTot){
+      $('saveOut').textContent = '+' + Math.round((tot/baseTot - 1) * 100) + '%';
+    } else {
+      $('saveOut').textContent = '−' + Math.round((1 - tot/baseTot) * 100) + '%';
+    }
+
+    // GPU icons
+    const gpuRow = $('gpuRow');
+    gpuRow.innerHTML = '';
+    const shown = Math.min(gpus, 12);
+    let remaining = tot;
+    for (let i = 0; i < shown; i++){
+      const g = document.createElement('div');
+      g.className = 'gpu';
+      const used = Math.min(remaining, gpuGB);
+      remaining -= used;
+      const pct = Math.max(2, Math.round(used / gpuGB * 100));
+      if (pct > 92) g.classList.add('hot');
+      g.innerHTML = '<div class="fill" style="height:' + pct + '%"></div><span>' + pct + '%</span>';
+      gpuRow.appendChild(g);
+    }
+    const cap = document.createElement('div');
+    cap.className = 'gpu-caption';
+    cap.textContent = (gpus > 12 ? '… ' + gpus + ' GPUs total · ' : '') +
+      (gpus === 1 && (tot / gpuGB) < 0.8
+        ? 'fits on one ' + hwName + ' with headroom'
+        : 'each box = one ' + gpuGB + ' GB ' + hwName);
+    gpuRow.appendChild(cap);
+  }
+
+  function wireBtns(groupId, fn){
+    const group = $(groupId);
+    group.addEventListener('click', function(e){
+      const b = e.target.closest('button');
+      if (!b) return;
+      group.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      fn(b);
+      render();
+    });
+  }
+  wireBtns('modelBtns', b => model = MODELS[parseInt(b.dataset.i)]);
+  wireBtns('precBtns',  b => bytes = parseFloat(b.dataset.b));
+  wireBtns('kvBtns',    b => kvScale = parseFloat(b.dataset.k));
+  wireBtns('hwBtns',    b => {
+    gpuGB = parseFloat(b.dataset.g);
+    rate  = parseFloat(b.dataset.r);
+    hwName = b.textContent.split(' ')[0];
+  });
+  $('ctxSlider').addEventListener('input', e => { ctxIdx = parseInt(e.target.value); render(); });
+  $('batchSlider').addEventListener('input', e => { batchIdx = parseInt(e.target.value); render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>

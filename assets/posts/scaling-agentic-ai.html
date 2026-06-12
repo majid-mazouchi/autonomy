@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scaling Agentic AI — Why Demos Are Easy and Production Is Hard</title>
+<style>
+  :root{
+    --paper:#FBF7EE;
+    --paper-deep:#F3EDDF;
+    --ink:#22252B;
+    --ink-soft:#5A5E66;
+    --rule:#D9D2C2;
+    --accent:#C94F0E;        /* signal orange — the "agent" color */
+    --accent-soft:#F6E2D3;
+    --verify:#0E6E6D;        /* teal — the "verification / control" color */
+    --verify-soft:#DDEEEC;
+    --warn:#9C2B2B;
+    --warn-soft:#F4DEDC;
+    --mono:'SF Mono', ui-monospace, 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
+    --serif:'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17.5px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:780px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- masthead ---------- */
+  header{
+    border-bottom:3px double var(--rule);
+    padding:56px 0 36px;
+    background:
+      linear-gradient(180deg, rgba(201,79,14,0.045), rgba(201,79,14,0) 55%),
+      var(--paper);
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(34px, 6vw, 52px);
+    line-height:1.08;
+    font-weight:700;
+    letter-spacing:-0.015em;
+    margin-bottom:18px;
+  }
+  h1 em{font-style:italic; color:var(--accent);}
+  .standfirst{
+    font-size:20px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    max-width:620px;
+  }
+  .meta{
+    margin-top:26px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 22px;
+  }
+  .meta span b{color:var(--ink); font-weight:600;}
+
+  /* ---------- sections ---------- */
+  section{padding:44px 0 8px;}
+  h2{
+    font-size:27px;
+    line-height:1.2;
+    margin-bottom:6px;
+    letter-spacing:-0.01em;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+  h3{font-size:19px; margin:26px 0 8px;}
+  p{margin:14px 0; max-width:680px;}
+  p.lede{font-size:18.5px;}
+  strong{font-weight:650;}
+  a{color:var(--verify); text-decoration-color:rgba(14,110,109,0.35); text-underline-offset:3px;}
+  a:hover{text-decoration-color:var(--verify);}
+
+  hr.sep{
+    border:none;
+    border-top:1px solid var(--rule);
+    margin:40px 0 0;
+  }
+
+  /* ---------- practical note callout ---------- */
+  .note{
+    background:var(--verify-soft);
+    border-left:4px solid var(--verify);
+    border-radius:0 8px 8px 0;
+    padding:16px 20px 16px 18px;
+    margin:22px 0;
+    font-size:16px;
+  }
+  .note .tag{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--verify);
+    display:block;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .note p{margin:6px 0; max-width:none;}
+
+  .caution{
+    background:var(--warn-soft);
+    border-left:4px solid var(--warn);
+    border-radius:0 8px 8px 0;
+    padding:16px 20px 16px 18px;
+    margin:22px 0;
+    font-size:16px;
+  }
+  .caution .tag{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--warn);
+    display:block;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .caution p{margin:6px 0; max-width:none;}
+
+  /* ---------- two meanings comparison ---------- */
+  .compare{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin:26px 0;
+  }
+  .card{
+    border:1px solid var(--rule);
+    border-radius:10px;
+    background:#FFFDF7;
+    padding:20px 20px 18px;
+  }
+  .card.hot{border-color:rgba(201,79,14,0.45); background:linear-gradient(180deg,#FFF8F1,#FFFDF7);}
+  .card h4{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+    color:var(--ink-soft);
+  }
+  .card.hot h4{color:var(--accent);}
+  .card .big{font-size:18px; font-weight:650; margin-bottom:8px; line-height:1.3;}
+  .card p{font-size:15.5px; margin:8px 0 0; color:var(--ink-soft);}
+  .card .verdict{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--rule);
+    font-size:14.5px;
+    color:var(--ink);
+  }
+  @media (max-width:620px){ .compare{grid-template-columns:1fr;} }
+
+  /* ---------- diagrams ---------- */
+  figure{margin:30px 0;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{
+    font-family:var(--sans);
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    line-height:1.5;
+  }
+  figcaption b{color:var(--ink);}
+
+  /* ---------- cascade strip ---------- */
+  .cascade{
+    margin:26px 0;
+    border:1px solid var(--rule);
+    border-radius:10px;
+    overflow:hidden;
+    background:#FFFDF7;
+  }
+  .cascade .row{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    padding:13px 18px;
+    border-top:1px solid var(--rule);
+    font-size:15.5px;
+  }
+  .cascade .row:first-child{border-top:none;}
+  .cascade .step{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    min-width:62px;
+    flex-shrink:0;
+  }
+  .cascade .bad{background:linear-gradient(90deg, rgba(156,43,43,0.07), transparent);}
+  .cascade .bad .step{color:var(--warn); font-weight:600;}
+  .cascade .seed{background:var(--accent-soft);}
+  .cascade .seed .step{color:var(--accent); font-weight:600;}
+
+  /* ---------- checklist ---------- */
+  ol.rules{
+    counter-reset:rule;
+    list-style:none;
+    margin:24px 0;
+  }
+  ol.rules li{
+    counter-increment:rule;
+    position:relative;
+    padding:18px 0 18px 64px;
+    border-top:1px solid var(--rule);
+  }
+  ol.rules li:last-child{border-bottom:1px solid var(--rule);}
+  ol.rules li::before{
+    content:counter(rule, decimal-leading-zero);
+    position:absolute;
+    left:0; top:20px;
+    font-family:var(--mono);
+    font-size:15px;
+    font-weight:600;
+    color:var(--accent);
+  }
+  ol.rules li b{display:block; font-size:17px; margin-bottom:4px;}
+  ol.rules li span{font-size:15.5px; color:var(--ink-soft); line-height:1.55; display:block; max-width:600px;}
+
+  /* ---------- evidence ---------- */
+  .evidence{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+    margin:26px 0;
+  }
+  .ev{
+    border-top:3px solid var(--accent);
+    background:#FFFDF7;
+    border-radius:0 0 10px 10px;
+    border-left:1px solid var(--rule);
+    border-right:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+    padding:16px 16px 14px;
+  }
+  .ev .num{
+    font-family:var(--mono);
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    line-height:1.1;
+  }
+  .ev .num.up{color:var(--verify);}
+  .ev .num.down{color:var(--warn);}
+  .ev p{font-size:13.5px; font-family:var(--sans); color:var(--ink-soft); margin:8px 0 0; line-height:1.5;}
+  @media (max-width:620px){ .evidence{grid-template-columns:1fr;} }
+
+  /* ---------- references ---------- */
+  .refs{
+    list-style:none;
+    margin:20px 0 0;
+    counter-reset:ref;
+  }
+  .refs li{
+    counter-increment:ref;
+    position:relative;
+    padding:12px 0 12px 44px;
+    border-top:1px solid var(--rule);
+    font-size:15px;
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  .refs li::before{
+    content:"[" counter(ref) "]";
+    position:absolute; left:0; top:13px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--accent);
+  }
+  .refs li .src{color:var(--ink-soft); font-size:13.5px; display:block;}
+  sup.cite{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--accent);
+    font-weight:600;
+  }
+
+  .xlink{
+    display:block;
+    margin:26px 0 0;
+    border:1px solid var(--rule);
+    border-left:4px solid var(--verify);
+    background:#FFFDF7;
+    border-radius:0 8px 8px 0;
+    padding:13px 18px;
+    text-decoration:none;
+    font-family:var(--sans);
+    font-size:14.5px;
+    color:var(--ink);
+    line-height:1.5;
+  }
+  .xlink b{color:var(--verify);}
+  .xlink:hover{background:var(--verify-soft);}
+
+  footer{
+    border-top:3px double var(--rule);
+    margin-top:56px;
+    padding:26px 0 60px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">Field Notes &middot; Agentic AI &middot; June 2026</div>
+    <h1>Scaling AI agents sounds easy — <em>until everything breaks</em></h1>
+    <p class="standfirst">Why a single impressive agent demo is the easy part, why errors in agent systems snowball instead of staying put, and what a production-grade architecture actually needs. In simple words, with practical notes.</p>
+    <div class="meta">
+      <span>By <b>Majid Mazouchi</b></span>
+      <span>Based on: <b>IBM Technology — Sam Anthony</b><sup class="cite">[1]</sup></span>
+      <span>Evidence: <b>arXiv 2512.08296</b><sup class="cite">[4]</sup></span>
+      <span>Reading time: <b>~8 min</b></span>
+    </div>
+    <a class="xlink" href="production-playbook.html"><b>Volume II — The Production Playbook &rarr;</b> The build manual: context engineering, tool design, orchestration patterns, reliability, security, evals, and the pre-launch gate.</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ TLDR ============ -->
+<section id="tldr">
+  <div class="kicker">The one-paragraph version</div>
+  <h2>TL;DR</h2>
+  <p class="lede">Building <strong>one agent that does one task</strong> in a demo is easy. The hard part begins when you give agents more scope, more tools, more autonomy, and more users. Unlike normal software, an agent's mistake doesn't stay where it happened — it flows into every step that follows. The fix is not a better prompt. It is <strong>architecture</strong>: small bounded agents, verification gates, traceable memory, and humans at the irreversible moments.</p>
+  <div class="note">
+    <span class="tag">Practical note</span>
+    <p>If you remember one sentence: <strong>agentic AI becomes dangerous or useless when autonomy grows faster than verification.</strong> Every design decision below is a way of keeping those two in balance.</p>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ============ TWO MEANINGS ============ -->
+<section id="two-meanings">
+  <div class="kicker">First, a definition problem</div>
+  <h2>"Scaling" means two different things</h2>
+  <p>When people say "we need to scale our AI agents," they usually mix up two very different problems. Only one of them is solved by adding servers.</p>
+
+  <div class="compare">
+    <div class="card">
+      <h4>Meaning 1 — Scaling traffic</h4>
+      <div class="big">Same agent, more requests</div>
+      <p>More users, more calls per second, bigger queues. This is classic infrastructure work: load balancing, caching, rate limits, cost control.</p>
+      <div class="verdict">Hard, but a <strong>known</strong> problem. Cloud engineering has solved this for 20 years.</div>
+    </div>
+    <div class="card hot">
+      <h4>Meaning 2 — Scaling capability</h4>
+      <div class="big">Same agent, more responsibility</div>
+      <p>More tools, more domains, deeper plans, longer memory, bigger decisions. The agent's <em>scope</em> grows — and with it, the number of ways it can go wrong.</p>
+      <div class="verdict">This is the <strong>new</strong> problem, and the subject of this page. It changes the failure modes, not just the load.</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="tag">Practical note</span>
+    <p>In planning meetings, ask which meaning is on the table. "We need agents to handle 10&times; more tickets" and "we want the agent to also issue refunds" sound similar but need completely different engineering. The second one needs a safety review, not a bigger GPU.</p>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ============ THE LOOP ============ -->
+<section id="loop">
+  <div class="kicker">How agents actually work</div>
+  <h2>The agent loop — and where it cracks</h2>
+  <p>Under the hood, almost every agent runs the same simple cycle. It reads the goal, makes a plan, takes an action (often by calling a tool or API), stores what happened in memory, reflects on the result, and repeats until it decides it's done.</p>
+
+  <figure>
+    <svg viewBox="0 0 740 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The agent loop: plan, act with tools, store memory, reflect, repeat">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 Z" fill="#5A5E66"/>
+        </marker>
+        <marker id="arrA" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 Z" fill="#C94F0E"/>
+        </marker>
+      </defs>
+      <!-- boxes -->
+      <g font-family="ui-monospace, Menlo, monospace" font-size="14" text-anchor="middle">
+        <rect x="20"  y="80" width="130" height="52" rx="9" fill="#FFFDF7" stroke="#C94F0E" stroke-width="1.8"/>
+        <text x="85" y="111" fill="#22252B" font-weight="600">PLAN</text>
+
+        <rect x="200" y="80" width="150" height="52" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="275" y="104" fill="#22252B" font-weight="600">ACT</text>
+        <text x="275" y="121" fill="#5A5E66" font-size="11">call tools / APIs</text>
+
+        <rect x="400" y="80" width="150" height="52" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="475" y="104" fill="#22252B" font-weight="600">MEMORY</text>
+        <text x="475" y="121" fill="#5A5E66" font-size="11">store context</text>
+
+        <rect x="600" y="80" width="120" height="52" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="660" y="111" fill="#22252B" font-weight="600">REFLECT</text>
+      </g>
+      <!-- forward arrows -->
+      <line x1="150" y1="106" x2="196" y2="106" stroke="#5A5E66" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="350" y1="106" x2="396" y2="106" stroke="#5A5E66" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="550" y1="106" x2="596" y2="106" stroke="#5A5E66" stroke-width="1.6" marker-end="url(#arr)"/>
+      <!-- loop back -->
+      <path d="M660,132 C660,185 85,185 85,136" fill="none" stroke="#C94F0E" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrA)"/>
+      <text x="370" y="206" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#C94F0E">repeat until "done" — the agent itself decides when that is</text>
+      <!-- crack label -->
+      <text x="85" y="62" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9C2B2B">&#9888; a wrong assumption here…</text>
+      <text x="660" y="62" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#9C2B2B">…is still trusted here</text>
+    </svg>
+    <figcaption><b>The basic agent loop.</b> It works beautifully for narrow, bounded tasks. The crack: nothing in the loop questions the plan's original assumptions. Whatever the agent believed at step one gets carried — and amplified — around every lap.</figcaption>
+  </figure>
+
+  <p>For a small, well-bounded task ("summarize this document," "check this signal against this threshold") the loop is reliable. The trouble starts when the same loop is given a broad goal, many tools, and freedom to run for many steps.</p>
+</section>
+
+<hr class="sep">
+
+<!-- ============ CASCADE ============ -->
+<section id="cascade">
+  <div class="kicker">The core failure mode</div>
+  <h2>Errors don't stay put — they cascade</h2>
+  <p>In traditional software, a bug is usually local: one function returns the wrong value, one test fails, you fix it. In an agent system, a wrong <em>assumption</em> made early becomes the foundation for everything after it. The classic illustration is a travel-booking agent told to plan a trip to "Washington":</p>
+
+  <div class="cascade">
+    <div class="row seed"><span class="step">SEED</span><span>Agent assumes "Washington" = Washington, D.C. (user meant Washington State)</span></div>
+    <div class="row bad"><span class="step">STEP 2</span><span>Books flights to the wrong coast — and they look perfectly valid</span></div>
+    <div class="row bad"><span class="step">STEP 3</span><span>Reserves hotels near the wrong landmarks</span></div>
+    <div class="row bad"><span class="step">STEP 4</span><span>Builds a day-by-day itinerary around the wrong city</span></div>
+    <div class="row bad"><span class="step">STEP 5</span><span>Computes budget and schedule — all internally consistent, all wrong</span></div>
+    <div class="row bad"><span class="step">MEMORY</span><span>Stores "user is traveling to D.C." — future sessions inherit the error</span></div>
+  </div>
+
+  <p>Notice what makes this nasty: <strong>every individual step succeeded.</strong> No API failed, no exception was thrown, every output looks professional. The system is confidently, coherently wrong — and the error even gets written into memory, where it can poison future conversations.</p>
+
+  <div class="note">
+    <span class="tag">Practical note</span>
+    <p>Three defenses, in order of value: <strong>(1) confirm ambiguous inputs before acting</strong> ("D.C. or the state?" costs one turn and saves the whole run); <strong>(2) checkpoint before irreversible actions</strong> — booking, paying, deleting, writing to a database; <strong>(3) store memory with provenance</strong> — record <em>why</em> the agent believes something, so a bad belief can be traced and removed instead of silently trusted forever.</p>
+  </div>
+
+  <div class="caution">
+    <span class="tag">Engineering caution</span>
+    <p>"Every step passed" is not the same as "the run is correct." Per-step success metrics will tell you this system is healthy. You need <strong>end-to-end, outcome-level evaluation</strong> — did the user actually get a trip to the right Washington? — or your dashboards will be green while your users are furious.</p>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ============ MONOLITH ============ -->
+<section id="monolith">
+  <div class="kicker">Why "one big agent" fails</div>
+  <h2>The super-agent bottleneck</h2>
+  <p>The tempting design is one powerful agent that does everything: understands intent, plans, picks tools, calls APIs, interprets results, manages memory, recovers from errors, and decides when it's finished. For a demo, this works. At scale, it's like running a company where <strong>one person makes every decision</strong> — every choice queues behind a single mind, and one bad judgment contaminates everything downstream.</p>
+  <p>Each added tool or domain multiplies the combinations the agent must handle. Context windows fill with irrelevant history. Latency and cost grow with every reasoning step. And when something goes wrong, you can't tell <em>which</em> of the agent's twelve responsibilities failed.</p>
+
+  <p>The remedy is the same one software engineering already knows: <strong>separation of concerns.</strong> Split the monolith into small agents with clear jobs and clear boundaries:</p>
+
+  <figure>
+    <svg viewBox="0 0 740 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Modular multi-agent architecture with planner, specialists, verifier, and human checkpoint">
+      <defs>
+        <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L8,4.5 L0,9 Z" fill="#5A5E66"/>
+        </marker>
+      </defs>
+      <g font-family="ui-monospace, Menlo, monospace" text-anchor="middle">
+        <!-- planner -->
+        <rect x="290" y="16" width="160" height="50" rx="9" fill="#FFF4EB" stroke="#C94F0E" stroke-width="1.8"/>
+        <text x="370" y="38" font-size="13.5" fill="#22252B" font-weight="600">PLANNER</text>
+        <text x="370" y="55" font-size="10.5" fill="#5A5E66">decomposes the goal</text>
+
+        <!-- specialists row -->
+        <rect x="40" y="120" width="150" height="56" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="115" y="143" font-size="13" fill="#22252B" font-weight="600">RETRIEVER</text>
+        <text x="115" y="160" font-size="10.5" fill="#5A5E66">facts, deterministic</text>
+
+        <rect x="220" y="120" width="150" height="56" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="295" y="143" font-size="13" fill="#22252B" font-weight="600">EXECUTOR</text>
+        <text x="295" y="160" font-size="10.5" fill="#5A5E66">bounded tool calls</text>
+
+        <rect x="400" y="120" width="150" height="56" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="475" y="143" font-size="13" fill="#22252B" font-weight="600">SPECIALIST</text>
+        <text x="475" y="160" font-size="10.5" fill="#5A5E66">domain reasoning</text>
+
+        <rect x="580" y="120" width="130" height="56" rx="9" fill="#FFFDF7" stroke="#D9D2C2" stroke-width="1.5"/>
+        <text x="645" y="143" font-size="13" fill="#22252B" font-weight="600">MEMORY</text>
+        <text x="645" y="160" font-size="10.5" fill="#5A5E66">with provenance</text>
+
+        <!-- verifier -->
+        <rect x="250" y="222" width="240" height="52" rx="9" fill="#E8F3F2" stroke="#0E6E6D" stroke-width="2"/>
+        <text x="370" y="244" font-size="13.5" fill="#0E6E6D" font-weight="700">VERIFIER GATE</text>
+        <text x="370" y="261" font-size="10.5" fill="#0E6E6D">checks outputs before they propagate</text>
+
+        <!-- human -->
+        <rect x="540" y="222" width="170" height="52" rx="26" fill="#FBF7EE" stroke="#22252B" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="625" y="244" font-size="13" fill="#22252B" font-weight="600">HUMAN</text>
+        <text x="625" y="261" font-size="10.5" fill="#5A5E66">irreversible steps only</text>
+      </g>
+      <!-- arrows planner -> specialists -->
+      <line x1="330" y1="66" x2="135" y2="116" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="362" y1="66" x2="300" y2="116" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="392" y1="66" x2="465" y2="116" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="430" y1="66" x2="630" y2="116" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <!-- specialists -> verifier -->
+      <line x1="140" y1="176" x2="300" y2="218" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="300" y1="176" x2="345" y2="218" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="470" y1="176" x2="410" y2="218" stroke="#5A5E66" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <!-- verifier -> human -->
+      <line x1="490" y1="248" x2="536" y2="248" stroke="#0E6E6D" stroke-width="1.8" marker-end="url(#arr2)"/>
+      <text x="370" y="312" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#5A5E66">each box is small, testable, and replaceable — failure stays local</text>
+    </svg>
+    <figcaption><b>Modular agent architecture.</b> The teal verifier gate is the heart of the design: nothing flows downstream — and nothing irreversible happens — without passing a check. Research on agent scaling finds that architectures <em>without</em> centralized verification propagate errors significantly more than those with it.<sup class="cite">[4]</sup></figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="tag">Practical note</span>
+    <p>A useful division of labor: <strong>deterministic services for facts, LLM agents for reasoning, verifier gates between them.</strong> If a value can be computed or looked up exactly (a parsed file, a database row, a graph traversal), never ask a language model to "remember" it — pipe it in as ground truth and let the agent reason <em>on top of</em> facts, not <em>about</em> them.</p>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="kicker">Not just opinion</div>
+  <h2>What the measurements say</h2>
+  <p>A 2026 study tested 260 agent-system configurations across six benchmarks and five architectures (single-agent plus four multi-agent patterns) to measure when adding agents helps and when it hurts.<sup class="cite">[4]</sup> Three results are worth keeping on a sticky note:</p>
+
+  <div class="evidence">
+    <div class="ev">
+      <div class="num up">+80.8%</div>
+      <p>Multi-agent gain over single-agent on <b>decomposable</b> tasks (e.g. financial reasoning that splits into independent parts).</p>
+    </div>
+    <div class="ev">
+      <div class="num down">&minus;70.0%</div>
+      <p>Multi-agent <b>loss</b> on sequential planning tasks, where coordination overhead outweighs the benefit.</p>
+    </div>
+    <div class="ev">
+      <div class="num">Verify &gt; Vibe</div>
+      <p>Architectures <b>without centralized verification</b> propagated errors more than those with it, across the board.</p>
+    </div>
+  </div>
+
+  <p>The headline: <strong>more agents is not automatically better.</strong> Architecture must match the task. Tasks that decompose cleanly love multi-agent designs; tightly sequential tasks often run best with one careful agent plus a verifier. Coordination also shows diminishing returns once a single agent is already strong at the task.</p>
+
+  <div class="caution">
+    <span class="tag">Engineering caution</span>
+    <p>Don't adopt a multi-agent framework because it's fashionable. Ask: <em>does my task decompose?</em> If every step depends on the previous one, splitting it across agents adds handoff errors and cost while removing context. Measure before and after — agent quality is harder to validate than normal software output, which is exactly why evaluation loops must exist from day one.</p>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ============ CHECKLIST ============ -->
+<section id="checklist">
+  <div class="kicker">The takeaway, as a checklist</div>
+  <h2>Six rules for production agent systems</h2>
+  <ol class="rules">
+    <li>
+      <b>Bounded agents, not one giant agent</b>
+      <span>Each agent gets a narrow job, a short tool list, and explicit permissions. Scope is a security boundary, not a convenience.</span>
+    </li>
+    <li>
+      <b>Explicit ownership of planning, retrieval, execution, and verification</b>
+      <span>If you can't name which component is responsible for a failure, the architecture is wrong. Separation of concerns is what makes debugging possible.</span>
+    </li>
+    <li>
+      <b>Checkpoints before irreversible actions</b>
+      <span>Booking, paying, writing, deleting, sending — anything that can't be undone gets a gate: a verifier agent, a confidence threshold, or a human. Assist agents recommend; humans decide on high-stakes calls.</span>
+    </li>
+    <li>
+      <b>Memory with provenance, not loose conversational memory</b>
+      <span>Every stored belief carries its source and timestamp. When a belief turns out wrong, you can find it, trace what it touched, and evict it — instead of wondering why the agent keeps repeating an old mistake.</span>
+    </li>
+    <li>
+      <b>Evaluation loops from day one</b>
+      <span>Measure outcomes end-to-end, not just per-step success. Build regression suites of past failures. An agent system without evals is a demo, regardless of how it's deployed.</span>
+    </li>
+    <li>
+      <b>Fallback and handoff when confidence drops</b>
+      <span>The agent must be allowed to say "I'm not sure" and escalate — to a simpler deterministic path, to another agent, or to a person. A graceful handoff is a feature; a confident wrong answer is an outage.</span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <span class="tag">Practical note — applying this to engineering R&amp;D</span>
+    <p>For diagnostics, prognostics, and knowledge-engine work, the pattern translates directly: keep <strong>data extraction and parsing deterministic</strong> (signal pipelines, file parsers, graph traversal are code, not prompts); keep <strong>facts in a structured store</strong> the agent reads but cannot rewrite freely; use <strong>LLM agents only where reasoning, synthesis, or explanation</strong> is genuinely required; and put a <strong>verifier between agent output and anything a downstream engineer or system will act on.</strong> The scaling problem is mostly system architecture, not prompt engineering.</p>
+  </div>
+
+  <a class="xlink" href="production-playbook.html"><b>Continue to Volume II — The Production Playbook &rarr;</b> Nine engineering disciplines that implement these six rules: context engineering, tool contracts, orchestration patterns, hard stops, the lethal trifecta, evals, versioning, cost control, and observability.</a>
+</section>
+
+<hr class="sep">
+
+<!-- ============ REFERENCES ============ -->
+<section id="references">
+  <div class="kicker">Sources</div>
+  <h2>References &amp; further reading</h2>
+  <ol class="refs">
+    <li>
+      Sam Anthony (IBM Technology), <em>“Building AI Agent Systems and Scaling Challenges in Agentic AI,”</em> YouTube, June 2026. The talk this page is based on.
+      <span class="src"><a href="https://www.youtube.com/watch?v=fCHe_fOqlYA">youtube.com/watch?v=fCHe_fOqlYA</a></span>
+    </li>
+    <li>
+      IBM Think, <em>“Building and evaluating AI agents that work in the real world,”</em> May 2026. Source for the assist-vs-decide principle, agentic AI as an architectural layer, and scaling pressures (coordination, consistency, traceability).
+      <span class="src"><a href="https://www.ibm.com/think/insights/building-evaluating-ai-agents-real-world">ibm.com/think/insights/building-evaluating-ai-agents-real-world</a></span>
+    </li>
+    <li>
+      IBM, <em>“AI agents: Opportunities, risks and mitigations”</em> (white paper) and the companion article <em>“Scaling Responsible Agentic AI,”</em> Nov 2025. On new and amplified risks of agentic systems, including irreversible actions and untraceable behavior.
+      <span class="src"><a href="https://www.ibm.com/think/insights/scale-responsible-agentic-ai">ibm.com/think/insights/scale-responsible-agentic-ai</a></span>
+    </li>
+    <li>
+      Kim, Y. et&nbsp;al., <em>“Towards a Science of Scaling Agent Systems,”</em> arXiv:2512.08296, 2026. 260-configuration empirical study: +80.8% / &minus;70.0% architecture-task results, capability saturation, and the error-propagation advantage of centralized verification.
+      <span class="src"><a href="https://arxiv.org/abs/2512.08296">arxiv.org/abs/2512.08296</a></span>
+    </li>
+  </ol>
+
+  <div class="caution" style="margin-top:28px;">
+    <span class="tag">Honesty note</span>
+    <p>The video transcript was not directly accessible at the time of writing. The framing, the two meanings of scaling, the agent loop, the cascading "Washington" example, and the single-agent bottleneck analogy follow the talk's published description and consistent IBM teaching material; treat the worked example as illustrative of the talk's argument rather than a verbatim quote.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    SCALING AGENTIC AI &middot; FIELD NOTES &middot; COMPILED JUNE 2026<br>
+    Light-paper monograph series &middot; Single-file HTML, no external dependencies
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Data Stack — A Plain-Language Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5edda;
+    --paper-deep:#efe4cb;
+    --ink:#2b2620;
+    --ink-soft:#5c5346;
+    --rule:#d8c9a8;
+    --accent:#9c3b1b;     /* terracotta */
+    --accent-2:#1f5d4c;   /* deep teal-green */
+    --accent-3:#b8860b;   /* dark gold */
+    --accent-4:#3a4a7a;   /* indigo */
+    --code-bg:#2b2620;
+    --code-ink:#f0e6cf;
+    --max:760px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(156,59,27,0.04), transparent 40%),
+      radial-gradient(circle at 85% 75%, rgba(31,93,76,0.04), transparent 40%);
+    color:var(--ink);
+    font-family:"Newsreader", Georgia, serif;
+    font-size:19px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 26px;}
+
+  /* ---- Masthead ---- */
+  header.masthead{
+    padding:72px 0 36px;
+    border-bottom:3px double var(--rule);
+    margin-bottom:14px;
+  }
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(2.4rem,7vw,3.8rem);
+    line-height:1.02;
+    margin:0 0 18px;
+    letter-spacing:-0.02em;
+  }
+  .standfirst{
+    font-size:1.18rem;
+    color:var(--ink-soft);
+    font-style:italic;
+    max-width:60ch;
+  }
+
+  /* ---- Table of contents ---- */
+  nav.toc{
+    margin:30px 0 50px;
+    padding:22px 26px;
+    background:var(--paper-deep);
+    border:1px solid var(--rule);
+    border-radius:3px;
+  }
+  nav.toc h2{
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:0.22em;text-transform:uppercase;
+    color:var(--ink-soft);margin:0 0 14px;font-weight:500;
+  }
+  nav.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc;}
+  nav.toc li{counter-increment:toc;margin:7px 0;}
+  nav.toc a{
+    text-decoration:none;color:var(--ink);
+    display:flex;align-items:baseline;gap:12px;
+    transition:color .2s;
+  }
+  nav.toc a:hover{color:var(--accent);}
+  nav.toc a::before{
+    content:counter(toc,decimal-leading-zero);
+    font-family:"JetBrains Mono",monospace;
+    font-size:.75rem;color:var(--accent);min-width:2em;
+  }
+
+  /* ---- Sections ---- */
+  section{padding:30px 0;border-top:1px solid var(--rule);scroll-margin-top:20px;}
+  section:first-of-type{border-top:none;}
+  .sec-num{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:0.2em;color:var(--accent);
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  h2.title{
+    font-family:"Fraunces",serif;font-weight:600;
+    font-size:clamp(1.7rem,4.5vw,2.5rem);
+    margin:0 0 4px;letter-spacing:-0.015em;line-height:1.08;
+  }
+  .pron{
+    font-family:"JetBrains Mono",monospace;font-size:.78rem;
+    color:var(--ink-soft);margin-bottom:18px;
+  }
+  p{margin:0 0 18px;}
+  .lead{font-size:1.05rem;}
+  strong{font-weight:600;color:var(--ink);}
+  em.term{font-style:normal;font-weight:600;color:var(--accent-2);}
+
+  a.ref{color:var(--accent-4);text-decoration:none;border-bottom:1px solid rgba(58,74,122,0.3);}
+  a.ref:hover{border-color:var(--accent-4);}
+
+  /* ---- Analogy callout ---- */
+  .analogy{
+    margin:22px 0;padding:18px 22px;
+    border-left:4px solid var(--accent-3);
+    background:rgba(184,134,11,0.07);
+    border-radius:0 3px 3px 0;
+  }
+  .analogy .tag{
+    font-family:"JetBrains Mono",monospace;font-size:10px;
+    letter-spacing:0.2em;text-transform:uppercase;color:var(--accent-3);
+    display:block;margin-bottom:6px;
+  }
+  .analogy p{margin:0;font-style:italic;}
+
+  /* ---- Practical note ---- */
+  .note{
+    margin:22px 0;padding:18px 22px;
+    border:1px solid var(--accent-2);
+    border-radius:3px;background:rgba(31,93,76,0.05);
+  }
+  .note .tag{
+    font-family:"JetBrains Mono",monospace;font-size:10px;
+    letter-spacing:0.2em;text-transform:uppercase;color:var(--accent-2);
+    display:block;margin-bottom:8px;font-weight:600;
+  }
+  .note p:last-child{margin-bottom:0;}
+  .note ul{margin:8px 0 0;padding-left:20px;}
+  .note li{margin:6px 0;}
+
+  /* ---- Code ---- */
+  pre{
+    background:var(--code-bg);color:var(--code-ink);
+    padding:18px 20px;border-radius:5px;overflow-x:auto;
+    font-family:"JetBrains Mono",monospace;font-size:.82rem;
+    line-height:1.6;margin:20px 0;
+    box-shadow:0 6px 18px rgba(43,38,32,0.18);
+  }
+  pre .c{color:#9c8f76;font-style:italic;}
+  pre .k{color:#e0a96d;}
+  pre .s{color:#a3c9a8;}
+  code{
+    font-family:"JetBrains Mono",monospace;font-size:.85em;
+    background:var(--paper-deep);padding:1px 6px;border-radius:3px;
+    border:1px solid var(--rule);
+  }
+
+  /* ---- When to use table ---- */
+  .verdict{display:flex;gap:14px;margin:20px 0;flex-wrap:wrap;}
+  .verdict > div{flex:1;min-width:200px;padding:14px 16px;border-radius:4px;}
+  .v-yes{background:rgba(31,93,76,0.08);border:1px solid rgba(31,93,76,0.3);}
+  .v-no{background:rgba(156,59,27,0.07);border:1px solid rgba(156,59,27,0.3);}
+  .verdict h4{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    letter-spacing:0.15em;text-transform:uppercase;margin:0 0 10px;
+  }
+  .v-yes h4{color:var(--accent-2);}
+  .v-no h4{color:var(--accent);}
+  .verdict ul{margin:0;padding-left:18px;font-size:.92rem;}
+  .verdict li{margin:5px 0;}
+
+  /* ---- How they fit ---- */
+  .fit{
+    margin:44px 0;padding:30px 26px;
+    background:var(--paper-deep);border:1px solid var(--rule);
+    border-radius:4px;
+  }
+  .fit h3{font-family:"Fraunces",serif;font-weight:600;font-size:1.5rem;margin:0 0 16px;}
+  .layer{display:flex;align-items:flex-start;gap:14px;margin:14px 0;}
+  .layer .pill{
+    font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:600;
+    padding:4px 10px;border-radius:20px;white-space:nowrap;margin-top:3px;
+    color:#fff;
+  }
+  .layer .desc{font-size:.95rem;color:var(--ink-soft);}
+  .layer .desc b{color:var(--ink);}
+
+  /* ---- Part divider ---- */
+  .part-divider{
+    margin:60px 0 10px;padding:36px 0 0;text-align:center;
+    border-top:3px double var(--rule);
+  }
+  .part-divider .kicker{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);
+    margin-bottom:10px;
+  }
+  .part-divider h2{
+    font-family:"Fraunces",serif;font-weight:600;
+    font-size:clamp(2rem,6vw,3rem);margin:0;letter-spacing:-0.02em;
+  }
+  .part-divider p{color:var(--ink-soft);font-style:italic;margin:10px 0 0;}
+
+  /* ---- Checklist ---- */
+  .checklist{list-style:none;padding:0;margin:22px 0;counter-reset:ck;}
+  .checklist li{
+    counter-increment:ck;position:relative;padding:14px 16px 14px 54px;
+    margin:10px 0;background:var(--paper-deep);border:1px solid var(--rule);
+    border-radius:4px;font-size:.96rem;
+  }
+  .checklist li::before{
+    content:counter(ck);position:absolute;left:14px;top:50%;
+    transform:translateY(-50%);
+    width:26px;height:26px;border-radius:50%;
+    background:var(--accent-2);color:#fff;
+    font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .checklist li b{display:block;margin-bottom:2px;}
+  .checklist code{font-size:.82em;}
+
+  /* ---- Decision flowchart ---- */
+  .flow{margin:24px 0;}
+  .flow .q{
+    text-align:center;font-family:"Fraunces",serif;font-weight:600;
+    font-size:1.15rem;padding:14px 18px;background:var(--paper-deep);
+    border:1px solid var(--rule);border-radius:4px;margin-bottom:8px;
+  }
+  .flow .branches{display:flex;gap:14px;flex-wrap:wrap;}
+  .flow .branch{flex:1;min-width:220px;}
+  .flow .arm{
+    text-align:center;font-family:"JetBrains Mono",monospace;
+    font-size:.72rem;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--ink-soft);padding:8px 0;position:relative;
+  }
+  .flow .arm::before{content:"↓";display:block;font-size:1.1rem;color:var(--rule);margin-bottom:2px;}
+  .flow .outcome{
+    padding:16px;border-radius:4px;height:100%;
+  }
+  .flow .outcome h4{
+    font-family:"Fraunces",serif;font-size:1.2rem;margin:0 0 8px;font-weight:600;
+  }
+  .flow .outcome ul{margin:0;padding-left:18px;font-size:.88rem;}
+  .flow .outcome li{margin:5px 0;}
+  .flow .out-lite{background:rgba(184,134,11,0.08);border:1px solid rgba(184,134,11,0.35);}
+  .flow .out-lite h4{color:var(--accent-3);}
+  .flow .out-pg{background:rgba(31,93,76,0.07);border:1px solid rgba(31,93,76,0.35);}
+  .flow .out-pg h4{color:var(--accent-2);}
+
+  /* ---- Connection string anatomy ---- */
+  .conn{
+    margin:24px 0;padding:24px 20px;background:var(--code-bg);
+    border-radius:6px;overflow-x:auto;
+    box-shadow:0 6px 18px rgba(43,38,32,0.18);
+  }
+  .conn .str{
+    font-family:"JetBrains Mono",monospace;font-size:.92rem;
+    color:var(--code-ink);text-align:center;white-space:nowrap;
+    margin-bottom:18px;
+  }
+  .conn .seg{padding:2px 3px;border-radius:3px;position:relative;}
+  .conn .s1{color:#e0a96d;}
+  .conn .s2{color:#a3c9a8;}
+  .conn .s3{color:#d98c8c;}
+  .conn .s4{color:#8fb8e0;}
+  .conn .s5{color:#c9a3e0;}
+  .conn dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;}
+  .conn dt{font-family:"JetBrains Mono",monospace;font-size:.78rem;font-weight:600;white-space:nowrap;}
+  .conn dd{margin:0;color:#cfc3a8;font-size:.85rem;}
+  .conn .s1{} .d1{color:#e0a96d;} .d2{color:#a3c9a8;} .d3{color:#d98c8c;} .d4{color:#8fb8e0;} .d5{color:#c9a3e0;}
+
+  /* ---- Cheat tables ---- */
+  .cheat{margin:22px 0;}
+  .cheat h3{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--accent);margin:26px 0 10px;
+  }
+  table.cheat-tbl{width:100%;border-collapse:collapse;font-size:.86rem;margin:8px 0;}
+  table.cheat-tbl td{
+    padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;
+  }
+  table.cheat-tbl tr td:first-child{
+    font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent-2);
+    white-space:nowrap;font-weight:500;width:42%;
+  }
+  table.cheat-tbl tr:hover td{background:rgba(184,134,11,0.05);}
+
+  /* ---- Gotcha cards ---- */
+  .gotcha{
+    margin:22px 0;border:1px solid var(--rule);border-radius:5px;overflow:hidden;
+  }
+  .gotcha .head{
+    padding:12px 18px;background:rgba(156,59,27,0.08);
+    border-bottom:1px solid var(--rule);
+    font-family:"Fraunces",serif;font-weight:600;font-size:1.08rem;
+  }
+  .gotcha .head .num{color:var(--accent);font-family:"JetBrains Mono",monospace;font-size:.85rem;margin-right:8px;}
+  .gotcha .body{padding:16px 18px;}
+  .gotcha .body p{margin:0 0 12px;font-size:.94rem;}
+  .gotcha .body p:last-child{margin-bottom:0;}
+  .ba{color:var(--accent);font-weight:600;font-family:"JetBrains Mono",monospace;font-size:.8rem;}
+  .go{color:var(--accent-2);font-weight:600;font-family:"JetBrains Mono",monospace;font-size:.8rem;}
+  .gotcha pre{margin:8px 0 14px;font-size:.78rem;}
+
+  /* ---- Troubleshooting ---- */
+  .trouble{margin:22px 0;}
+  .trouble .item{
+    padding:16px 18px;border-left:4px solid var(--accent);
+    background:rgba(156,59,27,0.05);border-radius:0 4px 4px 0;margin:12px 0;
+  }
+  .trouble .err{
+    font-family:"JetBrains Mono",monospace;font-size:.85rem;color:var(--accent);
+    font-weight:600;margin-bottom:6px;
+  }
+  .trouble .item p{margin:0;font-size:.93rem;}
+
+  /* ---- Glossary ---- */
+  .glossary{margin:22px 0;}
+  .glossary dt{
+    font-family:"Fraunces",serif;font-weight:600;font-size:1.1rem;
+    color:var(--accent-2);margin-top:16px;
+  }
+  .glossary dd{margin:4px 0 0;font-size:.94rem;color:var(--ink-soft);}
+
+  /* ---- References ---- */
+  .references ol{padding-left:22px;}
+  .references li{margin:10px 0;font-size:.92rem;color:var(--ink-soft);}
+  .references a{color:var(--accent-4);}
+
+  footer{
+    border-top:3px double var(--rule);margin-top:30px;
+    padding:30px 0 60px;text-align:center;
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    letter-spacing:0.15em;color:var(--ink-soft);text-transform:uppercase;
+  }
+
+  @media (max-width:600px){
+    body{font-size:18px;}
+    header.masthead{padding:48px 0 28px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">A Plain-Language Primer &amp; Practical Reference · No. 1 · By Majid Mazouchi</div>
+    <h1>The Data Stack, Demystified</h1>
+    <p class="standfirst">What SQL, SQLite, PostgreSQL, Docker, and SQLAlchemy actually are, when each earns its place — and a hands-on reference to keep open while you build.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#sql">SQL — the language</a></li>
+      <li><a href="#sqlite">SQLite — the file</a></li>
+      <li><a href="#postgres">PostgreSQL — the server</a></li>
+      <li><a href="#docker">Docker — the box</a></li>
+      <li><a href="#sqlalchemy">SQLAlchemy — the translator</a></li>
+      <li><a href="#fit">How they all fit together</a></li>
+      <li><a href="#setup">Your first 10 minutes — setup</a></li>
+      <li><a href="#decide">SQLite or PostgreSQL? — a flowchart</a></li>
+      <li><a href="#connstr">Connection strings, decoded</a></li>
+      <li><a href="#walkthrough">End-to-end walkthrough</a></li>
+      <li><a href="#tables">Two tables &amp; a JOIN</a></li>
+      <li><a href="#migrations">Migrations — changing the schema safely</a></li>
+      <li><a href="#cheats">Cheat sheets</a></li>
+      <li><a href="#gotchas">Common mistakes &amp; gotchas</a></li>
+      <li><a href="#trouble">Troubleshooting</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+      <li><a href="#vectors">Vectors, pgvector &amp; vector databases</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. SQL -->
+  <section id="sql">
+    <div class="sec-num">Section 01</div>
+    <h2 class="title">SQL</h2>
+    <div class="pron">Structured Query Language · "sequel" or "S-Q-L"</div>
+    <p class="lead"><strong>SQL is a language, not a program.</strong> It's the way you talk to a relational database — a database that stores data in tables of rows and columns, like a set of linked spreadsheets.</p>
+    <p>Almost every relational database understands SQL. You use it to ask four basic kinds of questions, often called <em class="term">CRUD</em>: Create, Read, Update, Delete.</p>
+<pre><span class="c">-- Read: get all customers in Michigan</span>
+<span class="k">SELECT</span> name, city <span class="k">FROM</span> customers
+<span class="k">WHERE</span> state = <span class="s">'MI'</span>;
+
+<span class="c">-- Create: add a new row</span>
+<span class="k">INSERT INTO</span> customers (name, state) <span class="k">VALUES</span> (<span class="s">'Ada'</span>, <span class="s">'MI'</span>);</pre>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>SQL is the grammar you speak; the database is the librarian who understands that grammar and fetches what you asked for.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Practical notes</span>
+      <ul>
+        <li>The core SQL keywords are standardized, so skills transfer between databases. But each database adds its own dialect quirks — don't assume 100% portability.</li>
+        <li>Learning <code>SELECT</code>, <code>WHERE</code>, <code>JOIN</code>, and <code>GROUP BY</code> covers the vast majority of everyday querying.</li>
+        <li>SQL is <em class="term">declarative</em>: you describe <em>what</em> you want, not <em>how</em> to get it. The database figures out the efficient path.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. SQLite -->
+  <section id="sqlite">
+    <div class="sec-num">Section 02</div>
+    <h2 class="title">SQLite</h2>
+    <div class="pron">"S-Q-L-ite" · a database in a single file</div>
+    <p class="lead"><strong>SQLite is a real SQL database that lives entirely in one file</strong> on your disk. There's no separate server to start or manage — your program opens the file and reads/writes it directly.</p>
+    <p>It is the most widely deployed database in the world, precisely because it's invisible: it's inside your phone, your browser, countless apps, and embedded devices.</p>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>A spiral notebook you carry in your bag. Always with you, instant to open, no setup — but only really meant for one person writing at a time.</p>
+    </div>
+    <div class="verdict">
+      <div class="v-yes">
+        <h4>Reach for it when</h4>
+        <ul>
+          <li>Prototyping or learning</li>
+          <li>Mobile / desktop apps</li>
+          <li>Single-user or read-heavy tools</li>
+          <li>You want zero configuration</li>
+        </ul>
+      </div>
+      <div class="v-no">
+        <h4>Avoid it when</h4>
+        <ul>
+          <li>Many users write at once</li>
+          <li>High-traffic web backend</li>
+          <li>You need network access from multiple machines</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <span class="tag">Practical notes</span>
+      <p>Python ships with SQLite built in — <code>import sqlite3</code> works with no install. That makes it the fastest possible way to start practicing SQL today. Its main limitation is concurrent <em>writes</em>: it locks the whole file during a write, so it struggles when many processes write simultaneously.</p>
+    </div>
+  </section>
+
+  <!-- 3. Postgres -->
+  <section id="postgres">
+    <div class="sec-num">Section 03</div>
+    <h2 class="title">PostgreSQL</h2>
+    <div class="pron">"post-gres" or "Postgres" · a database server</div>
+    <p class="lead"><strong>PostgreSQL is a full database server</strong> — a program that runs continuously in the background and that many clients can connect to over the network at the same time.</p>
+    <p>It's known for being robust, standards-compliant, and remarkably capable. Beyond ordinary tables it handles JSON documents, full-text search, geographic data, custom data types, and serious concurrency — which is why it's a default choice for production web applications.</p>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>A staffed public library with a front desk. It runs whether you're there or not, serves many visitors at once, and enforces the rules — but someone has to keep the building running.</p>
+    </div>
+    <div class="verdict">
+      <div class="v-yes">
+        <h4>Reach for it when</h4>
+        <ul>
+          <li>Production web/app backends</li>
+          <li>Many concurrent users</li>
+          <li>Complex queries & data integrity matter</li>
+          <li>You need JSON, geo, or full-text search</li>
+        </ul>
+      </div>
+      <div class="v-no">
+        <h4>Maybe overkill when</h4>
+        <ul>
+          <li>A throwaway script or demo</li>
+          <li>A single-user local tool</li>
+          <li>You don't want to run a server</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <span class="tag">Practical notes</span>
+      <p>The everyday workflow is: develop locally against SQLite or a local Postgres, then deploy to a managed Postgres in production. Because both speak SQL, your queries mostly carry over. The cost of Postgres over SQLite is operational — you have to install, run, secure, and back up a server. This is exactly the chore that Docker (next) was built to soften.</p>
+    </div>
+  </section>
+
+  <!-- 4. Docker -->
+  <section id="docker">
+    <div class="sec-num">Section 04</div>
+    <h2 class="title">Docker</h2>
+    <div class="pron">the odd one out — not a database at all</div>
+    <p class="lead"><strong>Docker packages software together with everything it needs to run</strong> into a self-contained unit called a <em class="term">container</em>. That container then runs identically on any machine that has Docker.</p>
+    <p>It exists to kill the phrase "but it works on my machine." Instead of installing PostgreSQL directly onto your laptop — fiddling with versions and settings — you run a Postgres container that comes pre-packaged and isolated. Start it, stop it, throw it away, all in seconds.</p>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>A shipping container. It doesn't matter what's inside or which ship, truck, or port handles it — the standard box fits everywhere and arrives in the same condition. Docker does that for software.</p>
+    </div>
+<pre><span class="c"># Spin up a throwaway Postgres in one command</span>
+docker run --name pg -e POSTGRES_PASSWORD=secret \
+  -p 5432:5432 -d postgres:16</pre>
+    <div class="note">
+      <span class="tag">Practical notes</span>
+      <ul>
+        <li>A <em class="term">container</em> is a running instance; an <em class="term">image</em> is the frozen template it's launched from (e.g. <code>postgres:16</code>).</li>
+        <li>Containers are great for databases in development because you can match production's exact version and reset to a clean state instantly.</li>
+        <li>Don't confuse Docker with a virtual machine — containers are far lighter, sharing the host's operating system kernel instead of booting a whole OS.</li>
+        <li><code>docker compose</code> lets you define a whole stack (app + Postgres + cache) in one file and start it all together.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. SQLAlchemy -->
+  <section id="sqlalchemy">
+    <div class="sec-num">Section 05</div>
+    <h2 class="title">SQLAlchemy</h2>
+    <div class="pron">a Python library that sits between your code and the database</div>
+    <p class="lead"><strong>SQLAlchemy lets you work with a SQL database using Python objects</strong> instead of hand-written SQL strings. It's the bridge between your application code and whatever database sits underneath.</p>
+    <p>It comes in two layers. <em class="term">Core</em> is a SQL toolkit — you still think in tables, but build queries in Python. The <em class="term">ORM</em> (Object-Relational Mapper) is the popular higher layer: it maps a table to a Python class, so each row becomes an object you can read and modify naturally.</p>
+<pre><span class="c"># Define a table as a Python class</span>
+<span class="k">class</span> User(Base):
+    __tablename__ = <span class="s">"users"</span>
+    id   = Column(Integer, primary_key=<span class="k">True</span>)
+    name = Column(String)
+
+<span class="c"># Query it without writing SQL by hand</span>
+user = session.query(User).filter_by(name=<span class="s">"Ada"</span>).first()
+<span class="k">print</span>(user.id)</pre>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>A skilled interpreter. You speak Python; it speaks fluent SQL to SQLite, Postgres, or MySQL on your behalf — and translates their replies back into Python objects.</p>
+    </div>
+    <div class="note">
+      <span class="tag">Practical notes</span>
+      <ul>
+        <li><strong>Database-agnostic:</strong> swap SQLite (development) for PostgreSQL (production) by changing a connection string — your model code stays the same. This is the payoff that ties the whole stack together.</li>
+        <li><strong>Safer:</strong> it parameterizes queries for you, which guards against SQL injection.</li>
+        <li><strong>The trade-off:</strong> there's a learning curve, and for very complex or performance-critical queries you can still drop down to raw SQL, which SQLAlchemy fully supports.</li>
+        <li>It's the ORM behind Flask (via Flask-SQLAlchemy) and is widely paired with FastAPI.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- How they fit -->
+  <div class="fit" id="fit">
+    <h3>How they all fit together</h3>
+    <p style="margin-top:-4px;color:var(--ink-soft);font-size:.97rem;">A single mental model. Read it top to bottom — that's roughly the path a request takes.</p>
+    <div class="layer">
+      <span class="pill" style="background:var(--accent-4)">PYTHON</span>
+      <div class="desc"><b>SQLAlchemy</b> — your app speaks Python objects; it translates them into SQL.</div>
+    </div>
+    <div class="layer">
+      <span class="pill" style="background:var(--accent)">LANGUAGE</span>
+      <div class="desc"><b>SQL</b> — the shared grammar every relational database understands.</div>
+    </div>
+    <div class="layer">
+      <span class="pill" style="background:var(--accent-2)">STORAGE</span>
+      <div class="desc"><b>SQLite</b> (one file, simple) or <b>PostgreSQL</b> (a server, powerful) — where the data actually lives.</div>
+    </div>
+    <div class="layer">
+      <span class="pill" style="background:var(--accent-3)">ENVIRONMENT</span>
+      <div class="desc"><b>Docker</b> — wraps the database (and your app) in a portable box that runs the same everywhere.</div>
+    </div>
+    <p style="margin:18px 0 0;font-style:italic;color:var(--ink-soft);">In one sentence: you write <b>SQL</b> — often generated by <b>SQLAlchemy</b> — to query <b>SQLite</b> or <b>PostgreSQL</b>, which you may run inside <b>Docker</b> for a clean, reproducible setup.</p>
+  </div>
+
+  <!-- ===================== PART II ===================== -->
+  <div class="part-divider">
+    <div class="kicker">Part Two</div>
+    <h2>In Practice</h2>
+    <p>From "I understand the words" to "I can build something." Copy, run, break, fix.</p>
+  </div>
+
+  <!-- 06 Setup -->
+  <section id="setup">
+    <div class="sec-num">Section 06</div>
+    <h2 class="title">Your first 10 minutes</h2>
+    <div class="pron">get the tools installed and verified before writing any code</div>
+    <p class="lead">Don't install everything at once. Add each tool only when you actually need it. Here's the order that wastes the least time.</p>
+    <ol class="checklist">
+      <li><b>Python (you likely have it)</b> Verify with <code>python3 --version</code>. SQLite comes bundled — no separate install. That alone is enough to start practicing SQL.</li>
+      <li><b>A way to view databases</b> Install the free <a class="ref" href="https://sqlitebrowser.org/">DB Browser for SQLite</a> or the <a class="ref" href="https://marketplace.visualstudio.com/items?itemName=alexcvzz.vscode-sqlite">SQLite VS Code extension</a> so you can see your tables, not just imagine them.</li>
+      <li><b>SQLAlchemy</b> When you want Python objects instead of raw SQL: <code>pip install sqlalchemy</code>. Add <code>psycopg2-binary</code> later if you connect to Postgres.</li>
+      <li><b>Docker Desktop</b> Only when you're ready for Postgres. Install from <a class="ref" href="https://docs.docker.com/get-started/get-docker/">docker.com</a>, then verify with <code>docker --version</code> and <code>docker run hello-world</code>.</li>
+      <li><b>PostgreSQL (via Docker)</b> You don't install Postgres directly — you run the official image. Verify the container is alive with <code>docker ps</code>.</li>
+    </ol>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>If a command "isn't found," the tool either isn't installed or isn't on your <code>PATH</code>. Reinstalling and restarting your terminal fixes this 90% of the time.</p>
+    </div>
+  </section>
+
+  <!-- 07 Decision flowchart -->
+  <section id="decide">
+    <div class="sec-num">Section 07</div>
+    <h2 class="title">SQLite or PostgreSQL?</h2>
+    <div class="pron">the question every junior asks — here's the short answer</div>
+    <p class="lead">When you're unsure, start with SQLite. You can almost always migrate to Postgres later, and with SQLAlchemy that move is mostly a one-line change.</p>
+    <div class="flow">
+      <div class="q">Will more than one user (or process) write data at the same time, over a network?</div>
+      <div class="branches">
+        <div class="branch">
+          <div class="arm">No / not yet</div>
+          <div class="outcome out-lite">
+            <h4>SQLite</h4>
+            <ul>
+              <li>Learning &amp; prototypes</li>
+              <li>Desktop / mobile apps</li>
+              <li>Single-user CLI tools</li>
+              <li>Test suites &amp; demos</li>
+            </ul>
+          </div>
+        </div>
+        <div class="branch">
+          <div class="arm">Yes</div>
+          <div class="outcome out-pg">
+            <h4>PostgreSQL</h4>
+            <ul>
+              <li>Web / API backends</li>
+              <li>Multiple concurrent writers</li>
+              <li>Data you can't afford to lose</li>
+              <li>Need JSON, geo, full-text search</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>"I might scale someday" is not a reason to start with Postgres. Premature complexity slows you down now for a problem you may never have. Build with SQLite, keep your data access behind SQLAlchemy, and switching later is cheap.</p>
+    </div>
+  </section>
+
+  <!-- 08 Connection string -->
+  <section id="connstr">
+    <div class="sec-num">Section 08</div>
+    <h2 class="title">Connection strings, decoded</h2>
+    <div class="pron">the cryptic URL that tells your code where the database is</div>
+    <p class="lead">A connection string (or "database URL") packs every detail needed to reach a database into one line. Once you can read its parts, half the mystery disappears.</p>
+    <div class="conn">
+      <div class="str"><span class="seg s1">postgresql+psycopg2</span><span style="color:#777">://</span><span class="seg s2">majid</span><span style="color:#777">:</span><span class="seg s3">secret</span><span style="color:#777">@</span><span class="seg s4">localhost:5432</span><span style="color:#777">/</span><span class="seg s5">vhm_db</span></div>
+      <dl>
+        <dt class="d1">postgresql+psycopg2</dt><dd>The <b>dialect</b> + <b>driver</b>: which database, and which Python library talks to it.</dd>
+        <dt class="d2">majid</dt><dd>The <b>username</b> the database knows you by.</dd>
+        <dt class="d3">secret</dt><dd>The <b>password</b>. Never hardcode this — see gotcha #5.</dd>
+        <dt class="d4">localhost:5432</dt><dd>The <b>host</b> and <b>port</b>. 5432 is Postgres's default; with Docker you map it to your machine.</dd>
+        <dt class="d5">vhm_db</dt><dd>The <b>database name</b> — one server can hold many databases.</dd>
+      </dl>
+    </div>
+    <p>SQLite's version is much simpler because there's no server, user, or port — just a file path:</p>
+<pre><span class="c"># Relative file in the current folder</span>
+sqlite:///app.db
+
+<span class="c"># Absolute path (note the FOUR slashes)</span>
+sqlite:////home/majid/data/app.db
+
+<span class="c"># Pure in-memory, vanishes when the program exits — great for tests</span>
+sqlite:///:memory:</pre>
+  </section>
+
+  <!-- 09 End-to-end walkthrough -->
+  <section id="walkthrough">
+    <div class="sec-num">Section 09</div>
+    <h2 class="title">End-to-end walkthrough</h2>
+    <div class="pron">zero to a working database-backed script — the payoff</div>
+    <p class="lead">This is the whole stack in one go: run Postgres in Docker, connect with SQLAlchemy, create a table, insert and read rows. Then we flip a single line to use SQLite instead.</p>
+
+    <p><strong>Step 1 — Start PostgreSQL in Docker.</strong> One command gives you a real database server running in the background.</p>
+<pre>docker run --name learn-pg \
+  -e POSTGRES_USER=majid \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_DB=vhm_db \
+  -p 5432:5432 \
+  -v pgdata:/var/lib/postgresql/data \
+  -d postgres:16</pre>
+    <p style="margin-top:-6px;font-size:.9rem;color:var(--ink-soft);">The <code>-v pgdata:...</code> part is a <em class="term">volume</em> — it keeps your data even if the container is deleted. Skipping it is gotcha #6.</p>
+
+    <p><strong>Step 2 — Install the Python pieces.</strong></p>
+<pre>pip install sqlalchemy psycopg2-binary</pre>
+
+    <p><strong>Step 3 — Write one script that does everything.</strong></p>
+<pre><span class="c"># app.py</span>
+<span class="k">from</span> sqlalchemy <span class="k">import</span> create_engine, String, select
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> DeclarativeBase, Mapped, mapped_column, Session
+
+<span class="c"># 1. The connection string decides WHERE data goes.</span>
+<span class="c">#    Swap this one line for SQLite and nothing else changes.</span>
+DB_URL = <span class="s">"postgresql+psycopg2://majid:secret@localhost:5432/vhm_db"</span>
+engine = create_engine(DB_URL, echo=<span class="k">True</span>)  <span class="c"># echo prints the SQL it runs</span>
+
+<span class="c"># 2. Describe a table as a Python class.</span>
+<span class="k">class</span> Base(DeclarativeBase): <span class="k">pass</span>
+
+<span class="k">class</span> Sensor(Base):
+    __tablename__ = <span class="s">"sensors"</span>
+    id:   Mapped[int] = mapped_column(primary_key=<span class="k">True</span>)
+    name: Mapped[str] = mapped_column(String(50))
+    unit: Mapped[str] = mapped_column(String(10))
+
+<span class="c"># 3. Create the table in the database (CREATE TABLE for you).</span>
+Base.metadata.create_all(engine)
+
+<span class="c"># 4. Insert rows.</span>
+<span class="k">with</span> Session(engine) <span class="k">as</span> s:
+    s.add_all([
+        Sensor(name=<span class="s">"battery_temp"</span>, unit=<span class="s">"C"</span>),
+        Sensor(name=<span class="s">"motor_rpm"</span>,   unit=<span class="s">"rpm"</span>),
+    ])
+    s.commit()  <span class="c"># &lt;-- without this, nothing is saved (gotcha #1)</span>
+
+<span class="c"># 5. Read them back.</span>
+<span class="k">with</span> Session(engine) <span class="k">as</span> s:
+    <span class="k">for</span> row <span class="k">in</span> s.scalars(select(Sensor)):
+        <span class="k">print</span>(row.id, row.name, row.unit)</pre>
+
+    <p><strong>Step 4 — Run it.</strong></p>
+<pre>python app.py</pre>
+
+    <div class="note">
+      <span class="tag">The whole point</span>
+      <p>To run this against <strong>SQLite</strong> instead — no Docker, no server, no install — change only the connection string:</p>
+<pre>DB_URL = <span class="s">"sqlite:///vhm_local.db"</span></pre>
+      <p>Same models, same queries, same code. That portability is exactly why SQLAlchemy sits in the middle of the stack.</p>
+    </div>
+  </section>
+
+  <!-- 10 Two tables -->
+  <section id="tables">
+    <div class="sec-num">Section 10</div>
+    <h2 class="title">Two tables &amp; a JOIN</h2>
+    <div class="pron">relationships — where the real power (and confusion) begins</div>
+    <p class="lead">Real data is connected: a sensor produces many readings; a reading belongs to one sensor. You express that link with a <em class="term">foreign key</em>, and you combine the tables with a <em class="term">JOIN</em>.</p>
+    <p>In raw SQL, a foreign key and a join look like this:</p>
+<pre><span class="c">-- readings.sensor_id points back to sensors.id</span>
+<span class="k">CREATE TABLE</span> readings (
+  id        <span class="k">SERIAL PRIMARY KEY</span>,
+  sensor_id <span class="k">INTEGER REFERENCES</span> sensors(id),
+  value     <span class="k">REAL</span>
+);
+
+<span class="c">-- JOIN: stitch each reading to the sensor it belongs to</span>
+<span class="k">SELECT</span> s.name, r.value
+<span class="k">FROM</span> readings r
+<span class="k">JOIN</span> sensors s <span class="k">ON</span> s.id = r.sensor_id
+<span class="k">WHERE</span> s.unit = <span class="s">'C'</span>;</pre>
+    <p>SQLAlchemy lets you declare the relationship once, then walk it like normal Python attributes — no JOIN by hand:</p>
+<pre><span class="k">from</span> sqlalchemy <span class="k">import</span> ForeignKey
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> relationship
+
+<span class="k">class</span> Reading(Base):
+    __tablename__ = <span class="s">"readings"</span>
+    id:        Mapped[int]   = mapped_column(primary_key=<span class="k">True</span>)
+    sensor_id: Mapped[int]   = mapped_column(ForeignKey(<span class="s">"sensors.id"</span>))
+    value:     Mapped[float]
+    sensor:    Mapped[<span class="s">"Sensor"</span>] = relationship(back_populates=<span class="s">"readings"</span>)
+
+<span class="c"># On the Sensor class, add the other side:</span>
+<span class="c">#   readings: Mapped[list["Reading"]] = relationship(back_populates="sensor")</span>
+
+<span class="c"># Now traversal is just dot-access:</span>
+reading.sensor.name        <span class="c"># the parent sensor</span>
+sensor.readings            <span class="c"># all child readings</span></pre>
+    <div class="analogy">
+      <span class="tag">The three JOINs you'll actually use</span>
+      <p><b>INNER JOIN</b> keeps only rows that match on both sides. <b>LEFT JOIN</b> keeps every row from the left table, filling blanks with NULL where there's no match. <b>FULL JOIN</b> keeps everything from both. Ninety percent of the time you want INNER or LEFT.</p>
+    </div>
+  </section>
+
+  <!-- 11 Migrations -->
+  <section id="migrations">
+    <div class="sec-num">Section 11</div>
+    <h2 class="title">Migrations</h2>
+    <div class="pron">changing a table's shape without losing data</div>
+    <p class="lead"><code>create_all()</code> is fine for a fresh database, but it won't alter a table that already exists. Once real data lives in your tables, you change their structure with <em class="term">migrations</em> — versioned, repeatable scripts.</p>
+    <p>The standard tool with SQLAlchemy is <strong>Alembic</strong>. The idea: each change (add a column, rename a table) becomes a small file checked into git, so every teammate and every server applies the exact same steps in the exact same order.</p>
+<pre>pip install alembic
+alembic init migrations          <span class="c"># one-time setup</span>
+
+<span class="c"># after you edit your models:</span>
+alembic revision --autogenerate -m <span class="s">"add status column"</span>
+alembic upgrade head             <span class="c"># apply pending migrations</span></pre>
+    <div class="note">
+      <span class="tag">Why this matters</span>
+      <p>Hand-editing a production table with raw <code>ALTER TABLE</code> is how data gets lost and environments drift apart. Migrations make schema changes reviewable, reversible, and identical everywhere. Adopt them the moment more than one person — or more than one machine — touches the database.</p>
+    </div>
+  </section>
+
+  <!-- 12 Cheat sheets -->
+  <section id="cheats">
+    <div class="sec-num">Section 12</div>
+    <h2 class="title">Cheat sheets</h2>
+    <div class="pron">the commands you'll forget and look up again — keep this open</div>
+
+    <div class="cheat">
+      <h3>SQL — everyday queries</h3>
+      <table class="cheat-tbl">
+        <tr><td>SELECT * FROM t;</td><td>Read every column and row (avoid <code>*</code> in real apps).</td></tr>
+        <tr><td>WHERE x &gt; 10 AND y = 'a';</td><td>Filter rows by conditions.</td></tr>
+        <tr><td>ORDER BY x DESC;</td><td>Sort results, high to low.</td></tr>
+        <tr><td>LIMIT 10;</td><td>Return at most 10 rows.</td></tr>
+        <tr><td>COUNT(*), AVG(x), SUM(x)</td><td>Aggregate functions.</td></tr>
+        <tr><td>GROUP BY category;</td><td>Collapse rows into groups for aggregates.</td></tr>
+        <tr><td>JOIN b ON b.id = a.b_id</td><td>Combine two tables on a matching key.</td></tr>
+        <tr><td>INSERT INTO t (..) VALUES (..);</td><td>Add a row.</td></tr>
+        <tr><td>UPDATE t SET x=1 WHERE id=5;</td><td>Change rows (always use WHERE!).</td></tr>
+        <tr><td>DELETE FROM t WHERE id=5;</td><td>Remove rows (always use WHERE!).</td></tr>
+      </table>
+    </div>
+
+    <div class="cheat">
+      <h3>Docker — daily commands</h3>
+      <table class="cheat-tbl">
+        <tr><td>docker ps</td><td>List running containers.</td></tr>
+        <tr><td>docker ps -a</td><td>List all containers, including stopped.</td></tr>
+        <tr><td>docker start / stop &lt;name&gt;</td><td>Start or stop a container.</td></tr>
+        <tr><td>docker logs &lt;name&gt;</td><td>See a container's output (great for errors).</td></tr>
+        <tr><td>docker exec -it &lt;name&gt; bash</td><td>Open a shell inside a container.</td></tr>
+        <tr><td>docker rm &lt;name&gt;</td><td>Delete a stopped container.</td></tr>
+        <tr><td>docker images</td><td>List downloaded images.</td></tr>
+        <tr><td>docker compose up -d</td><td>Start a whole multi-service stack.</td></tr>
+        <tr><td>docker compose down</td><td>Stop and remove that stack.</td></tr>
+      </table>
+    </div>
+
+    <div class="cheat">
+      <h3>psql — inside the Postgres shell</h3>
+      <table class="cheat-tbl">
+        <tr><td>docker exec -it learn-pg psql -U majid -d vhm_db</td><td>Open psql in your container.</td></tr>
+        <tr><td>\l</td><td>List databases.</td></tr>
+        <tr><td>\dt</td><td>List tables.</td></tr>
+        <tr><td>\d tablename</td><td>Describe a table's columns.</td></tr>
+        <tr><td>\du</td><td>List users/roles.</td></tr>
+        <tr><td>\q</td><td>Quit.</td></tr>
+      </table>
+    </div>
+
+    <div class="cheat">
+      <h3>SQLAlchemy — core patterns</h3>
+      <table class="cheat-tbl">
+        <tr><td>create_engine(url)</td><td>The entry point — your handle to the database.</td></tr>
+        <tr><td>Base.metadata.create_all(engine)</td><td>Create all defined tables.</td></tr>
+        <tr><td>with Session(engine) as s:</td><td>Open a session (a unit of work).</td></tr>
+        <tr><td>s.add(obj) / s.add_all([..])</td><td>Stage new rows.</td></tr>
+        <tr><td>s.commit()</td><td>Save staged changes. <b>Required.</b></td></tr>
+        <tr><td>s.scalars(select(Model))</td><td>Run a query, get objects back.</td></tr>
+        <tr><td>.where(Model.x == 5)</td><td>Filter a query.</td></tr>
+        <tr><td>s.delete(obj)</td><td>Mark a row for deletion.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 13 Gotchas -->
+  <section id="gotchas">
+    <div class="sec-num">Section 13</div>
+    <h2 class="title">Common mistakes &amp; gotchas</h2>
+    <div class="pron">the bugs that cost juniors an afternoon — learn them cheaply here</div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#1</span>Forgetting to commit</div>
+      <div class="body">
+        <p>You add rows, the program runs clean, but the database is empty. Staged changes only persist when you <code>commit()</code>.</p>
+        <p><span class="ba">Symptom</span> "My data disappears." <span class="go">Fix</span> Call <code>session.commit()</code> after writes (or use a <code>with</code>-block that commits).</p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#2</span>SQL injection from string-building</div>
+      <div class="body">
+        <p>Pasting user input straight into a query string lets attackers rewrite it.</p>
+<pre><span class="ba">BAD </span> f<span class="s">"SELECT * FROM users WHERE name = '{name}'"</span>
+<span class="go">GOOD</span> use parameters — SQLAlchemy does this for you, or:
+     cursor.execute(<span class="s">"... WHERE name = ?"</span>, (name,))</pre>
+        <p>Never build SQL by concatenating variables. Always pass them as parameters.</p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#3</span><code>SELECT *</code> in real code</div>
+      <div class="body">
+        <p>Fine when exploring; risky in applications. It pulls columns you don't need, breaks when the schema changes, and hides intent.</p>
+        <p><span class="go">Fix</span> Name the columns you actually use: <code>SELECT id, name FROM ...</code></p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#4</span>The N+1 query problem</div>
+      <div class="body">
+        <p>You fetch 100 sensors, then loop and lazily access <code>sensor.readings</code> for each — firing 1 + 100 separate queries. It's invisible until it's slow.</p>
+        <p><span class="go">Fix</span> Load related rows up front with eager loading, e.g. <code>select(Sensor).options(selectinload(Sensor.readings))</code>.</p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#5</span>Hardcoding passwords &amp; secrets</div>
+      <div class="body">
+        <p>A database password committed to git is a leak that lives in history forever.</p>
+        <p><span class="go">Fix</span> Keep secrets in environment variables or a <code>.env</code> file that's listed in <code>.gitignore</code>, and read them with <code>os.environ</code>.</p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#6</span>Losing data when a container is removed</div>
+      <div class="body">
+        <p>By default a container's filesystem is ephemeral. <code>docker rm</code> the Postgres container without a volume and every row is gone.</p>
+        <p><span class="go">Fix</span> Always attach a <em class="term">volume</em> (<code>-v pgdata:/var/lib/postgresql/data</code>) so data outlives the container.</p>
+      </div>
+    </div>
+
+    <div class="gotcha">
+      <div class="head"><span class="num">#7</span><code>UPDATE</code> / <code>DELETE</code> with no <code>WHERE</code></div>
+      <div class="body">
+        <p>One missing clause and you've changed or deleted <em>every row in the table</em>. There's no undo.</p>
+        <p><span class="go">Fix</span> Write the <code>WHERE</code> first. Test destructive statements with a <code>SELECT</code> using the same condition before running them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 Troubleshooting -->
+  <section id="trouble">
+    <div class="sec-num">Section 14</div>
+    <h2 class="title">Troubleshooting</h2>
+    <div class="pron">decoding the error messages you'll meet first</div>
+    <div class="trouble">
+      <div class="item">
+        <div class="err">connection refused / could not connect to server</div>
+        <p>Nothing is listening where you pointed. Is the container running (<code>docker ps</code>)? Is the port mapped (<code>-p 5432:5432</code>) and matching your connection string?</p>
+      </div>
+      <div class="item">
+        <div class="err">relation "x" does not exist</div>
+        <p>Postgres-speak for "no such table." You probably forgot <code>create_all()</code> / a migration, or you're connected to the wrong database.</p>
+      </div>
+      <div class="item">
+        <div class="err">password authentication failed for user</div>
+        <p>The username/password in your connection string doesn't match what the server expects. Re-check the <code>-e POSTGRES_USER</code> / <code>POSTGRES_PASSWORD</code> you started the container with.</p>
+      </div>
+      <div class="item">
+        <div class="err">port is already allocated</div>
+        <p>Something else (often an old container) already holds 5432. Stop it, or map a different host port like <code>-p 5433:5432</code>.</p>
+      </div>
+      <div class="item">
+        <div class="err">database is locked (SQLite)</div>
+        <p>Two writers hit the single file at once — SQLite's core limitation. For a real concurrent workload, this is your signal to move to Postgres.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 Glossary -->
+  <section id="glossary">
+    <div class="sec-num">Section 15</div>
+    <h2 class="title">Glossary</h2>
+    <div class="pron">the jargon, in one plain line each</div>
+    <dl class="glossary">
+      <dt>Primary key</dt><dd>A column whose value uniquely identifies each row (usually <code>id</code>).</dd>
+      <dt>Foreign key</dt><dd>A column that points to another table's primary key, creating a link between them.</dd>
+      <dt>Index</dt><dd>A lookup structure that makes searches on a column fast — like a book's index. Costs a little write speed for a lot of read speed.</dd>
+      <dt>Schema</dt><dd>The shape of your database: which tables exist and what columns they have.</dd>
+      <dt>Migration</dt><dd>A versioned script that changes the schema in a safe, repeatable way.</dd>
+      <dt>Transaction</dt><dd>A group of changes that either all succeed or all roll back — never half-done.</dd>
+      <dt>ACID</dt><dd>The four guarantees of a reliable transaction: Atomicity, Consistency, Isolation, Durability.</dd>
+      <dt>ORM</dt><dd>Object-Relational Mapper — maps database rows to objects in your programming language (the role SQLAlchemy plays).</dd>
+      <dt>Connection pool</dt><dd>A set of reusable open connections, so your app doesn't pay to open a new one for every query.</dd>
+      <dt>Session</dt><dd>In SQLAlchemy, a workspace that tracks your pending changes until you commit them.</dd>
+      <dt>Volume</dt><dd>Docker storage that lives outside a container, so data survives when the container is removed.</dd>
+      <dt>Image vs container</dt><dd>An image is the frozen template; a container is a running instance launched from it.</dd>
+    </dl>
+  </section>
+
+  <!-- 16 Vectors -->
+  <section id="vectors">
+    <div class="sec-num">Section 16</div>
+    <h2 class="title">Vectors, pgvector &amp; vector databases</h2>
+    <div class="pron">the modern addition — storing meaning, not just values</div>
+    <p class="lead">A relational database is built to match exact values: <code>WHERE state = 'MI'</code>. A <em class="term">vector database</em> answers a different question — "what is <em>most similar in meaning</em>?" — which is the engine behind semantic search and RAG (retrieval-augmented generation).</p>
+
+    <p>When you pass text through an embedding model, it comes back as a long list of numbers — a <em class="term">vector</em> — that captures the text's meaning. Texts about similar ideas produce vectors that sit close together in space. So "find related documents" becomes a geometry problem: find the stored vectors nearest to the query's vector.</p>
+    <div class="analogy">
+      <span class="tag">Think of it like</span>
+      <p>A library where books aren't shelved by title but by <em>idea</em>. Ask for something about "engine overheating" and you're handed the shelf nearest that meaning — even books that never use those exact words.</p>
+    </div>
+
+    <p>So the question juniors ask: <strong>can I just use Postgres or SQLite for this, or do I need a special database?</strong> Three honest answers:</p>
+
+    <div class="cheat">
+      <table class="cheat-tbl">
+        <tr><td>PostgreSQL + pgvector</td><td>Yes. An extension adds a real vector type and similarity search. One database for your normal data <em>and</em> your embeddings.</td></tr>
+        <tr><td>SQLite</td><td>Not really. You can stuff numbers in a blob, but there's no native similarity search. Skip it for vectors.</td></tr>
+        <tr><td>Dedicated vector DB</td><td>Pinecone, Weaviate, Milvus, Qdrant. Purpose-built for vectors at large scale, with extra search features.</td></tr>
+      </table>
+    </div>
+
+    <h3 style="font-family:'Fraunces',serif;font-weight:600;font-size:1.35rem;margin:30px 0 10px;">pgvector — Postgres learns vectors</h3>
+    <p><strong>pgvector</strong> is an open-source extension that teaches PostgreSQL a <code>vector</code> column type plus distance operators for nearest-neighbor search. By default it does exact search; you can add an index (HNSW or IVFFlat) to trade a little accuracy for a lot of speed.</p>
+    <p>The easiest start is the prebuilt Docker image — same workflow as Section 09, just a different image:</p>
+<pre>docker run --name vec-pg \
+  -e POSTGRES_PASSWORD=secret \
+  -p 5432:5432 -d <span class="s">pgvector/pgvector:pg16</span>
+
+<span class="c"># then enable the extension, once per database</span>
+<span class="k">CREATE EXTENSION IF NOT EXISTS</span> vector;</pre>
+
+    <p>With SQLAlchemy, a vector is just another column type. Define it, store embeddings, and order by distance to find the closest matches:</p>
+<pre><span class="k">from</span> pgvector.sqlalchemy <span class="k">import</span> Vector
+<span class="k">from</span> sqlalchemy <span class="k">import</span> select
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> Mapped, mapped_column
+
+<span class="k">class</span> Doc(Base):
+    __tablename__ = <span class="s">"docs"</span>
+    id:        Mapped[int] = mapped_column(primary_key=<span class="k">True</span>)
+    content:   Mapped[str]
+    embedding = mapped_column(Vector(1536))  <span class="c"># 1536 = model's output size</span>
+
+<span class="c"># Find the 5 docs closest in meaning to a query vector</span>
+q = [0.21, -0.44, 0.83, ...]            <span class="c"># from your embedding model</span>
+stmt = select(Doc).order_by(
+    Doc.embedding.cosine_distance(q)    <span class="c"># also: l2_distance, max_inner_product</span>
+).limit(5)
+results = session.scalars(stmt).all()</pre>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-top:-6px;">Install the helper with <code>pip install pgvector</code>. The vector's dimension (here 1536) must match whatever embedding model you use.</p>
+
+    <h3 style="font-family:'Fraunces',serif;font-weight:600;font-size:1.35rem;margin:30px 0 10px;">pgvector or a dedicated vector DB?</h3>
+    <div class="verdict">
+      <div class="v-yes">
+        <h4>Stay on pgvector when</h4>
+        <ul>
+          <li>You're prototyping or learning RAG</li>
+          <li>Up to ~a few million vectors</li>
+          <li>You already run Postgres and want one system to back up and operate</li>
+          <li>You want to filter by normal SQL columns <em>and</em> similarity in one query</li>
+        </ul>
+      </div>
+      <div class="v-no">
+        <h4>Reach for a dedicated DB when</h4>
+        <ul>
+          <li>Tens of millions of vectors or more</li>
+          <li>You need very low latency at high query volume</li>
+          <li>You want built-in hybrid (keyword + semantic) search, reranking, sharding</li>
+          <li>A managed service would save you real ops time</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <span class="tag">Practical note</span>
+      <p>The honest default for most projects — and almost every junior building their first RAG system — is <strong>Postgres + pgvector</strong>. One database, simpler operations, and the ability to mix similarity search with ordinary <code>WHERE</code> filters. Move to a dedicated vector database only when scale or latency actually forces the issue; "I might need it someday" is the same trap as reaching for Postgres over SQLite too early (Section 07). In a large production system you may end up running both: Postgres for records and metadata, a vector DB alongside it for the embeddings.</p>
+    </div>
+  </section>
+
+  <!-- References -->
+  <section class="references" id="refs">
+    <div class="sec-num">Section 17</div>
+    <h2 class="title">References &amp; further reading</h2>
+    <p style="color:var(--ink-soft);font-size:.95rem;">Official documentation is the most reliable source for each; the tutorials below are good on-ramps.</p>
+    <ol>
+      <li><strong>SQL</strong> — Mode SQL Tutorial, an interactive introduction. <a href="https://mode.com/sql-tutorial/">mode.com/sql-tutorial</a>. See also the W3Schools SQL reference at <a href="https://www.w3schools.com/sql/">w3schools.com/sql</a>.</li>
+      <li><strong>SQLite</strong> — Official documentation and the "Appropriate Uses For SQLite" page. <a href="https://www.sqlite.org/docs.html">sqlite.org/docs.html</a> · <a href="https://www.sqlite.org/whentouse.html">sqlite.org/whentouse.html</a>.</li>
+      <li><strong>PostgreSQL</strong> — Official manual and tutorial. <a href="https://www.postgresql.org/docs/">postgresql.org/docs</a>.</li>
+      <li><strong>Docker</strong> — Official "Get Started" guide. <a href="https://docs.docker.com/get-started/">docs.docker.com/get-started</a>. Postgres image on Docker Hub: <a href="https://hub.docker.com/_/postgres">hub.docker.com/_/postgres</a>.</li>
+      <li><strong>SQLAlchemy</strong> — Official Unified Tutorial (covers both Core and ORM). <a href="https://docs.sqlalchemy.org/en/20/tutorial/">docs.sqlalchemy.org/en/20/tutorial</a>.</li>
+      <li><strong>Python's built-in SQLite</strong> — Standard library docs. <a href="https://docs.python.org/3/library/sqlite3.html">docs.python.org/3/library/sqlite3</a>.</li>
+      <li><strong>Alembic (migrations)</strong> — Tutorial for the standard SQLAlchemy migration tool. <a href="https://alembic.sqlalchemy.org/en/latest/tutorial.html">alembic.sqlalchemy.org</a>.</li>
+      <li><strong>Docker volumes</strong> — How to persist data beyond a container's life. <a href="https://docs.docker.com/storage/volumes/">docs.docker.com/storage/volumes</a>.</li>
+      <li><strong>SQL JOINs, visually</strong> — A classic illustrated explanation of join types. Search "SQL joins visual explanation" for the Venn-diagram guides.</li>
+      <li><strong>pgvector</strong> — Official extension repo, with install, indexing, and query docs. <a href="https://github.com/pgvector/pgvector">github.com/pgvector/pgvector</a>. Python/SQLAlchemy helper: <a href="https://github.com/pgvector/pgvector-python">github.com/pgvector/pgvector-python</a>.</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>
+  A Plain-Language Primer · Built for clarity, not jargon
+</footer>
+
+</body>
+</html>

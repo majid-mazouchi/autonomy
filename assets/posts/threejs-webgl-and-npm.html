@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three.js, WebGL & npm — A Plain-Words Monograph</title>
+<style>
+  :root {
+    --paper: #FAF6EC;
+    --paper-deep: #F3EDDD;
+    --ink: #20242E;
+    --ink-soft: #4A4F5C;
+    --rule: #D8D0BC;
+    --webgl: #0E6E6E;     /* deep teal — the low-level API */
+    --three: #C75B12;     /* burnt orange — the friendly library */
+    --npm: #B3273A;       /* crimson — the package ecosystem */
+    --code-bg: #232733;
+    --code-ink: #E8E4D8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation: none !important; transition: none !important; }
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Charter", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Hero ---------- */
+  header {
+    border-bottom: 3px double var(--rule);
+    padding: 56px 0 40px;
+    background: linear-gradient(180deg, var(--paper-deep) 0%, var(--paper) 100%);
+  }
+  .eyebrow {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+  h1 .t-three { color: var(--three); }
+  h1 .t-webgl { color: var(--webgl); }
+  h1 .t-npm  { color: var(--npm); }
+  .subtitle {
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 620px;
+    font-style: italic;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 36px;
+    align-items: center;
+  }
+  @media (max-width: 720px) { .hero-grid { grid-template-columns: 1fr; } }
+
+  /* Signature: dependency-free wireframe cube */
+  .cube-frame {
+    text-align: center;
+  }
+  #cube {
+    width: 240px; height: 240px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    box-shadow: 4px 4px 0 var(--rule);
+  }
+  .cube-caption {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Stack diagram ---------- */
+  .stack {
+    margin: 48px 0;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stack-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    border-bottom: 1px solid var(--rule);
+    padding: 16px 20px;
+    gap: 18px;
+    align-items: baseline;
+  }
+  .stack-row:last-child { border-bottom: none; }
+  .stack-label {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .stack-row.s-npm   { background: rgba(179,39,58,0.05); }
+  .stack-row.s-npm .stack-label { color: var(--npm); }
+  .stack-row.s-three { background: rgba(199,91,18,0.05); }
+  .stack-row.s-three .stack-label { color: var(--three); }
+  .stack-row.s-webgl { background: rgba(14,110,110,0.05); }
+  .stack-row.s-webgl .stack-label { color: var(--webgl); }
+  .stack-row.s-gpu   { background: var(--paper-deep); }
+  .stack-row.s-gpu .stack-label { color: var(--ink-soft); }
+  .stack-row p { font-size: 15.5px; color: var(--ink-soft); }
+
+  /* ---------- Sections ---------- */
+  section { padding: 44px 0 8px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 26px;
+  }
+  .sec-head h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(26px, 4vw, 34px);
+    font-weight: 700;
+  }
+  .sec-chip {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    color: #fff;
+  }
+  .chip-webgl { background: var(--webgl); }
+  .chip-three { background: var(--three); }
+  .chip-npm   { background: var(--npm); }
+
+  h3 {
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    font-size: 21px;
+    margin: 30px 0 10px;
+  }
+  p + p { margin-top: 14px; }
+  section p { margin-bottom: 14px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+
+  .analogy {
+    border-left: 4px solid var(--rule);
+    padding: 12px 18px;
+    margin: 20px 0;
+    background: var(--paper-deep);
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .analogy b { font-style: normal; color: var(--ink); }
+
+  /* ---------- Practical notes ---------- */
+  .notes {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    margin: 26px 0;
+    overflow: hidden;
+  }
+  .notes-title {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    background: var(--paper-deep);
+    border-bottom: 1px solid var(--rule);
+  }
+  .notes ul { list-style: none; }
+  .notes li {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 15.5px;
+  }
+  .notes li:last-child { border-bottom: none; }
+  .notes li::before {
+    content: "→";
+    margin-right: 10px;
+    font-weight: 700;
+  }
+  .notes.n-webgl li::before { color: var(--webgl); }
+  .notes.n-three li::before { color: var(--three); }
+  .notes.n-npm li::before  { color: var(--npm); }
+
+  /* ---------- Code ---------- */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    padding: 18px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 18px 0;
+  }
+  code.inline {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.88em;
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .code-label {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: -12px;
+  }
+  pre .c  { color: #8B93A7; }       /* comment */
+  pre .k  { color: #F2A65A; }       /* keyword */
+  pre .s  { color: #9ECE9E; }       /* string */
+  pre .f  { color: #7FB8D4; }       /* function/cmd */
+
+  /* ---------- Comparison table ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 22px 0;
+    font-size: 15px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    background: var(--paper-deep);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- References ---------- */
+  .refs { counter-reset: ref; }
+  .refs li {
+    list-style: none;
+    counter-increment: ref;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 15.5px;
+  }
+  .refs li::before {
+    content: "[" counter(ref) "]";
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13px;
+    margin-right: 12px;
+    color: var(--ink-soft);
+  }
+  a { color: var(--webgl); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--three); }
+  a:focus-visible { outline: 2px solid var(--three); outline-offset: 2px; }
+
+
+  /* ---------- TOC ---------- */
+  nav.toc {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--paper-deep);
+    padding: 14px 20px 16px;
+    margin: 0 0 6px;
+  }
+  nav.toc .toc-title {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 8px;
+  }
+  nav.toc .toc-cols { columns: 2; column-gap: 30px; }
+  @media (max-width: 600px) { nav.toc .toc-cols { columns: 1; } }
+  nav.toc a {
+    display: block;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13px; padding: 3px 0;
+    color: var(--ink); text-decoration: none;
+  }
+  nav.toc a:hover { color: var(--three); text-decoration: underline; }
+
+  /* ---------- Slider controls ---------- */
+  .ctrls { display: flex; gap: 18px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .ctrls label {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .ctrls input[type=range] { width: 110px; accent-color: var(--three); }
+
+  /* ---------- Pipeline diagram ---------- */
+  .pipe { display: flex; align-items: stretch; margin: 22px 0; }
+  .pipe-step {
+    flex: 1; border: 1px solid var(--rule); border-radius: 8px;
+    padding: 12px 12px 14px; background: rgba(255,255,255,0.45);
+  }
+  .pipe-step h4 {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .pipe-step p { font-size: 13px; color: var(--ink-soft); line-height: 1.45; margin: 0 0 8px; }
+  .pipe-badge {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 10px; padding: 2px 8px; border-radius: 999px;
+    color: #fff; letter-spacing: 0.06em; white-space: nowrap;
+  }
+  .bg-glsl { background: var(--webgl); }
+  .bg-js   { background: var(--three); }
+  .bg-hw   { background: var(--ink-soft); }
+  .pipe-arr { display: flex; align-items: center; padding: 0 6px; font-size: 18px; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .pipe { flex-direction: column; }
+    .pipe-arr { justify-content: center; padding: 4px 0; }
+    .pipe-arr span { display: none; }
+    .pipe-arr::before { content: "\2193"; }
+  }
+
+  /* ---------- Interactive demo frame ---------- */
+  .demo {
+    border: 1px solid var(--rule); border-radius: 8px;
+    padding: 22px; margin: 24px 0; text-align: center;
+    background: rgba(255,255,255,0.4);
+  }
+  #lightCanvas { max-width: 100%; width: 380px; height: auto; }
+  .demo .ctrls input[type=range] { width: 200px; accent-color: var(--webgl); }
+
+  /* ---------- Tabs ---------- */
+  .tabbar { display: flex; gap: 8px; margin: 18px 0 0; }
+  .tabbar button {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 8px 16px; border: 1px solid var(--rule); border-bottom: none;
+    background: var(--paper-deep); color: var(--ink-soft);
+    border-radius: 8px 8px 0 0; cursor: pointer;
+  }
+  .tabbar button.on { background: var(--code-bg); color: var(--code-ink); border-color: var(--code-bg); }
+  .tabbar button:focus-visible { outline: 2px solid var(--three); outline-offset: 2px; }
+  .tab-pane { display: none; }
+  .tab-pane.on { display: block; }
+  .tab-pane pre { margin-top: 0; border-top-left-radius: 0; }
+
+  /* ---------- Ecosystem cards ---------- */
+  .eco {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 14px; margin: 20px 0;
+  }
+  .eco-card {
+    border: 1px solid var(--rule); border-radius: 8px;
+    padding: 14px 16px; background: rgba(255,255,255,0.5);
+  }
+  .eco-card h4 {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13.5px; color: var(--three); margin-bottom: 2px;
+  }
+  .eco-card .role { font-size: 12.5px; font-style: italic; color: var(--ink-soft); margin-bottom: 8px; }
+  .eco-card p { font-size: 14px; color: var(--ink-soft); margin: 0; line-height: 1.5; }
+
+  /* ---------- Glossary ---------- */
+  .gloss {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0 28px; margin: 20px 0;
+  }
+  .gloss > div { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .gloss dt {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13px; font-weight: 700; color: var(--webgl);
+  }
+  .gloss dd { font-size: 14.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---------- Learning path ---------- */
+  .path { list-style: none; counter-reset: step; margin: 18px 0; }
+  .path li {
+    counter-increment: step; position: relative;
+    padding: 14px 0 14px 56px; border-bottom: 1px solid var(--rule);
+    font-size: 15.5px;
+  }
+  .path li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--ink); color: var(--paper);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .notes.n-ink li::before { color: var(--ink); }
+  .chip-ink { background: var(--ink); }
+
+  footer {
+    border-top: 3px double var(--rule);
+    margin-top: 56px;
+    padding: 28px 0 48px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero-grid">
+    <div>
+      <a href="/autonomy/" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--three);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+      <div class="eyebrow">A Plain-Words Monograph · 3D on the Web</div>
+      <h1><span class="t-three">Three.js</span>, <span class="t-webgl">WebGL</span> &amp; <span class="t-npm">npm</span></h1>
+      <p class="subtitle">Three names you meet on day one of web 3D — what each one actually is, how they fit together, and the practical notes nobody tells you up front.</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);margin-top:12px;">By <strong>Majid Mazouchi</strong></p>
+    </div>
+    <div class="cube-frame">
+      <canvas id="cube" width="480" height="480" aria-label="Rotating wireframe cube animation"></canvas>
+      <div class="cube-caption">a cube, projected &amp; rotated &#8212; the math WebGL<br>runs on your GPU. try the dials:</div>
+      <div class="ctrls">
+        <label>speed<input type="range" id="cubeSpeed" min="0" max="3" step="0.1" value="1"></label>
+        <label>camera dist.<input type="range" id="cubeDist" min="2.2" max="6" step="0.1" value="3.4"></label>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- The stack -->
+  <div class="stack" role="img" aria-label="The web 3D stack: npm distributes Three.js, which talks to WebGL, which drives the GPU">
+    <div class="stack-row s-npm">
+      <div class="stack-label">npm</div>
+      <p>The <strong>delivery service</strong>. A registry of reusable JavaScript packages and the command-line tool that installs them — including Three.js itself.</p>
+    </div>
+    <div class="stack-row s-three">
+      <div class="stack-label">Three.js</div>
+      <p>The <strong>friendly toolkit</strong>. A JavaScript library that gives you scenes, cameras, lights, and meshes so you never write raw GPU code.</p>
+    </div>
+    <div class="stack-row s-webgl">
+      <div class="stack-label">WebGL</div>
+      <p>The <strong>raw engine API</strong>. A low-level browser interface that sends triangles and small GPU programs (shaders) to the graphics card.</p>
+    </div>
+    <div class="stack-row s-gpu">
+      <div class="stack-label">GPU</div>
+      <p>The hardware. Thousands of small cores drawing millions of triangles per frame, 60 times a second.</p>
+    </div>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <div class="toc-title">Contents</div>
+    <div class="toc-cols">
+      <a href="#webgl">1 &nbsp;WebGL &#183; the engine</a>
+      <a href="#pipeline">2 &nbsp;The pipeline, drawn out</a>
+      <a href="#threejs">3 &nbsp;Three.js &#183; the toolkit</a>
+      <a href="#twice">4 &nbsp;The same triangle, twice</a>
+      <a href="#npm">5 &nbsp;npm &#183; the supply chain</a>
+      <a href="#together">6 &nbsp;Side by side</a>
+      <a href="#webgpu">7 &nbsp;WebGPU &#183; what&#8217;s next</a>
+      <a href="#ecosystem">8 &nbsp;The ecosystem map</a>
+      <a href="#performance">9 &nbsp;Performance cookbook</a>
+      <a href="#errors">10 Errors, decoded</a>
+      <a href="#dashboards">11 3D for engineering dashboards</a>
+      <a href="#glossary">12 Glossary</a>
+      <a href="#path">13 Your first week</a>
+      <a href="#references">14 References</a>
+    </div>
+  </nav>
+
+</main>
+<main class="wrap" style="padding-top:0">
+
+  <!-- ================= WebGL ================= -->
+  <section id="webgl">
+    <div class="sec-head">
+      <span class="sec-chip chip-webgl">Layer 1 · The Engine</span>
+      <h2>WebGL — the browser's hotline to your graphics card</h2>
+    </div>
+
+    <p><strong>In simple words:</strong> WebGL (Web Graphics Library) is a JavaScript API built into every modern browser that lets a web page talk <em>directly to the GPU</em> — the graphics chip in your laptop or phone. Before WebGL, the browser drew everything with the CPU; with WebGL, a web page can render fast, hardware-accelerated 2D and 3D graphics inside a <code class="inline">&lt;canvas&gt;</code> element, with no plugins installed.</p>
+
+    <p>WebGL is based on <strong>OpenGL ES</strong>, the graphics standard used in mobile devices. It doesn't know what a "cube" or a "car" or a "light" is. It only understands a few primitive things: <strong>vertices</strong> (points in space), <strong>triangles</strong> (three vertices stitched together), <strong>textures</strong> (images glued onto triangles), and <strong>shaders</strong> — tiny programs, written in a C-like language called GLSL, that the GPU runs for <em>every vertex</em> and <em>every pixel</em>, in parallel.</p>
+
+    <div class="analogy"><b>Analogy:</b> WebGL is the engine control unit of a car. Immensely powerful, but it speaks in torque maps and injector timings — not "drive me to the airport." You can program it directly, but you will write a lot of low-level code to do even simple things.</div>
+
+    <h3>How a frame actually gets drawn</h3>
+    <p>Every WebGL frame follows the same pipeline: your JavaScript uploads vertex data into GPU buffers → a <strong>vertex shader</strong> moves each point into screen position (this is where rotation and perspective math happens — like the cube at the top of this page) → the GPU fills in the triangles → a <strong>fragment shader</strong> decides the color of every pixel → the result lands on the canvas. Drawing one plain triangle in raw WebGL takes roughly 50–80 lines of setup code. That is exactly the pain Three.js exists to remove.</p>
+
+    <h3 id="pipeline">The pipeline, drawn out</h3>
+    <div class="pipe" role="img" aria-label="The GPU rendering pipeline: vertex data, vertex shader, rasterizer, fragment shader, framebuffer">
+      <div class="pipe-step">
+        <h4>Vertex data</h4>
+        <p>Your JS uploads positions, normals &amp; UVs into GPU buffers.</p>
+        <span class="pipe-badge bg-js">JavaScript</span>
+      </div>
+      <div class="pipe-arr"><span>&#8594;</span></div>
+      <div class="pipe-step">
+        <h4>Vertex shader</h4>
+        <p>Runs once <em>per vertex</em>: rotates &amp; projects each point to screen space.</p>
+        <span class="pipe-badge bg-glsl">GLSL &#183; you write this</span>
+      </div>
+      <div class="pipe-arr"><span>&#8594;</span></div>
+      <div class="pipe-step">
+        <h4>Rasterizer</h4>
+        <p>Fixed hardware: stitches triangles, finds every pixel they cover.</p>
+        <span class="pipe-badge bg-hw">hardware</span>
+      </div>
+      <div class="pipe-arr"><span>&#8594;</span></div>
+      <div class="pipe-step">
+        <h4>Fragment shader</h4>
+        <p>Runs once <em>per pixel</em>: lighting, texture lookup, final color.</p>
+        <span class="pipe-badge bg-glsl">GLSL &#183; you write this</span>
+      </div>
+      <div class="pipe-arr"><span>&#8594;</span></div>
+      <div class="pipe-step">
+        <h4>Framebuffer</h4>
+        <p>Finished pixels are composited onto the canvas.</p>
+        <span class="pipe-badge bg-hw">output</span>
+      </div>
+    </div>
+    <p>Only two stages are programmable &#8212; the two shaders &#8212; and that is the entire trick of real-time graphics: you supply two small functions, and the GPU runs them millions of times in parallel.</p>
+
+    <h3>Feel the lighting math</h3>
+    <p>Most shading reduces to one dot product: <strong>brightness = how directly a surface faces the light</strong>, written as <code class="inline">max(0, N &#183; L)</code> where <code class="inline">N</code> is the surface normal and <code class="inline">L</code> points toward the light. Drag the light around the cube below &#8212; faces turning toward it catch light, faces turning away fall dark. A fragment shader evaluates exactly this, per pixel, per frame.</p>
+    <div class="demo">
+      <canvas id="lightCanvas" width="760" height="520" aria-label="Interactive flat-shaded cube with a movable light"></canvas>
+      <div class="ctrls">
+        <label>light angle<input type="range" id="lightAngle" min="0" max="360" step="1" value="40"></label>
+      </div>
+    </div>
+
+
+    <div class="notes n-webgl">
+      <div class="notes-title">Practical notes — WebGL</div>
+      <ul>
+        <li><strong>You will rarely write raw WebGL.</strong> Almost everyone uses a library (Three.js, Babylon.js, PixiJS). Learn the concepts — pipeline, shaders, buffers — not the boilerplate.</li>
+        <li><strong>WebGL 2 is the current version</strong> and is supported in all modern browsers. Its successor, <strong>WebGPU</strong>, is rolling out now and offers compute shaders and lower overhead — but WebGL remains the safe, universal target in 2026.</li>
+        <li><strong>Context loss is real.</strong> The browser can take the GPU away (tab switch, driver reset, too many canvases). Production apps listen for <code class="inline">webglcontextlost</code> and restore gracefully.</li>
+        <li><strong>Performance killer #1 is draw calls,</strong> not triangle count. 100 separate small meshes are slower than 1 merged mesh with the same triangles. Batch, merge, instance.</li>
+        <li><strong>Mobile GPUs are weaker and thermally limited.</strong> Test on a mid-range phone early; cap pixel ratio (<code class="inline">devicePixelRatio</code>) at 2 to avoid rendering 4× the pixels you need.</li>
+        <li><strong>Shaders fail silently-ish.</strong> A GLSL typo gives you a black canvas, not a stack trace. Check the browser console and use <code class="inline">gl.getShaderInfoLog()</code> when going low-level.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= Three.js ================= -->
+  <section id="threejs">
+    <div class="sec-head">
+      <span class="sec-chip chip-three">Layer 2 · The Toolkit</span>
+      <h2>Three.js — 3D for humans</h2>
+    </div>
+
+    <p><strong>In simple words:</strong> Three.js is a free, open-source JavaScript library (created by Ricardo Cabello, "mr.doob", in 2010) that wraps WebGL in concepts a person can actually think in. Instead of buffers and shaders, you work with a <strong>Scene</strong> (the 3D world), a <strong>Camera</strong> (your viewpoint), <strong>Meshes</strong> (shape + material), <strong>Lights</strong>, and a <strong>Renderer</strong> that draws it all each frame. The 80 lines of raw WebGL for a triangle become about 10 lines of Three.js for a fully lit, spinning cube.</p>
+
+    <div class="analogy"><b>Analogy:</b> if WebGL is the engine control unit, Three.js is the whole drivable car — steering wheel, pedals, dashboard. You say "turn left"; it handles the injector timings.</div>
+
+    <h3>The mental model: scene graph</h3>
+    <p>Everything in Three.js lives in a tree called the <strong>scene graph</strong>. The scene is the root; objects are children; objects can contain other objects. Move a parent, and its children move with it — a wheel attached to a car body follows the car. Each object carries a <code class="inline">position</code>, <code class="inline">rotation</code>, and <code class="inline">scale</code>. This single idea covers 80% of everyday Three.js work.</p>
+
+    <p class="code-label">The canonical "hello cube" — the whole program</p>
+<pre><span class="k">import</span> * <span class="k">as</span> THREE <span class="k">from</span> <span class="s">'three'</span>;
+
+<span class="k">const</span> scene    = <span class="k">new</span> THREE.<span class="f">Scene</span>();
+<span class="k">const</span> camera   = <span class="k">new</span> THREE.<span class="f">PerspectiveCamera</span>(75, innerWidth/innerHeight, 0.1, 1000);
+<span class="k">const</span> renderer = <span class="k">new</span> THREE.<span class="f">WebGLRenderer</span>({ antialias: <span class="k">true</span> });
+renderer.<span class="f">setSize</span>(innerWidth, innerHeight);
+document.body.<span class="f">appendChild</span>(renderer.domElement);
+
+<span class="k">const</span> cube = <span class="k">new</span> THREE.<span class="f">Mesh</span>(
+  <span class="k">new</span> THREE.<span class="f">BoxGeometry</span>(1, 1, 1),            <span class="c">// shape</span>
+  <span class="k">new</span> THREE.<span class="f">MeshStandardMaterial</span>({ color: 0xC75B12 })  <span class="c">// skin</span>
+);
+scene.<span class="f">add</span>(cube);
+scene.<span class="f">add</span>(<span class="k">new</span> THREE.<span class="f">DirectionalLight</span>(0xffffff, 2));
+camera.position.z = 3;
+
+renderer.<span class="f">setAnimationLoop</span>(() =&gt; {        <span class="c">// runs ~60×/second</span>
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+  renderer.<span class="f">render</span>(scene, camera);
+});</pre>
+
+    <p>Notice the division of labor: <em>geometry</em> is the shape, <em>material</em> is the surface, and a <em>mesh</em> marries the two. Lights only affect materials that respond to light (<code class="inline">MeshStandardMaterial</code> does; <code class="inline">MeshBasicMaterial</code> ignores lighting entirely — a classic "why is my object black?" gotcha in reverse).</p>
+
+    <div class="notes n-three">
+      <div class="notes-title">Practical notes — Three.js</div>
+      <ul>
+        <li><strong>"My screen is black"</strong> is the universal first bug. Checklist: is the camera moved back (<code class="inline">camera.position.z = 3</code>)? Is there a light (if using a lit material)? Did you call <code class="inline">renderer.render()</code> inside the loop? Is the canvas actually sized?</li>
+        <li><strong>Use glTF (.glb) for 3D models.</strong> It's the "JPEG of 3D" — compact, fast, and the format Three.js supports best via <code class="inline">GLTFLoader</code>. Avoid OBJ/FBX for the web when you can.</li>
+        <li><strong>Dispose what you remove.</strong> Removing a mesh from the scene does not free GPU memory. Call <code class="inline">geometry.dispose()</code>, <code class="inline">material.dispose()</code>, <code class="inline">texture.dispose()</code> or long-running apps will leak.</li>
+        <li><strong>Three.js versions move fast</strong> (a release roughly every month, named r160, r170, …) and APIs do break. Pin your version in <code class="inline">package.json</code> and read the migration guide before upgrading.</li>
+        <li><strong>OrbitControls is your best friend</strong> while developing — it gives you mouse rotate/zoom/pan in two lines, imported from <code class="inline">three/addons/controls/OrbitControls.js</code>.</li>
+        <li><strong>For thousands of similar objects</strong> (particles, fleet markers, point clouds) use <code class="inline">InstancedMesh</code> — one draw call instead of thousands.</li>
+        <li><strong>React user?</strong> Look at <code class="inline">react-three-fiber</code>, a renderer that expresses Three.js scenes as React components — same engine underneath.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= Raw vs Three ================= -->
+  <section id="twice">
+    <div class="sec-head">
+      <span class="sec-chip chip-webgl">Proof by Contrast</span>
+      <h2>The same triangle, twice</h2>
+    </div>
+    <p>The fastest way to understand why Three.js exists is to draw the simplest possible thing &#8212; one flat triangle &#8212; both ways. Click between the tabs.</p>
+
+    <div class="tabs">
+      <div class="tabbar" role="tablist">
+        <button class="on" type="button">Raw WebGL &#183; ~45 lines</button>
+        <button type="button">Three.js &#183; 11 lines</button>
+      </div>
+      <div class="tab-pane on">
+<pre><span class="c">// 1. Get a context</span>
+const gl = canvas.getContext('webgl2');
+
+<span class="c">// 2. Write two GPU programs in GLSL</span>
+const vs = `#version 300 es
+in vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+const fs = `#version 300 es
+precision highp float;
+out vec4 color;
+void main() { color = vec4(0.78, 0.36, 0.07, 1.0); }`;
+
+<span class="c">// 3. Compile and link them, with error handling</span>
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(prog);
+
+<span class="c">// 4. Upload the triangle's vertices into a GPU buffer</span>
+const verts = new Float32Array([0, 0.7,  -0.7, -0.7,  0.7, -0.7]);
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+
+<span class="c">// 5. Describe the buffer's memory layout to the shader</span>
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+const loc = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+<span class="c">// 6. Finally: clear and draw</span>
+gl.viewport(0, 0, canvas.width, canvas.height);
+gl.clearColor(0.98, 0.96, 0.93, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.useProgram(prog);
+gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+<span class="c">// ...and it's still unlit, fixed-size, and non-interactive.</span></pre>
+      </div>
+      <div class="tab-pane">
+<pre><span class="k">import</span> * <span class="k">as</span> THREE <span class="k">from</span> <span class="s">'three'</span>;
+
+<span class="k">const</span> scene  = <span class="k">new</span> THREE.<span class="f">Scene</span>();
+<span class="k">const</span> camera = <span class="k">new</span> THREE.<span class="f">PerspectiveCamera</span>(75, 1, 0.1, 10);
+camera.position.z = 2;
+
+<span class="k">const</span> renderer = <span class="k">new</span> THREE.<span class="f">WebGLRenderer</span>({ canvas });
+<span class="k">const</span> tri = <span class="k">new</span> THREE.<span class="f">Mesh</span>(
+  <span class="k">new</span> THREE.<span class="f">CircleGeometry</span>(0.8, 3),   <span class="c">// a 3-sided "circle" = triangle</span>
+  <span class="k">new</span> THREE.<span class="f">MeshBasicMaterial</span>({ color: 0xC75B12 })
+);
+scene.<span class="f">add</span>(tri);
+renderer.<span class="f">render</span>(scene, camera);</pre>
+      </div>
+    </div>
+
+    <p>Same pixels. The raw version isn&#8217;t <em>harder thinking</em> &#8212; it&#8217;s bookkeeping: compiling shaders, binding buffers, describing memory layouts. Three.js does the bookkeeping and hands back the concepts you actually care about. And when you eventually <em>do</em> need a custom shader, Three.js lets you inject your own GLSL via <code class="inline">ShaderMaterial</code> &#8212; the ladder down is always there.</p>
+  </section>
+
+  <!-- ================= npm ================= -->
+  <section id="npm">
+    <div class="sec-head">
+      <span class="sec-chip chip-npm">Layer 0 · The Supply Chain</span>
+      <h2>npm — how the code reaches your project</h2>
+    </div>
+
+    <p><strong>In simple words:</strong> npm (Node Package Manager) is two things wearing one name. First, it is the <strong>world's largest software registry</strong> — npmjs.com — a public warehouse of over three million reusable JavaScript packages, Three.js among them. Second, it is a <strong>command-line tool</strong>, installed automatically with Node.js, that downloads those packages into your project and keeps track of which versions you depend on.</p>
+
+    <div class="analogy"><b>Analogy:</b> npm is an app store plus a bill of materials. The registry is the store; <code class="inline">package.json</code> is the parts list taped to your project saying exactly which components, at which versions, it is built from.</div>
+
+    <h3>The three files that matter</h3>
+    <p><strong><code class="inline">package.json</code></strong> — your project's manifest: name, scripts, and a list of dependencies with version ranges (e.g. <code class="inline">"three": "^0.182.0"</code>, where <code class="inline">^</code> means "this or any compatible newer minor version"). <strong><code class="inline">package-lock.json</code></strong> — the exact, frozen versions actually installed, so a teammate (or CI server) reproduces your setup bit-for-bit; always commit it. <strong><code class="inline">node_modules/</code></strong> — the folder where downloaded packages physically live; never commit it, never edit it, and feel free to delete and reinstall it when things get weird.</p>
+
+    <p class="code-label">A complete Three.js project from an empty folder</p>
+<pre><span class="f">npm</span> create vite@latest my-3d-app    <span class="c"># scaffold a project (pick "Vanilla")</span>
+<span class="f">cd</span> my-3d-app
+<span class="f">npm</span> install                        <span class="c"># download dependencies into node_modules</span>
+<span class="f">npm</span> install three                  <span class="c"># add Three.js to package.json</span>
+<span class="f">npm</span> run dev                        <span class="c"># local dev server with live reload</span>
+<span class="f">npm</span> run build                      <span class="c"># bundle optimized files for deployment</span></pre>
+
+    <p>Why the bundler (Vite, in this example)? Browsers don't read <code class="inline">node_modules</code>. A build tool takes your <code class="inline">import * as THREE from 'three'</code> statements, finds the code in <code class="inline">node_modules</code>, and bundles everything into plain files a browser can load. npm supplies the parts; the bundler assembles the product.</p>
+
+    <div class="notes n-npm">
+      <div class="notes-title">Practical notes — npm</div>
+      <ul>
+        <li><strong><code class="inline">npm install</code> vs <code class="inline">npm ci</code>:</strong> use <code class="inline">install</code> day-to-day; use <code class="inline">ci</code> in pipelines — it installs exactly what the lockfile says and fails loudly on mismatch.</li>
+        <li><strong><code class="inline">npx</code> runs a package without installing it</strong> globally — e.g. <code class="inline">npx serve .</code> to spin up a quick static server. Great for one-off tools.</li>
+        <li><strong>Semantic versioning decoded:</strong> in <code class="inline">1.4.2</code>, major.minor.patch. Major = breaking changes. Caution: Three.js sits at <code class="inline">0.x</code>, where <em>every minor bump may break things</em> — another reason to pin it.</li>
+        <li><strong>Supply-chain hygiene:</strong> every package can pull in dozens of others. Run <code class="inline">npm audit</code> for known vulnerabilities, prefer well-maintained packages, and be suspicious of typo-squatted names (<code class="inline">three</code> vs <code class="inline">threejs</code> — the former is the real one).</li>
+        <li><strong>The classic fix</strong> for a corrupted setup: delete <code class="inline">node_modules</code> and <code class="inline">package-lock.json</code>, then <code class="inline">npm install</code> fresh.</li>
+        <li><strong>Alternatives exist</strong> — pnpm (faster, disk-efficient), yarn, bun — all reading the same <code class="inline">package.json</code> and the same registry. npm is the default that's always there.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= How they fit ================= -->
+  <section id="together">
+    <div class="sec-head">
+      <h2>One sentence each, side by side</h2>
+    </div>
+    <table>
+      <thead>
+        <tr><th></th><th>What it is</th><th>You use it when…</th><th>You write</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--webgl)">WebGL</strong></td>
+          <td>Low-level browser API to the GPU</td>
+          <td>You need custom shaders or are building an engine yourself</td>
+          <td>GLSL + verbose JS setup</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--three)">Three.js</strong></td>
+          <td>High-level 3D library built on WebGL</td>
+          <td>You want scenes, models, lights, cameras — i.e. almost always</td>
+          <td>Readable JavaScript</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--npm)">npm</strong></td>
+          <td>Package registry + install tool</td>
+          <td>You add Three.js (or anything) to a real project</td>
+          <td>Terminal commands</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>The full story in one line: <strong style="color:var(--npm)">npm</strong> delivers <strong style="color:var(--three)">Three.js</strong> into your project; Three.js translates your scene into <strong style="color:var(--webgl)">WebGL</strong> calls; WebGL drives the GPU; the GPU paints pixels — sixty times a second.</p>
+  </section>
+
+  <!-- ================= WebGPU ================= -->
+  <section id="webgpu">
+    <div class="sec-head">
+      <span class="sec-chip chip-ink">What&#8217;s Next</span>
+      <h2>WebGPU &#8212; the successor, briefly</h2>
+    </div>
+    <p><strong>In simple words:</strong> WebGL wraps a 2007-era graphics standard; GPUs and the native APIs that drive them (Vulkan, Metal, Direct3D 12) have changed shape since. <strong>WebGPU</strong> is the web&#8217;s new graphics API built around that modern shape: much less overhead per draw call, explicit control over GPU resources, a new shader language called <strong>WGSL</strong>, and &#8212; the headline feature &#8212; <strong>compute shaders</strong>, which let you run general number-crunching on the GPU (particle systems, physics, signal processing, even ML inference) without disguising it as a drawing problem.</p>
+    <p>WebGPU now ships in the major browsers, but a long tail of older devices and locked-down corporate machines still lacks it, so WebGL remains the universal fallback for a while yet. The practical path: <strong>learn the concepts on WebGL and Three.js &#8212; they transfer almost one-to-one.</strong> Three.js itself offers a <code class="inline">WebGPURenderer</code> and TSL (Three.js Shading Language) that compile to <em>both</em> backends: your scene code stays identical, and the renderer uses the best engine the device offers. For most application developers, WebGPU is an implementation detail your library handles &#8212; unless you need compute, in which case it&#8217;s the whole point.</p>
+  </section>
+
+  <!-- ================= Ecosystem ================= -->
+  <section id="ecosystem">
+    <div class="sec-head">
+      <h2>The ecosystem map &#8212; who&#8217;s who around Three.js</h2>
+    </div>
+    <p>Three.js rarely travels alone. These are the companions you&#8217;ll meet in real projects:</p>
+    <div class="eco">
+      <div class="eco-card">
+        <h4>react-three-fiber + drei</h4>
+        <div class="role">Three.js, declared as React components</div>
+        <p>A React renderer for Three.js: your scene becomes JSX, state changes re-render the 3D world. <strong>drei</strong> adds dozens of ready-made helpers &#8212; cameras, controls, loaders, text. The default choice if your app is already React.</p>
+      </div>
+      <div class="eco-card">
+        <h4>Babylon.js</h4>
+        <div class="role">The batteries-included alternative</div>
+        <p>A complete engine rather than a library: built-in physics, GUI, audio, and an excellent in-browser inspector. Popular for games and product configurators. Pick one ecosystem and go deep; concepts transfer between them.</p>
+      </div>
+      <div class="eco-card">
+        <h4>Blender &#8594; glTF</h4>
+        <div class="role">The asset pipeline</div>
+        <p>Blender is the free tool where models get made; <code class="inline">.glb</code> export is one click. Then optimize with <strong>gltf-transform</strong> or <strong>gltfpack</strong>: Draco/meshopt geometry compression and KTX2 textures can shrink files 5&#8211;10&#215;.</p>
+      </div>
+      <div class="eco-card">
+        <h4>Rapier / cannon-es</h4>
+        <div class="role">Physics engines</div>
+        <p>Rigid-body dynamics, collisions, joints. They compute the motion; you copy positions into your Three.js meshes each frame. Rapier (Rust&#8594;WASM) is the modern favorite.</p>
+      </div>
+      <div class="eco-card">
+        <h4>lil-gui &#183; stats.js</h4>
+        <div class="role">Develop &amp; tune</div>
+        <p><strong>lil-gui</strong> gives instant slider panels for any parameter &#8212; invaluable for dialing in lights and materials. <strong>stats.js</strong> puts an FPS meter in the corner so regressions are visible immediately.</p>
+      </div>
+      <div class="eco-card">
+        <h4>Spector.js</h4>
+        <div class="role">The frame debugger</div>
+        <p>A browser extension that captures one rendered frame and shows every WebGL call, draw by draw, with full GPU state. When the screen does something inexplicable, this is the truth serum.</p>
+      </div>
+    </div>
+    <p>One honorable mention for 2D: <strong>PixiJS</strong> uses the same GPU pipeline for flat content &#8212; sprites, charts, maps &#8212; and is often the right call when the third dimension isn&#8217;t earning its keep.</p>
+  </section>
+
+  <!-- ================= Performance ================= -->
+  <section id="performance">
+    <div class="sec-head">
+      <h2>Performance cookbook</h2>
+    </div>
+    <p>The cardinal rule from the WebGL section bears repeating: <strong>the GPU is rarely the bottleneck; the conversation with it is.</strong> Each draw call carries fixed CPU overhead, so performance work is mostly about saying fewer, bigger things to the GPU.</p>
+    <div class="notes n-ink">
+      <div class="notes-title">Recipes, in order of payoff</div>
+      <ul>
+        <li><strong>Budget draw calls first.</strong> Check <code class="inline">renderer.info.render.calls</code> each frame; a few hundred is a healthy ceiling on mobile. Triangle counts matter far less than call counts.</li>
+        <li><strong>Merge what never moves</strong> (<code class="inline">BufferGeometryUtils.mergeGeometries</code>) and <strong>instance what repeats</strong> (<code class="inline">InstancedMesh</code>): both collapse many calls into one.</li>
+        <li><strong>Cap the pixel ratio:</strong> <code class="inline">renderer.setPixelRatio(Math.min(devicePixelRatio, 2))</code>. A 3&#215; retina screen otherwise renders 9&#215; the pixels of 1&#215; &#8212; for sharpness nobody can see.</li>
+        <li><strong>Compress assets:</strong> Draco or meshopt for geometry, KTX2/Basis for textures (they stay compressed <em>in GPU memory</em>, unlike JPEG/PNG which decompress to full size).</li>
+        <li><strong>Use LOD</strong> (<code class="inline">THREE.LOD</code>): swap in simpler meshes as objects recede. Distant detail is invisible but not free.</li>
+        <li><strong>Tame shadows:</strong> they re-render the scene per shadow-casting light. Limit casters, shrink shadow-map sizes, or bake static shadows into textures.</li>
+        <li><strong>Don&#8217;t allocate in the loop.</strong> Creating <code class="inline">new THREE.Vector3()</code> per frame feeds the garbage collector and causes stutter; reuse scratch objects.</li>
+        <li><strong>Measure before optimizing:</strong> stats.js for frame rate, <code class="inline">renderer.info</code> for calls and memory, Spector.js when you need to see the actual GPU conversation.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= Errors ================= -->
+  <section id="errors">
+    <div class="sec-head">
+      <h2>Common errors, decoded</h2>
+    </div>
+    <p>Nine classics. Most 3D-on-the-web debugging time goes to the first three.</p>
+    <table>
+      <thead>
+        <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Black screen, console clean</td>
+          <td>Camera at the origin (inside the object), no light with a lit material, or <code class="inline">render()</code> never called</td>
+          <td>Move the camera back (<code class="inline">camera.position.z = 3</code>), add a light or use <code class="inline">MeshBasicMaterial</code> to test, verify the animation loop runs</td>
+        </tr>
+        <tr>
+          <td><code class="inline">Failed to resolve module specifier "three"</code></td>
+          <td>Bare <code class="inline">import 'three'</code> in a plain HTML file &#8212; browsers can&#8217;t read <code class="inline">node_modules</code></td>
+          <td>Use a bundler (Vite) or add an import map pointing at a CDN copy</td>
+        </tr>
+        <tr>
+          <td><code class="inline">THREE is not defined</code></td>
+          <td>Mixing the old global-script world with the ES-modules world</td>
+          <td>Pick modules: <code class="inline">&lt;script type="module"&gt;</code> + <code class="inline">import * as THREE from 'three'</code> everywhere</td>
+        </tr>
+        <tr>
+          <td>Texture won&#8217;t load; CORS error in console</td>
+          <td>Page opened via <code class="inline">file://</code> or image hosted without CORS headers</td>
+          <td>Serve locally (<code class="inline">npx serve</code> or <code class="inline">npm run dev</code>); host assets with <code class="inline">Access-Control-Allow-Origin</code></td>
+        </tr>
+        <tr>
+          <td>Model "loads" but nothing appears</td>
+          <td>Wrong units/scale (a 1&#8201;mm part vs a 1&#8201;m world) or pivot far from origin</td>
+          <td>Compute <code class="inline">new THREE.Box3().setFromObject(model)</code>, then center and rescale; check exporter unit settings</td>
+        </tr>
+        <tr>
+          <td>Surfaces flicker/stripe where they meet</td>
+          <td>Z-fighting: coplanar faces, or a depth buffer stretched across a huge near&#8211;far range</td>
+          <td>Offset overlapping geometry slightly; tighten <code class="inline">camera.near</code>/<code class="inline">far</code> to the range you actually use</td>
+        </tr>
+        <tr>
+          <td>Everything looks blurry</td>
+          <td>Canvas CSS size doesn&#8217;t match its drawing-buffer size; device pixel ratio ignored</td>
+          <td><code class="inline">renderer.setSize(w, h)</code> on resize plus <code class="inline">setPixelRatio(Math.min(devicePixelRatio, 2))</code></td>
+        </tr>
+        <tr>
+          <td>Memory climbs; tab eventually crashes</td>
+          <td>Meshes removed from the scene but GPU resources never freed</td>
+          <td>Call <code class="inline">dispose()</code> on geometry, material, and textures when removing objects</td>
+        </tr>
+        <tr>
+          <td>Canvas suddenly goes blank mid-session</td>
+          <td>WebGL context lost (GPU reset, too many contexts, backgrounded tab on mobile)</td>
+          <td>Listen for <code class="inline">webglcontextlost</code>/<code class="inline">restored</code>; keep one canvas per page where possible</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ================= Engineering dashboards ================= -->
+  <section id="dashboards">
+    <div class="sec-head">
+      <span class="sec-chip chip-three">Applied</span>
+      <h2>3D for engineering dashboards</h2>
+    </div>
+    <p>Where this stack earns its keep in engineering work: spatial telemetry is simply easier to read in 3D, and a browser-based view deploys to anyone with a URL &#8212; no install, no license seat. Three patterns cover most of it.</p>
+
+    <h3>Point clouds</h3>
+    <p><code class="inline">THREE.Points</code> with a <code class="inline">BufferGeometry</code> renders an entire cloud &#8212; lidar sweeps, vibration measurement grids, CMM scans &#8212; as <strong>one draw call</strong>, comfortably into the millions of points. Positions live in a single <code class="inline">Float32Array</code>; add a per-vertex <code class="inline">color</code> attribute and the cloud itself becomes the heat map (temperature, intensity, deviation from CAD). For lidar-scale data, decimate or stream by octree &#8212; the approach tools like Potree use &#8212; rather than shipping every point to the browser.</p>
+
+    <h3>Sensor overlays on a vehicle model</h3>
+    <p>Export the vehicle (or subsystem) as <code class="inline">.glb</code> with components <em>named</em> in Blender &#8212; those names survive into the scene graph, so <code class="inline">scene.getObjectByName('inverter')</code> just works. Then map signals to parts: tint a component&#8217;s material by health state, pulse its <code class="inline">emissive</code> color on an active fault, and use a <code class="inline">Raycaster</code> so clicking a part opens its diagnostic panel. For floating labels pinned to 3D positions, <code class="inline">CSS2DRenderer</code> renders ordinary HTML anchored to objects &#8212; crisp text, free styling, no texture tricks.</p>
+
+    <h3>Why InstancedMesh matters for fleet visualization</h3>
+    <p>A fleet view is the textbook instancing case: thousands of identical shapes, each with its own position and status. Naively that&#8217;s thousands of draw calls and a slideshow; with <code class="inline">InstancedMesh</code> it is one geometry, one material, one call:</p>
+<pre><span class="c">// 10,000 vehicles &#8212; ONE draw call</span>
+<span class="k">const</span> fleet = <span class="k">new</span> THREE.<span class="f">InstancedMesh</span>(carGeometry, carMaterial, 10000);
+<span class="k">const</span> m = <span class="k">new</span> THREE.<span class="f">Matrix4</span>();
+<span class="k">const</span> statusColor = {
+  ok:    <span class="k">new</span> THREE.<span class="f">Color</span>(<span class="s">'#2E7D4F'</span>),
+  warn:  <span class="k">new</span> THREE.<span class="f">Color</span>(<span class="s">'#C7901A'</span>),
+  fault: <span class="k">new</span> THREE.<span class="f">Color</span>(<span class="s">'#B3273A'</span>)
+};
+
+vehicles.<span class="f">forEach</span>((v, i) =&gt; {
+  m.<span class="f">setPosition</span>(v.x, 0, v.y);
+  fleet.<span class="f">setMatrixAt</span>(i, m);
+  fleet.<span class="f">setColorAt</span>(i, statusColor[v.health]);  <span class="c">// per-instance health code</span>
+});
+fleet.instanceMatrix.needsUpdate = <span class="k">true</span>;
+scene.<span class="f">add</span>(fleet);</pre>
+
+    <div class="notes n-three">
+      <div class="notes-title">Practical notes &#8212; dashboards</div>
+      <ul>
+        <li><strong>Keep data prep off the render thread.</strong> Parse, decimate, and bin telemetry in a Web Worker; hand the main thread finished typed arrays. A 60&#8201;fps loop has ~16&#8201;ms per frame &#8212; spend none of it parsing JSON.</li>
+        <li><strong>Update only what changed:</strong> rewrite the affected instances and set <code class="inline">instanceMatrix.needsUpdate</code> / <code class="inline">instanceColor.needsUpdate</code> &#8212; don&#8217;t rebuild the mesh per tick.</li>
+        <li><strong>Raycasting works on instances too:</strong> the intersection result carries an <code class="inline">instanceId</code>, so click-to-inspect scales to the whole fleet.</li>
+        <li><strong>Divide the labor:</strong> 3D answers <em>where</em> (which corner, which component, which region of the fleet); conventional charts answer <em>when</em> and <em>how much</em>. Link them through shared selection state rather than forcing either to do both jobs.</li>
+        <li><strong>Wall displays run for days:</strong> the dispose discipline and context-loss handling from earlier sections stop being theoretical the first time a kiosk goes black overnight.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= Glossary ================= -->
+  <section id="glossary">
+    <div class="sec-head">
+      <h2>Glossary &#8212; one sentence each</h2>
+    </div>
+    <dl class="gloss">
+      <div><dt>vertex</dt><dd>A point in 3D space, usually carrying extras: a normal, a UV, a color.</dd></div>
+      <div><dt>triangle</dt><dd>Three vertices; the only shape GPUs truly draw &#8212; everything is built from them.</dd></div>
+      <div><dt>geometry</dt><dd>The shape: arrays of vertices and the triangles connecting them.</dd></div>
+      <div><dt>material</dt><dd>The surface: color, roughness, metalness, maps &#8212; how light treats the shape.</dd></div>
+      <div><dt>mesh</dt><dd>Geometry + material, placed in the scene; the basic visible object.</dd></div>
+      <div><dt>texture</dt><dd>An image sampled by shaders &#8212; for color, bumps, roughness, or arbitrary data.</dd></div>
+      <div><dt>UV coordinates</dt><dd>Per-vertex 2D coordinates saying which part of a texture sticks where.</dd></div>
+      <div><dt>normal</dt><dd>The "outward" direction of a surface; the key input to lighting math.</dd></div>
+      <div><dt>shader</dt><dd>A small program the GPU runs per vertex or per pixel, massively in parallel.</dd></div>
+      <div><dt>GLSL / WGSL</dt><dd>The C-like languages shaders are written in &#8212; GLSL for WebGL, WGSL for WebGPU.</dd></div>
+      <div><dt>draw call</dt><dd>One "draw this" command to the GPU; the unit of rendering overhead.</dd></div>
+      <div><dt>scene graph</dt><dd>The parent&#8211;child tree of objects; children inherit their parent&#8217;s transform.</dd></div>
+      <div><dt>frustum</dt><dd>The camera&#8217;s pyramid of visible space; objects outside it are skipped (culled).</dd></div>
+      <div><dt>raycasting</dt><dd>Shooting a line from the camera through the mouse to find what was clicked.</dd></div>
+      <div><dt>instancing</dt><dd>Drawing many copies of one shape, with per-copy transforms, in a single call.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ================= Learning path ================= -->
+  <section id="path">
+    <div class="sec-head">
+      <h2>Your first week &#8212; a working path</h2>
+    </div>
+    <p>Seven sessions, each buildable in an evening, each standing on the last:</p>
+    <ol class="path">
+      <li><strong>Scaffold and spin.</strong> <code class="inline">npm create vite@latest</code>, <code class="inline">npm install three</code>, then reproduce the hello-cube from this page from memory. Getting a clean dev loop running <em>is</em> the lesson.</li>
+      <li><strong>Take control.</strong> Add <code class="inline">OrbitControls</code> and a window-resize handler (update camera aspect + renderer size). Now you can inspect anything you build from any angle.</li>
+      <li><strong>Play with light.</strong> Swap Basic &#8594; Standard &#8594; Physical materials, move a <code class="inline">DirectionalLight</code> around, add <code class="inline">AxesHelper</code> and <code class="inline">GridHelper</code>, and wire a few parameters to lil-gui sliders. Intuition for materials is built here, not read.</li>
+      <li><strong>Load something real.</strong> Export a <code class="inline">.glb</code> from Blender (or download a free one), load it with <code class="inline">GLTFLoader</code>, then center and scale it using <code class="inline">Box3</code> &#8212; the rite of passage covered in the errors table.</li>
+      <li><strong>Make it respond.</strong> Add a <code class="inline">Raycaster</code>: hover highlights a part, click selects it and prints its name. This is the seed of every configurator and dashboard.</li>
+      <li><strong>Set the mood.</strong> Add an HDRI environment map (<code class="inline">RGBELoader</code> + <code class="inline">scene.environment</code>) and watch PBR materials come alive with realistic reflections.</li>
+      <li><strong>Ship something tiny.</strong> A product viewer, a data sculpture, a fleet map &#8212; scope it to one screen. <code class="inline">npm run build</code>, deploy <code class="inline">dist/</code> to any static host, send the link to a friend.</li>
+    </ol>
+  </section>
+
+  <!-- ================= References ================= -->
+  <section id="references">
+    <div class="sec-head">
+      <h2>References &amp; where to learn more</h2>
+    </div>
+    <ol class="refs">
+      <li><strong>Three.js — official site, docs &amp; examples.</strong> The examples gallery is the best way to discover what's possible. <a href="https://threejs.org">threejs.org</a> · manual at <a href="https://threejs.org/manual/">threejs.org/manual</a></li>
+      <li><strong>Three.js Fundamentals (official manual).</strong> The recommended structured introduction, from first cube to custom shaders. <a href="https://threejs.org/manual/#en/fundamentals">threejs.org/manual/#en/fundamentals</a></li>
+      <li><strong>Discover three.js</strong> — a free, carefully written online book on building real apps. <a href="https://discoverthreejs.com">discoverthreejs.com</a></li>
+      <li><strong>WebGL Fundamentals</strong> — the definitive plain-language explanation of raw WebGL and the rendering pipeline. <a href="https://webglfundamentals.org">webglfundamentals.org</a> (WebGL2 edition: <a href="https://webgl2fundamentals.org">webgl2fundamentals.org</a>)</li>
+      <li><strong>MDN — WebGL API documentation.</strong> Reference-grade coverage of every call and concept. <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API">developer.mozilla.org → WebGL API</a></li>
+      <li><strong>npm official documentation</strong> — commands, package.json fields, semver, workspaces. <a href="https://docs.npmjs.com">docs.npmjs.com</a></li>
+      <li><strong>The npm registry</strong> — search any package, check downloads, maintenance, and dependencies before adopting it. <a href="https://www.npmjs.com">npmjs.com</a></li>
+      <li><strong>Three.js Journey</strong> (Bruno Simon) — the most popular paid video course; frequently recommended by the community. <a href="https://threejs-journey.com">threejs-journey.com</a></li>
+      <li><strong>Vite</strong> — the modern build tool most Three.js tutorials assume. <a href="https://vitejs.dev">vitejs.dev</a></li>
+      <li><strong>WebGPU Fundamentals</strong> — for a look at what comes after WebGL. <a href="https://webgpufundamentals.org">webgpufundamentals.org</a></li>
+      <li><strong>react-three-fiber</strong> &#8212; official documentation for the React renderer. <a href="https://docs.pmnd.rs/react-three-fiber">docs.pmnd.rs/react-three-fiber</a> &#183; drei helpers: <a href="https://github.com/pmndrs/drei">github.com/pmndrs/drei</a></li>
+      <li><strong>Babylon.js</strong> &#8212; the main alternative engine, with playground and docs. <a href="https://www.babylonjs.com">babylonjs.com</a></li>
+      <li><strong>Khronos glTF</strong> &#8212; the 3D asset format: spec, sample models, tooling. <a href="https://www.khronos.org/gltf/">khronos.org/gltf</a> &#183; optimizer: <a href="https://gltf-transform.dev">gltf-transform.dev</a></li>
+      <li><strong>Three.js Forum</strong> &#8212; the active community Q&amp;A; most "why is my screen black" threads end here. <a href="https://discourse.threejs.org">discourse.threejs.org</a></li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Compiled June 2026 · The wireframe cube in the header is drawn with ~40 lines of plain canvas JavaScript — the same rotation and perspective-projection math that a WebGL vertex shader performs in hardware, millions of times per frame.
+  </div>
+</footer>
+
+<script>
+/* Signature element: dependency-free rotating wireframe cube.
+   Demonstrates the exact math (rotation matrices + perspective divide)
+   that WebGL vertex shaders run on the GPU. */
+(function () {
+  const cv = document.getElementById('cube');
+  const ctx = cv.getContext('2d');
+  const S = cv.width;                 // 480 (2x for crisp retina at 240 css px)
+  const V = [];
+  for (let x = -1; x <= 1; x += 2)
+    for (let y = -1; y <= 1; y += 2)
+      for (let z = -1; z <= 1; z += 2) V.push([x, y, z]);
+  const E = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let a = 0.6, b = 0.4;
+  let speed = 1, dist = 3.4;
+  const spd = document.getElementById('cubeSpeed');
+  const dst = document.getElementById('cubeDist');
+  function sync() {
+    speed = parseFloat(spd.value);
+    dist  = parseFloat(dst.value);
+    if (reduce) frame();   // re-render once when animation is off
+  }
+  spd.addEventListener('input', sync);
+  dst.addEventListener('input', sync);
+
+
+  function frame() {
+    ctx.clearRect(0, 0, S, S);
+    const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+    const P = V.map(([x, y, z]) => {
+      let x1 = x * ca - z * sa, z1 = x * sa + z * ca;          // rotate Y
+      let y1 = y * cb - z1 * sb, z2 = y * sb + z1 * cb;        // rotate X
+      const d = dist / (dist + z2);                              // perspective divide
+      return [S / 2 + x1 * d * S * 0.30, S / 2 + y1 * d * S * 0.30, z2];
+    });
+    ctx.lineWidth = 3;
+    for (const [i, j] of E) {
+      const depth = (P[i][2] + P[j][2]) / 2;                   // negative = near, positive = far
+      const t = (depth + 1.8) / 3.6;                           // 0 near → 1 far
+      ctx.strokeStyle = 'rgba(199,91,18,' + (1 - t * 0.65).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.moveTo(P[i][0], P[i][1]);
+      ctx.lineTo(P[j][0], P[j][1]);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#20242E';
+    for (const p of P) { ctx.beginPath(); ctx.arc(p[0], p[1], 4.5, 0, 7); ctx.fill(); }
+    if (!reduce) { a += 0.008 * speed; b += 0.005 * speed; requestAnimationFrame(frame); }
+  }
+  frame();
+})();
+</script>
+
+
+<script>
+/* Lighting demo: flat-shaded cube, movable light.
+   brightness = max(0, dot(N, L)) — the core of every fragment shader. */
+(function () {
+  const cv = document.getElementById('lightCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const S = cv.width, H = cv.height;
+  const slider = document.getElementById('lightAngle');
+
+  const V = [];
+  for (let x = -1; x <= 1; x += 2)
+    for (let y = -1; y <= 1; y += 2)
+      for (let z = -1; z <= 1; z += 2) V.push([x, y, z]);
+  const F = [
+    [0,1,3,2], [4,6,7,5],   // x faces
+    [0,4,5,1], [2,3,7,6],   // y faces
+    [0,2,6,4], [1,5,7,3]    // z faces
+  ];
+
+  const a = 0.65, b = 0.42;
+  const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+  function rot(p) {
+    const x1 = p[0] * ca - p[2] * sa, z1 = p[0] * sa + p[2] * ca;
+    const y1 = p[1] * cb - z1 * sb,  z2 = p[1] * sb + z1 * cb;
+    return [x1, y1, z2];
+  }
+  function project(p) {
+    const d = 3.6 / (3.6 + p[2]);
+    return [S / 2 + p[0] * d * S * 0.24, H / 2 + 20 + p[1] * d * S * 0.24];
+  }
+  function normalOf(p0, p1, p2, c) {
+    const ux = p1[0]-p0[0], uy = p1[1]-p0[1], uz = p1[2]-p0[2];
+    const vx = p2[0]-p0[0], vy = p2[1]-p0[1], vz = p2[2]-p0[2];
+    let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+    if (nx*c[0] + ny*c[1] + nz*c[2] < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    const l = Math.hypot(nx, ny, nz);
+    return [nx/l, ny/l, nz/l];
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, S, H);
+    const th = slider.value * Math.PI / 180;
+    const lightPos = [Math.cos(th) * 2.6, -1.5, Math.sin(th) * 2.6];
+
+    const R = V.map(rot);
+    const P = R.map(project);
+
+    const faces = F.map(idx => {
+      const c = [0, 1, 2].map(k => idx.reduce((s, i) => s + R[i][k], 0) / 4);
+      return { idx, c, n: normalOf(R[idx[0]], R[idx[1]], R[idx[2]], c) };
+    }).sort((p, q) => q.c[2] - p.c[2]);   // painter's algorithm: far first
+
+    for (const f of faces) {
+      // unit vector from face center toward the light
+      let lx = lightPos[0]-f.c[0], ly = lightPos[1]-f.c[1], lz = lightPos[2]-f.c[2];
+      const ll = Math.hypot(lx, ly, lz); lx/=ll; ly/=ll; lz/=ll;
+      const diff = Math.max(0, f.n[0]*lx + f.n[1]*ly + f.n[2]*lz);
+      const k = 0.20 + 0.80 * diff;     // ambient + diffuse
+      ctx.fillStyle = 'rgb(' + Math.round(40 + 30*k) + ',' +
+                              Math.round(60 + 130*k) + ',' +
+                              Math.round(60 + 130*k) + ')';
+      ctx.strokeStyle = '#20242E';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(P[f.idx[0]][0], P[f.idx[0]][1]);
+      for (let i = 1; i < 4; i++) ctx.lineTo(P[f.idx[i]][0], P[f.idx[i]][1]);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // the light itself
+    const lp = project(lightPos);
+    ctx.fillStyle = '#C75B12';
+    ctx.beginPath(); ctx.arc(lp[0], lp[1], 11, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(199,91,18,0.6)';
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i < 8; i++) {
+      const r = i * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(lp[0] + Math.cos(r) * 17, lp[1] + Math.sin(r) * 17);
+      ctx.lineTo(lp[0] + Math.cos(r) * 26, lp[1] + Math.sin(r) * 26);
+      ctx.stroke();
+    }
+  }
+  slider.addEventListener('input', draw);
+  draw();
+})();
+
+/* Tabs */
+document.querySelectorAll('.tabbar').forEach(bar => {
+  const btns = bar.querySelectorAll('button');
+  const panes = bar.parentElement.querySelectorAll('.tab-pane');
+  btns.forEach((btn, i) => btn.addEventListener('click', () => {
+    btns.forEach(x => x.classList.remove('on'));
+    panes.forEach(x => x.classList.remove('on'));
+    btn.classList.add('on');
+    panes[i].classList.add('on');
+  }));
+});
+</script>
+
+</body>
+</html>
