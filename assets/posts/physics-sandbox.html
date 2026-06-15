@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Physics Sandbox — Grounding Agentic AI in Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF6ED;
+  --paper-deep:#F2ECDD;
+  --ink:#211D16;
+  --ink-soft:#5A5346;
+  --rule:#D8D0BD;
+  --teal:#0B6B66;        /* physics / simulation */
+  --teal-soft:#E3EFEC;
+  --orange:#C2521A;      /* agent / action */
+  --orange-soft:#F7E6D8;
+  --violet:#5A4B9B;      /* fidelity tiers */
+  --violet-soft:#E9E5F4;
+  --ok:#2E7D43;
+  --bad:#B3372B;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Source Sans 3',-apple-system,'Segoe UI',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px}
+
+/* ---------- masthead ---------- */
+header.masthead{padding:56px 0 30px;border-bottom:3px double var(--rule)}
+.eyebrow{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+h1.title{font-size:clamp(34px,5.6vw,54px);font-weight:600;line-height:1.08;letter-spacing:-0.015em;margin-bottom:18px}
+h1.title em{font-style:italic;color:var(--orange)}
+.subtitle{font-size:clamp(17px,2.4vw,21px);font-style:italic;color:var(--ink-soft);max-width:640px;line-height:1.5}
+.meta-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:26px;font-family:var(--sans);font-size:12.5px;color:var(--ink-soft)}
+.meta-row span b{color:var(--ink);font-weight:600}
+
+/* ---------- structure ---------- */
+section{padding:44px 0 8px}
+.kicker{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+h2{font-size:clamp(25px,3.6vw,33px);font-weight:600;letter-spacing:-0.01em;line-height:1.15;margin-bottom:16px}
+h3{font-size:20px;font-weight:600;margin:26px 0 8px}
+p{margin-bottom:15px;max-width:72ch}
+p.lede{font-size:21px;line-height:1.55}
+p.lede::first-letter{font-size:3.1em;float:left;line-height:.82;padding:4px 8px 0 0;font-weight:600;color:var(--teal)}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{color:var(--orange)}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.82em;background:var(--paper-deep);border:1px solid var(--rule);border-radius:4px;padding:1px 5px}
+.rule-thin{border:none;border-top:1px solid var(--rule);margin:34px 0}
+
+/* ---------- figures ---------- */
+figure.fig{margin:30px 0;border:1px solid var(--rule);border-radius:10px;background:#FFFDF7;box-shadow:0 1px 0 var(--rule);overflow:hidden}
+.fig-head{display:flex;align-items:baseline;gap:10px;padding:13px 18px;border-bottom:1px solid var(--rule);background:var(--paper-deep)}
+.fig-no{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--orange);letter-spacing:.06em}
+.fig-title{font-family:var(--sans);font-size:14px;font-weight:600}
+.fig-body{padding:18px}
+figcaption{font-family:var(--sans);font-size:13px;color:var(--ink-soft);padding:12px 18px;border-top:1px dashed var(--rule);line-height:1.5}
+.hint{font-family:var(--sans);font-size:12px;color:var(--violet);font-weight:600}
+
+/* ---------- callouts ---------- */
+.note{border-left:4px solid var(--teal);background:var(--teal-soft);border-radius:0 8px 8px 0;padding:14px 18px;margin:22px 0;font-family:var(--sans);font-size:15px;line-height:1.55}
+.note.warn{border-left-color:var(--orange);background:var(--orange-soft)}
+.note b.tag{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px;color:var(--teal)}
+.note.warn b.tag{color:var(--orange)}
+
+/* ---------- buttons & inputs ---------- */
+.btn{font-family:var(--sans);font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:7px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;transition:transform .08s ease,background .15s}
+.btn:hover{background:var(--teal);border-color:var(--teal)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--paper-deep);color:var(--ink)}
+.btn.orange{background:var(--orange);border-color:var(--orange)}
+.btn.orange:hover{background:#A8430F;border-color:#A8430F}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible{outline:2.5px solid var(--violet);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--teal);height:26px}
+.slider-row{display:grid;grid-template-columns:170px 1fr 86px;align-items:center;gap:12px;margin:9px 0;font-family:var(--sans);font-size:13.5px}
+.slider-row label{font-weight:600}
+.slider-val{font-family:var(--mono);font-size:13px;text-align:right;color:var(--teal);font-weight:600}
+
+/* ---------- architecture fig ---------- */
+#archSvg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:filter .15s, stroke-width .15s}
+.arch-node:hover rect{filter:brightness(.96)}
+.arch-node.active rect{stroke-width:3}
+#archDetail{margin-top:14px;border:1px dashed var(--rule);border-radius:8px;background:var(--paper);padding:13px 16px;font-family:var(--sans);font-size:14px;line-height:1.55;min-height:74px}
+#archDetail b{color:var(--teal)}
+
+/* ---------- fidelity explorer ---------- */
+.tier-track{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.tier{border:1.5px solid var(--rule);border-radius:9px;padding:13px 14px;font-family:var(--sans);font-size:13.5px;line-height:1.5;transition:border-color .2s, background .2s, transform .2s}
+.tier h4{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.tier .stat{font-family:var(--mono);font-size:12px;color:var(--ink-soft);display:block;margin-top:6px}
+.tier.lit{border-color:var(--violet);background:var(--violet-soft);transform:translateY(-3px)}
+#fidReadout{font-family:var(--sans);font-size:14.5px;margin-top:14px;padding:11px 15px;background:var(--paper);border:1px dashed var(--rule);border-radius:8px;line-height:1.55}
+#fidReadout b{color:var(--violet)}
+
+/* ---------- sandbox demo ---------- */
+#thermCanvas{width:100%;height:auto;border:1px solid var(--rule);border-radius:8px;background:#FFFEFA;display:block}
+.verdict{font-family:var(--sans);font-weight:700;font-size:14px;padding:7px 14px;border-radius:999px;display:inline-block;margin-top:4px}
+.verdict.pass{background:#E0EFE3;color:var(--ok);border:1.5px solid var(--ok)}
+.verdict.fail{background:#F6E1DD;color:var(--bad);border:1.5px solid var(--bad)}
+.verdict.idle{background:var(--paper-deep);color:var(--ink-soft);border:1.5px solid var(--rule)}
+#agentLog{font-family:var(--mono);font-size:12.3px;line-height:1.75;background:#211D16;color:#EDE6D4;border-radius:8px;padding:14px 16px;margin-top:14px;max-height:230px;overflow-y:auto;white-space:pre-wrap;display:none}
+#agentLog .a{color:#F5A45D}
+#agentLog .s{color:#7FD1C5}
+#agentLog .v{color:#9BE38F}
+#agentLog .x{color:#F08A7E}
+.demo-controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+
+/* ---------- tool landscape ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{font-family:var(--sans);font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:999px;border:1.5px solid var(--rule);background:transparent;cursor:pointer;color:var(--ink-soft);transition:all .15s}
+.chip:hover{border-color:var(--teal);color:var(--teal)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px}
+.tool{border:1.5px solid var(--rule);border-radius:9px;padding:14px 15px;font-family:var(--sans);font-size:13.5px;line-height:1.5;background:#FFFDF7;transition:opacity .25s, transform .25s}
+.tool.dim{opacity:.18;transform:scale(.985)}
+.tool h4{font-size:15px;font-weight:700;margin-bottom:2px}
+.tool .cat{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--violet);margin-bottom:7px;display:block}
+.tool .fit{margin-top:9px;padding-top:8px;border-top:1px dashed var(--rule);font-size:12.5px;color:var(--ink-soft)}
+.tool .fit b{color:var(--orange);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.lic{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:1px 7px;border-radius:4px;margin-left:6px;vertical-align:2px}
+.lic.free{background:#E0EFE3;color:var(--ok)}
+.lic.com{background:var(--orange-soft);color:var(--orange)}
+
+/* ---------- patterns table ---------- */
+.pat{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);border-radius:9px;overflow:hidden;margin:20px 0;font-family:var(--sans);font-size:14px}
+.pat>div{padding:13px 17px;line-height:1.55}
+.pat .hd{font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;background:var(--paper-deep);border-bottom:1px solid var(--rule)}
+.pat .no{border-right:1px solid var(--rule)}
+.pat .anti{color:var(--bad)}
+.pat .yes{color:var(--ok)}
+.pat .body{border-bottom:1px solid var(--rule);border-right:0}
+.pat .body.no{border-right:1px solid var(--rule)}
+.pat .body:nth-last-child(-n+2){border-bottom:none}
+.pat code{background:#fff}
+
+/* ---------- references ---------- */
+ol.refs{font-family:var(--sans);font-size:14px;line-height:1.6;padding-left:26px}
+ol.refs li{margin-bottom:9px}
+ol.refs .src{color:var(--ink-soft);font-size:12.5px}
+
+footer{margin-top:54px;border-top:3px double var(--rule);padding:26px 0 60px;font-family:var(--sans);font-size:13px;color:var(--ink-soft)}
+
+/* ---------- reveal ---------- */
+.rv{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){
+  .rv{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+  .tier,.tool,.btn{transition:none}
+}
+@media (max-width:680px){
+  body{font-size:17px}
+  .tier-track{grid-template-columns:1fr}
+  .pat{grid-template-columns:1fr}
+  .pat .no{border-right:none}
+  .pat .body.no{border-right:none;border-bottom:1px dashed var(--rule)}
+  .slider-row{grid-template-columns:1fr;gap:4px}
+  .slider-val{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <div class="eyebrow">Monograph · Agentic AI × Simulation Engineering</div>
+    <h1 class="title">The Physics Sandbox:<br>Grounding Agentic AI in <em>Executable Reality</em></h1>
+    <p class="subtitle">An architecture for connecting high-fidelity physics simulation to LLM agents over MCP — so that hypotheses are tested, not hallucinated.</p>
+    <div class="meta-row">
+      <span><b>By</b> · Majid Mazouchi</span>
+      <span><b>Domain</b> · VHM, diagnostics &amp; prognostics, propulsion</span>
+      <span><b>Stack</b> · MCP · FMI/FMU · Simscape · GT-SUITE · Python</span>
+      <span><b>Format</b> · Interactive figures, practical notes, references</span>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+
+<!-- ================= 1 · WHY ================= -->
+<section id="why" class="rv">
+  <div class="kicker">01 · Motivation</div>
+  <h2>Why agents need a physics oracle</h2>
+  <p class="lede">Large language models reason by predicting plausible text. Engineering decisions, however, are judged by physics — and plausibility is not correctness. A torque ripple estimate, a thermal derating threshold, or a fault signature can <em>sound</em> right while being quantitatively wrong.</p>
+  <p>The physics sandbox closes this gap by giving the agent a <strong>verification oracle</strong>: a simulation backend it can call as a tool. Instead of asserting "reducing the cooling flow 20% keeps winding temperature within limits," the agent proposes the hypothesis, <em>runs the experiment</em>, reads a structured verdict, and only then commits to a decision. The pattern echoes what made search-plus-evaluation systems like AlphaGo effective: cheap, trustworthy rollouts of candidate ideas <a href="#refs">[10]</a>, and what NVIDIA's Eureka demonstrated for LLMs specifically — language-model proposals scored inside a physics simulator outperformed human-engineered designs <a href="#refs">[9]</a>.</p>
+  <p>The loop is deliberately simple:</p>
+  <div class="note">
+    <b class="tag">The core loop</b>
+    <b>Hypothesize → Configure → Simulate → Interpret → Decide.</b> The LLM owns steps 1 and 5. The sandbox owns steps 2–4. Every claim that crosses back into the agent's reasoning carries a number and a pass/fail verdict, not vibes.
+  </div>
+  <p>For Vehicle Health Management this is unusually well-matched: diagnosis <em>is</em> hypothesis testing. "Is this current signature consistent with bearing wear or with a winding short?" is a question a plant model with fault injection can answer in seconds — long before a test cell is booked.</p>
+</section>
+
+<!-- ================= 2 · ARCHITECTURE ================= -->
+<section id="arch" class="rv">
+  <div class="kicker">02 · Architecture</div>
+  <h2>Three layers, one protocol</h2>
+  <p>The Model Context Protocol (MCP) <a href="#refs">[1]</a> is the natural seam: the agent (VS Code Copilot, Claude Code, or any MCP client) sees a small vocabulary of <em>experiment-level</em> tools; the MCP server translates them into solver-level operations; the backends do physics. The agent never touches a solver API directly.</p>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 1</span><span class="fig-title">Sandbox architecture over MCP</span><span class="hint" style="margin-left:auto">tap a block</span></div>
+    <div class="fig-body">
+      <svg id="archSvg" viewBox="0 0 840 360" role="img" aria-label="Architecture diagram: agent layer, MCP sandbox server, simulation backends">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5A5346"/></marker>
+        </defs>
+        <!-- layer labels -->
+        <text x="20" y="34" font-family="JetBrains Mono,monospace" font-size="11" fill="#C2521A" letter-spacing="2">REASONING</text>
+        <text x="20" y="160" font-family="JetBrains Mono,monospace" font-size="11" fill="#0B6B66" letter-spacing="2">PROTOCOL</text>
+        <text x="20" y="294" font-family="JetBrains Mono,monospace" font-size="11" fill="#5A4B9B" letter-spacing="2">PHYSICS</text>
+        <!-- agent layer -->
+        <g class="arch-node" data-k="agent" tabindex="0">
+          <rect x="150" y="14" width="540" height="60" rx="10" fill="#F7E6D8" stroke="#C2521A" stroke-width="2"/>
+          <text x="420" y="40" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="16" font-weight="700" fill="#211D16">LLM Agent · VS Code Copilot / Claude Code</text>
+          <text x="420" y="60" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12.5" fill="#5A5346">plans experiments · interprets verdicts · escalates fidelity</text>
+        </g>
+        <line x1="420" y1="74" x2="420" y2="122" stroke="#5A5346" stroke-width="1.8" marker-end="url(#arr)" marker-start="url(#arr)"/>
+        <text x="432" y="103" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5A5346">MCP tools / results (JSON)</text>
+        <!-- MCP layer -->
+        <g class="arch-node" data-k="mcp" tabindex="0">
+          <rect x="110" y="126" width="620" height="74" rx="10" fill="#E3EFEC" stroke="#0B6B66" stroke-width="2"/>
+          <text x="420" y="152" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="16" font-weight="700" fill="#211D16">Sandbox MCP Server</text>
+          <text x="420" y="172" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11.5" fill="#0B6B66">run_doe() · inject_fault() · check_constraints() · linearize() · compare_baseline()</text>
+          <text x="420" y="190" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12.5" fill="#5A5346">model registry · result post-processing · budget &amp; license governor</text>
+        </g>
+        <line x1="225" y1="200" x2="225" y2="248" stroke="#5A5346" stroke-width="1.8" marker-end="url(#arr)"/>
+        <line x1="420" y1="200" x2="420" y2="248" stroke="#5A5346" stroke-width="1.8" marker-end="url(#arr)"/>
+        <line x1="615" y1="200" x2="615" y2="248" stroke="#5A5346" stroke-width="1.8" marker-end="url(#arr)"/>
+        <!-- backends -->
+        <g class="arch-node" data-k="fast" tabindex="0">
+          <rect x="120" y="252" width="210" height="84" rx="10" fill="#E9E5F4" stroke="#5A4B9B" stroke-width="2"/>
+          <text x="225" y="280" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14.5" font-weight="700" fill="#211D16">Tier 1 · Fast</text>
+          <text x="225" y="300" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">FMU / FMPy · CasADi</text>
+          <text x="225" y="317" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">SciPy · MuJoCo</text>
+        </g>
+        <g class="arch-node" data-k="mid" tabindex="0">
+          <rect x="345" y="252" width="210" height="84" rx="10" fill="#E9E5F4" stroke="#5A4B9B" stroke-width="2"/>
+          <text x="450" y="280" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14.5" font-weight="700" fill="#211D16">Tier 2 · System</text>
+          <text x="450" y="300" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">Simscape · OpenModelica</text>
+          <text x="450" y="317" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">Dymola</text>
+        </g>
+        <g class="arch-node" data-k="hi" tabindex="0">
+          <rect x="570" y="252" width="210" height="84" rx="10" fill="#E9E5F4" stroke="#5A4B9B" stroke-width="2"/>
+          <text x="675" y="280" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14.5" font-weight="700" fill="#211D16">Tier 3 · High-fidelity</text>
+          <text x="675" y="300" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">GT-SUITE · PyAnsys</text>
+          <text x="675" y="317" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" fill="#5A5346">COMSOL · CFD</text>
+        </g>
+      </svg>
+      <div id="archDetail">Tap any block in the diagram to see what it owns, and what it must never own.</div>
+    </div>
+    <figcaption>The protocol layer is where most of the engineering value lives. Tool names define the agent's vocabulary — and therefore the granularity of its thinking.</figcaption>
+  </figure>
+
+  <div class="note warn">
+    <b class="tag">Design rule</b>
+    Expose <b>experiments, not solver primitives</b>. If the tool list reads <code>set_param / run / get_signal</code>, the agent will flail through low-level plumbing. If it reads <code>run_doe / inject_fault / check_constraints</code>, the agent reasons at the level where engineering judgment actually happens. The tool schema is the agent's epistemology.
+  </div>
+</section>
+
+<!-- ================= 2b · SEQUENCE FIGURE ================= -->
+<section id="seq" class="rv">
+  <div class="kicker">03 · The Conversation, Concretely</div>
+  <h2>Copilot &harr; MCP server &harr; MATLAB/Simscape</h2>
+  <p>Figure&nbsp;2 makes the abstraction concrete: one complete experiment, message by message, between the agentic framework inside VS&nbsp;Code Copilot, the sandbox MCP server (a Python process speaking JSON-RPC over stdio), and a persistent MATLAB Engine session running a Simscape harness model. Step through it &mdash; each hop shows the <em>actual payload</em> that crosses that boundary, which is exactly what you would show an audience to make the idea tangible.</p>
+
+  <style>
+    .seq-life{stroke:#D8D0BD;stroke-width:1.6;stroke-dasharray:4 5}
+    .seq-msg line, .seq-msg path{stroke:#8A8270;stroke-width:1.8;fill:none}
+    .seq-msg text{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:#5A5346}
+    .seq-msg.on line,.seq-msg.on path{stroke:#C2521A;stroke-width:3}
+    .seq-msg.on text{fill:#C2521A;font-weight:600}
+    .seq-msg.done line,.seq-msg.done path{stroke:#0B6B66;stroke-width:2}
+    .seq-msg.done text{fill:#0B6B66}
+    #seqDetail{margin-top:14px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);overflow:hidden}
+    #seqDetail .dt-head{font-family:var(--sans);font-size:13.5px;font-weight:700;padding:10px 15px;background:var(--paper-deep);border-bottom:1px solid var(--rule)}
+    #seqDetail .dt-head .who{color:var(--orange);font-family:var(--mono);font-size:11px;letter-spacing:.06em;margin-right:8px}
+    #seqDetail pre{font-family:var(--mono);font-size:12px;line-height:1.6;background:#211D16;color:#EDE6D4;padding:13px 16px;margin:0;overflow-x:auto;white-space:pre}
+    #seqDetail .dt-note{font-family:var(--sans);font-size:13.5px;line-height:1.55;padding:11px 15px;color:var(--ink-soft)}
+    .seq-prog{font-family:var(--mono);font-size:12px;color:var(--violet);font-weight:600;margin-left:auto}
+  </style>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 2</span><span class="fig-title">One experiment, end to end &mdash; sequence of messages</span><span class="hint" style="margin-left:auto">step through it</span></div>
+    <div class="fig-body">
+      <svg id="seqSvg" viewBox="0 0 840 600" role="img" aria-label="Sequence diagram of one experiment between Copilot, the MCP server, and MATLAB Simscape">
+        <defs><marker id="sarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+        <!-- actor boxes -->
+        <rect x="55" y="12" width="180" height="52" rx="9" fill="#F7E6D8" stroke="#C2521A" stroke-width="2"/>
+        <text x="145" y="34" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14" font-weight="700" fill="#211D16">Copilot Agent</text>
+        <text x="145" y="52" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" fill="#5A5346">VS Code &middot; agent mode</text>
+        <rect x="330" y="12" width="180" height="52" rx="9" fill="#E3EFEC" stroke="#0B6B66" stroke-width="2"/>
+        <text x="420" y="34" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14" font-weight="700" fill="#211D16">Sandbox MCP Server</text>
+        <text x="420" y="52" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" fill="#5A5346">Python &middot; JSON-RPC / stdio</text>
+        <rect x="605" y="12" width="180" height="52" rx="9" fill="#E9E5F4" stroke="#5A4B9B" stroke-width="2"/>
+        <text x="695" y="34" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="14" font-weight="700" fill="#211D16">MATLAB Engine</text>
+        <text x="695" y="52" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" fill="#5A5346">persistent session &middot; Simscape</text>
+        <!-- lifelines -->
+        <line class="seq-life" x1="145" y1="64" x2="145" y2="585"/>
+        <line class="seq-life" x1="420" y1="64" x2="420" y2="585"/>
+        <line class="seq-life" x1="695" y1="64" x2="695" y2="585"/>
+        <!-- messages -->
+        <g class="seq-msg" id="sq0"><line x1="145" y1="100" x2="420" y2="100" marker-end="url(#sarr)"/><text x="160" y="92">1&middot; initialize + tools/list (handshake)</text></g>
+        <g class="seq-msg" id="sq1"><path d="M420,128 C500,118 500,152 426,144" marker-end="url(#sarr)"/><text x="438" y="170">2&middot; advertise experiment vocabulary</text></g>
+        <g class="seq-msg" id="sq2"><path d="M145,200 C225,190 225,224 151,216" marker-end="url(#sarr)"/><text x="163" y="242">3&middot; plan: bisection over I</text></g>
+        <g class="seq-msg" id="sq3"><line x1="145" y1="276" x2="420" y2="276" marker-end="url(#sarr)"/><text x="160" y="268">4&middot; tools/call: run_experiment(...)</text></g>
+        <g class="seq-msg" id="sq4"><path d="M420,304 C500,294 500,328 426,320" marker-end="url(#sarr)"/><text x="438" y="346">5&middot; validate &middot; budget &middot; registry</text></g>
+        <g class="seq-msg" id="sq5"><line x1="420" y1="380" x2="695" y2="380" marker-end="url(#sarr)"/><text x="435" y="372">6&middot; Engine API: parameterize + sim()</text></g>
+        <g class="seq-msg" id="sq6"><path d="M695,408 C775,398 775,432 701,424" marker-end="url(#sarr)"/><text x="540" y="450">7&middot; Simscape solves the network</text></g>
+        <g class="seq-msg" id="sq7"><line x1="695" y1="484" x2="420" y2="484" marker-end="url(#sarr)"/><text x="455" y="476">8&middot; simlog &rarr; post-process &rarr; verdict</text></g>
+        <g class="seq-msg" id="sq8"><line x1="420" y1="528" x2="145" y2="528" marker-end="url(#sarr)"/><text x="180" y="520">9&middot; structured result (JSON)</text></g>
+        <g class="seq-msg" id="sq9"><path d="M145,556 C225,546 225,580 151,572" marker-end="url(#sarr)"/><text x="163" y="596">10&middot; interpret &rarr; next experiment, or memo</text></g>
+      </svg>
+      <div class="demo-controls">
+        <button class="btn" id="seqStep">Step &rsaquo;</button>
+        <button class="btn orange" id="seqPlay">Play all</button>
+        <button class="btn ghost" id="seqReset">Reset</button>
+        <span class="seq-prog" id="seqProg">step 0 / 10</span>
+      </div>
+      <div id="seqDetail">
+        <div class="dt-head"><span class="who">READY</span>Press Step to walk one experiment across all three layers.</div>
+        <pre>// payloads appear here, hop by hop</pre>
+        <div class="dt-note">Each hop below shows the real artifact that crosses that boundary: JSON-RPC on the left seam, MATLAB Engine calls on the right seam, physics in the middle of nowhere visible &mdash; which is the point.</div>
+      </div>
+    </div>
+    <figcaption>Two seams, two languages. Copilot&ndash;server speaks MCP JSON-RPC; server&ndash;MATLAB speaks the Engine API. The agent never sees MATLAB, and MATLAB never sees the LLM &mdash; the server owns translation, validation, budget, and provenance on every crossing.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b class="tag">Why a persistent engine session matters</b>
+    MATLAB startup costs ~10&ndash;30&nbsp;s; <code>matlab.engine.start_matlab()</code> once at server boot, then keep the harness model loaded with <b>fast restart</b> enabled. Subsequent <code>sim()</code> calls skip compilation, dropping per-experiment latency from tens of seconds to roughly the solver time itself &mdash; the difference between an agent that explores and one that waits.
+  </div>
+</section>
+
+<!-- ================= 3 · TIERED FIDELITY ================= -->
+<section id="fidelity" class="rv">
+  <div class="kicker">04 · The Economics of a Run</div>
+  <h2>Tiered fidelity: explore cheap, verify expensive</h2>
+  <p>Agents iterate fast; high-fidelity solvers do not. A single CFD or stiff electro-thermal run can cost minutes to hours, while an agent's inner loop wants hundreds of evaluations. The resolution is a fidelity ladder: reduced-order and FMU surrogates for exploration, full-fidelity runs reserved for the shortlisted candidates — the same pattern as a neural-network flux-map surrogate standing in for FEA during calibration.</p>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 3</span><span class="fig-title">Fidelity ladder explorer</span><span class="hint" style="margin-left:auto">drag the slider</span></div>
+    <div class="fig-body">
+      <div class="slider-row">
+        <label for="fidSlider">Question difficulty</label>
+        <input type="range" id="fidSlider" min="0" max="100" value="18" aria-label="Question difficulty, from screening to certification">
+        <span class="slider-val" id="fidLabel">screening</span>
+      </div>
+      <div class="tier-track">
+        <div class="tier" id="tier1">
+          <h4 style="color:var(--violet)">Tier 1 · Surrogate</h4>
+          FMU via FMPy, CasADi/SciPy ODEs, MuJoCo. License-free, in-process.
+          <span class="stat">latency ≈ ms–s · ~10³–10⁴ runs/hr</span>
+          <span class="stat">role: hypothesis screening, DOE sweeps</span>
+        </div>
+        <div class="tier" id="tier2">
+          <h4 style="color:var(--violet)">Tier 2 · System model</h4>
+          Simscape / Modelica acausal networks. Faithful dynamics, stiff solvers.
+          <span class="stat">latency ≈ s–min · ~10¹–10² runs/hr</span>
+          <span class="stat">role: candidate validation, fault studies</span>
+        </div>
+        <div class="tier" id="tier3">
+          <h4 style="color:var(--violet)">Tier 3 · High fidelity</h4>
+          GT-SUITE, PyAnsys FEA/CFD, COMSOL. Geometry-resolved truth.
+          <span class="stat">latency ≈ min–hrs · ~10⁰–10¹ runs/hr</span>
+          <span class="stat">role: final verification, sign-off evidence</span>
+        </div>
+      </div>
+      <div id="fidReadout"></div>
+    </div>
+    <figcaption>Make the budget explicit: every MCP tool should accept a <code>fidelity</code> and <code>max_runtime</code> argument, and the server should refuse Tier-3 calls until a Tier-1 screen exists. The agent learns the economics because the API enforces them.</figcaption>
+  </figure>
+</section>
+<!-- ================= 5 · REFERENCE IMPLEMENTATION ================= -->
+<section id="impl" class="rv">
+  <div class="kicker">05 · Reference Implementation</div>
+  <h2>A minimal server you could run on Monday</h2>
+  <p>Everything in Figures 1&ndash;2 reduces to surprisingly little code. Listing&nbsp;1 is a working skeleton of the sandbox MCP server &mdash; FastMCP for the protocol, the MATLAB Engine API for the physics seam, a budget governor, and provenance hashing. Listing&nbsp;2 is the one file that makes it appear inside VS&nbsp;Code Copilot as native tooling.</p>
+
+  <style>
+    details.lst{border:1px solid var(--rule);border-radius:9px;margin:16px 0;background:#FFFDF7;overflow:hidden}
+    details.lst summary{cursor:pointer;font-family:var(--sans);font-size:13.5px;font-weight:700;padding:11px 16px;background:var(--paper-deep);list-style:none;display:flex;gap:10px;align-items:baseline}
+    details.lst summary::-webkit-details-marker{display:none}
+    details.lst summary .lno{font-family:var(--mono);font-size:11px;color:var(--orange);letter-spacing:.06em}
+    details.lst summary::after{content:'+ expand';margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft);font-weight:400}
+    details.lst[open] summary::after{content:'− collapse'}
+    details.lst pre{font-family:var(--mono);font-size:12.3px;line-height:1.62;background:#211D16;color:#EDE6D4;padding:16px 18px;margin:0;overflow-x:auto}
+    details.lst pre .c{color:#9A917C;font-style:italic}
+    details.lst pre .s{color:#A8C8A0}
+    details.lst pre .k{color:#F5A45D}
+  </style>
+
+  <details class="lst" open>
+    <summary><span class="lno">LISTING 1</span>sandbox_server.py &mdash; FastMCP + MATLAB Engine, ~60 lines</summary>
+<pre><span class="c"># sandbox_server.py — reference skeleton (FastMCP + MATLAB Engine API)</span>
+import json, time, hashlib
+import matlab.engine
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("physics-sandbox")
+
+<span class="c"># --- persistent session: pay MATLAB startup once, at server boot ---</span>
+eng = matlab.engine.start_matlab()
+eng.load_system("pmsm_thermal_hrn", nargout=0)
+eng.set_param("pmsm_thermal_hrn", "FastRestart", "on", nargout=0)
+
+<span class="c"># --- curated model registry: agents configure, never construct ---</span>
+REGISTRY = {
+    "pmsm_thermal": {
+        "harness": "pmsm_thermal_hrn",
+        "rev": "a41f9c",
+        "constraints": {"T_ss_C": 140.0},
+    }
+}
+BUDGET = {"tier1": 2000, "tier2": 50, "tier3": 4}   <span class="c"># the governor</span>
+
+def _provenance(spec, args):
+    blob = json.dumps({"rev": spec["rev"], "args": args}, sort_keys=True)
+    return hashlib.sha256(blob.encode()).hexdigest()[:12]
+
+@mcp.tool()
+def run_experiment(model: str, I_amps: float, cooling_health: float,
+                   fidelity: str = "tier2", max_runtime_s: float = 60.0) -&gt; str:
+    <span class="s">"""Run one thermal experiment. Returns steady-state temperature,
+    constraint margin, PASS/FAIL verdict, runtime, and provenance hash."""</span>
+    spec = REGISTRY[model]
+    if BUDGET[fidelity] &lt;= 0:
+        return json.dumps({"error": "budget_exhausted", "tier": fidelity})
+    BUDGET[fidelity] -= 1
+
+    t0 = time.time()
+    eng.workspace["I_phase"] = float(I_amps)         <span class="c"># typed inputs only —</span>
+    eng.workspace["h_cool"]  = float(cooling_health) <span class="c"># never model-written code</span>
+    eng.eval("out = sim('pmsm_thermal_hrn');", nargout=0)
+    T_ss = eng.eval("out.logsout.get('T_wind').Values.Data(end);")
+
+    limit  = spec["constraints"]["T_ss_C"]
+    margin = limit - T_ss
+    return json.dumps({                              <span class="c"># verdicts, not waveforms</span>
+        "T_ss_C": round(T_ss, 1), "limit_C": limit,
+        "margin_C": round(margin, 1),
+        "verdict": "PASS" if margin &gt;= 0 else "FAIL",
+        "runtime_s": round(time.time() - t0, 1),
+        "provenance": _provenance(spec, [I_amps, cooling_health]),
+    })
+
+@mcp.tool()
+def inject_fault(model: str, fault: str, severity: float, t_onset_s: float) -&gt; str:
+    <span class="s">"""Arm a fault (winding_resistance | cooling_blockage | sensor_bias)
+    for the next run; returns the armed configuration."""</span>
+    ...  <span class="c"># maps to a fault subsystem + variant control in the harness</span>
+
+if __name__ == "__main__":
+    mcp.run()   <span class="c"># stdio transport — VS Code launches and owns this process</span></pre>
+  </details>
+
+  <details class="lst">
+    <summary><span class="lno">LISTING 2</span>.vscode/mcp.json &mdash; how Copilot discovers the sandbox</summary>
+<pre>{
+  "servers": {
+    "physics-sandbox": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["sandbox_server.py"]
+    }
+  }
+}</pre>
+  </details>
+
+  <div class="note">
+    <b class="tag">What production adds to this skeleton</b>
+    Input schemas bounded to <b>physical envelopes</b> (no 10&nbsp;kA currents), an async run queue with license-aware concurrency, structured experiment logging to a database, <code>run_doe</code> batching with parallel FMU workers, and a <code>get_trace</code> tool gated behind explicit justification so raw waveforms stay out of the context window by default.
+  </div>
+</section>
+
+<!-- ================= 4 · LIVE DEMO ================= -->
+<section id="demo" class="rv">
+  <div class="kicker">06 · Live Demonstration</div>
+  <h2>A working sandbox, in your browser</h2>
+  <p>Below is a miniature but honest version of the whole idea. The plant is a single-node motor thermal model with temperature-dependent winding resistance — solved by RK4, right here in the page:</p>
+  <p style="font-family:var(--mono);font-size:14px;background:var(--paper-deep);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;max-width:100%">C·dT/dt = I²·R₀·(1+α(T−20)) − (T−T_amb)/R_th(h)</p>
+  <p>The health parameter <strong>h</strong> degrades the cooling path (clogged channel, failing pump). The engineering question — a real VHM-flavored one — is: <em>given this cooling health, what is the maximum continuous current that keeps the winding below 140&nbsp;°C?</em> You can experiment manually, or hand the controls to a toy agent that runs a bisection search using only the sandbox's verdicts.</p>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 4</span><span class="fig-title">Thermal derating sandbox — manual or agent-driven</span></div>
+    <div class="fig-body">
+      <div class="slider-row">
+        <label for="curSlider">Phase current I</label>
+        <input type="range" id="curSlider" min="20" max="200" value="110" aria-label="Phase current in amps">
+        <span class="slider-val" id="curVal">110 A</span>
+      </div>
+      <div class="slider-row">
+        <label for="hSlider">Cooling health h</label>
+        <input type="range" id="hSlider" min="30" max="100" value="100" aria-label="Cooling health percent">
+        <span class="slider-val" id="hVal">100 %</span>
+      </div>
+      <canvas id="thermCanvas" width="800" height="340" role="img" aria-label="Winding temperature versus time plot"></canvas>
+      <div class="demo-controls">
+        <button class="btn" id="runBtn">Run experiment</button>
+        <button class="btn orange" id="agentBtn">Let the agent search</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+        <span class="verdict idle" id="verdict">no run yet</span>
+      </div>
+      <div id="agentLog" aria-live="polite"></div>
+    </div>
+    <figcaption>The agent never sees the ODE. It sees <code>run_experiment(I, h) → {T_ss, verdict}</code> and reasons over verdicts — exactly the contract the real MCP server would offer, with Simscape behind it instead of forty lines of JavaScript. Degrade the cooling health and re-run the agent: the derating threshold it finds shifts down, which is the prognostic insight.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b class="tag">What scales from this toy</b>
+    The agent's transcript below the plot is the artifact that matters. In production, every entry becomes a logged, replayable experiment record: hypothesis, configuration hash, solver settings, verdict. That audit trail is what turns "the AI said so" into defensible engineering evidence.
+  </div>
+  <p style="margin-top:26px">The single-run loop above generalizes to the sandbox’s most valuable verb: <code>run_doe</code>. Figure&nbsp;5 maps the <em>entire derating envelope</em> over the (current&nbsp;× cooling-health) plane — and contrasts two strategies an agent could choose: brute-force the grid on Tier-1 surrogates, or hunt the pass/fail boundary directly and spend an order of magnitude fewer runs.</p>
+
+  <style>
+    .doe-legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--sans);font-size:12.5px;color:var(--ink-soft);margin-top:10px;align-items:center}
+    .sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+    #doeRuns{font-family:var(--mono);font-size:12.5px;color:var(--violet);font-weight:600;margin-left:auto}
+  </style>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 5</span><span class="fig-title">run_doe — mapping the derating envelope</span></div>
+    <div class="fig-body">
+      <canvas id="doeCanvas" width="800" height="430" role="img" aria-label="Heatmap of steady-state temperature margin over current and cooling health"></canvas>
+      <div class="demo-controls">
+        <button class="btn" id="doeFull">Full DOE sweep</button>
+        <button class="btn orange" id="doeAgent">Agent boundary hunt</button>
+        <button class="btn ghost" id="doeClear">Clear</button>
+        <span id="doeRuns">0 runs</span>
+      </div>
+      <div class="doe-legend">
+        <span><span class="sw" style="background:#0B6B66"></span>PASS (margin to 140°C)</span>
+        <span><span class="sw" style="background:#C2521A"></span>FAIL (exceedance)</span>
+        <span><span class="sw" style="background:#211D16;border-radius:0;height:2px;width:22px"></span>analytic envelope I_max(h)</span>
+        <span><span class="sw" style="background:#5A4B9B;border-radius:999px;width:9px;height:9px"></span>agent probe</span>
+      </div>
+    </div>
+    <figcaption>Both strategies converge on the same envelope — the curve every derating table is secretly an approximation of — but the boundary hunt gets there in roughly a tenth of the runs. Budget-awareness is agent intelligence, and the server’s job is to make the budget visible.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= 7 · INVERSE DIAGNOSIS ================= -->
+<section id="diag" class="rv">
+  <div class="kicker">07 · The Inverse Problem</div>
+  <h2>Diagnosis as physics-refereed hypothesis testing</h2>
+  <p>Everything so far ran the model <em>forward</em>: parameters in, behavior out. Diagnosis is the inverse problem — behavior observed, cause unknown — and it is where the sandbox earns its keep for VHM. The agent’s move is abduction: enumerate candidate faults, simulate each, and rank them by how well they reproduce the field signature.</p>
+  <p>Figure&nbsp;6 stages the full exercise. <strong>Generate a field signature</strong> secretly draws one of four ground truths — healthy, cooling degradation, winding resistance growth, or temperature-sensor bias — with random severity and measurement noise. <strong>Run agent diagnosis</strong> then sweeps each fault family through the sandbox, fits severity by residual, and commits to a diagnosis. Only then is the truth revealed.</p>
+
+  <style>
+    #diagLog{font-family:var(--mono);font-size:12.3px;line-height:1.75;background:#211D16;color:#EDE6D4;border-radius:8px;padding:14px 16px;margin-top:14px;max-height:240px;overflow-y:auto;white-space:pre-wrap;display:none}
+    #diagLog .a{color:#F5A45D}#diagLog .s{color:#7FD1C5}#diagLog .v{color:#9BE38F}#diagLog .x{color:#F08A7E}#diagLog .m{color:#B9AEE0}
+  </style>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 6</span><span class="fig-title">Abductive diagnosis — which fault explains the data?</span></div>
+    <div class="fig-body">
+      <canvas id="diagCanvas" width="800" height="360" role="img" aria-label="Measured temperature signature with best-fit fault hypothesis curves"></canvas>
+      <div class="demo-controls">
+        <button class="btn" id="diagGen">Generate field signature</button>
+        <button class="btn orange" id="diagRun" disabled>Run agent diagnosis</button>
+        <span class="verdict idle" id="diagVerdict">no signature yet</span>
+      </div>
+      <div id="diagLog" aria-live="polite"></div>
+    </div>
+    <figcaption>Gray dots: noisy “field” measurement at I&nbsp;=&nbsp;120&nbsp;A. Colored curves: best-fit simulation per fault family — <span style="color:#0B6B66;font-weight:600">cooling</span>, <span style="color:#C2521A;font-weight:600">winding</span>, <span style="color:#5A4B9B;font-weight:600">sensor bias</span>, gray dashed: healthy. The families separate because they bend the physics differently: cooling faults stretch the time constant, winding faults steepen the initial slope, sensor bias shifts the whole curve. The agent doesn’t know that — the residuals do.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b class="tag">Scaling this up</b>
+    Replace the four families with your FMEA’s fault catalog, the RC model with the Simscape plant, and RMS residual with a proper likelihood (or a learned residual metric), and this loop becomes a field-return triage assistant: signature in, ranked fault hypotheses with severity estimates and replayable evidence out.
+  </div>
+</section>
+
+<!-- ================= 5 · DESIGN PATTERNS ================= -->
+<section id="patterns" class="rv">
+  <div class="kicker">08 · Design Patterns</div>
+  <h2>Patterns and anti-patterns</h2>
+  <p>Three decisions dominate whether the sandbox produces insight or noise.</p>
+
+  <h3>1 · Curated model library, not freeform model building</h3>
+  <p>Programmatic diagram construction (<code>add_block</code>/<code>add_line</code>) is brittle, and an agent will burn its budget on connection errors. Instead, engineers curate parameterized template models — PMSM drive, battery pack, gear train, thermal network — and the agent <em>configures, swaps components, and injects faults</em>. The search space stays physically meaningful by construction.</p>
+
+  <h3>2 · Verdicts, not waveforms</h3>
+  <p>LLMs are good at proposing experiments and unreliable at honestly reading raw traces — they will confabulate trends in noisy data. Post-process inside the server: return steady-state values, constraint margins, rise times, FFT peak tables, and an explicit <code>pass/fail</code> per requirement. Raw signals stay available behind a separate tool for when the agent genuinely needs them.</p>
+
+  <h3>3 · Fault injection as a first-class tool</h3>
+  <p>For diagnostics work, the killer primitive is <code>inject_fault(model, fault_type, severity, t_onset)</code> — winding resistance step, bearing friction ramp, sensor bias, coolant blockage. It turns the sandbox into a hypothesis tester for diagnosis ("which fault best explains this signature?") and a data factory for training and validating detection algorithms before any test-cell time.</p>
+
+  <div class="pat">
+    <div class="hd no anti">✕ Anti-pattern</div>
+    <div class="hd yes">✓ Pattern</div>
+    <div class="body no"><code>set_param("Rw","0.31")</code> → <code>run()</code> → 10⁶-sample trace dumped into context</div>
+    <div class="body">run_doe(factors={Rw, h}, screen=tier1) → ranked table of constraint margins</div>
+    <div class="body no">Agent free-draws a Simulink diagram block by block</div>
+    <div class="body">Agent composes from a validated subsystem library with typed ports</div>
+    <div class="body no">Agent eyeballs a plot and says "the ripple looks acceptable"</div>
+    <div class="body">Server returns <code>{ripple_pk: 4.2 Nm, limit: 5.0, verdict: PASS}</code></div>
+    <div class="body no">Unlimited parallel Tier-3 calls on a license-server toolbox</div>
+    <div class="body">Budget governor: Tier-3 requires a Tier-1 screen + explicit runtime cap</div>
+  </div>
+</section>
+
+<!-- ================= 6 · TOOL LANDSCAPE ================= -->
+<section id="tools" class="rv">
+  <div class="kicker">09 · The Backend Landscape</div>
+  <h2>Choosing the physics engines</h2>
+  <p>No single tool spans the ladder. The practical strategy is one authoring environment you trust, with <strong>FMU export as the universal currency</strong> — models authored anywhere, executed license-free in the agent's inner loop, escalated to the source tool only for verification.</p>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 7</span><span class="fig-title">Backend selector</span><span class="hint" style="margin-left:auto">filter by category</span></div>
+    <div class="fig-body">
+      <div class="chips" id="chipRow" role="group" aria-label="Filter tools by category">
+        <button class="chip on" data-f="all">All</button>
+        <button class="chip" data-f="acausal">Acausal / Modelica</button>
+        <button class="chip" data-f="fmi">FMI / FMU</button>
+        <button class="chip" data-f="sys">0D–1D System</button>
+        <button class="chip" data-f="fea">FEA / CFD</button>
+        <button class="chip" data-f="robo">Fast 3D / Robotics</button>
+        <button class="chip" data-f="py">Python-native</button>
+      </div>
+      <div class="tool-grid" id="toolGrid">
+        <div class="tool" data-c="acausal"><span class="cat">Acausal</span><h4>Simscape (MATLAB)<span class="lic com">$</span></h4>Component-based physical networks; scriptable end-to-end; MATLAB Engine API for Python wraps cleanly into an MCP server.<div class="fit"><b>Sandbox fit</b> · Tier-2 workhorse; FMU export; license serializes parallel calls.</div></div>
+        <div class="tool" data-c="acausal"><span class="cat">Acausal</span><h4>OpenModelica<span class="lic free">free</span></h4>Open-source Modelica compiler; OMPython scripting; no license server, so concurrency is free.<div class="fit"><b>Sandbox fit</b> · Best free Tier-2; great for parallel agent fan-out.</div></div>
+        <div class="tool" data-c="acausal"><span class="cat">Acausal</span><h4>Dymola / Modelon Impact<span class="lic com">$</span></h4>Commercial Modelica; Modelon is cloud-native with a REST API — nearly a sandbox out of the box.<div class="fit"><b>Sandbox fit</b> · Strong libraries (thermal, EV); API-first deployment.</div></div>
+        <div class="tool" data-c="fmi"><span class="cat">FMI / FMU</span><h4>FMPy · PyFMI<span class="lic free">free</span></h4>Python runtimes for the FMI standard. Execute co-simulation or model-exchange FMUs exported from almost any tool.<div class="fit"><b>Sandbox fit</b> · The Tier-1 currency: fast, license-free, tool-agnostic.</div></div>
+        <div class="tool" data-c="sys"><span class="cat">0D–1D System</span><h4>GT-SUITE<span class="lic com">$</span></h4>Automotive-standard system simulation: propulsion, thermal, batteries, lubrication. Python automation available; deeply embedded at GM.<div class="fit"><b>Sandbox fit</b> · Tier-2/3 for vehicle-level studies; FMU export/import.</div></div>
+        <div class="tool" data-c="sys"><span class="cat">0D–1D System</span><h4>Simcenter Amesim · AVL Cruise<span class="lic com">$</span></h4>Peer system-simulation suites with scripting APIs and strong powertrain libraries.<div class="fit"><b>Sandbox fit</b> · Tier-2/3 alternatives where they're already licensed.</div></div>
+        <div class="tool" data-c="fea"><span class="cat">FEA / CFD</span><h4>PyAnsys<span class="lic com">$</span></h4>Official Python ecosystem (PyMAPDL, PyFluent, PyAEDT) over gRPC — effectively MCP-ready by design.<div class="fit"><b>Sandbox fit</b> · Cleanest Tier-3 automation story in commercial FEA/CFD.</div></div>
+        <div class="tool" data-c="fea"><span class="cat">FEA / CFD</span><h4>COMSOL · OpenFOAM<span class="lic com">$</span></h4>COMSOL exposes a Java/Python API; OpenFOAM is free but case-file automation is rough.<div class="fit"><b>Sandbox fit</b> · Tier-3 when multiphysics or CFD detail is the question.</div></div>
+        <div class="tool" data-c="robo"><span class="cat">Fast 3D</span><h4>MuJoCo · PyBullet<span class="lic free">free</span></h4>Contact-rich rigid-body physics at thousands of steps per second; MuJoCo has community MCP servers already.<div class="fit"><b>Sandbox fit</b> · Tier-1 for mechanism, actuation, and RL-style rollouts.</div></div>
+        <div class="tool" data-c="robo"><span class="cat">Fast 3D</span><h4>Drake<span class="lic free">free</span></h4>Toyota Research's toolkit: multibody dynamics plus serious optimization (trajectory, MPC) in one Python API.<div class="fit"><b>Sandbox fit</b> · When the experiment is itself an optimization problem.</div></div>
+        <div class="tool" data-c="py"><span class="cat">Python-native</span><h4>CasADi · do-mpc · SciPy<span class="lic free">free</span></h4>Symbolic/numeric ODE-DAE modeling with autodiff; trivially sandboxed in-process.<div class="fit"><b>Sandbox fit</b> · The agent's scratchpad physics before anything heavier.</div></div>
+        <div class="tool" data-c="fmi"><span class="cat">FMI / FMU</span><h4>FMI 3.0 standard<span class="lic free">free</span></h4>Tool-neutral packaging of simulation models (model exchange, co-simulation, scheduled execution); 100+ exporting tools.<div class="fit"><b>Sandbox fit</b> · The architectural keystone: author anywhere, execute anywhere.</div></div>
+      </div>
+    </div>
+    <figcaption>License markers: <span class="lic free">free</span> open / no license server · <span class="lic com">$</span> commercial. The free column is what makes wide agent fan-out economically possible.</figcaption>
+  </figure>
+</section>
+<!-- ================= 7 · PRACTICAL NOTES ================= -->
+<section id="practical" class="rv">
+  <div class="kicker">10 · Field Notes</div>
+  <h2>Practical notes before you build</h2>
+
+  <h3>Licensing under concurrency</h3>
+  <p>A single MATLAB Engine session serializes runs; Parallel Computing Toolbox workers each draw licenses from the corporate server. Before designing for agent fan-out, measure what the license pool tolerates — or route the inner loop through exported FMUs and keep MATLAB for authoring and verification only.</p>
+
+  <h3>Latency budgets are part of the prompt</h3>
+  <p>Expose <code>max_runtime</code> on every tool and return partial results with a <code>budget_exceeded</code> flag rather than hanging the agent. Stiff electro-thermal models benefit from local solvers and fixed-step configurations in the exploratory loop; reserve variable-step accuracy for verification.</p>
+
+  <h3>Determinism and provenance</h3>
+  <p>Hash the model version, parameter set, and solver settings into every result. Agent-driven experimentation produces hundreds of runs per session; without provenance you cannot reproduce the one that mattered. Treat the experiment log like a lab notebook, because legally and organizationally, it is one.</p>
+
+  <h3>Guard the interpretation boundary</h3>
+  <p>The most common failure is not a wrong simulation — it's a right simulation read wrongly. Keep numeric judgment (margins, statistics, trend tests) inside the server, and have the agent justify decisions by citing returned verdicts. If a conclusion in the agent's prose has no corresponding verdict in the log, that's a red flag the review process should catch automatically.</p>
+
+  <h3>Security posture</h3>
+  <p>An MCP server that executes solver commands is an arbitrary-execution surface. Whitelist tool actions, run backends in containers or dedicated machines, and never let model-generated strings reach a shell or a MATLAB <code>eval</code>. Standard agentic-AI security guidance applies with extra force when the backend can drive licensed engineering infrastructure <a href="#refs">[11]</a>.</p>
+
+  <div class="note warn">
+    <b class="tag">Organizational note</b>
+    The sandbox is also a <b>persuasion instrument</b>. A pitch that says "the agent proposed 40 derating strategies overnight, screened them on FMUs, and verified the best three in Simscape — here is the audit log" lands very differently from "we connected an LLM to MATLAB." Frame the deliverable as <em>verified experiments per engineer-day</em>.
+  </div>
+</section>
+
+<!-- ================= 8 · VHM USE CASES ================= -->
+<section id="vhm" class="rv">
+  <div class="kicker">11 · Application</div>
+  <h2>Where this bites in VHM</h2>
+  <p><strong>Diagnostic hypothesis testing.</strong> Given a field signature, the agent enumerates candidate faults, injects each into the plant model, and ranks them by residual fit — abductive reasoning with a physics referee.</p>
+  <p><strong>Prognostic feature vetting.</strong> Before a feature ships in a health indicator, the agent sweeps degradation severities in simulation and reports whether the feature actually separates failure modes across the operating envelope — the demo in Fig.&nbsp;4 is the embryo of exactly this study.</p>
+  <p><strong>Recall scope and what-if analysis.</strong> "If this supplier lot has +8% winding resistance, which drive cycles violate thermal limits?" is a DOE the sandbox answers in hours, shrinking scope decisions that otherwise lean on conservatism.</p>
+  <p><strong>Synthetic fault data.</strong> Labeled fault trajectories on demand, for training detectors where field failures are rare — with the fidelity ladder controlling the sim-to-real gap.</p>
+</section>
+
+<!-- ================= 12 · ROADMAP ================= -->
+<section id="roadmap" class="rv">
+  <div class="kicker">12 · Adoption</div>
+  <h2>A roadmap that fits in three quarters</h2>
+  <div class="tier-track" style="margin-top:6px">
+    <div class="tier"><h4 style="color:var(--orange)">Phase 0 · Proof, weeks</h4>One harness model exported to FMU, one MCP tool (<code>run_experiment</code>), one engineer’s VS Code. Success: the agent finds a known derating threshold unaided, with an audit log.<span class="stat">cost ≈ days of setup · zero new licenses</span></div>
+    <div class="tier"><h4 style="color:var(--orange)">Phase 1 · Pilot, a quarter</h4>Simscape Tier-2 behind the server, fault injection, <code>run_doe</code>, provenance hashing. Run 2–3 real VHM studies (feature vetting, signature triage) side-by-side with the manual process.<span class="stat">success metric: verified experiments per engineer-day</span></div>
+    <div class="tier"><h4 style="color:var(--orange)">Phase 2 · Platform, ongoing</h4>Model registry with owners and validation status, license-aware run queue, GT-SUITE/FEA Tier-3 gateway, team rollout. The sandbox becomes shared infrastructure, not a side project.<span class="stat">governance: registry review · budget policy · log retention</span></div>
+  </div>
+  <h3 style="margin-top:30px">Risks, named early</h3>
+  <div class="pat">
+    <div class="hd no">Risk</div>
+    <div class="hd">Mitigation</div>
+    <div class="body no">License contention when agents fan out</div>
+    <div class="body">FMU-first inner loop; license-aware queue; measured pool limits before scale-up</div>
+    <div class="body no">Trust collapse after one wrong verdict reaches a decision</div>
+    <div class="body">Provenance on every result; human sign-off gate on Tier-3; verdicts cite model validation status</div>
+    <div class="body no">“Digital twin, again?” positioning fatigue</div>
+    <div class="body">Frame as agent-driven experimentation on existing models — the twin is reused, not rebuilt</div>
+    <div class="body no">Security exposure of an execution-capable server</div>
+    <div class="body">Whitelisted tools, typed inputs, containerized backends, no model-generated code paths</div>
+  </div>
+</section>
+
+<!-- ================= 13 · LIMITATIONS ================= -->
+<section id="limits" class="rv">
+  <div class="kicker">13 · Honest Edges</div>
+  <h2>Limitations and failure modes</h2>
+  <p><strong>The verdict inherits the model’s trust, never exceeds it.</strong> A sandbox cannot validate physics it doesn’t contain: unmodeled aging mechanisms, manufacturing spread, or coupling left out of the harness will be invisible to every experiment. Each registry entry should carry an explicit validity envelope and validation provenance, and the server should refuse — or loudly flag — experiments outside it.</p>
+  <p><strong>Surrogates drift from their parents.</strong> Tier-1 FMUs and reduced-order models disagree with Tier-2/3 somewhere; the question is where. Cross-check a sampled fraction of Tier-1 verdicts at higher fidelity automatically, and treat growing disagreement as a maintenance signal for the surrogate, not noise <a href="#refs">[12]</a>.</p>
+  <p><strong>Agents will overfit the sandbox if allowed.</strong> Given an open parameter space, an optimizing agent finds solver tolerances, unphysical corners, and constraint loopholes — the simulation cousin of reward hacking. Bound every input schema to physical envelopes, randomize nuisance parameters across verification runs, and make “exploits a modeling artifact” an explicit failure category in review.</p>
+  <p><strong>Automation bias is the human-side failure.</strong> A fluent agent quoting numeric verdicts is persuasive even when the underlying model is stale. The audit log helps only if someone reads it; build the review habit in Phase 0, while the stakes are still low.</p>
+</section>
+
+<!-- ================= 9 · REFERENCES ================= -->
+<section id="refs" class="rv">
+  <div class="kicker">14 · References</div>
+  <h2>References &amp; further reading</h2>
+  <ol class="refs">
+    <li>Model Context Protocol — specification and SDKs. <span class="src">modelcontextprotocol.io</span></li>
+    <li>FMI Standard 3.0 — Functional Mock-up Interface for model exchange and co-simulation. <span class="src">fmi-standard.org</span></li>
+    <li>FMPy — Python library for simulating FMUs. <span class="src">github.com/CATIA-Systems/FMPy</span></li>
+    <li>MathWorks — MATLAB Engine API for Python; Simscape documentation and FMU export. <span class="src">mathworks.com/help</span></li>
+    <li>OpenModelica &amp; OMPython — open-source Modelica environment and Python interface. <span class="src">openmodelica.org</span></li>
+    <li>PyAnsys — open-source Python ecosystem for Ansys products. <span class="src">docs.pyansys.com</span></li>
+    <li>Gamma Technologies — GT-SUITE system simulation and automation interfaces. <span class="src">gtisoft.com</span></li>
+    <li>MuJoCo (Google DeepMind) and Drake (TRI) — fast physics and optimization-centric multibody dynamics. <span class="src">mujoco.org · drake.mit.edu</span></li>
+    <li>Ma, Y. et al., "Eureka: Human-Level Reward Design via Coding Large Language Models," 2023. LLM proposals evaluated inside a GPU physics simulator. <span class="src">arXiv:2310.12931</span></li>
+    <li>Silver, D. et al., "Mastering the game of Go with deep neural networks and tree search," Nature, 2016 — the search-plus-evaluation precedent. <span class="src">doi:10.1038/nature16961</span></li>
+    <li>Yao, S. et al., "ReAct: Synergizing Reasoning and Acting in Language Models," 2022; and OWASP guidance on LLM application security. <span class="src">arXiv:2210.03629 · owasp.org</span></li>
+    <li>Wang, G. et al., "Voyager: An Open-Ended Embodied Agent with Large Language Models," 2023 — agent skill acquisition inside a simulated world. <span class="src">arXiv:2305.16291</span></li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Prepared as a working monograph on physics-grounded agentic AI for vehicle health management. Figures 1–7 are interactive; the physics in Figs. 4–6 runs locally in this page (RK4 and closed-form steady state, no external calls).
+  </div>
+</footer>
+
+<script>
+/* ============ reveal on scroll ============ */
+(function(){
+  var els=document.querySelectorAll('.rv');
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}})},{threshold:.08});
+  els.forEach(function(e){io.observe(e)});
+})();
+
+/* ============ Fig 1: architecture detail ============ */
+(function(){
+  var info={
+    agent:"<b>Owns:</b> framing the engineering question, choosing the next experiment, interpreting verdicts, escalating fidelity, writing the decision memo. <b>Must never own:</b> numeric judgment of raw traces, solver configuration details, or license arithmetic.",
+    mcp:"<b>Owns:</b> the experiment vocabulary (run_doe, inject_fault, check_constraints…), the curated model registry, post-processing into verdicts, provenance hashing, and the budget/license governor. This thin layer is where 80% of the design effort pays off.",
+    fast:"<b>Tier 1 — exploration.</b> FMUs via FMPy, CasADi/SciPy models, MuJoCo. Millisecond-to-second runs, license-free, safe to fan out in parallel. The agent should live here by default.",
+    mid:"<b>Tier 2 — system truth.</b> Simscape or Modelica acausal models with stiff solvers. Seconds to minutes per run. Used to validate the handful of candidates that survive Tier-1 screening.",
+    hi:"<b>Tier 3 — sign-off evidence.</b> GT-SUITE, PyAnsys, COMSOL. Minutes to hours. Gated by the governor: requires a prior screen and an explicit runtime budget. Output feeds the audit log."
+  };
+  var det=document.getElementById('archDetail');
+  document.querySelectorAll('.arch-node').forEach(function(n){
+    function go(){document.querySelectorAll('.arch-node').forEach(function(m){m.classList.remove('active')});n.classList.add('active');det.innerHTML=info[n.dataset.k]}
+    n.addEventListener('click',go);
+    n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}});
+  });
+})();
+
+/* ============ Fig 3: fidelity explorer ============ */
+(function(){
+  var s=document.getElementById('fidSlider'),lab=document.getElementById('fidLabel'),out=document.getElementById('fidReadout');
+  var t=[document.getElementById('tier1'),document.getElementById('tier2'),document.getElementById('tier3')];
+  function upd(){
+    var v=+s.value,k=v<34?0:(v<72?1:2);
+    t.forEach(function(x,i){x.classList.toggle('lit',i===k)});
+    if(k===0){lab.textContent='screening';out.innerHTML='<b>Tier 1.</b> "Which of these 40 derating ideas are even plausible?" — sweep them all on FMUs in minutes. Wrong answers are cheap here; the only sin is sending an unscreened idea upward.'}
+    else if(k===1){lab.textContent='validation';out.innerHTML='<b>Tier 2.</b> "Do the three survivors hold up with real switching, saturation, and thermal coupling?" — Simscape/Modelica earns its solver cost on exactly these few candidates.'}
+    else{lab.textContent='certification';out.innerHTML='<b>Tier 3.</b> "Will we put this number in front of a release board?" — one or two GT-SUITE / FEA runs, full provenance, attached to the decision record. Never the agent\u2019s playground.'}
+  }
+  s.addEventListener('input',upd);upd();
+})();
+
+/* ============ Fig 4: thermal sandbox ============ */
+(function(){
+  var cv=document.getElementById('thermCanvas'),ctx=cv.getContext('2d');
+  var curS=document.getElementById('curSlider'),hS=document.getElementById('hSlider');
+  var curV=document.getElementById('curVal'),hV=document.getElementById('hVal');
+  var verd=document.getElementById('verdict'),log=document.getElementById('agentLog');
+  var runs=[],agentBusy=false;
+  var TLIM=140,TAMB=25,R0=0.05,ALPHA=0.0039,C=1800,RTH0=0.085,TEND=3000;
+
+  function simulate(I,h){ // h in percent [30,100]; returns {t[],T[],Tss,pass}
+    var Rth=RTH0/(h/100), T=TAMB, dt=2, ts=[],Ts=[];
+    function f(T){var Rw=R0*(1+ALPHA*(T-20));return (I*I*Rw-(T-TAMB)/Rth)/C}
+    for(var t=0;t<=TEND;t+=dt){
+      ts.push(t);Ts.push(T);
+      var k1=f(T),k2=f(T+dt/2*k1),k3=f(T+dt/2*k2),k4=f(T+dt*k3);
+      T+=dt/6*(k1+2*k2+2*k3+k4);
+      if(T>400)break;
+    }
+    var Tss=Ts[Ts.length-1];
+    return {t:ts,T:Ts,Tss:Tss,pass:Tss<=TLIM};
+  }
+
+  function draw(){
+    var W=cv.width,H=cv.height,padL=58,padR=16,padT=18,padB=40;
+    ctx.clearRect(0,0,W,H);
+    var Tmax=200;
+    function X(t){return padL+(t/TEND)*(W-padL-padR)}
+    function Y(T){return H-padB-((T-0)/Tmax)*(H-padT-padB)}
+    // grid
+    ctx.strokeStyle='#E8E1CF';ctx.lineWidth=1;ctx.font='11px JetBrains Mono,monospace';ctx.fillStyle='#5A5346';
+    for(var g=0;g<=Tmax;g+=50){ctx.beginPath();ctx.moveTo(padL,Y(g));ctx.lineTo(W-padR,Y(g));ctx.stroke();ctx.fillText(g+'\u00B0C',8,Y(g)+4)}
+    for(var tt=0;tt<=TEND;tt+=600){ctx.beginPath();ctx.moveTo(X(tt),padT);ctx.lineTo(X(tt),H-padB);ctx.stroke();ctx.fillText((tt/60)+'min',X(tt)-12,H-padB+18)}
+    // limit line
+    ctx.strokeStyle='#B3372B';ctx.setLineDash([7,5]);ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(padL,Y(TLIM));ctx.lineTo(W-padR,Y(TLIM));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#B3372B';ctx.font='600 11.5px Source Sans 3,sans-serif';ctx.fillText('T_limit = 140\u00B0C',W-padR-118,Y(TLIM)-7);
+    // runs
+    runs.forEach(function(r,i){
+      var last=i===runs.length-1;
+      ctx.strokeStyle=last?(r.pass?'#0B6B66':'#C2521A'):'rgba(90,83,70,'+(0.16+0.05*i)+')';
+      ctx.lineWidth=last?2.6:1.3;
+      ctx.beginPath();
+      for(var j=0;j<r.t.length;j++){var x=X(r.t[j]),y=Y(Math.min(r.T[j],Tmax));j?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+      ctx.stroke();
+      if(last){
+        ctx.fillStyle=ctx.strokeStyle;ctx.font='600 12px JetBrains Mono,monospace';
+        ctx.fillText('I='+r.I+'A  h='+r.h+'%  T_ss='+r.Tss.toFixed(1)+'\u00B0C',padL+10,padT+14);
+      }
+    });
+    ctx.fillStyle='#5A5346';ctx.font='11px Source Sans 3,sans-serif';
+    ctx.fillText('winding temperature vs time',padL+10,H-8);
+  }
+
+  function setVerdict(r){
+    verd.className='verdict '+(r?(r.pass?'pass':'fail'):'idle');
+    verd.textContent=r?(r.pass?'PASS · T_ss '+r.Tss.toFixed(1)+'\u00B0C \u2264 140\u00B0C':'FAIL · T_ss '+r.Tss.toFixed(1)+'\u00B0C > 140\u00B0C'):'no run yet';
+  }
+
+  function runOnce(I,h){
+    var r=simulate(I,h);r.I=I;r.h=h;
+    runs.push(r);if(runs.length>9)runs.shift();
+    draw();setVerdict(r);return r;
+  }
+
+  curS.addEventListener('input',function(){curV.textContent=curS.value+' A'});
+  hS.addEventListener('input',function(){hV.textContent=hS.value+' %'});
+  document.getElementById('runBtn').addEventListener('click',function(){if(!agentBusy)runOnce(+curS.value,+hS.value)});
+  document.getElementById('clearBtn').addEventListener('click',function(){runs=[];draw();setVerdict(null);log.style.display='none';log.innerHTML=''});
+
+  document.getElementById('agentBtn').addEventListener('click',function(){
+    if(agentBusy)return;agentBusy=true;
+    var h=+hS.value,lo=20,hi=200,best=null,iter=0;
+    log.style.display='block';log.innerHTML='';
+    function w(html){log.innerHTML+=html+'\n';log.scrollTop=log.scrollHeight}
+    w('<span class="a">[agent]</span>   goal: max continuous I with T_ss \u2264 140\u00B0C at cooling health h='+h+'%');
+    w('<span class="a">[agent]</span>   strategy: bisection over I \u2208 [20, 200] A using sandbox verdicts only');
+    function step(){
+      if(hi-lo<=2||iter>=8){
+        w('<span class="a">[agent]</span>   converged after '+iter+' experiments.');
+        w('<span class="v">[result]</span>  derating recommendation: I_max \u2248 '+Math.floor(best||lo)+' A at h='+h+'%');
+        w('<span class="a">[agent]</span>   note: each line above is a replayable experiment record \u2014 the audit trail.');
+        agentBusy=false;return;
+      }
+      var I=Math.round((lo+hi)/2);iter++;
+      w('<span class="a">[agent]</span>   experiment '+iter+': run_experiment(I='+I+', h='+h+')');
+      setTimeout(function(){
+        var r=runOnce(I,h);
+        if(r.pass){best=I;lo=I;w('<span class="s">[sandbox]</span> T_ss='+r.Tss.toFixed(1)+'\u00B0C \u2192 <span class="v">PASS</span> \u2014 margin '+(TLIM-r.Tss).toFixed(1)+'\u00B0C; raising lower bound')}
+        else{hi=I;w('<span class="s">[sandbox]</span> T_ss='+r.Tss.toFixed(1)+'\u00B0C \u2192 <span class="x">FAIL</span> \u2014 exceeds limit; lowering upper bound')}
+        setTimeout(step,650);
+      },420);
+    }
+    step();
+  });
+
+  draw();setVerdict(null);
+})();
+
+/* ============ Fig 2: sequence stepper ============ */
+(function(){
+  var steps=[
+    {who:'COPILOT \u2192 SERVER',title:'MCP handshake \u2014 capability discovery',pay:'{"jsonrpc":"2.0","id":1,"method":"initialize",\n "params":{"clientInfo":{"name":"vscode-copilot"}}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list"}',note:'VS Code launches the server from .vscode/mcp.json and asks what it can do. From here on, Simscape experiments appear to Copilot as native tools, indistinguishable from any other capability.'},
+    {who:'SERVER',title:'Advertise the experiment vocabulary',pay:'{"tools":[\n {"name":"run_experiment","inputSchema":{...I, h, fidelity, max_runtime...}},\n {"name":"run_doe"},{"name":"inject_fault"},\n {"name":"check_constraints"},{"name":"get_trace"}]}',note:'This list IS the design. Experiment-level verbs, typed schemas, explicit budgets \u2014 the agent can only think in terms the server chose to offer.'},
+    {who:'COPILOT (internal)',title:'Reasoning \u2014 no protocol traffic',pay:'goal:   max continuous I with T_ss \u2264 140\u00b0C at h=80%\nplan:   bisection over I \u2208 [20,200] A\nfirst:  I = 110 A, fidelity tier-2 (Simscape)',note:'The LLM frames the engineering question and picks a search strategy. This step costs tokens, not solver time \u2014 keep it that way.'},
+    {who:'COPILOT \u2192 SERVER',title:'tools/call \u2014 the experiment request',pay:'{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{\n "name":"run_experiment",\n "arguments":{"model":"pmsm_thermal","I_amps":110,\n  "cooling_health":0.8,"fidelity":"tier2","max_runtime_s":60}}}',note:'One JSON object fully specifies the experiment. Nothing here mentions blocks, solvers, or MATLAB \u2014 the request is portable across backends.'},
+    {who:'SERVER (internal)',title:'Validate \u00b7 govern \u00b7 resolve',pay:'schema OK \u00b7 tier2 budget: 14/50 runs remaining\nregistry: pmsm_thermal \u2192 harness pmsm_thermal_hrn.slx\n          rev a41f9c \u00b7 solver daessc \u00b7 fast-restart ON',note:'The governor is the adult in the room: schema validation, run budgets, license arithmetic, and a registry lookup that pins the exact model revision for provenance.'},
+    {who:'SERVER \u2192 MATLAB',title:'MATLAB Engine API \u2014 parameterize and run',pay:'in = Simulink.SimulationInput("pmsm_thermal_hrn");\nin = in.setVariable("I_phase",110)\n       .setVariable("h_cool",0.8);\nout = sim(in);   % fast restart: no recompile',note:'The server speaks fluent MATLAB so the agent never has to. SimulationInput keeps the base model untouched \u2014 every run is hermetic.'},
+    {who:'MATLAB / SIMSCAPE',title:'Physics happens',pay:'daessc: acausal network \u2192 DAE system\n  electrical: I\u00b2R(T) losses \u00b7 thermal: C, R_th(h)\n  t = [0, 3000] s \u00b7 simlog: winding.T, losses.P',note:'Simscape assembles the equations from the component network and solves. This is the only step where physical truth enters the loop \u2014 everything else is plumbing and judgment.'},
+    {who:'MATLAB \u2192 SERVER',title:'Raw results \u2192 verdicts',pay:'simlog \u2192 T_ss = 118.4 \u00b0C (settled, dT/dt < 1e-3)\nconstraint T_ss \u2264 140: margin +21.6 \u00b0C \u2192 PASS\nruntime 4.2 s \u00b7 provenance hash 7c3e\u2026',note:'Post-processing lives server-side: settling detection, constraint margins, pass/fail. The million-sample trace never touches the context window unless explicitly requested via get_trace.'},
+    {who:'SERVER \u2192 COPILOT',title:'Structured result over MCP',pay:'{"content":[{"type":"text","text":\n "{\\"T_ss_C\\":118.4,\\"limit_C\\":140,\\"margin_C\\":21.6,\n   \\"verdict\\":\\"PASS\\",\\"runtime_s\\":4.2,\n   \\"provenance\\":{\\"model\\":\\"a41f9c\\",\\"solver\\":\\"daessc\\"}}"}]}',note:'Compact, numeric, citable. The agent can quote this verdict verbatim in its reasoning \u2014 and reviewers can trace it back to an exact model revision.'},
+    {who:'COPILOT (internal)',title:'Interpret \u2192 iterate or conclude',pay:'PASS at 110 A \u2192 raise lower bound \u2192 next: I = 155 A\n\u2026 after ~7 experiments: converged, I_max \u2248 138 A\n\u2192 write decision memo + attach audit log',note:'The loop closes: verdict in, next hypothesis out. After convergence the agent produces the human-facing artifact \u2014 a memo whose every claim points at a logged, replayable experiment.'}
+  ];
+  var i=-1,playing=null;
+  var prog=document.getElementById('seqProg'),det=document.getElementById('seqDetail');
+  function render(){
+    for(var k=0;k<10;k++){var g=document.getElementById('sq'+k);g.classList.remove('on','done');if(k<i)g.classList.add('done');if(k===i)g.classList.add('on')}
+    prog.textContent='step '+(i+1)+' / 10';
+    if(i>=0){var s=steps[i];
+      det.innerHTML='<div class="dt-head"><span class="who">'+s.who+'</span>'+s.title+'</div><pre>'+s.pay+'</pre><div class="dt-note">'+s.note+'</div>';
+    }
+  }
+  function step(){if(i<9){i++;render()}else if(playing){clearInterval(playing);playing=null}}
+  document.getElementById('seqStep').addEventListener('click',function(){if(playing){clearInterval(playing);playing=null}step()});
+  document.getElementById('seqPlay').addEventListener('click',function(){if(playing)return;if(i>=9){i=-1;render()}playing=setInterval(step,1700);step()});
+  document.getElementById('seqReset').addEventListener('click',function(){if(playing){clearInterval(playing);playing=null}i=-1;render();det.innerHTML='<div class="dt-head"><span class="who">READY</span>Press Step to walk one experiment across all three layers.</div><pre>// payloads appear here, hop by hop</pre><div class="dt-note">Each hop shows the real artifact that crosses that boundary.</div>'});
+  render();
+})();
+
+
+/* ============ Fig 5: DOE heatmap ============ */
+(function(){
+  var cv=document.getElementById('doeCanvas');if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var runsEl=document.getElementById('doeRuns');
+  var TLIM=140,TAMB=25,R0=0.05,ALPHA=0.0039,RTH0=0.085;
+  var IMIN=20,IMAX=200,HMIN=30,HMAX=100;
+  var W=cv.width,H=cv.height,padL=64,padR=16,padT=16,padB=46;
+  var timer=null;
+  function tss(I,hp){var Rth=RTH0/(hp/100),den=1/Rth-I*I*R0*ALPHA;
+    if(den<=0)return 1e9;return (I*I*R0*(1-20*ALPHA)+TAMB/Rth)/den}
+  function imax(hp){var Rth=RTH0/(hp/100);return Math.sqrt((TLIM-TAMB)/(Rth*R0*(1+ALPHA*(TLIM-20))))}
+  function X(I){return padL+(I-IMIN)/(IMAX-IMIN)*(W-padL-padR)}
+  function Y(h){return H-padB-(h-HMIN)/(HMAX-HMIN)*(H-padT-padB)}
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#E8E1CF';ctx.lineWidth=1;ctx.font='11px JetBrains Mono,monospace';ctx.fillStyle='#5A5346';
+    for(var h=HMIN;h<=HMAX;h+=10){ctx.beginPath();ctx.moveTo(padL,Y(h));ctx.lineTo(W-padR,Y(h));ctx.stroke();ctx.fillText(h+'%',14,Y(h)+4)}
+    for(var I=IMIN;I<=IMAX;I+=30){ctx.beginPath();ctx.moveTo(X(I),padT);ctx.lineTo(X(I),H-padB);ctx.stroke();ctx.fillText(I+'A',X(I)-10,H-padB+18)}
+    ctx.fillStyle='#5A5346';ctx.font='11px Source Sans 3,sans-serif';
+    ctx.fillText('phase current I \u2192',W-150,H-8);
+    ctx.save();ctx.translate(12,padT+118);ctx.rotate(-Math.PI/2);ctx.fillText('cooling health h \u2192',0,0);ctx.restore();
+  }
+  function cell(I,hp,dI,dh){
+    var T=tss(I,hp),m=TLIM-T;
+    if(m>=0){var a=Math.min(.92,.18+m/110);ctx.fillStyle='rgba(11,107,102,'+a.toFixed(2)+')'}
+    else{var b=Math.min(.92,.25+(-m)/120);ctx.fillStyle='rgba(194,82,26,'+b.toFixed(2)+')'}
+    ctx.fillRect(X(I-dI/2),Y(hp+dh/2),X(I+dI/2)-X(I-dI/2)+0.5,Y(hp-dh/2)-Y(hp+dh/2)+0.5);
+  }
+  function envelope(){
+    ctx.strokeStyle='#211D16';ctx.lineWidth=2.4;ctx.setLineDash([8,5]);ctx.beginPath();
+    for(var h=HMIN;h<=HMAX;h+=1){var I=imax(h);if(h===HMIN)ctx.moveTo(X(I),Y(h));else ctx.lineTo(X(I),Y(h))}
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#211D16';ctx.font='600 12px Source Sans 3,sans-serif';
+    ctx.fillText('I_max(h)',X(imax(HMAX))+8,Y(HMAX)+14);
+  }
+  function setRuns(n,extra){runsEl.textContent=n+' runs'+(extra?(' \u00b7 '+extra):'')}
+  function stop(){if(timer){clearInterval(timer);timer=null}}
+  document.getElementById('doeClear').addEventListener('click',function(){stop();frame();setRuns(0,'')});
+  document.getElementById('doeFull').addEventListener('click',function(){
+    stop();frame();var dI=4,dh=2,hp=HMIN,n=0;
+    timer=setInterval(function(){
+      if(hp>HMAX){stop();envelope();setRuns(n,'tier-1 surrogate \u00b7 full grid complete');return}
+      for(var I=IMIN;I<=IMAX;I+=dI){cell(I,hp,dI,dh);n++}
+      setRuns(n,'sweeping h='+hp+'%');hp+=dh;
+    },36);
+  });
+  document.getElementById('doeAgent').addEventListener('click',function(){
+    stop();frame();var rows=[],h;for(h=HMIN;h<=HMAX;h+=5)rows.push(h);
+    var ri=0,n=0,pts=[];
+    timer=setInterval(function(){
+      if(ri>=rows.length){
+        stop();
+        ctx.strokeStyle='#5A4B9B';ctx.lineWidth=2.6;ctx.beginPath();
+        pts.forEach(function(p,i){i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1]))});
+        ctx.stroke();
+        setRuns(n,'boundary found \u2014 vs ~1,640 runs for the full grid');return}
+      h=rows[ri];var lo=IMIN,hi=IMAX;
+      for(var k=0;k<8;k++){var I=(lo+hi)/2,pass=tss(I,h)<=TLIM;n++;
+        ctx.fillStyle='rgba(90,83,70,.45)';ctx.beginPath();ctx.arc(X(I),Y(h),2.1,0,7);ctx.fill();
+        if(pass)lo=I;else hi=I}
+      var Ib=(lo+hi)/2;pts.push([Ib,h]);
+      ctx.fillStyle='#5A4B9B';ctx.beginPath();ctx.arc(X(Ib),Y(h),4,0,7);ctx.fill();
+      setRuns(n,'bisecting at h='+h+'%');ri++;
+    },150);
+  });
+  frame();setRuns(0,'');
+})();
+
+/* ============ Fig 6: inverse diagnosis ============ */
+(function(){
+  var cv=document.getElementById('diagCanvas');if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var verd=document.getElementById('diagVerdict'),log=document.getElementById('diagLog');
+  var genB=document.getElementById('diagGen'),runB=document.getElementById('diagRun');
+  var TAMB=25,R0=0.05,ALPHA=0.0039,C=1800,RTH0=0.085,TEND=3000,IFIX=120;
+  var W=cv.width,H=cv.height,padL=58,padR=16,padT=16,padB=40,Tmax=220;
+  var meas=null,truth=null,busy=false;
+  function X(t){return padL+t/TEND*(W-padL-padR)}
+  function Y(T){return H-padB-T/Tmax*(H-padT-padB)}
+  function simF(h,kR,bias){
+    var Rth=RTH0/h,T=TAMB,dt=2,out=[];
+    function f(T){return (IFIX*IFIX*R0*kR*(1+ALPHA*(T-20))-(T-TAMB)/Rth)/C}
+    for(var t=0;t<=TEND;t+=dt){
+      if(t%30===0)out.push(T+bias);
+      var k1=f(T),k2=f(T+dt/2*k1),k3=f(T+dt/2*k2),k4=f(T+dt*k3);
+      T+=dt/6*(k1+2*k2+2*k3+k4);
+    }
+    return out;
+  }
+  function rms(a,b){var s=0;for(var i=0;i<a.length;i++){var d=a[i]-b[i];s+=d*d}return Math.sqrt(s/a.length)}
+  function axes(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#E8E1CF';ctx.lineWidth=1;ctx.font='11px JetBrains Mono,monospace';ctx.fillStyle='#5A5346';
+    for(var g=0;g<=Tmax;g+=50){ctx.beginPath();ctx.moveTo(padL,Y(g));ctx.lineTo(W-padR,Y(g));ctx.stroke();ctx.fillText(g+'\u00B0C',8,Y(g)+4)}
+    for(var t=0;t<=TEND;t+=600){ctx.beginPath();ctx.moveTo(X(t),padT);ctx.lineTo(X(t),H-padB);ctx.stroke();ctx.fillText((t/60)+'min',X(t)-12,H-padB+18)}
+    ctx.fillStyle='#5A5346';ctx.font='11px Source Sans 3,sans-serif';
+    ctx.fillText('measured winding temperature at I = 120 A',padL+10,H-8);
+  }
+  function drawMeas(){
+    if(!meas)return;ctx.fillStyle='rgba(60,55,45,.55)';
+    for(var i=0;i<meas.length;i+=2){ctx.beginPath();ctx.arc(X(i*30),Y(Math.min(meas[i],Tmax)),2.2,0,7);ctx.fill()}
+  }
+  function curve(arr,color,wd,dash){
+    ctx.strokeStyle=color;ctx.lineWidth=wd;if(dash)ctx.setLineDash([6,5]);
+    ctx.beginPath();
+    for(var i=0;i<arr.length;i++){var x=X(i*30),y=Y(Math.min(arr[i],Tmax));i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  genB.addEventListener('click',function(){
+    if(busy)return;
+    var fam=['healthy','cooling','winding','bias'][Math.floor(Math.random()*4)];
+    var h=1,kR=1,bias=0;
+    if(fam==='cooling'){h=0.55+Math.random()*0.2}
+    if(fam==='winding'){kR=1.3+Math.random()*0.3}
+    if(fam==='bias'){bias=8+Math.random()*7}
+    truth={fam:fam};
+    var clean=simF(h,kR,bias);
+    meas=clean.map(function(v){return v+(Math.random()+Math.random()+Math.random()-1.5)*2.0});
+    axes();drawMeas();
+    verd.className='verdict idle';verd.textContent='signature acquired \u2014 cause hidden';
+    log.style.display='none';log.innerHTML='';runB.disabled=false;
+  });
+  runB.addEventListener('click',function(){
+    if(busy||!meas)return;busy=true;
+    log.style.display='block';log.innerHTML='';
+    function w(html){log.innerHTML+=html+'\n';log.scrollTop=log.scrollHeight}
+    var healthy=simF(1,1,0);
+    var fams=[
+      {k:'healthy',col:'#8A8270',label:'healthy (no fault)',dash:true,fit:function(){return {curve:healthy,r:rms(healthy,meas),runs:1,sv:'\u2014'}}},
+      {k:'cooling',col:'#0B6B66',label:'cooling degradation',fit:function(){var best=null;for(var h=0.45;h<=0.86;h+=0.05){var c=simF(h,1,0),r=rms(c,meas);if(!best||r<best.r)best={curve:c,r:r,sv:'h='+(h*100).toFixed(0)+'%'}}best.runs=9;return best}},
+      {k:'winding',col:'#C2521A',label:'winding resistance growth',fit:function(){var best=null;for(var k=1.15;k<=1.71;k+=0.05){var c=simF(1,k,0),r=rms(c,meas);if(!best||r<best.r)best={curve:c,r:r,sv:'kR='+k.toFixed(2)}}best.runs=12;return best}},
+      {k:'bias',col:'#5A4B9B',label:'temperature sensor bias',fit:function(){var best=null;for(var b=5;b<=18;b+=1){var c=healthy.map(function(v){return v+b}),r=rms(c,meas);if(!best||r<best.r)best={curve:c,r:r,sv:'+'+b+'\u00B0C'}}best.runs=14;return best}}
+    ];
+    w('<span class="a">[agent]</span>   field signature received. enumerating fault hypotheses from catalog\u2026');
+    var i=0,res=[];
+    function step(){
+      if(i>=fams.length){conclude();return}
+      var f=fams[i];
+      w('<span class="a">[agent]</span>   hypothesis '+(i+1)+': '+f.label+' \u2014 sweeping severity in sandbox (tier-1)');
+      setTimeout(function(){
+        var b=f.fit();b.fam=f.k;b.col=f.col;b.label=f.label;b.dash=f.dash;res.push(b);
+        w('<span class="s">[sandbox]</span> '+b.runs+' runs \u00b7 best fit '+b.sv+' \u00b7 RMS residual '+b.r.toFixed(2)+'\u00B0C');
+        curve(b.curve,b.col,1.4,b.dash);
+        drawMeas();
+        i++;setTimeout(step,520);
+      },420);
+    }
+    function conclude(){
+      res.sort(function(a,b){return a.r-b.r});
+      var win=res[0],second=res[1],conf=second.r/Math.max(win.r,0.01);
+      curve(win.curve,win.col,3.2,win.dash);drawMeas();
+      var total=res.reduce(function(s,x){return s+x.runs},0);
+      w('<span class="a">[agent]</span>   ranking by residual: '+res.map(function(x){return x.fam+' ('+x.r.toFixed(1)+')'}).join(' \u2192 '));
+      w('<span class="v">[diagnosis]</span> '+win.label+' \u00b7 separation \u00d7'+conf.toFixed(1)+' over runner-up \u00b7 '+total+' sandbox runs total');
+      var correct=win.fam===truth.fam;
+      w(correct?'<span class="v">[truth]</span>    ground truth: '+truth.fam+' \u2014 diagnosis CORRECT':'<span class="x">[truth]</span>    ground truth: '+truth.fam+' \u2014 diagnosis WRONG (instructive: check residual separation)');
+      w('<span class="m">[note]</span>     every hypothesis above is a replayable experiment \u2014 the evidence travels with the diagnosis.');
+      verd.className='verdict '+(correct?'pass':'fail');
+      verd.textContent=(correct?'CORRECT \u00b7 ':'WRONG \u00b7 ')+win.label;
+      busy=false;
+    }
+    step();
+  });
+  axes();
+})();
+
+/* ============ Fig 7: tool filter ============ */
+(function(){
+  var chips=document.querySelectorAll('.chip'),tools=document.querySelectorAll('.tool');
+  chips.forEach(function(c){c.addEventListener('click',function(){
+    chips.forEach(function(x){x.classList.remove('on')});c.classList.add('on');
+    var f=c.dataset.f;
+    tools.forEach(function(t){t.classList.toggle('dim',f!=='all'&&t.dataset.c!==f)});
+  })});
+})();
+</script>
+</body>
+</html>
