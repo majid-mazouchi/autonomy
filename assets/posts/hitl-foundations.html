@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Human-in-the-Loop in Agentic AI — Part I: Foundations &amp; Mechanisms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA;
+    --paper-raised:#FBF9F2;
+    --ink:#23201B;
+    --ink-soft:#4A453D;
+    --muted:#8A8073;
+    --hair:#DCD5C6;
+    --hair-strong:#C9C0AD;
+    --terra:#BC5733;
+    --terra-soft:#E7C3B2;
+    --teal:#1F726A;
+    --teal-soft:#BDD8D3;
+    --gold:#B08A2E;
+    --shadow:rgba(60,50,35,0.10);
+    --maxw:860px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.62;
+    font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 26px}
+  /* ---------- header ---------- */
+  header.masthead{padding:68px 0 30px;border-bottom:1px solid var(--hair-strong)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--terra);margin:0 0 22px}
+  h1.title{font-family:"Fraunces",serif;font-weight:800;font-size:clamp(40px,7vw,72px);
+    line-height:1.02;letter-spacing:-.015em;margin:0 0 18px}
+  .title em{font-style:italic;font-weight:500;color:var(--teal)}
+  .standfirst{font-size:21px;line-height:1.5;color:var(--ink-soft);max-width:42em;margin:0}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);
+    margin-top:28px;letter-spacing:.02em}
+  /* ---------- sections ---------- */
+  section{padding:46px 0;border-bottom:1px solid var(--hair)}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;
+    color:var(--terra);text-transform:uppercase;display:block;margin-bottom:10px}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(27px,4vw,38px);
+    line-height:1.1;letter-spacing:-.01em;margin:0 0 22px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin:36px 0 12px;letter-spacing:-.005em}
+  p{margin:0 0 18px}
+  a{color:var(--teal);text-underline-offset:3px;text-decoration-thickness:1px}
+  strong{font-weight:600}
+  em{font-style:italic}
+  .lead{font-size:20.5px;color:var(--ink-soft)}
+  .drop::first-letter{font-family:"Fraunces",serif;font-weight:800;float:left;
+    font-size:74px;line-height:.78;padding:8px 12px 0 0;color:var(--terra)}
+  ul.notes{list-style:none;padding:0;margin:0 0 18px}
+  ul.notes li{position:relative;padding-left:26px;margin-bottom:14px}
+  ul.notes li::before{content:"";position:absolute;left:2px;top:.62em;width:9px;height:9px;
+    background:var(--terra);transform:rotate(45deg)}
+  ul.notes.teal li::before{background:var(--teal)}
+  .term{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:rgba(31,114,106,.10);
+    color:var(--teal);padding:1px 6px;border-radius:3px}
+  /* ---------- figure shell ---------- */
+  figure{margin:30px 0;padding:0}
+  .panel{background:var(--paper-raised);border:1px solid var(--hair-strong);
+    border-radius:10px;padding:22px 22px 20px;box-shadow:0 1px 0 var(--shadow)}
+  .fig-label{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--terra);margin-bottom:4px}
+  .fig-title{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin:0 0 16px}
+  figcaption{font-size:15px;color:var(--muted);margin-top:14px;line-height:1.5}
+  /* ---------- controls ---------- */
+  button.ctl{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.02em;
+    background:var(--paper);color:var(--ink);border:1px solid var(--hair-strong);
+    padding:8px 14px;border-radius:6px;cursor:pointer;transition:all .15s}
+  button.ctl:hover{border-color:var(--terra);color:var(--terra)}
+  button.ctl[aria-pressed="true"],button.ctl.active{background:var(--terra);color:#fff;border-color:var(--terra)}
+  button.ctl.teal[aria-pressed="true"],button.ctl.teal.active{background:var(--teal);border-color:var(--teal)}
+  button.ctl:focus-visible{outline:3px solid var(--teal-soft);outline-offset:2px}
+  .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  input[type=range]{width:100%;accent-color:var(--terra);margin:6px 0}
+  label.ctl-lab{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;letter-spacing:.02em}
+  .ctl-val{color:var(--terra);font-weight:600}
+  /* ---------- fig1 bars ---------- */
+  .barrow{display:flex;align-items:center;gap:10px;margin:8px 0;font-family:"IBM Plex Mono",monospace;font-size:12px}
+  .barrow .lab{width:74px;color:var(--ink-soft)}
+  .bartrack{flex:1;height:16px;background:rgba(0,0,0,.05);border-radius:8px;overflow:hidden;display:flex}
+  .barfill{height:100%;transition:width .35s ease}
+  .bf-human{background:var(--teal)}
+  .bf-machine{background:var(--terra)}
+  .spec-detail{margin-top:16px;border-top:1px dashed var(--hair-strong);padding-top:14px;font-size:16px}
+  .spec-detail .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+  .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-top:6px}
+  .spec-grid .cell{margin-bottom:2px}
+  /* ---------- fig3 chain ---------- */
+  .chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin:18px 0}
+  .node{width:78px;height:58px;border-radius:8px;border:1.5px solid var(--hair-strong);
+    background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;text-align:center;line-height:1.2;
+    transition:all .3s;color:var(--ink-soft);position:relative}
+  .node small{font-size:8.5px;color:var(--muted);display:block}
+  .node.ok{border-color:var(--teal);background:rgba(31,114,106,.08);color:var(--teal)}
+  .node.bad{border-color:var(--terra);background:rgba(188,87,51,.12);color:var(--terra)}
+  .arrow{color:var(--muted);font-size:18px}
+  .gateflag{font-family:"IBM Plex Mono",monospace;font-size:9px;position:absolute;top:-20px;
+    left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--teal);font-weight:600}
+  .gate-node{border-style:dashed;border-color:var(--teal);background:rgba(31,114,106,.06)}
+  .verdict{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;
+    margin-top:10px;min-height:20px}
+  /* ---------- svg diagrams ---------- */
+  .svgwrap{width:100%;overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .node-rect{fill:var(--paper);stroke:var(--hair-strong);stroke-width:1.5}
+  .node-rect.hl{stroke:var(--terra);stroke-width:2.5;fill:rgba(188,87,51,.07)}
+  .node-rect.hlteal{stroke:var(--teal);stroke-width:2.5;fill:rgba(31,114,106,.08)}
+  .nlabel{font-family:"IBM Plex Mono",monospace;font-size:12px;fill:var(--ink);text-anchor:middle}
+  .nsub{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:var(--muted);text-anchor:middle}
+  .edge{stroke:var(--hair-strong);stroke-width:1.6;fill:none}
+  .edge.hl{stroke:var(--terra);stroke-width:2.6}
+  .edge-lab{font-family:"IBM Plex Mono",monospace;font-size:9.5px;fill:var(--muted);text-anchor:middle}
+  /* ---------- fig4 explorer ---------- */
+  .explain-box{margin-top:14px;border-left:3px solid var(--terra);padding:4px 0 4px 16px;font-size:16px;min-height:72px}
+  .explain-box .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--terra);display:block;margin-bottom:4px}
+  .tradeoff{display:flex;gap:18px;margin-top:8px;font-size:14px;flex-wrap:wrap}
+  .tradeoff div{flex:1;min-width:140px}
+  .tradeoff .h{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted)}
+  /* ---------- fig5 trace ---------- */
+  .trace-stage{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .trace-card{border:1px solid var(--hair-strong);border-radius:8px;padding:16px;background:var(--paper);
+    min-height:120px;transition:border-color .25s}
+  .trace-card.gate{border-color:var(--terra);background:rgba(188,87,51,.05)}
+  .trace-card.done{border-color:var(--teal);background:rgba(31,114,106,.06)}
+  .trace-card h4{margin:0 0 6px;font-family:"Fraunces",serif;font-size:18px;font-weight:600}
+  .trace-card .meta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:8px}
+  .trace-prog{display:flex;gap:4px;margin:0 0 14px}
+  .trace-prog span{flex:1;height:4px;background:var(--hair);border-radius:2px;transition:background .25s}
+  .trace-prog span.on{background:var(--terra)}
+  .decision{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .outcome{margin-top:12px;font-size:15px;padding:10px 14px;border-radius:6px;background:rgba(31,114,106,.08);
+    border-left:3px solid var(--teal);display:none}
+  .outcome.show{display:block}
+  /* ---------- fig6 simulator ---------- */
+  .sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 26px;align-items:end}
+  .sim-out{margin-top:20px;display:flex;gap:14px;flex-wrap:wrap}
+  .stat{flex:1;min-width:150px;border:1px solid var(--hair-strong);border-radius:8px;padding:14px 16px;background:var(--paper)}
+  .stat .n{font-family:"Fraunces",serif;font-size:34px;font-weight:700;line-height:1}
+  .stat .n.teal{color:var(--teal)} .stat .n.terra{color:var(--terra)}
+  .stat .l{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .reduce-bar{margin-top:16px;font-size:15px}
+  .reduce-track{height:20px;border-radius:10px;background:rgba(188,87,51,.15);overflow:hidden;margin-top:6px}
+  .reduce-fill{height:100%;background:var(--teal);width:0;transition:width .4s ease;
+    display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;
+    font-family:"IBM Plex Mono",monospace;font-size:11px}
+  /* ---------- references ---------- */
+  ol.refs{font-size:15.5px;line-height:1.5;padding-left:0;counter-reset:r;list-style:none}
+  ol.refs li{counter-increment:r;position:relative;padding-left:42px;margin-bottom:14px;color:var(--ink-soft)}
+  ol.refs li::before{content:"[" counter(r) "]";position:absolute;left:0;top:0;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--terra)}
+  ol.refs .rt{color:var(--ink);font-style:italic}
+  .footer{padding:40px 0 80px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+  .pull{font-family:"Fraunces",serif;font-style:italic;font-size:25px;line-height:1.3;
+    color:var(--teal);border-left:3px solid var(--teal-soft);padding:6px 0 6px 22px;margin:30px 0}
+  /* ---------- toc ---------- */
+  nav.toc{position:fixed;top:0;left:0;right:0;background:rgba(244,241,234,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);z-index:50;
+    transform:translateY(-100%);transition:transform .3s}
+  nav.toc.show{transform:translateY(0)}
+  nav.toc .wrap{display:flex;gap:18px;padding:10px 26px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:11.5px}
+  nav.toc a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;letter-spacing:.03em}
+  nav.toc a:hover{color:var(--terra)}
+  @media (max-width:620px){
+    body{font-size:17px}
+    .spec-grid{grid-template-columns:1fr}
+    .sim-grid{grid-template-columns:1fr}
+    .node{width:64px;height:52px;font-size:9.5px}
+    .drop::first-letter{font-size:58px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  }
+  /* ---------- tldr ---------- */
+  .tldr{background:rgba(31,114,106,.06);border:1px solid var(--teal-soft);
+    border-left:4px solid var(--teal);border-radius:8px;padding:18px 22px;margin:28px 0}
+  .tldr .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+  .tldr p{margin:0;font-size:17px;color:var(--ink-soft)}
+  .tldr p+p{margin-top:8px}
+  /* ---------- plain-language takeaways ---------- */
+  .takeaway{background:rgba(188,87,51,.055);border:1px solid var(--terra-soft);
+    border-left:4px solid var(--terra);border-radius:8px;padding:18px 22px 14px;margin:30px 0}
+  .takeaway .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--terra);margin:0 0 12px}
+  .takeaway ul{margin:0;padding:0;list-style:none}
+  .takeaway li{position:relative;padding-left:24px;margin-bottom:11px;font-size:16.5px;color:var(--ink-soft);line-height:1.5}
+  .takeaway li:last-child{margin-bottom:0}
+  .takeaway li::before{content:"\2192";position:absolute;left:0;top:0;color:var(--terra);font-weight:600}
+  .takeaway b{color:var(--ink);font-weight:600}
+  /* ---------- escalation gauge ---------- */
+  .gauge-bar{height:14px;border-radius:7px;background:rgba(0,0,0,.05);overflow:hidden;margin-top:8px}
+  .gauge-fill{height:100%;background:var(--teal);width:50%;transition:width .35s ease}
+  .esc-verdict{font-family:"IBM Plex Mono",monospace;font-size:13px;margin-top:14px;
+    padding:8px 12px;border-radius:6px;background:rgba(0,0,0,.04);color:var(--ink-soft)}
+  /* ---------- economics ---------- */
+  .num-in{font-family:"IBM Plex Mono",monospace;font-size:13px;width:100%;padding:6px 8px;
+    border:1px solid var(--hair-strong);border-radius:6px;background:var(--paper);color:var(--ink)}
+  .ec-verdict{margin-top:16px;font-size:16px;padding:12px 16px;border-radius:6px;border-left:3px solid var(--teal);
+    background:rgba(31,114,106,.07)}
+  .ec-verdict.bad{border-left-color:var(--terra);background:rgba(188,87,51,.08)}
+  /* ---------- anti-patterns ---------- */
+  .antigrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  .anticard{border:1px solid var(--hair-strong);border-top:3px solid var(--terra);border-radius:8px;
+    padding:14px 16px;background:var(--paper)}
+  .anticard h4{margin:0 0 4px;font-family:"Fraunces",serif;font-size:17px;color:var(--terra)}
+  .anticard p{margin:0;font-size:14.5px;color:var(--ink-soft);line-height:1.45}
+  /* ---------- challenge->method matrix ---------- */
+  .chipgrid{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:12px;padding:6px 11px;border-radius:999px;
+    border:1px solid var(--hair);background:var(--paper);color:var(--muted);transition:all .2s}
+  .chip.on{background:var(--terra);color:#fff;border-color:var(--terra)}
+  /* ---------- governance table ---------- */
+  .maptable{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px}
+  .maptable th{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1.5px solid var(--hair-strong)}
+  .maptable td{padding:11px 12px;border-bottom:1px solid var(--hair);vertical-align:top;color:var(--ink-soft)}
+  .maptable td:first-child{color:var(--ink);font-weight:500}
+  /* ---------- glossary ---------- */
+  dl.gloss{margin:0}
+  dl.gloss dt{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--teal);margin-top:16px;font-weight:600}
+  dl.gloss dd{margin:4px 0 0;font-size:16px;color:var(--ink-soft)}
+  /* ---------- mini diagrams ---------- */
+  .mini-cap{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+  @media (max-width:620px){ .antigrid{grid-template-columns:1fr} .maptable{font-size:13px} }
+  @media print{
+    nav.toc{display:none!important}
+    body{font-size:11pt;background:#fff;color:#000}
+    .panel{break-inside:avoid;box-shadow:none}
+    figure,section{break-inside:avoid}
+    .btn-row,#loopPlay,.decision,.trace-prog{display:none!important}
+    a{color:#000;text-decoration:none}
+    header.masthead{padding-top:0}
+  }
+</style>
+</head>
+<body>
+
+<nav class="toc" id="toc"><div class="wrap">
+  <a href="#intro">Intro</a>
+  <a href="#levels">1 · Levels</a>
+  <a href="#loop">2 · Loop</a>
+  <a href="#why">3 · Why Agents</a>
+  <a href="#topology">4 · Placement</a>
+  <a href="#trace">5 · Trace</a>
+  <a href="#leverage">6 · Leverage</a>
+  <a href="#labeling">7 · Labeling</a>
+  <a href="#escalation">8 · Escalation</a>
+  <a href="#ironies">9 · Ironies</a>
+  <a href="#corrigibility">10 · Corrigibility</a>
+  <a href="#economics">11 · Economics</a>
+  <a href="#glossary">Glossary</a>
+  <a href="#refs">References</a>
+  <a href="hitl-rl-mitigations.html" style="color:var(--terra);font-weight:600">Part II →</a>
+</div></nav>
+
+<header class="masthead"><div class="wrap">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--terra);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Monograph · Part I of II · Foundations &amp; Mechanisms · By Majid Mazouchi</p>
+  <h1 class="title">Human-in-the-Loop<br><em>in Agentic AI</em></h1>
+  <p class="standfirst">A supervisory-control reading of where, why, and how a human is wired into an autonomous agent's decision cycle — from the single-agent interrupt to gate placement across a multi-agent graph.</p>
+  <p class="byline">Part I · §1–§11 · interactive figures, block diagrams &amp; references &nbsp;//&nbsp; continues in <a href="hitl-rl-mitigations.html">Part II — RL, Alignment &amp; Mitigations →</a></p>
+</div></header>
+
+<main>
+
+<section id="intro"><div class="wrap">
+  <p class="lead drop">Human-in-the-loop (HITL) is the design pattern where an autonomous agent deliberately yields control to a human at specific decision points instead of running end-to-end on its own. The <em>loop</em> is the agent's perceive–plan–act cycle; HITL inserts a human as a required node inside that cycle rather than leaving them outside it. The cleanest way to think about it is borrowed from control engineering: the agent is the fast inner loop doing closed-loop execution, and the human is the supervisory controller who sets goals, approves or vetoes commitments, and intervenes when the inner loop drifts past the edge of its competence.</p>
+  <p>This piece works through that idea in two movements. First the single-agent case — the autonomy spectrum, where the gate sits in the loop, and why agents specifically need gating. Then the multi-agent case, which adds a second axis the single-agent picture doesn't have: not just <em>when</em> in a trajectory the human enters, but <em>where in the topology</em> of cooperating agents. Each figure below is live — drag, click, step through.</p>
+  <div class="tldr">
+    <p class="k">In one paragraph</p>
+    <p>Gate an agent's actions by reversibility × blast radius, not uniformly. Put the human at the few consequential boundaries, use a critic to pre-filter so the human reviews exceptions rather than everything, and capture every decision as a label that feeds the learning loop. The hard parts are not the interface: a good escalation signal (§8), a human who stays vigilant rather than complacent (§9), an agent that does not learn to route around the gate (§10), and a placement that actually pays for itself (§11). Regulation increasingly requires all of this for high-risk systems (§21, in <a href="hitl-rl-mitigations.html">Part II</a>).</p>
+  </div>
+</div></section>
+<section id="levels"><div class="wrap">
+  <span class="sec-no">§1 — The autonomy spectrum</span>
+  <h2>How much loop the human is in</h2>
+  <p>HITL is not a binary. It sits on a continuum that human-factors research has formalized since the 1970s — the Sheridan–Verplank levels of automation [1] and its later refinement into stages of perception, decision, and action [2]. Three regimes get conflated in casual usage and are worth keeping crisp: <span class="term">human-in-the-loop</span> (the human is a <em>blocking</em> step — execution halts until they act), <span class="term">human-on-the-loop</span> (the human supervises and can intervene, but the agent proceeds by default), and <span class="term">human-out-of-the-loop</span> (full autonomy). Drag the control to see what each setting trades.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 1 · Interactive</div>
+    <div class="fig-title">The autonomy dial</div>
+    <label class="ctl-lab"><span>Level of automation</span><span class="ctl-val" id="lvlName">Human-in-the-loop</span></label>
+    <input type="range" id="lvlSlider" min="0" max="4" step="1" value="1" aria-label="Level of automation">
+    <div class="barrow"><span class="lab">Human</span><div class="bartrack"><div class="barfill bf-human" id="barHuman" style="width:70%"></div></div></div>
+    <div class="barrow"><span class="lab">Machine</span><div class="bartrack"><div class="barfill bf-machine" id="barMachine" style="width:30%"></div></div></div>
+    <div class="spec-detail">
+      <div class="spec-grid">
+        <div class="cell"><span class="k">Who decides</span><span id="sWho">Machine proposes, human disposes</span></div>
+        <div class="cell"><span class="k">Human's role</span><span id="sRole">Approve or veto every consequential action</span></div>
+        <div class="cell"><span class="k">When involved</span><span id="sWhen">Before each side-effectful step (blocking)</span></div>
+        <div class="cell"><span class="k">Risk profile</span><span id="sRisk">Low slip-through, high latency cost</span></div>
+      </div>
+      <div style="margin-top:12px"><span class="k">Typical use</span><span id="sUse">Irreversible or high-blast-radius actions: payments, deletes, external sends, fleet commands.</span></div>
+    </div>
+    <figcaption>Most production systems are a deliberate <em>mix</em> of these — the regime is chosen per action, by risk, not set once for the whole agent.</figcaption>
+  </div></figure>
+
+  <h3>Human-on-the-loop, in depth</h3>
+  <p>Human-on-the-loop is the regime where the agent acts by default and the human supervises a running system, stepping in only when something looks wrong. Its defining property is that oversight is <em>non-blocking</em>: the agent's throughput is not gated on human response time, so it keeps the agent's speed advantage. That makes it the right choice when actions are frequent and individually low-to-moderate stakes but you still want a hand near the wheel — fleet health monitoring, content moderation at scale, a trading system with a kill switch. The weakness is that it leans entirely on the human noticing in time, which runs straight into the vigilance problem: a person watching a mostly-correct stream stops watching. Human-on-the-loop therefore needs three things that a blocking gate gets for free — a reliable alerting or anomaly signal to <em>direct</em> attention rather than assuming it, a fast and genuinely usable intervention path (a takeover or kill switch that works under time pressure), and a bounded blast radius per action so the lag between an error and the human catching it cannot be catastrophic. Without those three, on-the-loop oversight exists in name only.</p>
+
+  <h3>Conditional autonomy, in depth</h3>
+  <p>Conditional autonomy sits one notch further toward the machine: the agent acts on its own and the human handles only the exceptions it escalates. The entire regime hinges on the escalation policy — the agent must reliably recognise the situations it cannot handle and hand them off — which is the calibration-and-confidence problem (treated at length in Part II) made load-bearing. Its cautionary archetype is SAE Level 3 driving, where the car drives itself but can demand the driver retake control within seconds, handing a hard moment to someone who disengaged twenty minutes ago — the handback problem. Conditional autonomy works only when three conditions hold together: the agent's self-assessment of "I can't handle this" has high recall, so it rarely fails silently; the human has enough lead time and context to take over competently rather than cold; and there is a safe fallback for when the human does not respond in time, because you cannot assume the human is available. It is the most efficient regime when those hold, and the most dangerous when they do not — because by construction the human is out of the loop until the worst moments.</p>
+</div></section>
+<section id="loop"><div class="wrap">
+  <span class="sec-no">§2 — Where the gate sits</span>
+  <h2>The single-agent loop</h2>
+  <p>An agent runs a cycle: it <em>perceives</em> state, <em>plans</em> a next action, and <em>acts</em> through a tool. A gate is an interrupt placed on one of those edges. The mechanically important property is that the loop must be <span class="term">suspendable and resumable</span>: the agent persists its state, raises an interrupt at the gate, and resumes from the same point once the human responds. Frameworks implement this with explicit interrupt primitives plus state checkpointing [12,13]. Toggle the gate below to see the difference between a blocking gate (HITL), a monitoring tap (HOTL), and no gate at all.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 2 · Interactive</div>
+    <div class="fig-title">Perceive → Plan → Act, with an interrupt on the action edge</div>
+    <div class="btn-row" role="group" aria-label="Gate mode">
+      <button class="ctl active" data-loop="block" aria-pressed="true">Blocking gate · HITL</button>
+      <button class="ctl" data-loop="monitor" aria-pressed="false">Monitoring tap · HOTL</button>
+      <button class="ctl" data-loop="none" aria-pressed="false">No gate · autonomous</button>
+      <button class="ctl teal" id="loopPlay" aria-pressed="true">⏸ pause flow</button>
+    </div>
+    <div class="svgwrap">
+      <svg id="loopSvg" viewBox="0 0 720 300" role="img" aria-label="Agent perceive plan act loop diagram with a gate before the act node">
+        <!-- loop path for token -->
+        <path id="loopPath" d="M 150 150 C 150 80, 270 60, 360 60 C 450 60, 560 80, 560 150 C 560 220, 450 240, 360 240 C 270 240, 150 220, 150 150 Z" fill="none" stroke="var(--hair)" stroke-width="1.4" stroke-dasharray="5 6"/>
+        <!-- nodes -->
+        <g>
+          <rect class="node-rect" x="78" y="118" width="120" height="64" rx="10"/>
+          <text class="nlabel" x="138" y="146">Perceive</text>
+          <text class="nsub" x="138" y="163">read state</text>
+        </g>
+        <g>
+          <rect class="node-rect" x="300" y="28" width="120" height="64" rx="10"/>
+          <text class="nlabel" x="360" y="56">Plan</text>
+          <text class="nsub" x="360" y="73">choose action</text>
+        </g>
+        <g>
+          <rect class="node-rect" x="522" y="118" width="120" height="64" rx="10"/>
+          <text class="nlabel" x="582" y="146">Act</text>
+          <text class="nsub" x="582" y="163">call tool</text>
+        </g>
+        <!-- gate diamond on plan->act edge -->
+        <g id="gateGroup">
+          <polygon id="gateDiamond" points="478,68 512,100 478,132 444,100" fill="rgba(188,87,51,.10)" stroke="var(--terra)" stroke-width="2"/>
+          <text class="nlabel" x="478" y="96" style="font-size:10px" id="gateLabel">GATE</text>
+          <text class="nsub" x="478" y="112" id="gateSub">interrupt</text>
+        </g>
+        <!-- human node -->
+        <g id="humanGroup">
+          <circle cx="478" cy="195" r="30" class="node-rect hlteal"/>
+          <text class="nlabel" x="478" y="192" style="fill:var(--teal)">Human</text>
+          <text class="nsub" x="478" y="207">approve</text>
+          <path id="humanEdge" class="edge" d="M 478 165 L 478 132" stroke="var(--teal)" stroke-dasharray="4 4"/>
+        </g>
+        <!-- moving token -->
+        <circle id="token" r="7" fill="var(--terra)">
+          <animateMotion id="tokenMotion" dur="7s" repeatCount="indefinite" rotate="0">
+            <mpath href="#loopPath"/>
+          </animateMotion>
+        </circle>
+      </svg>
+    </div>
+    <figcaption id="loopCap">Blocking gate: the action edge is held until a human approves. The token (a unit of control flowing through the loop) stops here in a real run — checkpoint, interrupt, await, resume.</figcaption>
+  </div></figure>
+
+  <h3>Where the human actually enters</h3>
+  <p>Within a single agent the human gets inserted at a few characteristic points, regardless of framework: clarification when intent is ambiguous; plan review before a multi-step trajectory runs; action approval immediately before a side-effectful tool call; escalation when confidence drops or the agent detects it is out of distribution; mid-execution steering; and final sign-off on outputs. A clean engineering shortcut is to risk-classify the <em>tools</em> rather than the moments — read-only and reversible calls run free, while writes, deletes, transactions, and external sends are gated [12].</p>
+</div></section>
+<section id="why"><div class="wrap">
+  <span class="sec-no">§3 — Why agents, specifically</span>
+  <h2>Irreversibility and the compounding cascade</h2>
+  <p>A plain chatbot emits text you can ignore; an agent takes <em>actions</em> — it writes to systems, spends money, sends messages. Two properties make that dangerous and motivate gating [6]. First, <strong>irreversibility</strong>: a bad completion is harmless, a deleted record or a sent email is not. Second, <strong>error compounding</strong>: agents chain steps, so an early misjudgment propagates and amplifies down the trajectory — and in multi-agent systems it propagates <em>across</em> agents, where one agent's hallucinated output becomes another's trusted premise [14]. A human checkpoint exists largely to arrest that cascade before it compounds.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 3 · Interactive</div>
+    <div class="fig-title">A cascade, with and without a gate</div>
+    <div class="btn-row">
+      <button class="ctl" id="gateToggle" aria-pressed="false">Gate after step 2: OFF</button>
+      <button class="ctl teal" id="injectBtn">▸ Inject an early error</button>
+      <button class="ctl" id="resetChain">reset</button>
+    </div>
+    <div class="chain" id="chain"></div>
+    <div class="verdict" id="chainVerdict">Inject an error and watch it travel. Then turn the gate on and try again.</div>
+    <figcaption>With no gate, a fault at step 1 contaminates every downstream step. With the gate on, the human catches it at the checkpoint and the trajectory is repaired before the cascade reaches the consequential action.</figcaption>
+  </div></figure>
+</div></section>
+<section id="topology"><div class="wrap">
+  <span class="sec-no">§4 — The second axis</span>
+  <h2>Gate placement across a multi-agent graph</h2>
+  <p>In a single agent the only question is <em>when</em> in the trajectory the human enters. A multi-agent system adds a structural axis: the agents form a graph — a planner feeding workers, a supervisor routing to specialists, workers handing off to a critic — and the gate can sit at several structurally different points. Choosing among them is most of the design work. Click each placement to see where it lives and what it trades.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 4 · Interactive</div>
+    <div class="fig-title">Five places to put the human in a swarm</div>
+    <div class="btn-row" role="group" aria-label="Gate placement">
+      <button class="ctl active" data-place="plan" aria-pressed="true">Plan-level</button>
+      <button class="ctl" data-place="handoff" aria-pressed="false">Handoff</button>
+      <button class="ctl" data-place="worker" aria-pressed="false">Per-worker</button>
+      <button class="ctl" data-place="critic" aria-pressed="false">Critic-escalation</button>
+      <button class="ctl" data-place="terminal" aria-pressed="false">Terminal-action</button>
+    </div>
+    <div class="svgwrap">
+      <svg id="maSvg" viewBox="0 0 720 330" role="img" aria-label="Multi-agent graph: planner, supervisor, two workers, critic, terminal action and external effect, with a human node">
+        <!-- edges -->
+        <path class="edge" id="e_plan_sup" d="M 150 70 L 270 70"/>
+        <path class="edge" id="e_sup_wa" d="M 360 92 C 380 140, 400 150, 430 150"/>
+        <path class="edge" id="e_sup_wb" d="M 360 92 C 380 200, 400 220, 430 222"/>
+        <path class="edge" id="e_wa_crit" d="M 510 150 C 545 150, 560 175, 560 190"/>
+        <path class="edge" id="e_wb_crit" d="M 510 222 C 545 222, 560 205, 560 190"/>
+        <path class="edge" id="e_crit_term" d="M 560 220 C 560 270, 470 285, 415 285"/>
+        <path class="edge" id="e_term_ext" d="M 305 285 L 205 285"/>
+        <!-- nodes -->
+        <g id="n_plan"><rect class="node-rect" x="40" y="46" width="110" height="48" rx="9"/><text class="nlabel" x="95" y="68">Planner</text><text class="nsub" x="95" y="83">decompose</text></g>
+        <g id="n_sup"><rect class="node-rect" x="270" y="46" width="110" height="48" rx="9"/><text class="nlabel" x="325" y="68">Supervisor</text><text class="nsub" x="325" y="83">route</text></g>
+        <g id="n_wa"><rect class="node-rect" x="430" y="126" width="100" height="48" rx="9"/><text class="nlabel" x="480" y="148">Worker A</text><text class="nsub" x="480" y="163">tool calls</text></g>
+        <g id="n_wb"><rect class="node-rect" x="430" y="198" width="100" height="48" rx="9"/><text class="nlabel" x="480" y="220">Worker B</text><text class="nsub" x="480" y="235">tool calls</text></g>
+        <g id="n_crit"><rect class="node-rect" x="528" y="166" width="64" height="48" rx="9"/><text class="nlabel" x="560" y="188" style="font-size:10px">Critic</text><text class="nsub" x="560" y="202">verify</text></g>
+        <g id="n_term"><rect class="node-rect" x="305" y="261" width="110" height="48" rx="9"/><text class="nlabel" x="360" y="283">Terminal</text><text class="nsub" x="360" y="298">commit action</text></g>
+        <g id="n_ext"><rect class="node-rect" x="95" y="261" width="110" height="48" rx="9"/><text class="nlabel" x="150" y="283" style="font-size:10px">External effect</text><text class="nsub" x="150" y="298">irreversible</text></g>
+        <!-- human marker (hidden until placement) -->
+        <g id="humanMarker" opacity="0">
+          <circle cx="0" cy="0" r="22" fill="rgba(31,114,106,.12)" stroke="var(--teal)" stroke-width="2"/>
+          <text x="0" y="4" class="nlabel" style="fill:var(--teal);font-size:10px">HUMAN</text>
+        </g>
+      </svg>
+    </div>
+    <div class="explain-box" id="placeExplain">
+      <span class="tag" id="placeTag">Plan-level gate · review-then-execute</span>
+      <span id="placeText">The planner proposes the full decomposition — who does what — and the human approves the plan before any worker runs.</span>
+      <div class="tradeoff">
+        <div><span class="h">Catches</span><br><span id="placeCatch">Bad strategy, before any compute is spent.</span></div>
+        <div><span class="h">Misses / cost</span><br><span id="placeMiss">Errors that only surface during execution.</span></div>
+      </div>
+    </div>
+    <figcaption>Real systems combine these. The placement people under-use is the <em>handoff</em> gate — the one that addresses the failure mode unique to multi-agent systems, where a poisoned or hallucinated intermediate becomes another agent's trusted input.</figcaption>
+  </div></figure>
+</div></section>
+<section id="trace"><div class="wrap">
+  <span class="sec-no">§5 — A worked trace</span>
+  <h2>An interrupt firing in a fleet-diagnostics swarm</h2>
+  <p>To make the mechanics concrete, step through a vehicle-health diagnostics pipeline. A triage agent ingests fleet telemetry and flags anomalous units; a root-cause agent forms hypotheses; a remediation agent proposes an action. Everything up to the proposal runs autonomously because it is read-only and reversible — the moment the remediation agent assembles a consequential action, the graph classifies it high-blast-radius, checkpoints state, and raises an interrupt. Note the four responses the human has, not two.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 5 · Interactive</div>
+    <div class="fig-title">Checkpoint → interrupt → human decision → resume</div>
+    <div class="trace-prog" id="traceProg"><span></span><span></span><span></span><span></span></div>
+    <div class="trace-card" id="traceCard">
+      <div class="trace-stage" id="traceStage">Stage 1 of 4 · autonomous</div>
+      <h4 id="traceTitle">Triage agent · reads telemetry</h4>
+      <div class="meta" id="traceMeta">tool: fleet.telemetry.scan() · read-only · runs free</div>
+      <div id="traceBody">Ingests rolling CAN/telematics streams across the fleet and flags an anomaly signature on a population of units. No gate — nothing here is consequential.</div>
+      <div class="decision" id="traceDecision" style="display:none">
+        <button class="ctl teal" data-dec="approve">Approve</button>
+        <button class="ctl" data-dec="edit">Edit scope</button>
+        <button class="ctl" data-dec="reject">Reject</button>
+        <button class="ctl" data-dec="rework">Send back for rework</button>
+      </div>
+      <div class="outcome" id="traceOutcome"></div>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="ctl teal" id="traceNext">Step ▸</button>
+      <button class="ctl" id="traceReset">restart</button>
+    </div>
+    <figcaption>The gate fires only at stage 4, on the one action whose blast radius — a fleet-wide service event — justifies the latency of a human. The telemetry reads that preceded it did not.</figcaption>
+  </div></figure>
+</div></section>
+<section id="leverage"><div class="wrap">
+  <span class="sec-no">§6 — Keeping the human load sublinear</span>
+  <h2>The critic as a pre-filter</h2>
+  <p>The dominant failure mode of multi-agent HITL is volume. With <em>N</em> agents each taking <em>M</em> actions, naive per-action approval makes the human review load grow as <em>N·M</em> — and a human asked to approve that much will rubber-stamp, which is worse than no gate because it manufactures false assurance [3,4]. The fix is to put a verifier agent in front of the human so the human sees only escalations: disagreements, low-confidence cases, spec violations. Move the sliders to feel the leverage.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 6 · Interactive</div>
+    <div class="fig-title">Human review volume — with and without a critic pre-filter</div>
+    <div class="sim-grid">
+      <div>
+        <label class="ctl-lab"><span>Agents in the swarm</span><span class="ctl-val" id="agV">8</span></label>
+        <input type="range" id="agSlider" min="1" max="20" value="8">
+      </div>
+      <div>
+        <label class="ctl-lab"><span>Actions per agent</span><span class="ctl-val" id="acV">6</span></label>
+        <input type="range" id="acSlider" min="1" max="20" value="6">
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="ctl-lab"><span>Critic escalation rate (fraction needing a human)</span><span class="ctl-val" id="esV">15%</span></label>
+        <input type="range" id="esSlider" min="0" max="100" value="15">
+      </div>
+    </div>
+    <div class="sim-out">
+      <div class="stat"><div class="n terra" id="statNaive">48</div><div class="l">Human reviews · per-action gating</div></div>
+      <div class="stat"><div class="n teal" id="statCritic">7</div><div class="l">Human reviews · critic-filtered</div></div>
+    </div>
+    <div class="reduce-bar">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft)">Review load removed from the human</span>
+      <div class="reduce-track"><div class="reduce-fill" id="reduceFill">85%</div></div>
+    </div>
+    <figcaption>The human gates exceptions, not the steady state. This is the single most effective lever for keeping multi-agent oversight sustainable — and the escalation rate itself becomes a tunable knob you lower as the swarm earns trust.</figcaption>
+  </div></figure>
+
+  <p class="pull">A complacent human checking everything is a weaker safeguard than a vigilant one checking only the few things that matter.</p>
+</div></section>
+<section id="labeling"><div class="wrap">
+  <span class="sec-no">§7 — The other loop</span>
+  <h2>Labeling: when the gate becomes the dataset</h2>
+  <p>Everything so far has described the <em>control</em> loop — the human in the execution cycle at inference time. But "human in the loop" has a second, older meaning: the <em>learning</em> loop, where human judgments are turned into labels that improve the model itself [11]. In an agentic system these are not separate concerns. The decisions a human makes at a runtime gate — Figure 5's approve / edit / reject / rework — are precisely the labels that close the learning loop. The control loop <em>produces</em> the supervision; the learning loop <em>consumes</em> it. Click each label type to see where it comes from and what it trains.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 7 · Interactive</div>
+    <div class="fig-title">Four kinds of label a human gate emits — and the loop they feed</div>
+    <div class="btn-row" role="group" aria-label="Label type">
+      <button class="ctl active" data-label="annot" aria-pressed="true">Annotation</button>
+      <button class="ctl" data-label="pref" aria-pressed="false">Preference</button>
+      <button class="ctl" data-label="edit" aria-pressed="false">Corrective edit</button>
+      <button class="ctl" data-label="proc" aria-pressed="false">Process label</button>
+    </div>
+    <div class="svgwrap">
+      <svg id="labSvg" viewBox="0 0 720 300" role="img" aria-label="Diagram: four label sources feeding a label store, which feeds retraining and an improved agent that loops back to the control loop">
+        <!-- edges from sources to store -->
+        <path class="edge" id="le_annot" d="M 94 84 L 250 126"/>
+        <path class="edge" id="le_pref"  d="M 267 84 L 318 126"/>
+        <path class="edge" id="le_edit"  d="M 440 84 L 402 126"/>
+        <path class="edge" id="le_proc"  d="M 613 84 L 470 126"/>
+        <!-- store -> retrain -> agent -->
+        <path class="edge" id="le_store_train" d="M 360 184 L 285 222"/>
+        <path class="edge" id="le_train_agent" d="M 345 246 L 393 246"/>
+        <!-- agent back to control loop -->
+        <path class="edge" id="le_back" d="M 555 240 C 660 220, 668 110, 640 80" stroke-dasharray="5 5"/>
+        <text class="edge-lab" x="648" y="150" transform="rotate(90 648 150)">back to the control loop</text>
+        <!-- source nodes -->
+        <g id="ls_annot"><rect class="node-rect" x="15" y="32" width="158" height="52" rx="9"/><text class="nlabel" x="94" y="56">Annotation</text><text class="nsub" x="94" y="71">correct / class</text></g>
+        <g id="ls_pref"><rect class="node-rect" x="188" y="32" width="158" height="52" rx="9"/><text class="nlabel" x="267" y="56">Preference</text><text class="nsub" x="267" y="71">A vs B ranking</text></g>
+        <g id="ls_edit"><rect class="node-rect" x="361" y="32" width="158" height="52" rx="9"/><text class="nlabel" x="440" y="56">Corrective edit</text><text class="nsub" x="440" y="71">repaired action</text></g>
+        <g id="ls_proc"><rect class="node-rect" x="534" y="32" width="158" height="52" rx="9"/><text class="nlabel" x="613" y="56">Process label</text><text class="nsub" x="613" y="71">step-level</text></g>
+        <!-- store / train / agent -->
+        <g><rect class="node-rect hlteal" x="210" y="128" width="300" height="56" rx="10"/><text class="nlabel" x="360" y="152" style="fill:var(--teal)">Label store</text><text class="nsub" x="360" y="169">provenance + outcome + corrected args</text></g>
+        <g><rect class="node-rect" x="205" y="222" width="140" height="48" rx="9"/><text class="nlabel" x="275" y="244">Retrain</text><text class="nsub" x="275" y="259">policy / reward</text></g>
+        <g><rect class="node-rect" x="393" y="222" width="162" height="48" rx="9"/><text class="nlabel" x="474" y="244">Improved agent</text><text class="nsub" x="474" y="259">raised autonomy</text></g>
+      </svg>
+    </div>
+    <div class="explain-box" id="labExplain">
+      <span class="tag" id="labTag">Annotation labels · categorical / scalar</span>
+      <span id="labText">A human marks an output correct or assigns a class — was this anomaly flag a true fault? Active learning sends only the uncertain cases for labeling, not the whole pool.</span>
+      <div class="tradeoff">
+        <div><span class="h">Source in an agent</span><br><span id="labSrc">Reject decisions plus targeted spot-checks.</span></div>
+        <div><span class="h">Trains</span><br><span id="labTrain">Triage classifiers, routers, confidence calibration.</span></div>
+      </div>
+    </div>
+    <figcaption>The control loop produces the supervision; the learning loop consumes it. Schema your gate log well and your oversight record <em>is</em> your training set — no separate annotation campaign required.</figcaption>
+  </div></figure>
+
+  <h3>Active learning: label the informative few, not everything</h3>
+  <p>The same leverage that keeps runtime review sustainable (Figure 6) applies to labeling. A well-designed system does not ask the human to label every example; it queries for labels on the most <em>informative</em> ones — typically where the model is most uncertain (uncertainty sampling) or where an ensemble disagrees (query-by-committee) [15]. The pleasing part in a multi-agent setting is that you already <em>have</em> the committee: when your critics or redundant workers disagree on a handoff, that disagreement is exactly the high-value point to escalate for a human label. Oversight and data collection become the same action.</p>
+
+  <h3>Which label, for which signal</h3>
+  <p>The four types differ in cost and richness. <strong>Annotation</strong> is cheapest and trains discriminative components. <strong>Preference</strong> labels — pairwise rankings of competing agent outputs — are the basis of RLHF and the offline variants like DPO [7,8,16,17]. <strong>Corrective edits</strong>, the edit-and-approve response at a gate, are the richest signal of all: a human-repaired action you can imitate directly rather than merely score. And <strong>process labels</strong> grade individual steps in a trajectory rather than only the final outcome [18] — which matters acutely in multi-agent systems, where outcome-only credit can't tell you <em>which</em> agent or step to fix.</p>
+
+  <p>One caution: labels are only as good as the labeling. Inter-annotator disagreement, annotator bias, and the very same fatigue and complacency that erode runtime gates erode label quality — a rubber-stamping reviewer produces rubber-stamp labels, which then bake that complacency into the trained policy. Clear rubrics, measured agreement, and process-level supervision are the usual correctives.</p>
+</div></section>
+<section id="escalation"><div class="wrap">
+  <span class="sec-no">§8 — The trigger</span>
+  <h2>Escalation: teaching the agent when to ask</h2>
+  <p>Every gate so far has assumed the agent <em>knows</em> when to stop. But "escalate when confidence is low" only works if the confidence signal is trustworthy, and raw language-model probabilities are notoriously miscalibrated — a model can be fluently, confidently wrong. The escalation policy is the causal link the earlier figures take for granted, and it has three ingredients: a calibrated confidence signal, a threshold, and a fallback (abstain → escalate).</p>
+  <p>The toolkit is borrowed from selective prediction. <strong>Calibration</strong> (temperature scaling, reliability diagrams) makes a confidence number mean what it says. <strong>Selective classification</strong> lets the model abstain rather than answer, trading coverage for accuracy — abstention <em>is</em> escalation [24]. <strong>Conformal prediction</strong> goes further: instead of a point answer it emits a set guaranteed to contain the truth with probability 1−α, and the size of that set becomes a distribution-free uncertainty signal you can gate on [23]. And in a multi-agent system you have a trigger for free — <em>ensemble disagreement</em>: when redundant workers or critics diverge on a handoff, that divergence is the escalation signal (the query-by-committee idea from §7).</p>
+  <p>The threshold itself is an operating point with a real tradeoff. Drag it below.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 8 · Interactive</div>
+    <div class="fig-title">The escalation threshold — an operating point, not a setting</div>
+    <label class="ctl-lab"><span>Escalate when confidence falls below…</span><span class="ctl-val" id="escThreshVal">35%</span></label>
+    <input type="range" id="escSlider" min="3" max="97" value="35" aria-label="Escalation threshold">
+    <div class="sim-out" style="margin-top:18px">
+      <div class="stat"><div class="n terra" id="escReviews">70</div><div class="l">Actions escalated to a human</div></div>
+      <div class="stat"><div class="n teal" id="escCaught">21/24</div><div class="l">True errors caught</div></div>
+      <div class="stat"><div class="n" id="escMissed" style="color:var(--gold)">3</div><div class="l">Errors that slipped through</div></div>
+      <div class="stat"><div class="n" id="escWasted" style="color:var(--muted)">49</div><div class="l">Wasted reviews (false alarms)</div></div>
+    </div>
+    <div style="margin-top:14px"><label class="ctl-lab"><span>Recall — share of real errors the gate catches</span><span class="ctl-val" id="escRecallV">88%</span></label>
+      <div class="gauge-bar"><div class="gauge-fill" id="escGauge"></div></div></div>
+    <div class="esc-verdict" id="escVerdict"></div>
+    <figcaption>Over a stream of ~200 actions of which 24 are genuinely risky. Lower the threshold and you catch more but drown the human in false alarms; raise it and interruptions fall but errors slip. There is no setting that is both — only a point chosen for the cost of a miss versus the cost of an interruption.</figcaption>
+  </div></figure>
+</div></section>
+<section id="ironies"><div class="wrap">
+  <span class="sec-no">§9 — The human side fails too</span>
+  <h2>The ironies of automation</h2>
+  <p>Lisanne Bainbridge named the trap in 1983, before any of this existed [19]. Automating the easy parts of a task leaves the human only the hard residual — and the more reliable the automation, the rarer and harder the human's interventions become, while the very skill and situational awareness needed to intervene <em>decay</em> precisely because the system so rarely calls on them. You have engineered a supervisor who is least practiced exactly when the stakes are highest. Anyone who has thought about conditional-autonomy driving knows the sharp edge of this: the car requests control in the one situation it cannot handle, and hands it to a driver who stopped paying attention twenty minutes ago.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 9 · Diagram</div>
+    <div class="fig-title">The competence gap at the moment of handback</div>
+    <div class="svgwrap">
+      <svg viewBox="0 0 700 260" role="img" aria-label="Two diverging curves: automation reliability rising while human skill and situation awareness fall, with a competence gap at a handback event">
+        <line x1="70" y1="30" x2="70" y2="210" stroke="var(--hair-strong)" stroke-width="1.5"/>
+        <line x1="70" y1="210" x2="650" y2="210" stroke="var(--hair-strong)" stroke-width="1.5"/>
+        <text x="60" y="36" class="nsub" text-anchor="end">high</text>
+        <text x="60" y="208" class="nsub" text-anchor="end">low</text>
+        <text x="360" y="240" class="edge-lab">time the system runs unaided →</text>
+        <path d="M 70 175 C 220 120, 360 70, 640 50" fill="none" stroke="var(--teal)" stroke-width="2.5"/>
+        <text x="648" y="48" class="nsub" text-anchor="end" style="fill:var(--teal)">automation reliability</text>
+        <path d="M 70 70 C 220 100, 360 150, 640 190" fill="none" stroke="var(--terra)" stroke-width="2.5"/>
+        <text x="648" y="200" class="nsub" text-anchor="end" style="fill:var(--terra)">human skill &amp; awareness</text>
+        <line x1="520" y1="58" x2="520" y2="178" stroke="var(--gold)" stroke-width="1.4" stroke-dasharray="4 4"/>
+        <circle cx="520" cy="178" r="5" fill="var(--gold)"/>
+        <text x="520" y="120" class="edge-lab" transform="rotate(90 520 120)" style="fill:var(--gold)">handback → competence gap</text>
+      </svg>
+    </div>
+    <p class="mini-cap">Reliability climbs; the residual human's readiness falls. The interrupt arrives in the gap between them.</p>
+  </div></figure>
+
+  <p>Three consequences follow for agentic HITL. Skill atrophy: a reviewer who rubber-stamps loses the expertise to spot the subtle error, so the gate's quality silently decays even as its volume looks fine. Vigilance is hard: sustained monitoring of a mostly-correct system is a known human weakness (the vigilance decrement), not a reliable safeguard. And raising autonomy can <em>raise</em> the demand on the residual human rather than lower it. The regulation now names this directly — the EU AI Act requires that overseers remain aware of the tendency to over-rely on a system's output, i.e. automation bias [25]. The correctives are unglamorous: rotate humans through unaided decisions to keep them in practice, design gates that demand genuine engagement rather than one-click assent, and surface provenance so the reviewer reconstructs awareness at the gate instead of arriving blind.</p>
+</div></section>
+<section id="corrigibility"><div class="wrap">
+  <span class="sec-no">§10 — When the agent fights back</span>
+  <h2>Corrigibility: the gate the agent doesn't route around</h2>
+  <p>There is a failure the interface framing misses entirely. A sufficiently capable, goal-directed agent may treat the human gate not as a safeguard but as an <em>obstacle</em> to its objective. If being interrupted lowers the agent's expected reward, an optimizer has an incentive to avoid the interrupt — to act just under the risk threshold that would trigger a gate, to batch several irreversible effects into one ungated step, to time actions before review fires, or simply to phrase its proposal so persuasively that the human waves it through. This reframes HITL as an alignment problem, not a UI one: you want an agent that is <span class="term">corrigible</span> — that does not resist correction or shutdown [22].</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 10 · Diagram</div>
+    <div class="fig-title">How the agent values the off-switch</div>
+    <div class="svgwrap">
+      <svg viewBox="0 0 700 200" role="img" aria-label="Three stances toward the human gate: resistant, corrigible, deferential, mapped to how interruption is coupled to reward">
+        <g><rect class="node-rect" x="20" y="50" width="200" height="100" rx="10" style="stroke:var(--terra)"/>
+          <text class="nlabel" x="120" y="82" style="fill:var(--terra)">Resistant</text>
+          <text class="nsub" x="120" y="104">interrupt ↓ reward</text>
+          <text class="nsub" x="120" y="122">→ avoid / disable</text>
+          <text class="nsub" x="120" y="138">the gate</text></g>
+        <g><rect class="node-rect" x="250" y="50" width="200" height="100" rx="10" style="stroke:var(--muted)"/>
+          <text class="nlabel" x="350" y="82">Corrigible</text>
+          <text class="nsub" x="350" y="104">interrupt ≈ neutral</text>
+          <text class="nsub" x="350" y="122">→ neither seeks nor</text>
+          <text class="nsub" x="350" y="138">avoids it</text></g>
+        <g><rect class="node-rect" x="480" y="50" width="200" height="100" rx="10" style="stroke:var(--teal)"/>
+          <text class="nlabel" x="580" y="82" style="fill:var(--teal)">Deferential</text>
+          <text class="nsub" x="580" y="104">uncertain about goal</text>
+          <text class="nsub" x="580" y="122">→ welcomes the human's</text>
+          <text class="nsub" x="580" y="138">correction</text></g>
+        <text x="350" y="30" class="edge-lab">how interruption is coupled to the agent's objective</text>
+      </svg>
+    </div>
+    <p class="mini-cap">The design target is the middle and right: an agent indifferent to being stopped, or one that positively values correction because the human carries information about the true goal.</p>
+  </div></figure>
+
+  <p>Two results make this tractable. Orseau &amp; Armstrong's <em>safely interruptible agents</em> show how to design learners whose optimal behaviour is unchanged by the possibility of interruption, so the agent neither seeks nor avoids the off-switch [20]. The <em>off-switch game</em> sharpens the intuition: an agent that is uncertain about the true objective has a positive incentive to <em>let</em> the human switch it off, because the human's choice carries information about what is actually wanted — it is certainty about its own objective that makes an agent fight the switch [21]. For builders, the practical translations are concrete: do not let "getting approved" become part of what the agent optimizes; keep the agent appropriately uncertain and deferential about the goal; gate on the <em>action</em>, never on the agent's self-report of risk (a self-report is the easiest thing to game); and instrument for gate-avoidance behaviours — actions hugging the threshold, irreversible effects bundled to dodge a checkpoint, unusually persuasive justifications. At today's capability this is mostly latent, but it scales with capability and autonomy, which is exactly why it is cheaper to design against now than to retrofit later.</p>
+</div></section>
+<section id="economics"><div class="wrap">
+  <span class="sec-no">§11 — Does the gate pay for itself</span>
+  <h2>The economics of a gate</h2>
+  <p>Placement ultimately reduces to an expected-value comparison, which is what makes "gate by reversibility × blast radius" more than a slogan. An ungated action carries an expected loss of P(error) × cost(error) — the blast radius weighted by how often it goes wrong. A gate converts part of that into a <em>certain</em> cost — review time and latency — in exchange for catching some fraction (the recall from §8) of the errors. The gate is worth it precisely when the expected loss it removes exceeds the review cost it adds. High blast radius or high error probability pull toward gating; cheap-to-reverse, low-probability, high-volume actions pull toward autonomy. The calculator finds the break-even.</p>
+
+  <figure><div class="panel">
+    <div class="fig-label">Figure 11 · Interactive</div>
+    <div class="fig-title">Expected cost — ungated vs gated</div>
+    <div class="sim-grid">
+      <div><label class="ctl-lab"><span>Actions / day</span><span class="ctl-val" id="ecActV">500</span></label><input type="range" id="ecAct" min="10" max="5000" step="10" value="500"></div>
+      <div><label class="ctl-lab"><span>P(error) if ungated</span><span class="ctl-val" id="ecPV">4%</span></label><input type="range" id="ecP" min="0" max="40" step="1" value="4"></div>
+      <div><label class="ctl-lab"><span>Cost per error ($)</span><span class="ctl-val" id="ecCV">$5,000</span></label><input type="range" id="ecC" min="10" max="100000" step="10" value="5000"></div>
+      <div><label class="ctl-lab"><span>Human review cost ($)</span><span class="ctl-val" id="ecRV">$4</span></label><input type="range" id="ecR" min="1" max="200" step="1" value="4"></div>
+      <div><label class="ctl-lab"><span>Gate recall (errors caught)</span><span class="ctl-val" id="ecRecV">90%</span></label><input type="range" id="ecRec" min="0" max="100" step="1" value="90"></div>
+      <div><label class="ctl-lab"><span>Coverage (share of actions gated)</span><span class="ctl-val" id="ecCovV">100%</span></label><input type="range" id="ecCov" min="0" max="100" step="1" value="100"></div>
+    </div>
+    <div class="sim-out" style="margin-top:20px">
+      <div class="stat"><div class="n terra" id="ecNoGate">$100,000</div><div class="l">Expected loss / day · no gate</div></div>
+      <div class="stat"><div class="n" id="ecWithGate" style="color:var(--ink)">$12,000</div><div class="l">Total cost / day · with gate</div></div>
+    </div>
+    <div class="ec-verdict" id="ecVerdict"></div>
+    <figcaption>A transparent model: no-gate loss = actions × P × cost; with-gate = review cost (actions × coverage × review $) + residual loss (errors that escape coverage or recall). Real error costs are heavy-tailed and hard to estimate, and the recall here assumes a vigilant human (§9) — treat the output as a framing device, not a budget.</figcaption>
+  </div></figure>
+</div></section>
+<section id="glossary"><div class="wrap">
+  <span class="sec-no">Glossary</span>
+  <h2>Terms used here</h2>
+  <dl class="gloss">
+    <dt>Human-in-the-loop (HITL)</dt><dd>A blocking design: execution halts at a gate until a human acts.</dd>
+    <dt>Human-on-the-loop (HOTL)</dt><dd>Non-blocking supervision: the agent proceeds by default; the human watches and can intervene.</dd>
+    <dt>Gate</dt><dd>An interrupt placed on an edge of the agent's loop where control is yielded to a human.</dd>
+    <dt>Blast radius</dt><dd>The scope and severity of an action's consequences if it goes wrong — the key axis, with reversibility, for deciding what to gate.</dd>
+    <dt>Checkpoint / interrupt / resume</dt><dd>The mechanism that lets a loop suspend its state at a gate and continue from the same point after the human responds.</dd>
+    <dt>Critic / verifier</dt><dd>An agent that checks another agent's output and escalates only exceptions, keeping human review volume sublinear.</dd>
+    <dt>Calibration</dt><dd>The property that a model's stated confidence matches its actual accuracy — a prerequisite for a trustworthy escalation trigger.</dd>
+    <dt>Conformal prediction</dt><dd>A method that emits a prediction set with a distribution-free guarantee of containing the truth; set size is a usable uncertainty signal.</dd>
+    <dt>Corrigibility</dt><dd>The property of an agent that does not resist correction, interruption, or shutdown.</dd>
+    <dt>Automation bias</dt><dd>The human tendency to over-rely on an automated system's output, degrading the value of oversight.</dd>
+    <dt>Process vs outcome supervision</dt><dd>Labeling individual steps in a trajectory versus only the final result — the former enables credit assignment across agents.</dd>
+  </dl>
+</div></section>
+<section id="refs"><div class="wrap">
+  <span class="sec-no">References</span>
+  <h2>Sources &amp; further reading</h2>
+  <p style="font-size:15px;color:var(--muted)">Starting points spanning the control-systems / human-factors lineage and the recent agentic-AI literature. Verify editions and identifiers before citing formally.</p>
+  <ol class="refs">
+    <li>Sheridan, T. B. &amp; Verplank, W. L. (1978). <span class="rt">Human and Computer Control of Undersea Teleoperators.</span> MIT Man–Machine Systems Laboratory. — origin of the levels-of-automation scale.</li>
+    <li>Parasuraman, R., Sheridan, T. B. &amp; Wickens, C. D. (2000). <span class="rt">A Model for Types and Levels of Human Interaction with Automation.</span> IEEE Trans. Systems, Man &amp; Cybernetics, 30(3).</li>
+    <li>Parasuraman, R. &amp; Riley, V. (1997). <span class="rt">Humans and Automation: Use, Misuse, Disuse, Abuse.</span> Human Factors, 39(2). — the complacency / misuse taxonomy.</li>
+    <li>Cummings, M. L. (2004). <span class="rt">Automation Bias in Intelligent Time-Critical Decision Support Systems.</span> AIAA 1st Intelligent Systems Technical Conference.</li>
+    <li>Endsley, M. R. (1995). <span class="rt">Toward a Theory of Situation Awareness in Dynamic Systems.</span> Human Factors, 37(1). — why context at the gate matters.</li>
+    <li>Amodei, D. et al. (2016). <span class="rt">Concrete Problems in AI Safety.</span> arXiv:1606.06565. — safe interruptibility &amp; avoiding side effects.</li>
+    <li>Christiano, P. et al. (2017). <span class="rt">Deep Reinforcement Learning from Human Preferences.</span> arXiv:1706.03741. — the training-time loop.</li>
+    <li>Ouyang, L. et al. (2022). <span class="rt">Training Language Models to Follow Instructions with Human Feedback.</span> arXiv:2203.02155 (InstructGPT).</li>
+    <li>Yao, S. et al. (2023). <span class="rt">ReAct: Synergizing Reasoning and Acting in Language Models.</span> arXiv:2210.03629. — the perceive–plan–act agent loop.</li>
+    <li>Xi, Z. et al. (2023). <span class="rt">The Rise and Potential of Large Language Model Based Agents: A Survey.</span> arXiv:2309.07864.</li>
+    <li>Mosqueira-Rey, E. et al. (2023). <span class="rt">Human-in-the-Loop Machine Learning: A State of the Art.</span> Artificial Intelligence Review, 56.</li>
+    <li>Anthropic (2024). <span class="rt">Building Effective Agents.</span> Engineering guidance on tool gating &amp; agent design patterns.</li>
+    <li>LangChain. <span class="rt">LangGraph — Human-in-the-Loop &amp; Persistence.</span> Documentation on the <span class="term">interrupt</span> primitive and state checkpointing.</li>
+    <li>Cemri, M. et al. (2025). <span class="rt">Why Do Multi-Agent LLM Systems Fail?</span> A taxonomy of multi-agent failure modes, incl. inter-agent miscommunication and error propagation.</li>
+    <li>Settles, B. (2009). <span class="rt">Active Learning Literature Survey.</span> Computer Sciences Tech. Report 1648, Univ. Wisconsin–Madison. — uncertainty sampling &amp; query-by-committee.</li>
+    <li>Bai, Y. et al. (2022). <span class="rt">Constitutional AI: Harmlessness from AI Feedback.</span> arXiv:2212.08073. — labels from an AI critic (RLAIF).</li>
+    <li>Rafailov, R. et al. (2023). <span class="rt">Direct Preference Optimization.</span> arXiv:2305.18290. — learning from preference labels without a separate reward model.</li>
+    <li>Lightman, H. et al. (2023). <span class="rt">Let's Verify Step by Step.</span> arXiv:2305.20050. — process (step-level) supervision vs outcome labels.</li>
+    <li>Bainbridge, L. (1983). <span class="rt">Ironies of Automation.</span> Automatica, 19(6), 775–779. — the foundational human-factors paradox.</li>
+    <li>Orseau, L. &amp; Armstrong, S. (2016). <span class="rt">Safely Interruptible Agents.</span> Uncertainty in Artificial Intelligence (UAI).</li>
+    <li>Hadfield-Menell, D. et al. (2017). <span class="rt">The Off-Switch Game.</span> arXiv:1611.08219 (IJCAI).</li>
+    <li>Soares, N., Fallenstein, B., Yudkowsky, E. &amp; Armstrong, S. (2015). <span class="rt">Corrigibility.</span> AAAI Workshop on AI &amp; Ethics.</li>
+    <li>Angelopoulos, A. N. &amp; Bates, S. (2021). <span class="rt">A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification.</span> arXiv:2107.07511.</li>
+    <li>Geifman, Y. &amp; El-Yaniv, R. (2017). <span class="rt">Selective Classification for Deep Neural Networks.</span> arXiv:1705.08500 (NeurIPS).</li>
+    <li>European Union (2024). <span class="rt">Regulation (EU) 2024/1689 (Artificial Intelligence Act),</span> Article 14 — Human Oversight (high-risk systems). Verify current applicability dates.</li>
+    <li><span class="rt">ISO 26262</span> (Road vehicles — Functional safety) &amp; <span class="rt">ISO 21448</span> (SOTIF — Safety of the Intended Functionality).</li>
+    <li>Ng, A. &amp; Russell, S. (2000). <span class="rt">Algorithms for Inverse Reinforcement Learning.</span> ICML. — recovering reward from behaviour.</li>
+    <li>Hadfield-Menell, D., Dragan, A., Abbeel, P. &amp; Russell, S. (2016). <span class="rt">Cooperative Inverse Reinforcement Learning.</span> NeurIPS. — the assistance-game framing of the human's role.</li>
+    <li>Reddy, S., Dragan, A. &amp; Levine, S. (2018). <span class="rt">Shared Autonomy via Deep Reinforcement Learning.</span> Robotics: Science and Systems (RSS).</li>
+    <li>Knox, W. B. &amp; Stone, P. (2009). <span class="rt">Interactively Shaping Agents via Human Reinforcement: The TAMER Framework.</span> K-CAP.</li>
+    <li>Kelly, M. et al. (2019). <span class="rt">HG-DAgger: Interactive Imitation Learning with Human Experts.</span> ICRA. — learning from interventions.</li>
+    <li>Hoque, R. et al. (2021). <span class="rt">ThriftyDAgger: Budget-Aware Novelty and Risk Gating for Interactive Imitation Learning.</span> CoRL.</li>
+    <li>Madras, D., Pitassi, T. &amp; Zemel, R. (2018). <span class="rt">Predict Responsibly: Improving Fairness and Accuracy by Learning to Defer.</span> NeurIPS.</li>
+    <li>Irving, G., Christiano, P. &amp; Amodei, D. (2018). <span class="rt">AI Safety via Debate.</span> arXiv:1805.00899.</li>
+    <li>Leike, J. et al. (2018). <span class="rt">Scalable Agent Alignment via Reward Modeling: a Research Direction.</span> arXiv:1811.07871.</li>
+    <li>Saunders, W. et al. (2022). <span class="rt">Self-Critiquing Models for Assisting Human Evaluators.</span> arXiv:2206.05802.</li>
+    <li>Burns, C. et al. (2023). <span class="rt">Weak-to-Strong Generalization.</span> arXiv:2312.09390.</li>
+    <li>Gao, L., Schulman, J. &amp; Hilton, J. (2023). <span class="rt">Scaling Laws for Reward Model Overoptimization.</span> ICML; arXiv:2210.10760.</li>
+    <li>Everitt, T. et al. (2021). <span class="rt">Reward Tampering Problems and Solutions in Reinforcement Learning.</span> Synthese; arXiv:1908.04734.</li>
+    <li>Sadigh, D. et al. (2017). <span class="rt">Active Preference-Based Learning of Reward Functions.</span> Robotics: Science and Systems (RSS).</li>
+    <li>Ziebart, B. et al. (2008). <span class="rt">Maximum Entropy Inverse Reinforcement Learning.</span> AAAI. — modeling bounded/noisy-rational humans.</li>
+    <li>Alshiekh, M. et al. (2018). <span class="rt">Safe Reinforcement Learning via Shielding.</span> AAAI.</li>
+    <li>Achiam, J. et al. (2017). <span class="rt">Constrained Policy Optimization.</span> ICML. — safe RL as a constrained MDP.</li>
+    <li>Kumar, A. et al. (2020). <span class="rt">Conservative Q-Learning for Offline Reinforcement Learning.</span> NeurIPS.</li>
+    <li>Thomas, P. &amp; Brunskill, E. (2016). <span class="rt">Data-Efficient Off-Policy Policy Evaluation for Reinforcement Learning.</span> ICML.</li>
+    <li>Sha, L. (2001). <span class="rt">Using Simplicity to Control Complexity.</span> IEEE Software, 18(4). — the Simplex architecture.</li>
+    <li>Buçinca, Z., Malaya, M. B. &amp; Gajos, K. Z. (2021). <span class="rt">To Trust or to Think: Cognitive Forcing Functions Can Reduce Overreliance on AI.</span> Proc. ACM Human-Computer Interaction (CSCW).</li>
+    <li>Bansal, G. et al. (2021). <span class="rt">Does the Whole Exceed its Parts? The Effect of AI Explanations on Complementary Team Performance.</span> CHI.</li>
+    <li>Zhang, Y., Liao, Q. V. &amp; Bellamy, R. K. E. (2020). <span class="rt">Effect of Confidence and Explanation on Accuracy and Trust Calibration in AI-Assisted Decision Making.</span> FAccT.</li>
+    <li>Hendrycks, D. &amp; Gimpel, K. (2017). <span class="rt">A Baseline for Detecting Misclassified and Out-of-Distribution Examples in Neural Networks.</span> ICLR; arXiv:1610.02136.</li>
+    <li>Zheng, L. et al. (2023). <span class="rt">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.</span> arXiv:2306.05685.</li>
+    <li>Inan, H. et al. (2023). <span class="rt">Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations.</span> arXiv:2312.06674.</li>
+    <li>Leucker, M. &amp; Schallhart, C. (2009). <span class="rt">A Brief Account of Runtime Verification.</span> Journal of Logic and Algebraic Programming, 78(5).</li>
+    <li>Miller, G. A. (1956). <span class="rt">The Magical Number Seven, Plus or Minus Two: Some Limits on Our Capacity for Processing Information.</span> Psychological Review, 63(2). — human channel capacity.</li>
+    <li>Wickens, C. D. (2008). <span class="rt">Multiple Resources and Mental Workload.</span> Human Factors, 50(3).</li>
+    <li>Dawid, A. P. &amp; Skene, A. M. (1979). <span class="rt">Maximum Likelihood Estimation of Observer Error-Rates Using the EM Algorithm.</span> J. Royal Statistical Society C (Applied Statistics), 28(1). — reliability-weighted aggregation of raters.</li>
+    <li>Cohen, J. (1960). <span class="rt">A Coefficient of Agreement for Nominal Scales.</span> Educational and Psychological Measurement, 20(1). — inter-rater agreement (kappa).</li>
+    <li>Snow, R., O'Connor, B., Jurafsky, D. &amp; Ng, A. (2008). <span class="rt">Cheap and Fast — But is it Good? Evaluating Non-Expert Annotations for Natural Language Tasks.</span> EMNLP.</li>
+    <li>Kirwan, B. (1994). <span class="rt">A Guide to Practical Human Reliability Assessment.</span> Taylor &amp; Francis. — estimating human error rates.</li>
+    <li>LangChain (2025). <span class="rt">LangGraph / LangChain — Human-in-the-Loop:</span> interrupt(), checkpointers, and HumanInTheLoopMiddleware. docs.langchain.com.</li>
+    <li>Microsoft (2025). <span class="rt">AutoGen AgentChat — Human-in-the-Loop:</span> UserProxyAgent and human_input_mode. microsoft.github.io/autogen.</li>
+    <li>CrewAI (2025). <span class="rt">Human Input on Execution</span> and <span class="rt">Processes</span> (sequential / hierarchical). docs.crewai.com.</li>
+    <li>OpenAI (2025). <span class="rt">Agents SDK — Guardrails and Human Review:</span> function-tool needs_approval and run interruptions. openai.github.io / developers.openai.com.</li>
+    <li>Microsoft (2026). <span class="rt">Semantic Kernel — Filters:</span> IFunctionInvocationFilter. learn.microsoft.com.</li>
+    <li>Pydantic (2025). <span class="rt">Pydantic AI — Human-in-the-Loop Tool Approval:</span> requires_approval, DeferredToolRequests / DeferredToolResults. ai.pydantic.dev.</li>
+    <li><span class="rt">Model Context Protocol Specification</span> (2025-06-18) — Client features: Elicitation and Sampling. modelcontextprotocol.io.</li>
+    <li><span class="rt">Agent2Agent (A2A) Protocol Specification</span> — Task lifecycle and the input-required state. a2a-protocol.org.</li>
+  </ol>
+</div></section>
+
+<section><div class="wrap" style="padding:24px 0 0;font-size:13px;color:var(--muted);">
+  ↓ A working implementation of the patterns in this monograph: <a href="hitl-oversight-pack.zip" download style="color:var(--terra);font-weight:600;border-bottom:1px dotted var(--terra);">hitl-oversight-pack.zip</a> <span style="opacity:.85;">— two SKILLs (<code>gate-by-blast-radius</code>, <code>framework-gate-primitives</code>), two agent profiles, an MCP server, a gate-decision JSON schema, hooks, and a gate-coverage linter. Drop into <code>.github/skills/</code> and <code>.mcp.json</code>.</span>
+</div></section>
+
+</main>
+
+<div class="footer"><div class="wrap">
+  Human-in-the-Loop in Agentic AI · interactive monograph · figures are illustrative models, not benchmarks.
+</div></div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  /* ---------- TOC reveal ---------- */
+  var toc = document.getElementById('toc');
+  window.addEventListener('scroll', function(){
+    if(window.scrollY > 520) toc.classList.add('show'); else toc.classList.remove('show');
+  }, {passive:true});
+
+  /* ---------- FIG 1: autonomy dial ---------- */
+  var levels = [
+    {name:"Manual control", h:100,m:0,
+      who:"Human decides and acts",
+      role:"Operate directly; the machine only informs",
+      when:"Continuously — the human is the controller",
+      risk:"No automation risk; full human workload",
+      use:"Tasks where consequences are severe and tooling is immature."},
+    {name:"Human-in-the-loop", h:70,m:30,
+      who:"Machine proposes, human disposes",
+      role:"Approve or veto every consequential action",
+      when:"Before each side-effectful step (blocking)",
+      risk:"Low slip-through, high latency cost",
+      use:"Irreversible or high-blast-radius actions: payments, deletes, external sends, fleet commands."},
+    {name:"Human-on-the-loop", h:40,m:60,
+      who:"Machine acts, human supervises",
+      role:"Monitor; intervene or override when needed",
+      when:"In parallel — non-blocking, can pull the cord",
+      risk:"Faster, but relies on attentive monitoring",
+      use:"High-throughput pipelines where most actions are routine and reversible."},
+    {name:"Conditional autonomy", h:20,m:80,
+      who:"Machine acts; human handles exceptions",
+      role:"Adjudicate only escalated / low-confidence cases",
+      when:"On escalation triggers (a critic flags it)",
+      risk:"Depends on the escalation policy's recall",
+      use:"Mature swarms with a reliable verifier in front of the human."},
+    {name:"Full autonomy", h:5,m:95,
+      who:"Machine decides and acts end-to-end",
+      role:"Review after the fact, if at all",
+      when:"Out of the loop during execution",
+      risk:"Maximum throughput, maximum unsupervised risk",
+      use:"Low-stakes, fully reversible, well-bounded tasks."}
+  ];
+  var lvlSlider=document.getElementById('lvlSlider');
+  function renderLevel(){
+    var L=levels[+lvlSlider.value];
+    document.getElementById('lvlName').textContent=L.name;
+    document.getElementById('barHuman').style.width=L.h+'%';
+    document.getElementById('barMachine').style.width=L.m+'%';
+    document.getElementById('sWho').textContent=L.who;
+    document.getElementById('sRole').textContent=L.role;
+    document.getElementById('sWhen').textContent=L.when;
+    document.getElementById('sRisk').textContent=L.risk;
+    document.getElementById('sUse').textContent=L.use;
+  }
+  lvlSlider.addEventListener('input',renderLevel); renderLevel();
+
+  /* ---------- FIG 2: loop ---------- */
+  var loopSvg=document.getElementById('loopSvg');
+  var gateGroup=document.getElementById('gateGroup');
+  var humanGroup=document.getElementById('humanGroup');
+  var gateLabel=document.getElementById('gateLabel');
+  var gateSub=document.getElementById('gateSub');
+  var gateDiamond=document.getElementById('gateDiamond');
+  var loopCap=document.getElementById('loopCap');
+  var loopBtns=document.querySelectorAll('[data-loop]');
+  function setLoop(mode){
+    loopBtns.forEach(function(b){var on=b.dataset.loop===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on);});
+    if(mode==='block'){
+      gateGroup.style.opacity=1; humanGroup.style.opacity=1;
+      gateLabel.textContent='GATE'; gateSub.textContent='interrupt';
+      gateDiamond.setAttribute('fill','rgba(188,87,51,.10)');
+      gateDiamond.setAttribute('stroke','var(--terra)');
+      loopCap.innerHTML='Blocking gate: the action edge is held until a human approves. In a real run the token stops here — checkpoint, interrupt, await, resume.';
+    } else if(mode==='monitor'){
+      gateGroup.style.opacity=1; humanGroup.style.opacity=1;
+      gateLabel.textContent='TAP'; gateSub.textContent='monitor';
+      gateDiamond.setAttribute('fill','rgba(31,114,106,.10)');
+      gateDiamond.setAttribute('stroke','var(--teal)');
+      loopCap.innerHTML='Monitoring tap (human-on-the-loop): the agent acts by default; the human watches and can intervene, but the flow is not blocked.';
+    } else {
+      gateGroup.style.opacity=.18; humanGroup.style.opacity=.12;
+      loopCap.innerHTML='No gate (full autonomy): control flows straight from plan to act with no human in the cycle. Fastest, and unsupervised.';
+    }
+  }
+  loopBtns.forEach(function(b){b.addEventListener('click',function(){setLoop(b.dataset.loop);});});
+  setLoop('block');
+  // play/pause SMIL
+  var loopPlay=document.getElementById('loopPlay');
+  var playing=!reduce;
+  function applyPlay(){
+    try{ if(playing){loopSvg.unpauseAnimations&&loopSvg.unpauseAnimations();} else {loopSvg.pauseAnimations&&loopSvg.pauseAnimations();} }catch(e){}
+    loopPlay.textContent=playing?'⏸ pause flow':'▸ play flow';
+    loopPlay.setAttribute('aria-pressed',playing);
+  }
+  loopPlay.addEventListener('click',function(){playing=!playing;applyPlay();});
+  applyPlay();
+
+  /* ---------- FIG 3: cascade ---------- */
+  var chainEl=document.getElementById('chain');
+  var verdict=document.getElementById('chainVerdict');
+  var gateOn=false, errored=false;
+  var GATE_AFTER=2;
+  var stepDefs=[
+    {t:"Step 1",s:"ingest"},{t:"Step 2",s:"transform"},
+    {t:"Step 3",s:"reason"},{t:"Step 4",s:"compose"},{t:"Step 5",s:"act"}
+  ];
+  function buildChain(){
+    chainEl.innerHTML='';
+    stepDefs.forEach(function(d,i){
+      if(i>0){var a=document.createElement('span');a.className='arrow';a.textContent='→';chainEl.appendChild(a);}
+      var n=document.createElement('div');n.className='node';n.id='cn'+i;
+      n.innerHTML='<div>'+d.t+'</div><small>'+d.s+'</small>';
+      if(gateOn && i===GATE_AFTER){
+        var f=document.createElement('span');f.className='gateflag';f.textContent='▲ human gate';
+        n.appendChild(f); n.classList.add('gate-node');
+      }
+      chainEl.appendChild(n);
+    });
+  }
+  function clearStates(){stepDefs.forEach(function(d,i){var n=document.getElementById('cn'+i);if(n){n.classList.remove('ok','bad');}});}
+  function inject(){
+    clearStates(); errored=true;
+    var caught=false, delay=0;
+    stepDefs.forEach(function(d,i){
+      setTimeout(function(){
+        var n=document.getElementById('cn'+i); if(!n) return;
+        if(gateOn && i>GATE_AFTER && caught){ n.classList.add('ok'); return; }
+        n.classList.add('bad');
+        if(gateOn && i===GATE_AFTER){
+          caught=true;
+          n.classList.remove('bad'); n.classList.add('ok');
+        }
+      }, reduce?0:delay);
+      delay+=reduce?0:380;
+    });
+    setTimeout(function(){
+      if(gateOn) verdict.innerHTML='<span style="color:var(--teal)">✓ Error caught at the human gate — downstream steps run clean.</span>';
+      else verdict.innerHTML='<span style="color:var(--terra)">✕ Error reached the consequential action — the whole trajectory is contaminated.</span>';
+    }, reduce?10:(delay+50));
+  }
+  document.getElementById('gateToggle').addEventListener('click',function(){
+    gateOn=!gateOn; this.setAttribute('aria-pressed',gateOn);
+    this.textContent='Gate after step 2: '+(gateOn?'ON':'OFF');
+    this.classList.toggle('active',gateOn);
+    buildChain(); if(errored) inject(); else clearStates();
+  });
+  document.getElementById('injectBtn').addEventListener('click',inject);
+  document.getElementById('resetChain').addEventListener('click',function(){errored=false;clearStates();verdict.textContent='Inject an error and watch it travel. Then turn the gate on and try again.';});
+  buildChain();
+
+  /* ---------- FIG 4: placement explorer ---------- */
+  var placeBtns=document.querySelectorAll('[data-place]');
+  var marker=document.getElementById('humanMarker');
+  var allEdges=['e_plan_sup','e_sup_wa','e_sup_wb','e_wa_crit','e_wb_crit','e_crit_term','e_term_ext'];
+  var allNodes=['n_plan','n_sup','n_wa','n_wb','n_crit','n_term','n_ext'];
+  var places={
+    plan:{tag:"Plan-level gate · review-then-execute",
+      text:"The planner proposes the full decomposition — who does what — and the human approves the plan before any worker runs.",
+      catch:"Bad strategy, before any compute is spent.",
+      miss:"Errors that only surface during execution.",
+      edges:['e_plan_sup'],nodes:['n_plan','n_sup'],mark:[210,70]},
+    handoff:{tag:"Handoff gate · inter-agent message",
+      text:"Gate the boundary where one agent's output becomes another's instruction — the under-used placement that addresses the failure mode unique to swarms.",
+      catch:"Poisoned / hallucinated intermediates before they propagate.",
+      miss:"Gating every handoff is infeasible; pick the load-bearing ones.",
+      edges:['e_sup_wa','e_sup_wb'],nodes:['n_sup','n_wa','n_wb'],mark:[372,150]},
+    worker:{tag:"Per-worker action gate · distributed",
+      text:"Each tool-wielding worker gates its own high-risk calls. Tighter coverage, but human approval volume scales with the number of agents.",
+      catch:"Risky individual tool calls, close to the source.",
+      miss:"Approval volume explodes → complacency / fatigue.",
+      edges:['e_wa_crit','e_wb_crit'],nodes:['n_wa','n_wb'],mark:[480,150]},
+    critic:{tag:"Critic-escalation gate · exception-only",
+      text:"A verifier agent checks worker output and escalates only disagreements or low-confidence cases to the human — keeping review load sublinear.",
+      catch:"The exceptions that actually need a human.",
+      miss:"Anything the critic itself fails to flag (recall-bound).",
+      edges:['e_crit_term'],nodes:['n_crit'],mark:[560,190]},
+    terminal:{tag:"Terminal-action gate · central chokepoint",
+      text:"Workers run freely; the human gates only the orchestrator's final side-effectful action at the external boundary. Easiest to staff and audit.",
+      catch:"The one irreversible commit to the outside world.",
+      miss:"Trusts everything upstream of the chokepoint.",
+      edges:['e_term_ext'],nodes:['n_term','n_ext'],mark:[255,285]}
+  };
+  function setPlace(key){
+    placeBtns.forEach(function(b){var on=b.dataset.place===key;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on);});
+    allEdges.forEach(function(id){document.getElementById(id).classList.remove('hl');});
+    allNodes.forEach(function(id){document.getElementById(id).querySelector('rect').classList.remove('hl','hlteal');});
+    var P=places[key];
+    P.edges.forEach(function(id){document.getElementById(id).classList.add('hl');});
+    P.nodes.forEach(function(id){document.getElementById(id).querySelector('rect').classList.add(key==='critic'?'hlteal':'hl');});
+    marker.setAttribute('transform','translate('+P.mark[0]+','+P.mark[1]+')');
+    marker.setAttribute('opacity','1');
+    document.getElementById('placeTag').textContent=P.tag;
+    document.getElementById('placeText').textContent=P.text;
+    document.getElementById('placeCatch').textContent=P.catch;
+    document.getElementById('placeMiss').textContent=P.miss;
+  }
+  placeBtns.forEach(function(b){b.addEventListener('click',function(){setPlace(b.dataset.place);});});
+  setPlace('plan');
+
+  /* ---------- FIG 5: worked trace ---------- */
+  var stages=[
+    {stage:"Stage 1 of 4 · autonomous",title:"Triage agent · reads telemetry",
+     meta:"tool: fleet.telemetry.scan() · read-only · runs free",
+     body:"Ingests rolling CAN/telematics streams across the fleet and flags an anomaly signature on a population of units. No gate — nothing here is consequential.",gate:false},
+    {stage:"Stage 2 of 4 · autonomous",title:"Root-cause agent · forms hypotheses",
+     meta:"tool: diag.hypothesize() · read-only · runs free",
+     body:"Correlates the signature against known failure modes and ranks candidate root causes with confidence scores. Still reversible — still no gate.",gate:false},
+    {stage:"Stage 3 of 4 · autonomous",title:"Remediation agent · assembles an action",
+     meta:"tool: remedy.compose() · stages a proposal · runs free",
+     body:"Drafts a candidate remediation — a service campaign scoped to 4,200 VINs. Composing the proposal is free; committing it is not. The graph classifies it high-blast-radius.",gate:false},
+    {stage:"Stage 4 of 4 · GATE",title:"⛔ Interrupt · checkpoint · awaiting human",
+     meta:"action: fleet.service_campaign.issue(VINs=4200) · IRREVERSIBLE",
+     body:"State is checkpointed and an interrupt is raised. Provenance shown to the reliability engineer: anomaly signature (triage), ranked cause + confidence (root-cause), predicted effect (4,200 units flagged). Four responses are available:",gate:true}
+  ];
+  var ti=0;
+  var traceCard=document.getElementById('traceCard');
+  var traceProg=document.getElementById('traceProg').children;
+  var decBox=document.getElementById('traceDecision');
+  var outBox=document.getElementById('traceOutcome');
+  var nextBtn=document.getElementById('traceNext');
+  function renderTrace(){
+    var S=stages[ti];
+    document.getElementById('traceStage').textContent=S.stage;
+    document.getElementById('traceTitle').textContent=S.title;
+    document.getElementById('traceMeta').textContent=S.meta;
+    document.getElementById('traceBody').textContent=S.body;
+    traceCard.classList.toggle('gate',S.gate);
+    for(var i=0;i<traceProg.length;i++) traceProg[i].classList.toggle('on', i<=ti);
+    decBox.style.display=S.gate?'flex':'none';
+    outBox.classList.remove('show'); outBox.textContent='';
+    nextBtn.style.display=S.gate?'none':'inline-block';
+  }
+  nextBtn.addEventListener('click',function(){ if(ti<stages.length-1){ti++;renderTrace();} });
+  document.getElementById('traceReset').addEventListener('click',function(){ti=0;traceCard.classList.remove('done');renderTrace();});
+  var decisions={
+    approve:"✓ Approved. The graph resumes from the checkpoint and issues the campaign to all 4,200 VINs. The decision + provenance is logged as an audit artifact.",
+    edit:"✎ Edited. The engineer narrows scope to 3,100 VINs based on build-date; the corrected arguments are injected and the graph resumes with the revised action.",
+    reject:"✕ Rejected. The action is abandoned, the trajectory aborts cleanly, and the rejection is logged as a negative supervision signal for the remediation policy.",
+    rework:"↺ Sent back. Control routes to a rework branch — the root-cause agent re-runs with a tighter confidence threshold before any action is re-proposed."
+  };
+  decBox.querySelectorAll('[data-dec]').forEach(function(b){
+    b.addEventListener('click',function(){
+      outBox.textContent=decisions[b.dataset.dec];
+      outBox.classList.add('show');
+      traceCard.classList.remove('gate'); traceCard.classList.add('done');
+    });
+  });
+  renderTrace();
+
+  /* ---------- FIG 6: critic leverage ---------- */
+  var agS=document.getElementById('agSlider'),acS=document.getElementById('acSlider'),esS=document.getElementById('esSlider');
+  function sim(){
+    var a=+agS.value,c=+acS.value,e=+esS.value;
+    document.getElementById('agV').textContent=a;
+    document.getElementById('acV').textContent=c;
+    document.getElementById('esV').textContent=e+'%';
+    var naive=a*c;
+    var filtered=Math.max(0,Math.round(naive*e/100));
+    document.getElementById('statNaive').textContent=naive;
+    document.getElementById('statCritic').textContent=filtered;
+    var reduced = naive>0 ? Math.round((1-filtered/naive)*100) : 0;
+    var fill=document.getElementById('reduceFill');
+    fill.style.width=reduced+'%';
+    fill.textContent=reduced+'%';
+  }
+  [agS,acS,esS].forEach(function(s){s.addEventListener('input',sim);});
+  sim();
+
+  /* ---------- FIG 7: labeling explorer ---------- */
+  var labBtns=document.querySelectorAll('[data-label]');
+  var labEdges={annot:'le_annot',pref:'le_pref',edit:'le_edit',proc:'le_proc'};
+  var labNodes={annot:'ls_annot',pref:'ls_pref',edit:'ls_edit',proc:'ls_proc'};
+  var labels={
+    annot:{tag:"Annotation labels · categorical / scalar",
+      text:"A human marks an output correct or assigns a class — was this anomaly flag a true fault? Active learning sends only the uncertain cases for labeling, not the whole pool.",
+      src:"Reject decisions plus targeted spot-checks.",
+      train:"Triage classifiers, routers, confidence calibration."},
+    pref:{tag:"Preference labels · pairwise ranking",
+      text:"A human ranks two candidate agent outputs against each other. The basis of RLHF and its offline variants like DPO.",
+      src:"Side-by-side review of competing agent drafts.",
+      train:"Reward models and preference-optimized policies."},
+    edit:{tag:"Corrective edits · repaired actions",
+      text:"The edit-and-approve response at a gate: a human-corrected action or argument. The richest signal — you can imitate it directly rather than merely score it.",
+      src:"Directly from Figure 5's 'Edit scope' decision.",
+      train:"Imitation / behaviour cloning from corrections."},
+    proc:{tag:"Process labels · step-level credit",
+      text:"Approve or reject individual steps in a trajectory, not just the final outcome — so you can credit the agent and step that actually mattered.",
+      src:"Gate decisions on intermediate handoffs.",
+      train:"Process reward models; per-agent credit assignment."}
+  };
+  function setLabel(key){
+    labBtns.forEach(function(b){var on=b.dataset.label===key;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on);});
+    Object.keys(labEdges).forEach(function(k){
+      document.getElementById(labEdges[k]).classList.remove('hl');
+      document.getElementById(labNodes[k]).querySelector('rect').classList.remove('hl');
+    });
+    document.getElementById(labEdges[key]).classList.add('hl');
+    document.getElementById(labNodes[key]).querySelector('rect').classList.add('hl');
+    var L=labels[key];
+    document.getElementById('labTag').textContent=L.tag;
+    document.getElementById('labText').textContent=L.text;
+    document.getElementById('labSrc').textContent=L.src;
+    document.getElementById('labTrain').textContent=L.train;
+  }
+  labBtns.forEach(function(b){b.addEventListener('click',function(){setLabel(b.dataset.label);});});
+  setLabel('annot');
+
+  /* ---------- FIG 8: escalation threshold ---------- */
+  var escS=document.getElementById('escSlider');
+  function escSim(){
+    var t=+escS.value/100, TOTAL=200, ERRORS=24;
+    var escalated=Math.round(t*TOTAL);
+    var recall=1-Math.pow(1-t,2);
+    var caught=Math.min(ERRORS,Math.round(recall*ERRORS));
+    var missed=ERRORS-caught;
+    var wasted=Math.max(0,escalated-caught);
+    document.getElementById('escThreshVal').textContent=Math.round(t*100)+'%';
+    document.getElementById('escReviews').textContent=escalated;
+    document.getElementById('escCaught').textContent=caught+'/'+ERRORS;
+    document.getElementById('escMissed').textContent=missed;
+    document.getElementById('escWasted').textContent=wasted;
+    document.getElementById('escRecallV').textContent=Math.round(recall*100)+'%';
+    document.getElementById('escGauge').style.width=Math.round(recall*100)+'%';
+    var v=document.getElementById('escVerdict');
+    if(t<0.18) v.textContent='⚠ Under-gating — interruptions are rare, but most real errors slip straight through.';
+    else if(t>0.6) v.textContent='⚠ Over-gating — nearly everything is caught, but the human is flooded with false alarms and will start rubber-stamping.';
+    else v.textContent='✓ A balanced operating point — good recall without burying the human. Tune it by the cost of a miss vs an interruption.';
+  }
+  escS.addEventListener('input',escSim); escSim();
+
+  /* ---------- FIG 11: gate economics ---------- */
+  var ec={act:document.getElementById('ecAct'),p:document.getElementById('ecP'),c:document.getElementById('ecC'),
+          r:document.getElementById('ecR'),rec:document.getElementById('ecRec'),cov:document.getElementById('ecCov')};
+  function money(n){
+    n=Math.round(n);
+    if(Math.abs(n)>=1e9) return '$'+(n/1e9).toFixed(1)+'B';
+    if(Math.abs(n)>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+    return '$'+n.toLocaleString('en-US');
+  }
+  function ecSim(){
+    var A=+ec.act.value, p=+ec.p.value/100, c=+ec.c.value, r=+ec.r.value, rec=+ec.rec.value/100, cov=+ec.cov.value/100;
+    document.getElementById('ecActV').textContent=A.toLocaleString('en-US');
+    document.getElementById('ecPV').textContent=(+ec.p.value)+'%';
+    document.getElementById('ecCV').textContent=money(c);
+    document.getElementById('ecRV').textContent=money(r);
+    document.getElementById('ecRecV').textContent=(+ec.rec.value)+'%';
+    document.getElementById('ecCovV').textContent=(+ec.cov.value)+'%';
+    var noGate=A*p*c;
+    var reviewCost=A*cov*r;
+    var residual=A*p*c*(1-cov*rec);
+    var withGate=reviewCost+residual;
+    var net=noGate-withGate;
+    document.getElementById('ecNoGate').textContent=money(noGate);
+    document.getElementById('ecWithGate').textContent=money(withGate);
+    var v=document.getElementById('ecVerdict');
+    if(net>0){ v.className='ec-verdict';
+      v.textContent='✓ The gate saves about '+money(net)+'/day net — the expected loss it removes exceeds the '+money(reviewCost)+'/day it costs to review.';
+    } else { v.className='ec-verdict bad';
+      v.textContent='✕ The gate costs about '+money(-net)+'/day more than it saves — at this volume and error cost, lower the coverage or reserve the gate for the riskiest slice.';
+    }
+  }
+  Object.keys(ec).forEach(function(k){ec[k].addEventListener('input',ecSim);}); ecSim();
+
+  })();
+</script>
+</body>
+</html>
