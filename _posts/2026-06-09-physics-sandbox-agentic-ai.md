@@ -3,9 +3,9 @@ title: "The Physics Sandbox — Grounding Agentic AI in Simulation"
 subtitle: "An architecture for connecting high-fidelity physics simulation to LLM agents over MCP — so that hypotheses are tested, not hallucinated."
 date: 2026-06-09 09:00:00 -0400
 category: "Tools"
-slug: physics-sandbox
-excerpt: "An LLM agent that reasons about a propulsion fault is, by default, doing literary criticism on the symptom — pattern-matching against text it has seen before. A physics-grounded agent is doing something different: forming a hypothesis, running it through a simulator, looking at what came back, and revising. This monograph is the architecture for that second kind of agent — three layers, one protocol (MCP), tiered fidelity, a minimal server you could run on Monday, and the diagnostic patterns that make physics-refereed hypothesis testing a practical workflow rather than a research curiosity."
-reading_time: 24
+slug: physics-sandbox-agentic-ai
+excerpt: "An LLM agent that reasons about a propulsion fault is, by default, doing literary criticism on the symptom — pattern-matching against text it has seen before. A physics-grounded agent is doing something different: forming a hypothesis, running it through a simulator, looking at what came back, and revising. This monograph is the architecture for that second kind of agent — three layers, one protocol (MCP), tiered fidelity, a minimal server you could run on Monday, the VHM application this is built for, a three-quarter roadmap, and the limitations honestly named."
+reading_time: 28
 ---
 
 The most uncomfortable observation about agentic AI in engineering domains is that, by default, the agent is doing the wrong job. Ask a Copilot or Claude Code instance to diagnose a fault in a motor controller's flux observer, and what you get back is — at best — *literary criticism on the symptom*: a pattern match against text the model has seen describing similar faults, presented with a confidence the model has no business having. The agent never *tested* anything. It has no access to the physics. It cannot ground its hypothesis in execution. The result is a guess dressed up as an analysis, and the gap between that and a useful engineering tool is the gap this monograph is about.
@@ -16,7 +16,7 @@ This is one of the more directly job-adjacent posts on this site. The motor-cont
 
 ## What it covers
 
-Eleven sections, about twenty-four minutes of careful reading.
+Fourteen sections, about twenty-eight minutes of careful reading.
 
 **§ 01 — Why agents need a physics oracle.** The grounding problem in concrete terms. A worked example of what a model-only agent produces vs. what a physics-grounded agent produces for the same prompt. The cost of *literary criticism on the symptom* in an engineering context.
 
@@ -38,18 +38,24 @@ Eleven sections, about twenty-four minutes of careful reading.
 
 **§ 10 — Practical notes before you build.** The hard-won field observations. Cache simulation results aggressively (LLM workflows are repetitive). Log every simulation call (the audit trail is the future training data). Constrain the parameter space the agent can probe (otherwise it will probe the unphysical corners). The dozen habits that compound.
 
-**§ 11 — References & further reading.** The relevant papers (the simulation-grounded agents literature is small but growing). The MCP spec. The FMI standard documentation. The handful of write-ups from teams who have shipped systems like this.
+**§ 11 — Where this bites in VHM.** *New in this revision.* The Vehicle Health Management application. The specific failure modes in propulsion diagnostics where a physics-grounded agent is dramatically better than a model-only one. The integration with existing VHM telemetry pipelines.
+
+**§ 12 — A roadmap that fits in three quarters.** *New in this revision.* The execution plan if you wanted to actually ship this. Quarter one — minimal server + one diagnostic skill. Quarter two — fidelity tiering + parameter-space constraints. Quarter three — fleet-scale rollout + the labeling-becomes-dataset loop. With the milestones and the realistic risk register.
+
+**§ 13 — Limitations and failure modes.** *New in this revision.* The honest section. What this architecture cannot do. The simulator-reality gap. The cost ceiling when fidelity is the bottleneck. The cases where a model-only agent is still the right answer.
+
+**§ 14 — References & further reading.** The relevant papers (the simulation-grounded agents literature is small but growing). The MCP spec. The FMI standard documentation. The handful of write-ups from teams who have shipped systems like this.
 
 ## Read it
 
 <div style="margin: 28px 0; text-align: center;">
-  <a href="{{ '/assets/posts/physics-sandbox.html' | relative_url }}"
+  <a href="{{ '/assets/posts/physics-sandbox-agentic-ai.html' | relative_url }}"
      style="display: inline-block; padding: 14px 28px; background: var(--accent); color: var(--paper); font-family: var(--f-ui); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; border-radius: 2px; font-weight: 500;">
     Open the monograph →
   </a>
 </div>
 
-The monograph lives at its own URL with a warm-paper editorial layout — teal for physics / simulation, orange for the agent / action layer, violet for fidelity tiers. Eleven sections plus an interactive browser sandbox and a minimal Monday-morning server example.
+The monograph lives at its own URL with a warm-paper editorial layout — teal for physics / simulation, orange for the agent / action layer, violet for fidelity tiers. Fourteen sections plus an interactive browser sandbox and a minimal Monday-morning server example.
 
 ---
 

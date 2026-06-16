@@ -660,8 +660,81 @@ if __name__ == "__main__":
   <h3>Guard the interpretation boundary</h3>
   <p>The most common failure is not a wrong simulation — it's a right simulation read wrongly. Keep numeric judgment (margins, statistics, trend tests) inside the server, and have the agent justify decisions by citing returned verdicts. If a conclusion in the agent's prose has no corresponding verdict in the log, that's a red flag the review process should catch automatically.</p>
 
-  <h3>Security posture</h3>
-  <p>An MCP server that executes solver commands is an arbitrary-execution surface. Whitelist tool actions, run backends in containers or dedicated machines, and never let model-generated strings reach a shell or a MATLAB <code>eval</code>. Standard agentic-AI security guidance applies with extra force when the backend can drive licensed engineering infrastructure <a href="#refs">[11]</a>.</p>
+  <h3>Security posture: the server is an execution surface</h3>
+  <p>An MCP server that executes solver commands is an arbitrary-execution surface &mdash; the engineering-simulation cousin of handing an agent a shell. Whitelist tool actions, run backends in containers or on dedicated machines, and never let a model-generated string reach a shell or a MATLAB <code>eval</code>. Standard agentic-AI security guidance applies with extra force when the backend can drive licensed engineering infrastructure <a href="#refs">[11]</a>, <a href="#refs">[13]</a>.</p>
+
+  <p><strong>Keep the warden outside the cell.</strong> The budget governor, model registry, and provenance log <em>are</em> the harness &mdash; and the harness must not share an execution context with the code that runs model-influenced experiments. If the process that enforces the Tier-3 gate and writes the audit trail is the same process a compromised run can reach, that run can quietly rewrite its own evidence. The governor passes typed inputs in and reads verdicts and exit codes back out; it never executes inside the sandbox it polices.</p>
+
+  <figure class="fig">
+    <div class="fig-head"><span class="fig-no">FIG. 8</span><span class="fig-title">The isolation spectrum &mdash; security vs. startup latency</span></div>
+    <div class="fig-body">
+      <svg viewBox="0 0 840 432" role="img" aria-label="Scatter chart positioning sandboxing technologies by isolation strength against startup latency">
+        <defs>
+          <marker id="ax8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5A5346"/></marker>
+        </defs>
+        <!-- right zone: heavyweight licensed solvers -->
+        <rect x="714" y="52" width="94" height="296" rx="9" fill="#E9E5F4" fill-opacity=".5" stroke="#5A4B9B" stroke-width="1.4" stroke-dasharray="5 5"/>
+        <text x="761" y="74" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" font-weight="700" fill="#5A4B9B">licensed</text>
+        <text x="761" y="89" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" font-weight="700" fill="#5A4B9B">solvers</text>
+        <text x="761" y="110" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">MATLAB · Simscape</text>
+        <text x="761" y="123" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">GT-SUITE · FEA</text>
+        <text x="761" y="150" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">too heavy to</text>
+        <text x="761" y="163" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">spin up per call:</text>
+        <text x="761" y="176" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">isolate at host/VM</text>
+        <text x="761" y="189" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">+ typed-input</text>
+        <text x="761" y="202" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="9" fill="#5A5346">contract</text>
+        <!-- axes -->
+        <line x1="95" y1="348" x2="690" y2="348" stroke="#5A5346" stroke-width="1.6" marker-end="url(#ax8)"/>
+        <line x1="95" y1="348" x2="95" y2="46" stroke="#5A5346" stroke-width="1.6" marker-end="url(#ax8)"/>
+        <text x="392" y="392" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="600" fill="#5A5346">startup latency per call &rarr;</text>
+        <text x="62" y="200" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="600" fill="#5A5346" transform="rotate(-90 62 200)">isolation strength &rarr;</text>
+        <!-- x tick hints -->
+        <text x="150" y="368" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8A8270">&micro;s</text>
+        <text x="250" y="368" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8A8270">ms</text>
+        <text x="450" y="368" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8A8270">~100s ms</text>
+        <text x="620" y="368" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8A8270">seconds</text>
+        <!-- markers -->
+        <!-- Monty -->
+        <circle cx="158" cy="104" r="6.5" fill="#0B6B66"/>
+        <text x="172" y="100" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">Monty (Rust)</text>
+        <text x="172" y="115" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">blocks fs/env/net · sub-&micro;s · Python subset</text>
+        <!-- RestrictedPython -->
+        <circle cx="232" cy="262" r="6.5" fill="#5A4B9B"/>
+        <text x="246" y="258" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">RestrictedPython</text>
+        <text x="246" y="273" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">parse-time limits · not for untrusted code</text>
+        <!-- Docker plain -->
+        <circle cx="360" cy="214" r="6.5" fill="#C2521A"/>
+        <text x="374" y="210" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">Docker (plain)</text>
+        <text x="374" y="225" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">good ergonomics · shares host kernel</text>
+        <!-- Firecracker -->
+        <circle cx="430" cy="80" r="6.5" fill="#0B6B66"/>
+        <text x="444" y="76" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">Firecracker &micro;VM</text>
+        <text x="444" y="91" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">own kernel · ~150 ms · E2B / Lambda</text>
+        <!-- gVisor -->
+        <circle cx="506" cy="128" r="6.5" fill="#0B6B66"/>
+        <text x="520" y="124" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">Docker + gVisor</text>
+        <text x="520" y="139" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">userspace syscalls · ~15% overhead</text>
+        <!-- Pyodide -->
+        <circle cx="624" cy="172" r="6.5" fill="#5A4B9B"/>
+        <text x="624" y="200" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="12" font-weight="700" fill="#211D16">Pyodide / Wasm</text>
+        <text x="624" y="215" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="10.5" fill="#5A5346">memory-boundary · 1&ndash;3 s init</text>
+      </svg>
+    </div>
+    <figcaption>Every isolation choice trades security against the latency the agent's inner loop has to absorb. Position is qualitative, not benchmarked. The practical move is to put <b>Tier-1 surrogate code</b> (SciPy/CasADi ODEs, FMUs) somewhere on this curve and leave the <b>licensed solvers</b> out of it &mdash; they are isolated at the host or VM boundary and protected by the typed-input contract instead.</figcaption>
+  </figure>
+
+  <p><strong>Match isolation to what actually runs.</strong> The physics complicates the generic sandboxing story, so split the backend in two. Tier-1 surrogates are ordinary code and belong in strong, cheap isolation: a parse-time-restricted interpreter, a Rust micro-interpreter such as Monty that denies filesystem, environment, and network access by default, a Wasm runtime, or a per-call microVM &mdash; Firecracker boots in roughly 150&nbsp;ms and is the production standard for hosted coding agents <a href="#refs">[14]</a>. Heavyweight licensed solvers cannot spin up per call, so they are isolated at the host or VM boundary and protected by the discipline this monograph already insists on: configure, never construct, and no model-generated string ever reaches <code>eval</code> or a shell.</p>
+
+  <p><strong>Network egress is the overlooked surface.</strong> Allowlist, do not blocklist. The solver loop rarely needs the open internet, so pin outbound traffic to the package indices, your model registry, and the license server, and deny everything else by default &mdash; far more defensible than chasing malicious domains. In a cloud deployment, block the instance-metadata endpoint at <code>169.254.169.254</code> and require token-authenticated IMDSv2, or a prompt-injected agent can mint cloud IAM credentials through an SSRF and walk straight out of the sandbox <a href="#refs">[13]</a>.</p>
+
+  <p><strong>Bound the blast radius.</strong> The budget governor already counts runs for cost; extend it to cap resources for safety. Set conservative memory and CPU ceilings, a process limit to stop fork bombs, and a disk quota on the mounted workspace, and wrap every backend call in a hard timeout that returns a <code>budget_exceeded</code> flag rather than hanging the agent. The same governor that makes the economics visible can make the blast radius finite.</p>
+
+  <p><strong>Gate the irreversible by hand.</strong> Some actions should never proceed on sandbox isolation alone &mdash; writing to the shared model registry, pushing results into a PLM system or database, installing a new solver toolbox, or any run that consumes scarce Tier-3 licenses. Intercept them at the server with the same human-approval hook the Tier-3 sign-off already uses, so a person confirms before the backend ever sees the command; the agent simply receives a result or a timeout, and never learns the gate exists.</p>
+
+  <div class="note warn">
+    <b class="tag">Threat model, made concrete</b>
+    In late 2024 a researcher showed that prompt injection hidden in a browsed web page could drive an AI computer-use agent to download and run a command-and-control framework &mdash; turning it into a remotely controlled host with no malicious intent from the user who launched it <a href="#refs">[15]</a>. The simulation analogue is a payload smuggled through a field-data file, a third-party model artifact, or a returned trace the agent then acts on. Treat every simulation input and result as <b>untrusted data, not instructions</b> &mdash; the verdicts-not-waveforms contract and typed inputs are exactly what blunt the equivalent attack here.
+  </div>
 
   <div class="note warn">
     <b class="tag">Organizational note</b>
@@ -730,6 +803,9 @@ if __name__ == "__main__":
     <li>Silver, D. et al., "Mastering the game of Go with deep neural networks and tree search," Nature, 2016 — the search-plus-evaluation precedent. <span class="src">doi:10.1038/nature16961</span></li>
     <li>Yao, S. et al., "ReAct: Synergizing Reasoning and Acting in Language Models," 2022; and OWASP guidance on LLM application security. <span class="src">arXiv:2210.03629 · owasp.org</span></li>
     <li>Wang, G. et al., "Voyager: An Open-Ended Embodied Agent with Large Language Models," 2023 — agent skill acquisition inside a simulated world. <span class="src">arXiv:2305.16291</span></li>
+    <li>Allahyari, M., "Secure Playgrounds: Sandboxing &amp; Execution Security in Harness Engineering," The MLnotes Newsletter, 2026 — the warden/cell principle, egress allowlisting, and metadata-endpoint hardening adapted here to a solver backend. <span class="src">mlnotes.substack.com</span></li>
+    <li>Sandboxing runtimes for agent-generated code: E2B / Firecracker microVMs, gVisor (user-space syscall interception), Pyodide (Python-to-Wasm), Monty (Pydantic's Rust interpreter), and RestrictedPython. <span class="src">e2b.dev · gvisor.dev · pyodide.org · github.com/pydantic/monty</span></li>
+    <li>Rehberger, J., "ZombAIs" — prompt injection through browsed content compromising an AI computer-use agent into running a C2 framework, 2024. <span class="src">embracethered.com</span></li>
   </ol>
 </section>
 
@@ -737,7 +813,7 @@ if __name__ == "__main__":
 
 <footer>
   <div class="wrap">
-    Prepared as a working monograph on physics-grounded agentic AI for vehicle health management. Figures 1–7 are interactive; the physics in Figs. 4–6 runs locally in this page (RK4 and closed-form steady state, no external calls).
+    Prepared as a working monograph on physics-grounded agentic AI for vehicle health management. Figures 1&ndash;7 are interactive and Fig. 8 is a reference chart; the physics in Figs. 4&ndash;6 runs locally in this page (RK4 and closed-form steady state, no external calls).
   </div>
 </footer>
 
