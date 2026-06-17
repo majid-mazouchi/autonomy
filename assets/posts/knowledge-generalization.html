@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Generalization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$']] },
+    svg: { fontCache: 'global' },
+    options: { renderActions: { addMenu: [] } }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script" async></script>
+<style>
+  :root{
+    --paper:#F3EEE3;--paper-2:#ECE5D6;--ink:#211C16;--ink-soft:#5C5346;
+    --rust:#A8432B;--teal:#1E6E68;--ochre:#BE8A2C;--rule:#D8CFBD;--maxw:780px;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Fraunces",Georgia,"Times New Roman",serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;}
+  mjx-container{color:var(--ink);}
+  mjx-container[display="true"]{margin:0 !important;}
+
+  header{padding:64px 0 12px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--rust);margin:0 0 22px;}
+  .eyebrow .seg{color:var(--ink-soft);}
+  h1{font-weight:600;font-size:clamp(38px,8vw,62px);line-height:1.04;letter-spacing:-.015em;margin:0 0 18px;}
+  .standfirst{font-size:clamp(19px,3.6vw,22px);line-height:1.5;color:var(--ink-soft);max-width:38ch;margin:0 0 26px;font-weight:400;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);letter-spacing:.02em;border-top:1px solid var(--rule);padding-top:16px;margin-top:6px;}
+
+  .ineq{margin:40px 0 8px;padding:26px 24px;background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;
+    font-family:"IBM Plex Mono",monospace;font-size:clamp(15px,3.4vw,19px);text-align:center;line-height:1.9;}
+  .ineq .bite{background:rgba(168,67,43,.12);color:var(--rust);font-weight:600;padding:3px 7px;border-radius:3px;border-bottom:2px solid var(--rust);}
+  .ineq .cap{display:block;font-size:12px;letter-spacing:.04em;color:var(--ink-soft);margin-top:14px;line-height:1.5;}
+
+  section{padding:30px 0;border-top:1px solid var(--rule);}
+  section:first-of-type{border-top:none;}
+  h2{font-weight:600;font-size:clamp(24px,5vw,32px);line-height:1.12;letter-spacing:-.01em;margin:8px 0 14px;}
+  h3{font-weight:600;font-size:19px;margin:26px 0 6px;}
+  h3 .mn{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);letter-spacing:.1em;margin-right:8px;}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin:0 0 4px;}
+  p{margin:0 0 16px;}
+  strong{font-weight:600;}
+  .lead{font-size:20px;}
+  .analogy{border-left:3px solid var(--ochre);padding:4px 0 4px 20px;margin:22px 0;color:var(--ink-soft);font-style:italic;}
+
+  .eq{background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;padding:18px 16px;margin:18px 0;overflow-x:auto;text-align:center;}
+  .eq .lbl{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:12px;}
+
+  figure{margin:28px 0;}
+  .fig-card{background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;padding:20px 18px 12px;}
+  figcaption{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:12px;line-height:1.55;letter-spacing:.01em;}
+  .fig-card svg{display:block;width:100%;height:auto;}
+  mjx-container svg{width:auto;height:auto;display:inline-block;max-width:100%;}
+
+  .note{background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--teal);border-radius:2px;padding:20px 22px;margin:26px 0;}
+  .note .tag{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:8px;}
+  .note p:last-child{margin-bottom:0;}
+
+  /* worked example */
+  .worked{border:1px solid var(--rust);border-radius:2px;margin:26px 0;overflow:hidden;}
+  .worked .wh{background:rgba(168,67,43,.10);padding:14px 20px;border-bottom:1px solid var(--rule);}
+  .worked .wh .t{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);}
+  .worked .wh .h{font-weight:600;font-size:20px;margin-top:3px;}
+  .worked .wb{padding:8px 22px 18px;}
+  .step{padding:16px 0;border-bottom:1px solid var(--rule);}
+  .step:last-child{border-bottom:none;}
+  .step .s{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;}
+  .step p{margin:6px 0 0;}
+  .punch{background:rgba(190,138,44,.14);padding:2px 6px;border-radius:3px;font-weight:600;}
+
+  .plain{list-style:none;padding:0;margin:16px 0;}
+  .plain li{padding:10px 0;border-bottom:1px solid var(--rule);}
+  .plain li:last-child{border-bottom:none;}
+  .plain .term{font-weight:600;}
+  .plain .gloss{color:var(--ink-soft);}
+
+  /* interactive widgets */
+  .widget{border:1px solid var(--rule);border-radius:2px;background:var(--paper-2);padding:20px 22px;margin:24px 0;}
+  .widget .wt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);display:block;margin-bottom:14px;}
+  .widget label{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);display:block;margin:12px 0 6px;}
+  .widget input[type=range]{width:100%;accent-color:var(--rust);height:26px;}
+  .widget input[type=number]{font-family:"IBM Plex Mono",monospace;font-size:15px;width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--paper);color:var(--ink);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr;}}
+  .readout{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+  .readout .r{flex:1 1 110px;background:var(--paper);border:1px solid var(--rule);border-radius:2px;padding:12px 14px;}
+  .readout .r .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);}
+  .readout .r .v{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;color:var(--ink);margin-top:3px;}
+  .readout .r.hot .v{color:var(--rust);}
+  .readout .r.cool .v{color:var(--teal);}
+  .bar{height:14px;border-radius:7px;background:var(--rule);overflow:hidden;margin-top:16px;position:relative;}
+  .bar .fill{height:100%;width:50%;background:var(--rust);transition:width .15s ease,background .15s ease;}
+  .verdict{font-family:"IBM Plex Mono",monospace;font-size:13px;margin-top:14px;color:var(--ink);line-height:1.5;}
+  pre.code{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-left:3px solid var(--teal);border-radius:2px;padding:16px 18px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.6;margin:18px 0;white-space:pre;}
+  pre.code .c{color:var(--teal);}
+  pre.code .k{color:var(--rust);}
+  .callout{border:1px solid var(--rule);border-left:3px solid var(--ochre);background:var(--paper-2);border-radius:2px;padding:20px 22px;margin:24px 0;}
+  .callout .tag{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ochre);display:block;margin-bottom:8px;}
+  .callout p:last-child{margin:0;}
+  .pitfall{border:1px solid var(--rule);border-left:3px solid var(--rust);background:var(--paper-2);border-radius:2px;padding:18px 22px;margin:24px 0;}
+  .pitfall .tag{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);display:block;margin-bottom:10px;}
+  .pitfall ul{margin:0;padding-left:18px;}
+  .pitfall li{margin:8px 0;}
+
+  .refs{font-size:15px;}
+  .refs ol{padding-left:0;list-style:none;counter-reset:r;margin:14px 0 0;}
+  .refs li{counter-increment:r;position:relative;padding:9px 0 9px 38px;border-bottom:1px solid var(--rule);line-height:1.5;color:var(--ink-soft);}
+  .refs li:last-child{border-bottom:none;}
+  .refs li::before{content:counter(r,decimal-leading-zero);position:absolute;left:0;top:9px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+  .refs .t{color:var(--ink);font-weight:500;}
+
+  .cross{display:block;margin:36px 0 8px;padding:22px 24px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;color:var(--ink);background:var(--paper-2);transition:border-color .2s ease, transform .2s ease;}
+  .cross .lab{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);}
+  .cross .ti{display:block;font-size:22px;font-weight:600;margin-top:6px;}
+  .cross .ar{color:var(--rust);}
+  .cross .gloss{color:var(--ink-soft);}
+
+  footer{padding:40px 0 70px;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.02em;border-top:1px solid var(--rule);margin-top:18px;}
+
+  .reveal{opacity:1;}
+  @media (prefers-reduced-motion: no-preference){
+    .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease;}
+    .reveal.in{opacity:1;transform:none;}
+    .cross:hover{border-color:var(--rust);transform:translateY(-2px);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <p class="eyebrow">Agentic AI Notes <span class="seg">/ 01 of 02 / Same vs new data</span></p>
+    <h1>Knowledge<br>Generalization</h1>
+    <p class="standfirst">Did the model learn the underlying pattern, or did it just memorize the answers it was shown?</p>
+    <div class="byline">By Majid Mazouchi</div>
+
+    <div class="ineq">
+      R(h) &le; R&#770;(h) + <span class="bite">complexity / &radic;M</span>
+      <span class="cap">True error on new data is at most your measured error plus a penalty. The highlighted term is the one that bites, and M is the number of <em>truly independent</em> examples, not rows.</span>
+    </div>
+  </header>
+
+  <section>
+    <p class="kicker">The idea in one line</p>
+    <h2>Same task, new examples</h2>
+    <p class="lead">Generalization is about performance on data the model has never seen, drawn from the <strong>same world</strong> it was trained on. It is the gap between how well a model does on its training set and how well it does in the wild.</p>
+    <p>A model that generalizes has captured the real structure of the problem. A model that fails to generalize has memorized its training examples, including their noise, and falls apart the moment something slightly new arrives.</p>
+    <p class="analogy">Think of a student studying for an exam. If they memorize the answers to last year's paper, they ace the practice test and fail the real one. If they learn the concepts, they handle questions they have never seen. Generalization is the difference between those two students.</p>
+  </section>
+
+  <section>
+    <p class="kicker">Why it happens</p>
+    <h2>The tug of war: complexity vs evidence</h2>
+    <p>Every model sits between two failure modes. <strong>Underfitting</strong> means the model is too simple to capture the pattern, so it does poorly everywhere. <strong>Overfitting</strong> means the model is flexible enough to trace every wiggle in the training data, including random noise, so it looks brilliant on what it has seen and stumbles on what it has not.</p>
+    <p>The classic balance is simple to state: a more complex model needs more data to earn its complexity. With too little evidence for too many parameters, the model fills the gaps with noise.</p>
+    <figure>
+      <div class="fig-card">
+        <svg viewBox="0 0 560 300" role="img" aria-label="Training error keeps dropping as model complexity grows, while test error falls then rises, opening a generalization gap.">
+          <line x1="56" y1="20" x2="56" y2="250" stroke="#D8CFBD" stroke-width="1.5"/>
+          <line x1="56" y1="250" x2="528" y2="250" stroke="#D8CFBD" stroke-width="1.5"/>
+          <line x1="232" y1="30" x2="232" y2="250" stroke="#BE8A2C" stroke-width="1.2" stroke-dasharray="4 5"/>
+          <path d="M70,70 C150,140 200,205 300,225 C400,240 470,244 514,246" fill="none" stroke="#1E6E68" stroke-width="3"/>
+          <path d="M70,95 C150,150 210,170 232,172 C300,176 380,150 514,70" fill="none" stroke="#A8432B" stroke-width="3"/>
+          <line x1="430" y1="120" x2="430" y2="244" stroke="#211C16" stroke-width="1.2" stroke-dasharray="2 4"/>
+          <text x="120" y="60" font-family="IBM Plex Mono, monospace" font-size="13" fill="#1E6E68">training error</text>
+          <text x="360" y="58" font-family="IBM Plex Mono, monospace" font-size="13" fill="#A8432B">test error</text>
+          <text x="150" y="278" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5C5346">model complexity &rarr;</text>
+          <text x="238" y="42" font-family="IBM Plex Mono, monospace" font-size="11" fill="#BE8A2C">sweet spot</text>
+          <text x="438" y="190" font-family="IBM Plex Mono, monospace" font-size="11" fill="#211C16">the gap</text>
+          <text x="14" y="140" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5C5346" transform="rotate(-90 22 140)">error</text>
+        </svg>
+      </div>
+      <figcaption>As a model grows more flexible, training error keeps falling. Test error falls at first, then climbs again as the model starts fitting noise. The widening distance between the two curves is the generalization gap.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="kicker">Theory, in more depth</p>
+    <h2>How the gap is actually controlled</h2>
+    <p>Formally, the object of study is the gap between true risk and empirical risk. For a hypothesis \(h\), a loss \(\ell\), and a sample \(S\) of size \(n\) drawn from distribution \(\mathcal{D}\):</p>
+    <div class="eq"><span class="lbl">true risk vs measured risk</span>
+      $$R(h)=\mathbb{E}_{(x,y)\sim\mathcal{D}}\big[\ell(h(x),y)\big],\qquad \hat{R}_S(h)=\tfrac{1}{n}\sum_{i=1}^{n}\ell(h(x_i),y_i)$$
+    </div>
+    <p>Every theory below is a different strategy for bounding \(R(h)-\hat{R}_S(h)\). They differ in what they blame the gap on: the richness of the model class, the algorithm, or the information the model absorbed.</p>
+
+    <h3><span class="mn">A</span>Uniform convergence: Rademacher and VC</h3>
+    <p>The classical route bounds the worst-case gap across the whole hypothesis class \(\mathcal{H}\) at once. Rademacher complexity measures how well the class can fit pure random noise:</p>
+    <div class="eq"><span class="lbl">Rademacher generalization bound</span>
+      $$R(h)\le \hat{R}_S(h) + 2\,\mathfrak{R}_n(\mathcal{H}) + 3\sqrt{\tfrac{\log(2/\delta)}{2n}}\,,\qquad \mathfrak{R}_n(\mathcal{H})=\mathbb{E}_{S,\sigma}\Big[\sup_{h\in\mathcal{H}}\tfrac{1}{n}\textstyle\sum_i \sigma_i h(x_i)\Big]$$
+    </div>
+    <p>VC dimension is the distribution-free combinatorial version, giving bounds that scale like \(\tilde{O}(\sqrt{d_{\mathrm{VC}}/n})\). The weakness is built in: a supremum over all of \(\mathcal{H}\) is driven by the most pathological hypothesis, so for heavily overparameterized models these bounds become vacuous.</p>
+
+    <h3><span class="mn">B</span>Margin bounds</h3>
+    <p>Margin bounds partly rescue this by rewarding classifiers that separate the data with confidence. The effective complexity becomes the margin-normalized norm of the weights rather than the raw parameter count. For deep networks, spectrally-normalized margin bounds scale with the product of the layer spectral norms divided by the margin, which is why a very large network can still generalize if it separates cleanly with a wide margin.</p>
+
+    <h3><span class="mn">C</span>PAC-Bayes: the most useful modern lens</h3>
+    <p>Instead of one hypothesis, bound the expected risk of a whole distribution \(Q\) over hypotheses, relative to a data-independent prior \(P\) chosen before seeing the data:</p>
+    <div class="eq"><span class="lbl">PAC-Bayes bound</span>
+      $$\mathbb{E}_{h\sim Q}\big[R(h)\big]\le \mathbb{E}_{h\sim Q}\big[\hat{R}_S(h)\big] + \sqrt{\tfrac{\mathrm{KL}(Q\,\|\,P)+\log(n/\delta)}{2(n-1)}}$$
+    </div>
+    <p>This produces the only non-vacuous bounds known for deep networks. The \(\mathrm{KL}\) term measures how far training had to move from the prior, so it connects directly to flat minima: a solution that tolerates weight perturbation needs a smaller \(\mathrm{KL}\), hence a tighter bound. <strong>Practical reading: flatter solutions generalize better.</strong></p>
+
+    <h3><span class="mn">D</span>Algorithmic stability and information</h3>
+    <p>Stability sidesteps the class entirely and asks about the algorithm. If swapping one training point barely changes the output hypothesis (uniform stability \(\beta\)), the gap is \(O(\beta + 1/\sqrt{n})\). This is how stochastic gradient descent earns its generalization: small steps for not-too-many iterations. The information-theoretic view is a cousin: the gap is controlled by the mutual information \(I(S;h)\) between the training set and the learned model, so memorization is penalized literally as information leakage.</p>
+  </section>
+
+  <section>
+    <p class="kicker">The modern puzzle</p>
+    <h2>When fitting everything still works</h2>
+    <p>Classical theory predicts the tidy U-shaped curve above. Reality is stranger. Very large models can fit their training data perfectly, even fit random labels, and <strong>still</strong> generalize. The U-curve extends into a second descent.</p>
+    <div class="widget" id="ddWidget">
+      <span class="wt">Interactive &middot; drag through the double descent</span>
+      <div class="fig-card" style="padding:14px 12px 6px;">
+        <svg viewBox="0 0 560 240" role="img" aria-label="Interactive double descent curve with a movable capacity marker.">
+          <line x1="56" y1="18" x2="56" y2="196" stroke="#D8CFBD" stroke-width="1.5"/>
+          <line x1="56" y1="196" x2="528" y2="196" stroke="#D8CFBD" stroke-width="1.5"/>
+          <line x1="296" y1="26" x2="296" y2="196" stroke="#BE8A2C" stroke-width="1.2" stroke-dasharray="4 5"/>
+          <text x="252" y="38" font-family="IBM Plex Mono, monospace" font-size="11" fill="#BE8A2C">interpolation</text>
+          <polyline id="ddTrain" fill="none" stroke="#1E6E68" stroke-width="2.5" points=""/>
+          <polyline id="ddTest" fill="none" stroke="#A8432B" stroke-width="2.5" points=""/>
+          <line id="ddMark" x1="120" y1="20" x2="120" y2="196" stroke="#211C16" stroke-width="1.2" stroke-dasharray="2 4"/>
+          <circle id="ddDotTe" cx="120" cy="100" r="4.5" fill="#A8432B"/>
+          <circle id="ddDotTr" cx="120" cy="150" r="4.5" fill="#1E6E68"/>
+          <text x="64" y="30" font-family="IBM Plex Mono, monospace" font-size="11" fill="#A8432B">test</text>
+          <text x="64" y="186" font-family="IBM Plex Mono, monospace" font-size="11" fill="#1E6E68">train</text>
+          <text x="150" y="224" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5C5346">model capacity &rarr;</text>
+          <text x="14" y="118" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5C5346" transform="rotate(-90 22 118)">error</text>
+        </svg>
+      </div>
+      <label for="ddCap">Capacity: <span id="ddCapVal">25</span></label>
+      <input type="range" id="ddCap" min="2" max="100" value="25" step="1">
+      <div class="readout">
+        <div class="r cool"><div class="k">train error</div><div class="v" id="ddTr">&ndash;</div></div>
+        <div class="r hot"><div class="k">test error</div><div class="v" id="ddTe">&ndash;</div></div>
+        <div class="r"><div class="k">gap</div><div class="v" id="ddGap">&ndash;</div></div>
+      </div>
+      <div class="verdict" id="ddVerdict"></div>
+    </div>
+    <p>No single explanation covers it. The contributing pieces: the <strong>implicit regularization</strong> of gradient descent, which drifts toward minimum-norm or maximum-margin solutions; the <strong>inductive bias</strong> of the architecture itself; and <strong>benign overfitting</strong>, where high-dimensional structure lets a model absorb noise without being hurt by it. The honest summary is that we have several partial accounts and no unified theory.</p>
+  </section>
+
+  <section>
+    <p class="kicker">The levers</p>
+    <h2>What you can actually control</h2>
+    <ul class="plain">
+      <li><span class="term">More independent data.</span> <span class="gloss">The most reliable cure. It shrinks every penalty term directly, through the \(1/\sqrt{n}\) that appears in all of them.</span></li>
+      <li><span class="term">Constrained models.</span> <span class="gloss">Regularization, norm limits, and early stopping keep a flexible model from chasing noise, tightening the margin and PAC-Bayes terms.</span></li>
+      <li><span class="term">Flatter solutions.</span> <span class="gloss">Weight-noise tolerance lowers the KL term, the practical reading of flat-minima and stability arguments.</span></li>
+      <li><span class="term">Honest evaluation.</span> <span class="gloss">A held-out set that truly resembles deployment is the only way to measure the gap rather than hide it. This is where the next section earns its place.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker">Worked example &middot; Vehicle Health Management</p>
+    <h2>Count vehicles, not snapshots</h2>
+    <p>Predict remaining useful life from condition-monitoring features (vibration RMS, bearing temperature, current-signature harmonics). The regressor uses a clipped absolute-error loss \(\ell(f(x),y)=\min(|f(x)-y|,B)\), with horizon cap \(B=1000\) cycles. For a feature map with \(\|\phi(x)\|\le R_\phi\) and a norm-bounded head \(\|w\|\le W\), the per-unit complexity is \(\mathfrak{R}_M(\mathcal{F})\le R_\phi W/\sqrt{M}\), and the bound reads:</p>
+    <div class="eq"><span class="lbl">RUL generalization bound</span>
+      $$R(f)\le \hat{R}(f) + 2L\,\mathfrak{R}_M(\mathcal{F}) + 3B\sqrt{\tfrac{\log(2/\delta)}{2\,\color{#A8432B}{M}}}$$
+    </div>
+
+    <div class="worked">
+      <div class="wh"><span class="t">The trap and the correction</span><span class="h">A factor of 22 hiding in plain sight</span></div>
+      <div class="wb">
+        <div class="step">
+          <span class="s">The setup</span>
+          <p>200 vehicles run to failure, each logging about 500 sensor snapshots. That is \(N\approx 10^5\) training rows. The tempting move is to plug \(n=N=10^5\) into the bound.</p>
+        </div>
+        <div class="step">
+          <span class="s">Naive number</span>
+          <p>With \(\delta=0.05\), the confidence term scales like \(\sqrt{\log(2/\delta)/(2N)}\approx 0.004\). Times the cap that is <span class="punch">a few cycles</span>. It looks fantastic.</p>
+        </div>
+        <div class="step">
+          <span class="s">Why it is wrong</span>
+          <p>The 500 snapshots inside one vehicle's degradation trajectory are heavily correlated, and the label is a deterministic countdown along that trajectory. The exchangeable unit is the <strong>vehicle</strong>, not the row. The honest sample size is \(M=200\), not \(10^5\).</p>
+        </div>
+        <div class="step">
+          <span class="s">Honest number</span>
+          <p>With \(M=200\), the same term is \(\sqrt{\log(2/\delta)/(2M)}\approx 0.10\), on the order of <span class="punch">100 cycles</span>. The ratio is exactly \(\sqrt{N/M}=\sqrt{500}\approx 22\). That is the entire price of pretending correlated rows are independent.</p>
+        </div>
+        <div class="step">
+          <span class="s">Censoring tightens it further</span>
+          <p>A live fleet is mostly still running, so RUL labels are right-censored. The evidence that constrains the failure tail is closer to the number of observed failure <em>events</em>. If only 60 of 200 vehicles have failed, the effective \(M\approx 60\) and the term climbs to \(\approx 0.16\). Survival-aware losses (a Cox partial likelihood, or a censoring-weighted pinball loss) keep censored vehicles contributing instead of being dropped.</p>
+        </div>
+        <div class="step">
+          <span class="s">The takeaway</span>
+          <p>This is why a model can look excellent offline and disappoint on a brand-new vehicle. The fix at evaluation time is the same lesson the bound teaches: cross-validate by leaving out whole <strong>vehicles</strong>, never individual rows. And by the PAC-Bayes reading, a flatter, weight-noise-tolerant RUL head carries across model years more gracefully than a sharply fit one.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget" id="rulWidget">
+      <span class="wt">Calculator &middot; count vehicles, not snapshots</span>
+      <div class="grid2">
+        <div><label for="rulM">Independent vehicles (M)</label><input type="number" id="rulM" value="200" min="2" step="1"></div>
+        <div><label for="rulS">Snapshots per vehicle</label><input type="number" id="rulS" value="500" min="1" step="1"></div>
+      </div>
+      <label for="rulDelta">Confidence: 1 &minus; &delta; = <span id="rulConf">95</span>%</label>
+      <input type="range" id="rulDelta" min="80" max="99" value="95" step="1">
+      <div class="readout">
+        <div class="r cool"><div class="k">naive term (N rows)</div><div class="v" id="rulNaive">&ndash;</div></div>
+        <div class="r hot"><div class="k">honest term (M units)</div><div class="v" id="rulHonest">&ndash;</div></div>
+        <div class="r"><div class="k">optimism factor</div><div class="v" id="rulRatio">&ndash;</div></div>
+      </div>
+      <div class="verdict" id="rulVerdict"></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">Measure it in practice</p>
+    <h2>Probe the gap the honest way</h2>
+    <p>Theory says the gap is governed by independent evidence. The practical translation is one rule: <strong>split by the unit that varies, not by the row</strong>. For fleet models that unit is the vehicle. Grouped cross-validation produces an estimate whose spread reflects vehicle-to-vehicle variation, which is the variation deployment will actually see.</p>
+    <pre class="code"><span class="k">from</span> sklearn.model_selection <span class="k">import</span> GroupKFold
+<span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="c"># X: features   y: RUL labels   vehicle_id: one group label per row</span>
+gkf = GroupKFold(n_splits=5)
+errs = []
+<span class="k">for</span> tr, te <span class="k">in</span> gkf.split(X, y, groups=vehicle_id):
+    model.fit(X[tr], y[tr])
+    pred = model.predict(X[te])
+    errs.append(np.mean(np.abs(pred - y[te])))
+
+<span class="c"># spread across folds reflects vehicle-to-vehicle variation</span>
+print(np.mean(errs), np.std(errs))</pre>
+    <p>The standard deviation across folds is the honest error bar. If it is large, the model has learned vehicle-specific quirks rather than the shared degradation physics.</p>
+    <div class="pitfall">
+      <span class="tag">Common ways the gap hides</span>
+      <ul>
+        <li><strong>Row-level cross-validation.</strong> Random row splits leak the same vehicle into both train and test, so the score measures memorization rather than generalization.</li>
+        <li><strong>Target leakage.</strong> A feature that quietly uses future information, such as a smoothed signal that peeks past the cut point, inflates offline accuracy and then vanishes in deployment.</li>
+        <li><strong>Drift hidden by the split.</strong> Training and testing inside one model year conceals the shift the next model year will bring.</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <span class="tag">In agent systems</span>
+      <p>The same idea governs an agent's reliability. A tool-use policy that scores well on the traces it was tuned on may have simply memorized those tasks. The honest probe is to hold out whole <em>task families</em>, not individual steps, the agentic analogue of leaving out whole vehicles. A policy that survives unseen task families has learned the skill rather than the script.</p>
+    </div>
+  </section>
+
+  <section class="refs">
+    <p class="kicker">References</p>
+    <h2>Where to read more</h2>
+    <ol>
+      <li><span class="t">Shalev-Shwartz &amp; Ben-David (2014).</span> Understanding Machine Learning: From Theory to Algorithms. PAC learning, VC dimension, Rademacher complexity.</li>
+      <li><span class="t">Bartlett, Foster &amp; Telgarsky (2017).</span> Spectrally-normalized margin bounds for neural networks. NeurIPS.</li>
+      <li><span class="t">Dziugaite &amp; Roy (2017).</span> Computing nonvacuous generalization bounds for deep networks. UAI. The first meaningful PAC-Bayes bounds for deep nets.</li>
+      <li><span class="t">Hardt, Recht &amp; Singer (2016).</span> Train faster, generalize better: stability of SGD. ICML.</li>
+      <li><span class="t">Xu &amp; Raginsky (2017).</span> Information-theoretic analysis of generalization capability of learning algorithms. NeurIPS.</li>
+      <li><span class="t">Zhang, Bengio, Hardt, Recht &amp; Vinyals (2017).</span> Understanding deep learning requires rethinking generalization. ICLR.</li>
+      <li><span class="t">Belkin, Hsu, Ma &amp; Mandal (2019).</span> Reconciling modern machine-learning practice and the bias-variance trade-off. PNAS. Double descent.</li>
+      <li><span class="t">Bartlett, Long, Lugosi &amp; Tsigler (2020).</span> Benign overfitting in linear regression. PNAS.</li>
+    </ol>
+  </section>
+
+  <a class="cross" href="knowledge-transfer.html">
+    <span class="lab">Companion page &middot; 02 of 02</span>
+    <span class="ti">Knowledge Transfer <span class="ar">&rarr;</span></span>
+    <span class="gloss">The same inequality with one extra term: what happens when the new data comes from a different world.</span>
+  </a>
+
+  <footer><a href="generalization-and-transfer.html" style="color:var(--rust);text-decoration:none;">&larr; Field guide hub</a> &middot; Agentic AI Notes &middot; Knowledge Generalization &middot; warm paper, no dark mode for reliable rendering</footer>
+
+</div>
+<script>
+  (function(){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: no-preference)').matches){
+      document.querySelectorAll('section, .ineq, .cross').forEach(function(el){el.classList.add('reveal');});
+      var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.10});
+      document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+    }
+  })();
+</script>
+<script>
+(function(){
+  var cap=document.getElementById('ddCap');
+  if(cap){
+    var XL=60,XR=520,YB=196,YT=20,EMAX=0.8,CMIN=2,CMAX=100;
+    function xPx(c){return XL+(c-CMIN)/(CMAX-CMIN)*(XR-XL);}
+    function yPx(e){var y=YB-(e/EMAX)*(YB-YT);return Math.max(YT,Math.min(YB,y));}
+    function train(c){return 0.6*Math.exp(-c/18);}
+    function test(c){return (0.12+0.10*Math.exp(-c/40))+0.5*Math.exp(-c/12)+0.55*Math.exp(-Math.pow(c-50,2)/72);}
+    var tr=[],te=[];
+    for(var c=CMIN;c<=CMAX;c++){tr.push(xPx(c).toFixed(1)+','+yPx(train(c)).toFixed(1));te.push(xPx(c).toFixed(1)+','+yPx(test(c)).toFixed(1));}
+    document.getElementById('ddTrain').setAttribute('points',tr.join(' '));
+    document.getElementById('ddTest').setAttribute('points',te.join(' '));
+    function upd(){
+      var c=+cap.value,t=train(c),e=test(c),g=e-t,x=xPx(c);
+      document.getElementById('ddCapVal').textContent=c;
+      document.getElementById('ddTr').textContent=t.toFixed(2);
+      document.getElementById('ddTe').textContent=e.toFixed(2);
+      document.getElementById('ddGap').textContent=g.toFixed(2);
+      var m=document.getElementById('ddMark');m.setAttribute('x1',x);m.setAttribute('x2',x);
+      var a=document.getElementById('ddDotTe'),b=document.getElementById('ddDotTr');
+      a.setAttribute('cx',x);a.setAttribute('cy',yPx(e));b.setAttribute('cx',x);b.setAttribute('cy',yPx(t));
+      var v;
+      if(c<28)v='Underfitting. The model is too simple, so train and test error are both high.';
+      else if(c<46)v='Classical sweet spot. Lowest test error, just before the interpolation peak.';
+      else if(c<=56)v='Interpolation threshold. Test error peaks here as the model becomes just big enough to fit everything. The worst place to stop.';
+      else v='Overparameterized. Second descent: test error falls again, often below the classical minimum.';
+      document.getElementById('ddVerdict').textContent=v;
+    }
+    cap.addEventListener('input',upd);upd();
+  }
+  var rm=document.getElementById('rulM');
+  if(rm){
+    var rs=document.getElementById('rulS'),rd=document.getElementById('rulDelta'),B=1000;
+    function rupd(){
+      var M=Math.max(2,+rm.value||2),s=Math.max(1,+rs.value||1),conf=+rd.value,delta=(100-conf)/100;
+      var N=M*s,L=Math.log(2/delta),naive=Math.sqrt(L/(2*N)),honest=Math.sqrt(L/(2*M)),ratio=honest/naive;
+      document.getElementById('rulConf').textContent=conf;
+      document.getElementById('rulNaive').textContent=naive.toFixed(3);
+      document.getElementById('rulHonest').textContent=honest.toFixed(3);
+      document.getElementById('rulRatio').textContent='\u00d7'+ratio.toFixed(0);
+      document.getElementById('rulVerdict').textContent='With a '+B+'-cycle horizon, that is roughly '+Math.round(naive*B)+' cycles (naive) versus '+Math.round(honest*B)+' cycles (honest). Independent evidence is M = '+M+' vehicles, not N = '+N.toLocaleString()+' rows. Constants folded; order of magnitude.';
+    }
+    [rm,rs,rd].forEach(function(el){el.addEventListener('input',rupd);});rupd();
+  }
+})();
+</script>
+</body>
+</html>
