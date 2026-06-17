@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imitation Learning — Learning by Watching</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F0E6;--paper-2:#EDE7D8;--ink:#211E1A;--ink-soft:#4A453C;--rule:#cdc4b0;
+    --expert:#1F6F6B;--learner:#2B4C7E;--drift:#B5482E;--amber:#C8893A;--maxw:760px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:19px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  header.hero{padding:80px 24px 40px;border-bottom:1px solid var(--rule)}
+  .hero-inner{max-width:var(--maxw);margin:0 auto}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--expert);margin:0 0 22px}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(38px,7vw,64px);
+    line-height:1.04;letter-spacing:-.015em;margin:0 0 18px}
+  h1 em{font-style:italic;color:var(--expert)}
+  .standfirst{font-size:clamp(20px,3vw,23px);color:var(--ink-soft);margin:0 0 26px;max-width:600px}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.04em;
+    color:var(--ink-soft);border-top:1px solid var(--rule);padding-top:16px;display:inline-block}
+
+  .toc{max-width:var(--maxw);margin:30px auto 0;padding:0 24px}
+  .toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;
+    gap:2px 24px;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+  .toc a{color:var(--ink-soft);text-decoration:none;padding:4px 0;display:block}
+  .toc a:hover{color:var(--expert)}
+  .toc .n{color:var(--amber);margin-right:8px}
+
+  section{padding:54px 0}
+  section + section{border-top:1px solid var(--rule)}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(27px,4.5vw,36px);
+    line-height:1.12;letter-spacing:-.01em;margin:0 0 8px}
+  h2 .num{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--amber);
+    display:block;letter-spacing:.2em;margin-bottom:12px;font-weight:500}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin:36px 0 6px}
+  p{margin:0 0 18px}
+  a{color:var(--learner);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+  .lead{font-size:21px}
+  strong{font-weight:600}
+  em.term{font-style:italic;color:var(--expert);font-weight:500}
+  ul{margin:0 0 18px;padding-left:22px}
+  ul li{margin-bottom:8px}
+
+  .aside{background:var(--paper-2);border-left:3px solid var(--amber);
+    padding:18px 22px;margin:28px 0;border-radius:0 4px 4px 0;font-size:17.5px}
+  .aside .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--amber);display:block;margin-bottom:8px}
+
+  .mathbox{background:#eae3d2;border:1px solid var(--rule);border-radius:8px;padding:22px 24px;margin:28px 0}
+  .mathbox .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--expert);display:block;margin-bottom:12px}
+  .formula{font-family:"IBM Plex Mono",monospace;background:#fbf9f2;border:1px solid var(--rule);
+    border-radius:6px;padding:16px;margin:12px 0;text-align:center;font-size:16px;line-height:2}
+  .formula .big{font-size:19px}.formula sub{font-size:.66em}.formula sup{font-size:.66em}
+  .formula .bc{color:var(--drift);font-weight:600}.formula .dg{color:var(--expert);font-weight:600}
+  .mathbox p{font-size:16.5px;margin:14px 0 0}
+
+  figure{margin:34px 0;border:1px solid var(--rule);border-radius:8px;background:#fbf9f2;overflow:hidden}
+  figure .figbody{padding:20px}
+  figcaption{font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.55;
+    color:var(--ink-soft);padding:14px 20px;border-top:1px solid var(--rule);background:var(--paper-2)}
+  figcaption b{color:var(--ink);font-weight:600}
+  svg{display:block;width:100%;height:auto}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+  button.ctl{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.02em;
+    background:var(--paper);border:1.5px solid var(--ink);color:var(--ink);
+    padding:9px 15px;border-radius:6px;cursor:pointer;transition:all .15s}
+  button.ctl:hover{background:var(--ink);color:var(--paper)}
+  button.ctl.active{background:var(--expert);border-color:var(--expert);color:#fff}
+  button.ctl:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+  .slider-row{display:flex;align-items:center;gap:12px;margin-top:14px;
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft)}
+  input[type=range]{flex:1;accent-color:var(--learner)}
+  input[type=range]:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);
+    margin-top:12px;display:flex;flex-wrap:wrap;gap:18px}
+  .readout b{color:var(--ink)}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:14px;height:4px;border-radius:2px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:1fr;gap:0;margin:28px 0;
+    border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .card{padding:22px 24px}
+  .card + .card{border-top:1px solid var(--rule)}
+  .card .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--learner);margin-bottom:4px}
+  .card.warn .tag{color:var(--drift)}
+  .card.scale .tag{color:var(--amber)}
+  .card h3{margin:0 0 8px;font-size:21px}
+  .card p{font-size:17px;margin:0}
+  .card .meta{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-soft);
+    margin-top:12px;padding-top:12px;border-top:1px dashed var(--rule)}
+
+  .notes{list-style:none;padding:0;margin:24px 0;counter-reset:n}
+  .notes li{position:relative;padding:14px 0 14px 46px;border-bottom:1px solid var(--rule)}
+  .notes li:before{counter-increment:n;content:counter(n,decimal-leading-zero);
+    position:absolute;left:0;top:15px;font-family:"IBM Plex Mono",monospace;font-size:13px;
+    color:var(--amber);font-weight:600}
+  .notes li b{font-weight:600}
+
+  .refs{list-style:none;padding:0;margin:14px 0;counter-reset:r}
+  .refs li{position:relative;padding:12px 0 12px 40px;font-size:16px;line-height:1.55;border-bottom:1px solid var(--rule)}
+  .refs li:before{counter-increment:r;content:"["counter(r)"]";position:absolute;left:0;top:13px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft)}
+  .refs em{font-style:italic}
+  .subhead{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--expert);margin:26px 0 4px}
+
+  .ttable{width:100%;border-collapse:collapse;margin:24px 0;font-size:16px}
+  .ttable th,.ttable td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+  .ttable th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+  .ttable td:first-child{font-weight:600;white-space:nowrap}
+  .ttable .yes{color:var(--expert);font-weight:600}.ttable .no{color:var(--drift);font-weight:600}
+
+  .glossary{border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin:24px 0}
+  .glossary .row{padding:13px 18px;display:grid;grid-template-columns:190px 1fr;gap:16px}
+  .glossary .row + .row{border-top:1px solid var(--rule)}
+  .glossary .term{font-family:"Fraunces",serif;font-weight:600;font-size:17px}
+  .glossary .def{font-size:15.5px;color:var(--ink-soft);line-height:1.5}
+
+  footer{padding:50px 24px 70px;border-top:1px solid var(--rule);text-align:center}
+  footer .byline{border:none;padding:0}
+
+  @media (max-width:560px){
+    body{font-size:18px}header.hero{padding:54px 20px 32px}section{padding:42px 0}
+    .toc ol{grid-template-columns:1fr}.glossary .row{grid-template-columns:1fr;gap:4px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--expert);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <p class="eyebrow">Learning from demonstration · A field guide</p>
+    <h1>Imitation Learning:<br><em>learning by watching</em></h1>
+    <p class="standfirst">How a machine can pick up a skill the same way an apprentice does — by copying a good demonstrator — and why naive copying quietly falls apart.</p>
+    <span class="byline">By Majid Mazouchi</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#s1"><span class="n">01</span>Show, don't reward</a></li>
+    <li><a href="#s2"><span class="n">02</span>When copying beats rewarding</a></li>
+    <li><a href="#s3"><span class="n">03</span>The pipeline</a></li>
+    <li><a href="#s4"><span class="n">04</span>Small mistakes snowball</a></li>
+    <li><a href="#s5"><span class="n">05</span>The classic toolkit</a></li>
+    <li><a href="#s6"><span class="n">06</span>Modern imitation at scale</a></li>
+    <li><a href="#s7"><span class="n">07</span>Beyond action-copying</a></li>
+    <li><a href="#s8"><span class="n">08</span>Imitation vs. RL vs. offline RL</a></li>
+    <li><a href="#s9"><span class="n">09</span>Where it shows up</a></li>
+    <li><a href="#s10"><span class="n">10</span>Case study: a slow optimum</a></li>
+    <li><a href="#s11"><span class="n">11</span>How imitation goes wrong</a></li>
+    <li><a href="#s12"><span class="n">12</span>Which method when</a></li>
+    <li><a href="#s13"><span class="n">13</span>Practical notes</a></li>
+    <li><a href="#s14"><span class="n">14</span>Key terms</a></li>
+    <li><a href="#s15"><span class="n">15</span>References</a></li>
+  </ol>
+</nav>
+
+<main class="wrap">
+
+<!-- 01 -->
+<section id="s1">
+  <h2><span class="num">01 / THE IDEA</span>Show, don't reward</h2>
+  <p class="lead">Imagine teaching someone to drive. You could hand them a rulebook and a points system — <em class="term">+1 for staying in the lane, −10 for hitting a curb</em> — and let them crash their way to competence. Or you could sit them in the passenger seat, let them watch you drive for a few hours, and ask them to mimic what you did.</p>
+  <p>That second approach is <strong>imitation learning</strong> (also called <em class="term">learning from demonstration</em>). Instead of discovering good behavior through trial and error against a reward signal — the way reinforcement learning does — the agent learns a <em class="term">policy</em> directly from examples of an expert doing the task well.</p>
+  <p>The expert provides demonstrations: a stream of <strong>situations and the actions taken in them</strong>. The agent's job is to learn the mapping <em class="term">situation&nbsp;→&nbsp;action</em> so that when it meets a new situation, it acts the way the expert would have.</p>
+  <div class="aside">
+    <span class="lbl">The one-sentence version</span>
+    Imitation learning turns "an expert's behavior" into training data, and learning a skill into a prediction problem: given what I see, predict what the expert would do.
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="s2">
+  <h2><span class="num">02 / WHY BOTHER</span>When copying beats rewarding</h2>
+  <p>Reinforcement learning is powerful, but it has two stubborn costs: you need a <strong>reward function</strong> that actually captures what you want, and you need <strong>enormous amounts of trial and error</strong>, much of it catastrophic. For a real robot or a real car, crashing ten thousand times to learn what "good" means is not an option.</p>
+  <p>Imitation learning sidesteps both problems when a competent demonstrator already exists:</p>
+  <ul>
+    <li><strong>No reward engineering.</strong> "Drive like this human did" is far easier to provide than a hand-crafted score that balances safety, comfort, speed, and lane discipline without loopholes.</li>
+    <li><strong>Safe, sample-efficient.</strong> The agent learns from successful behavior instead of discovering it by failing repeatedly.</li>
+    <li><strong>Captures the unspoken.</strong> Good demonstrations encode subtle preferences — smoothness, caution near pedestrians — that are painful to write down as rules.</li>
+  </ul>
+  <p>The flip side: the learner can only be as good as its demonstrations, and — as we'll see — copying has a failure mode that is easy to miss and hard to fix.</p>
+</section>
+
+<!-- 03 -->
+<section id="s3">
+  <h2><span class="num">03 / THE LOOP</span>What the pipeline looks like</h2>
+  <p>The simplest form of imitation learning, <strong>behavioral cloning</strong>, is just supervised learning. Collect a dataset of (situation, expert action) pairs, then fit a model that predicts the action from the situation — exactly like training an image classifier, where the "label" happens to be a steering angle.</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 220" role="img" aria-label="Block diagram of the behavioral cloning pipeline">
+        <defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4A453C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="12.5" fill="#211E1A" text-anchor="middle">
+          <rect x="14" y="74" width="128" height="72" rx="8" fill="#fff" stroke="#1F6F6B" stroke-width="2"/>
+          <text x="78" y="103" font-weight="600">Expert</text><text x="78" y="121" fill="#4A453C" font-size="11">demonstrates</text>
+          <rect x="190" y="74" width="140" height="72" rx="8" fill="#fff" stroke="#cdc4b0" stroke-width="1.5"/>
+          <text x="260" y="100" font-weight="600">Dataset</text><text x="260" y="118" fill="#4A453C" font-size="11">(state, action)</text><text x="260" y="133" fill="#4A453C" font-size="11">pairs</text>
+          <rect x="378" y="74" width="140" height="72" rx="8" fill="#fff" stroke="#2B4C7E" stroke-width="2"/>
+          <text x="448" y="100" font-weight="600">Learn policy</text><text x="448" y="118" fill="#4A453C" font-size="11">supervised</text><text x="448" y="133" fill="#4A453C" font-size="11">fit s → a</text>
+          <rect x="566" y="74" width="140" height="72" rx="8" fill="#fff" stroke="#C8893A" stroke-width="2"/>
+          <text x="636" y="100" font-weight="600">Deploy</text><text x="636" y="118" fill="#4A453C" font-size="11">act in the</text><text x="636" y="133" fill="#4A453C" font-size="11">real world</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.6" fill="none" marker-end="url(#arr)">
+          <line x1="142" y1="110" x2="186" y2="110"/><line x1="330" y1="110" x2="374" y2="110"/><line x1="518" y1="110" x2="562" y2="110"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1.</b> Behavioral cloning treats imitation as plain supervised learning: the expert's demonstrations become a labelled dataset, a model is fit to it, and the model is then deployed as the policy.</figcaption>
+  </figure>
+  <p>It is appealingly simple. The problem is that the world the policy is deployed into doesn't sit still and wait for it — and that's where the trouble starts.</p>
+</section>
+
+<!-- 04 -->
+<section id="s4">
+  <h2><span class="num">04 / THE CATCH</span>Small mistakes snowball</h2>
+  <p>Here is the central insight of imitation learning, and the reason it's more than "just supervised learning." The expert only ever demonstrated <strong>good states</strong> — a car driven by a careful human stays near the centerline, so the training data is full of centered situations and almost empty of "drifting toward the curb" situations.</p>
+  <p>Now the learned policy makes a tiny error and drifts slightly off-center. It is now in a situation the expert rarely visited, so the policy is guessing. It makes a bigger error. It drifts further into even less familiar territory. Errors <strong>compound</strong>, and the car wanders off the road. Researchers call this <em class="term">covariate shift</em>: the distribution of states the policy actually encounters drifts away from the distribution it was trained on.</p>
+  <figure>
+    <div class="figbody">
+      <canvas id="driftCanvas" width="680" height="260" style="width:100%;height:auto;border-radius:6px" role="img" aria-label="Animated simulation of cars driving down a winding road"></canvas>
+      <div class="controls">
+        <button class="ctl active" data-mode="bc" id="btnBC">Behavioral cloning</button>
+        <button class="ctl" data-mode="dagger" id="btnDAg">DAgger (with corrections)</button>
+        <button class="ctl" id="btnReset">↺ Reset run</button>
+      </div>
+      <div class="slider-row"><label for="noise">Per-step noise</label><input type="range" id="noise" min="0" max="100" value="40"><span id="noiseVal">0.40</span></div>
+      <div class="legend">
+        <span><i class="dot" style="background:#1F6F6B"></i>Expert centerline</span>
+        <span><i class="dot" style="background:#2B4C7E"></i>Learned policy</span>
+        <span><i class="dot" style="background:#B5482E"></i>Drifted / off-distribution</span>
+        <span><i class="dot" style="background:rgba(31,111,107,.18);height:12px;border-radius:3px"></i>States the expert visited</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 2 — interactive.</b> The shaded band is where the expert demonstrated. In <b>behavioral cloning</b>, a small steering error pushes the policy outside that band, where it has no good training data, so corrections weaken and the car spirals off the road. Switch to <b>DAgger</b> and the expert also labels those off-center situations, so the policy keeps correcting. Drag the noise slider to make mistakes larger.</figcaption>
+  </figure>
+  <div class="mathbox">
+    <span class="lbl">Why the errors grow — the bound</span>
+    <p style="margin-top:0">Suppose the policy disagrees with the expert with probability <span style="font-family:'IBM Plex Mono',monospace">ε</span> at any single step, over an episode of length <span style="font-family:'IBM Plex Mono',monospace">T</span>. Because one mistake leads to an unfamiliar state that causes the next mistake, the expected extra cost does not stay proportional to <span style="font-family:'IBM Plex Mono',monospace">ε</span>:</p>
+    <div class="formula"><span class="big">behavioral cloning:&nbsp; cost grows like <span class="bc">O(ε·T<sup>2</sup>)</span></span><br><span class="big">DAgger:&nbsp; cost grows like <span class="dg">O(ε·T)</span></span></div>
+    <p>The quadratic term is the whole story: double the episode length and behavioral cloning's worst-case cost roughly <em>quadruples</em>, while DAgger's only doubles. DAgger earns that better scaling by training on the states the policy itself visits (Ross, Gordon &amp; Bagnell, 2011).</p>
+  </div>
+  <h3>Seeing covariate shift directly</h3>
+  <p>The same idea has a cleaner statistical picture. Training data is drawn from the states the <em>expert</em> visits. At deployment, the policy faces the states <em>it</em> visits — and the more it errs, the further that distribution slides away. Where the two stop overlapping, the policy is operating with no relevant training data at all.</p>
+  <figure>
+    <div class="figbody">
+      <canvas id="covCanvas" width="680" height="240" style="width:100%;height:auto;border-radius:6px" role="img" aria-label="Two overlapping distributions that separate as policy error increases"></canvas>
+      <div class="slider-row"><label for="shift">Policy error</label><input type="range" id="shift" min="0" max="100" value="25"><span id="shiftVal">low</span></div>
+      <div class="readout"><span>Distribution overlap: <b id="overlapVal">—</b></span><span style="color:var(--drift)">Out-of-distribution mass: <b id="oodVal">—</b></span></div>
+      <div class="legend">
+        <span><i class="dot" style="background:#1F6F6B;height:10px;border-radius:3px"></i>Training states (expert)</span>
+        <span><i class="dot" style="background:#2B4C7E;height:10px;border-radius:3px"></i>Deployment states (policy)</span>
+        <span><i class="dot" style="background:rgba(181,72,46,.35);height:10px;border-radius:3px"></i>No training data here</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 3 — interactive.</b> The training distribution (teal) and the distribution the policy actually meets (blue). Raise the policy error and the deployment distribution drifts and spreads, the overlap shrinks, and the rust region — states the policy must handle but was never trained on — grows.</figcaption>
+  </figure>
+</section>
+
+<!-- 05 -->
+<section id="s5">
+  <h2><span class="num">05 / THE TOOLKIT</span>The classic toolkit</h2>
+  <p>The field's foundational methods split into two big ideas: <strong>copy the actions directly</strong>, or <strong>infer what the expert was trying to achieve</strong> and then optimize for that.</p>
+  <div class="cards">
+    <div class="card"><div class="tag">Copy the actions</div><h3>Behavioral Cloning (BC)</h3>
+      <p>Fit a model to predict the expert's action from the current state. Fast, simple, offline. Suffers from the compounding-error problem in Figure 2 because it never sees its own mistakes.</p>
+      <div class="meta">Best when: demonstrations are plentiful, episodes are short, recovery is easy. → Pomerleau's ALVINN drove a van this way in 1989.</div></div>
+    <div class="card"><div class="tag">Copy + let the expert correct you</div><h3>DAgger (Dataset Aggregation)</h3>
+      <p>Run the current (imperfect) policy, collect the states <em>it</em> visits, and ask the expert what to do in those states. Add the answers to the dataset and retrain — deliberately gathering data on the policy's own mistakes.</p>
+      <div class="meta">Cost: the expert must stay "in the loop." Best when: an expert (human or planner) can be queried online.</div></div>
+    <div class="card"><div class="tag">Infer the goal</div><h3>Inverse Reinforcement Learning (IRL)</h3>
+      <p>Instead of copying actions, recover the <em>reward function</em> the expert seems to be optimizing — then use ordinary RL to find a policy for it. Generalizes to situations the expert never demonstrated.</p>
+      <div class="meta">Cost: solving an RL problem inside the loop is expensive, and the recovered reward is ambiguous. Best when: you need behavior that generalizes.</div></div>
+    <div class="card"><div class="tag">Infer the goal, adversarially</div><h3>GAIL (Generative Adversarial Imitation Learning)</h3>
+      <p>A <em>discriminator</em> learns to tell expert trajectories from the policy's, and the policy is trained to fool it. Skips the explicit reward step of IRL and scales to high-dimensional control.</p>
+      <div class="meta">Cost: adversarial training is finicky and needs many environment interactions. Best when: you have a simulator.</div></div>
+  </div>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 260" role="img" aria-label="Taxonomy of imitation learning methods">
+        <g font-family="IBM Plex Mono, monospace" font-size="12" fill="#211E1A">
+          <rect x="286" y="14" width="150" height="40" rx="7" fill="#fff" stroke="#211E1A" stroke-width="2"/><text x="361" y="39" text-anchor="middle" font-weight="600">Imitation learning</text>
+          <rect x="120" y="104" width="190" height="44" rx="7" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="215" y="124" text-anchor="middle" font-weight="600" fill="#2B4C7E">Copy the actions</text><text x="215" y="139" text-anchor="middle" fill="#4A453C" font-size="10.5">match what the expert did</text>
+          <rect x="410" y="104" width="200" height="44" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="2"/><text x="510" y="124" text-anchor="middle" font-weight="600" fill="#1F6F6B">Infer the intent</text><text x="510" y="139" text-anchor="middle" fill="#4A453C" font-size="10.5">recover why they did it</text>
+          <rect x="56" y="200" width="100" height="40" rx="7" fill="#EDE7D8" stroke="#cdc4b0"/><text x="106" y="224" text-anchor="middle" font-weight="600">BC</text>
+          <rect x="172" y="200" width="100" height="40" rx="7" fill="#EDE7D8" stroke="#cdc4b0"/><text x="222" y="224" text-anchor="middle" font-weight="600">DAgger</text>
+          <rect x="392" y="200" width="100" height="40" rx="7" fill="#EDE7D8" stroke="#cdc4b0"/><text x="442" y="224" text-anchor="middle" font-weight="600">IRL</text>
+          <rect x="508" y="200" width="100" height="40" rx="7" fill="#EDE7D8" stroke="#cdc4b0"/><text x="558" y="224" text-anchor="middle" font-weight="600">GAIL</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.5" fill="none">
+          <path d="M340,54 C300,80 240,80 215,102"/><path d="M382,54 C430,80 480,80 510,102"/>
+          <path d="M180,148 C150,170 120,178 106,198"/><path d="M240,148 C232,170 224,180 222,198"/>
+          <path d="M480,148 C460,170 450,180 442,198"/><path d="M540,148 C548,170 554,180 558,198"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 4.</b> The two families. Action-copying methods (BC, DAgger) are simpler and offline-friendly; intent-inferring methods (IRL, GAIL) generalize better at the cost of more computation and environment access.</figcaption>
+  </figure>
+
+  <h3>The catch inside IRL: which reward?</h3>
+  <p>Recovering "the" reward function is fundamentally <strong>ambiguous</strong>. Many rewards explain the same demonstrations equally well — including the trivial zero reward, under which every behavior is optimal. The standard fix is <strong>maximum-entropy IRL</strong>: among all rewards consistent with the demonstrations, prefer the one that explains the behavior while assuming as little else as possible, breaking the tie in a principled, noise-tolerant way (Ziebart et al., 2008).</p>
+
+  <h3>How GAIL closes the loop</h3>
+  <p>GAIL turns imitation into a game. The policy proposes trajectories, a discriminator scores how "expert-like" they look, and that score is fed back to the policy as a reward to maximize. At equilibrium the policy's behavior is statistically indistinguishable from the expert's.</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 250" role="img" aria-label="GAIL adversarial loop between policy and discriminator">
+        <defs><marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4A453C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="12.5" fill="#211E1A" text-anchor="middle">
+          <rect x="40" y="96" width="150" height="64" rx="8" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="115" y="124" font-weight="600" fill="#2B4C7E">Policy</text><text x="115" y="142" fill="#4A453C" font-size="11">generates trajectories</text>
+          <rect x="400" y="96" width="170" height="64" rx="8" fill="#fff" stroke="#B5482E" stroke-width="2"/><text x="485" y="120" font-weight="600" fill="#B5482E">Discriminator</text><text x="485" y="138" fill="#4A453C" font-size="11">expert or policy?</text>
+          <rect x="400" y="16" width="170" height="48" rx="8" fill="#fff" stroke="#1F6F6B" stroke-width="2"/><text x="485" y="38" font-weight="600" fill="#1F6F6B">Expert demos</text><text x="485" y="54" fill="#4A453C" font-size="11">the "real" examples</text>
+          <rect x="230" y="196" width="260" height="42" rx="8" fill="#EDE7D8" stroke="#C8893A" stroke-width="2"/><text x="360" y="222" font-weight="600" fill="#9c6a24">reward = "how expert-like?"</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.6" fill="none" marker-end="url(#arr2)">
+          <line x1="190" y1="118" x2="396" y2="124"/><line x1="485" y1="64" x2="485" y2="92"/>
+          <path d="M470,160 C455,182 430,192 410,196"/><path d="M280,210 C150,210 115,196 115,164"/>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#4A453C"><text x="293" y="110">fake?</text><text x="500" y="82">real</text><text x="150" y="190" text-anchor="middle">train policy to fool it</text></g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 5.</b> The GAIL game. The discriminator separates expert trajectories from the policy's; the policy is rewarded for being mistaken for the expert. No explicit reward function is ever written down.</figcaption>
+  </figure>
+
+  <h3>More demonstrations: how far does each method get?</h3>
+  <p>If I collect more demonstrations, how much better does the policy get? Behavioral cloning improves but <strong>plateaus below the expert</strong> — more centered demos still don't teach recovery. DAgger keeps climbing toward expert level, because each round adds data exactly where the policy is weak.</p>
+  <figure>
+    <div class="figbody">
+      <canvas id="perfCanvas" width="680" height="300" style="width:100%;height:auto;border-radius:6px" role="img" aria-label="Success rate versus number of demonstrations"></canvas>
+      <div class="slider-row"><label for="demos">Demonstrations</label><input type="range" id="demos" min="0" max="100" value="45"><span id="demosVal">—</span></div>
+      <div class="readout"><span style="color:var(--learner)">BC success: <b id="bcVal">—</b></span><span style="color:var(--expert)">DAgger success: <b id="dgVal">—</b></span><span style="color:var(--ink-soft)">Expert ceiling: <b>95%</b></span></div>
+    </div>
+    <figcaption><b>Figure 6 — interactive.</b> Task success vs. number of expert demonstrations (log scale). BC (blue) saturates short of the dashed expert ceiling; DAgger (teal) keeps approaching it. More data alone does not cure covariate shift — the <em>kind</em> of data matters.</figcaption>
+  </figure>
+
+  <h3>Extending the toolkit</h3>
+  <p>Each classic method spawned refinements that are worth knowing by name:</p>
+  <ul>
+    <li><strong>AIRL</strong> (Adversarial Inverse RL) — like GAIL, but structures the discriminator so it recovers a <em>reusable, transferable</em> reward rather than just a fool-the-classifier signal. Use it when the learned reward must survive changes in dynamics.</li>
+    <li><strong>IQ-Learn</strong> — unifies BC and IRL through a single learned Q-function, avoiding the unstable adversarial inner loop while staying sample-efficient.</li>
+    <li><strong>The DAgger family</strong> — <em>DART</em> injects noise during demonstration so the expert naturally shows recovery; <em>SafeDAgger</em> queries the expert only when the policy is uncertain; <em>HG-DAgger</em> and <em>EnsembleDAgger</em> let a human (or an uncertainty estimate) decide when to take back control — important when the "expert" is a person who can't label thousands of states.</li>
+  </ul>
+</section>
+
+<!-- 06 -->
+<section id="s6">
+  <h2><span class="num">06 / AT SCALE</span>Modern imitation at scale</h2>
+  <p>The classic methods mostly assume a small policy predicting one action at a time. The last few years pushed imitation in a different direction: <strong>richer action representations</strong> and <strong>much bigger models trained on much more data</strong>. These don't replace the ideas above — they change how the policy is parameterized.</p>
+
+  <h3>Diffusion policies: stop averaging</h3>
+  <p>Recall the mode-averaging failure — when the expert had two valid choices (go left <em>or</em> right around an obstacle), a model predicting a single action averages them into a disastrous middle. A <strong>diffusion policy</strong> represents the whole <em>distribution</em> over actions and samples from it, so it can commit to one mode instead of blending them. The figure below makes the difference concrete.</p>
+  <figure>
+    <div class="figbody">
+      <canvas id="modeCanvas" width="680" height="260" style="width:100%;height:auto;border-radius:6px" role="img" aria-label="Obstacle avoidance comparing averaged behavioral cloning with a diffusion policy"></canvas>
+      <div class="controls">
+        <button class="ctl active" id="btnMean">Behavioral cloning (averages)</button>
+        <button class="ctl" id="btnDiff">Diffusion policy (samples a mode)</button>
+        <button class="ctl" id="btnResample">↺ Resample</button>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:rgba(31,111,107,.55)"></i>Two valid expert demos</span>
+        <span><i class="dot" style="background:#2B4C7E"></i>Learned path</span>
+        <span><i class="dot" style="background:#B5482E"></i>Collision</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 7 — interactive.</b> The expert demonstrated going both <em>over</em> and <em>under</em> the obstacle. <b>Behavioral cloning</b> regresses the mean of those two demos and drives straight into it. A <b>diffusion policy</b> samples one coherent mode and goes cleanly around — hit Resample to watch it pick a different valid route each time.</figcaption>
+  </figure>
+
+  <h3>Action chunking: predict a phrase, not a syllable</h3>
+  <p>Instead of predicting the next action, predict a short <em>sequence</em> of upcoming actions and execute them as a unit. This damps the per-step jitter that feeds compounding error and captures temporal structure the way predicting whole words beats predicting letters. It is the core idea behind <strong>ACT</strong>, the method driving low-cost bimanual manipulation (the ALOHA system).</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 180" role="img" aria-label="Single-step prediction versus action chunking">
+        <g font-family="IBM Plex Mono, monospace" font-size="12" fill="#211E1A">
+          <text x="20" y="34" font-weight="600" fill="#4A453C">single step</text>
+          <rect x="20" y="44" width="120" height="40" rx="7" fill="#fff" stroke="#cdc4b0"/><text x="80" y="69" text-anchor="middle">obs · sₜ</text>
+          <rect x="200" y="44" width="80" height="40" rx="7" fill="#fff" stroke="#2B4C7E" stroke-width="1.6"/><text x="240" y="69" text-anchor="middle" fill="#2B4C7E">aₜ</text>
+          <text x="20" y="124" font-weight="600" fill="#4A453C">action chunk</text>
+          <rect x="20" y="134" width="120" height="38" rx="7" fill="#fff" stroke="#cdc4b0"/><text x="80" y="158" text-anchor="middle">obs · sₜ</text>
+          <g>
+            <rect x="200" y="134" width="62" height="38" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="1.6"/><text x="231" y="158" text-anchor="middle" fill="#1F6F6B">aₜ</text>
+            <rect x="270" y="134" width="62" height="38" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="1.6"/><text x="301" y="158" text-anchor="middle" fill="#1F6F6B">aₜ₊₁</text>
+            <rect x="340" y="134" width="62" height="38" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="1.6"/><text x="371" y="158" text-anchor="middle" fill="#1F6F6B">aₜ₊₂</text>
+            <rect x="410" y="134" width="62" height="38" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="1.6"/><text x="441" y="158" text-anchor="middle" fill="#1F6F6B">aₜ₊₃</text>
+          </g>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.5" fill="none" marker-end="url(#arr)">
+          <line x1="140" y1="64" x2="196" y2="64"/><line x1="140" y1="153" x2="196" y2="153"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 8.</b> Action chunking predicts several future actions from one observation and executes them together, reducing the number of independent decisions per episode — and with it, the room for errors to compound.</figcaption>
+  </figure>
+
+  <h3>Sequence models: imitation as next-token prediction</h3>
+  <p>The <strong>Decision Transformer</strong> reframes control as sequence modeling: feed a transformer a history of states, actions, and desired returns, and let it predict the next action the way a language model predicts the next token. It blurs the line between imitation and offline RL — you can condition on "how well I want to do" at generation time. The closely related Trajectory Transformer takes the same sequence-modeling view.</p>
+
+  <h3>Vision-Language-Action models: one policy, many tasks</h3>
+  <p>The frontier is <strong>VLA foundation models</strong> — large networks that take a camera image and a natural-language instruction and output robot actions, trained largely by behavioral cloning on enormous, pooled demonstration datasets across many robots (RT-1, RT-2, the Open X-Embodiment collection, Octo, OpenVLA). They are the "scaling hypothesis" applied to imitation: enough diverse demonstrations and a big enough model yield a single policy that generalizes across tasks and embodiments.</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 170" role="img" aria-label="Vision language action model block diagram">
+        <defs><marker id="arr4" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4A453C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="12" fill="#211E1A" text-anchor="middle">
+          <rect x="20" y="36" width="150" height="40" rx="7" fill="#fff" stroke="#1F6F6B" stroke-width="1.6"/><text x="95" y="61">camera image</text>
+          <rect x="20" y="96" width="150" height="40" rx="7" fill="#fff" stroke="#C8893A" stroke-width="1.6"/><text x="95" y="121">"pick up the can"</text>
+          <rect x="270" y="62" width="170" height="50" rx="9" fill="#EDE7D8" stroke="#211E1A" stroke-width="2"/><text x="355" y="84" font-weight="600">VLA model</text><text x="355" y="101" font-size="10.5" fill="#4A453C">trained by cloning</text>
+          <rect x="540" y="62" width="160" height="50" rx="9" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="620" y="84" font-weight="600" fill="#2B4C7E">robot action</text><text x="620" y="101" font-size="10.5" fill="#4A453C">end-effector move</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.5" fill="none" marker-end="url(#arr4)">
+          <path d="M170,56 C215,56 230,80 266,84"/><path d="M170,116 C215,116 230,92 266,92"/><line x1="440" y1="87" x2="536" y2="87"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 9.</b> A vision-language-action model maps perception plus a language instruction directly to actions. The "intelligence" is overwhelmingly cloned from large demonstration corpora, then sometimes fine-tuned with RL.</figcaption>
+  </figure>
+</section>
+
+<!-- 07 -->
+<section id="s7">
+  <h2><span class="num">07 / BEYOND ACTIONS</span>Beyond action-copying</h2>
+  <p>So far the expert handed over labelled actions. Three important variants relax that assumption.</p>
+  <div class="cards">
+    <div class="card scale"><div class="tag">No action labels</div><h3>Imitation from observation</h3>
+      <p>Learn from demonstrations that contain only <em>states</em> — video of a task, with no recorded actions. The agent must infer the missing actions, e.g. by learning an inverse dynamics model (BCO) or matching state-transition distributions adversarially (GAIfO). This unlocks the vast supply of "watch a human do it" data.</p>
+      <div class="meta">Why it matters: most real-world demonstrations (online videos, legacy logs) have no action channel.</div></div>
+    <div class="card scale"><div class="tag">No demonstrations at all</div><h3>Preference-based learning &amp; RLHF</h3>
+      <p>Instead of demonstrating, the human <em>compares</em> outcomes — "this one is better." A reward model is fit to those preferences, then optimized with RL. This is the backbone of RLHF for language models; <em>DPO</em> later showed you can skip the explicit reward model and optimize from preferences directly.</p>
+      <div class="meta">Why it matters: judging is often easier than demonstrating, and works where the expert can't act the task out.</div></div>
+    <div class="card scale"><div class="tag">Imitate, then surpass</div><h3>Imitation + RL hybrids</h3>
+      <p>Seed a reinforcement learner with demonstrations so it starts from competent behavior, then let reward-driven exploration push <em>past</em> the demonstrator — methods like DQfD and DDPGfD pre-fill the replay buffer with expert transitions. You get imitation's safety early and RL's ceiling later.</p>
+      <div class="meta">Why it matters: removes imitation's hard cap at expert performance.</div></div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="s8">
+  <h2><span class="num">08 / POSITIONING</span>Imitation, RL, and offline RL</h2>
+  <p>Three families learn control policies, and the boundaries blur. The useful way to tell them apart is by what each one <em>requires</em> and what it can ultimately achieve.</p>
+  <table class="ttable">
+    <thead><tr><th>Paradigm</th><th>Needs a reward?</th><th>Needs to act in the world?</th><th>Needs an expert?</th><th>Can beat the data source?</th></tr></thead>
+    <tbody>
+      <tr><td>Imitation (BC / DAgger)</td><td class="no">no</td><td>BC no · DAgger queries expert</td><td class="yes">yes</td><td class="no">no — capped at the expert</td></tr>
+      <tr><td>Reinforcement learning</td><td class="yes">yes</td><td class="yes">yes — lots of trial &amp; error</td><td class="no">no</td><td class="yes">yes</td></tr>
+      <tr><td>Offline RL</td><td class="yes">yes</td><td class="no">no — fixed logged dataset</td><td class="no">no</td><td class="yes">yes — can exceed the logged policy</td></tr>
+    </tbody>
+  </table>
+  <p>The subtle line is between behavioral cloning and offline RL. Both learn from a fixed dataset without touching the environment. The difference is the label: cloning copies the <em>actions</em> and inherits the data's quality as a ceiling; offline RL uses a <em>reward</em> and can, in principle, stitch together a policy better than the one that collected the data.</p>
+  <div class="aside">
+    <span class="lbl">The common production recipe</span>
+    Bootstrap with imitation to get a safe, sane policy cheaply, then refine with reinforcement learning to push past the demonstrator. Safety early, performance later — the strategy behind many real robotics and game-playing systems.
+  </div>
+</section>
+
+<!-- 09 -->
+<section id="s9">
+  <h2><span class="num">09 / IN THE WILD</span>Where it actually shows up</h2>
+  <table class="ttable">
+    <thead><tr><th>Domain</th><th>The expert</th><th>What gets imitated</th></tr></thead>
+    <tbody>
+      <tr><td>Self-driving</td><td>Human drivers</td><td>Steering/throttle from sensors — ALVINN (1989) to NVIDIA's end-to-end network (2016).</td></tr>
+      <tr><td>Robot manipulation</td><td>Teleoperation / kinesthetic teaching</td><td>Joint trajectories for grasping, pouring, assembly; bimanual skills via ACT/ALOHA.</td></tr>
+      <tr><td>Dexterous &amp; humanoid</td><td>Motion capture of people</td><td>Whole-body locomotion and acrobatics (DeepMimic, adversarial motion priors).</td></tr>
+      <tr><td>Surgical robotics</td><td>Expert surgeons</td><td>Fine motion patterns for suturing and knot-tying.</td></tr>
+      <tr><td>Drone racing / UAVs</td><td>An optimal controller (MPC)</td><td>Fast neural policies distilled from a slow expert (Deep Drone Acrobatics).</td></tr>
+      <tr><td>Game &amp; sim agents</td><td>Human or scripted play</td><td>Pre-training on replays before RL fine-tuning (early AlphaGo, StarCraft agents).</td></tr>
+      <tr><td>LLMs &amp; agents</td><td>Human-written responses / task demos</td><td>Supervised fine-tuning is behavioral cloning; computer-use agents clone UI demonstrations.</td></tr>
+      <tr><td>Clinical decision support</td><td>Clinicians</td><td>Treatment/triage policies imitating expert care pathways.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="num">10 / CASE STUDY</span>From a slow optimum to a real-time policy</h2>
+  <p>One of the most useful patterns for a controls engineer barely looks like "imitation" at first glance: the expert isn't a human, it's an <strong>optimization</strong> that is too slow to run online. Imitation distills it into a policy that runs in microseconds.</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 180" role="img" aria-label="Distilling a slow optimal controller into a fast neural policy">
+        <defs><marker id="arr5" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4A453C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="12" fill="#211E1A" text-anchor="middle">
+          <rect x="20" y="64" width="190" height="56" rx="9" fill="#fff" stroke="#1F6F6B" stroke-width="2"/><text x="115" y="88" font-weight="600" fill="#1F6F6B">Slow optimum</text><text x="115" y="106" font-size="10.5" fill="#4A453C">MPC / DP — offline</text>
+          <rect x="270" y="64" width="180" height="56" rx="9" fill="#fff" stroke="#cdc4b0"/><text x="360" y="88" font-weight="600">(state → optimal u)</text><text x="360" y="106" font-size="10.5" fill="#4A453C">demonstration set</text>
+          <rect x="510" y="64" width="190" height="56" rx="9" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="605" y="88" font-weight="600" fill="#2B4C7E">Fast NN policy</text><text x="605" y="106" font-size="10.5" fill="#4A453C">runs on the ECU</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.6" fill="none" marker-end="url(#arr5)"><line x1="210" y1="92" x2="266" y2="92"/><line x1="450" y1="92" x2="506" y2="92"/></g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 10.</b> Imitation as controller distillation: an optimal but slow controller generates (state, optimal-input) pairs offline; a small network clones the mapping and runs in real time on embedded hardware.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Approximate / explicit MPC.</strong> Model predictive control solves a constrained optimization at every step — often too slow for fast electromechanical loops. Cloning its input across the state space yields a neural controller that mimics MPC at a fraction of the compute, with active research on stability and constraint guarantees (Hertneck et al., 2018; Chen et al., 2018).</li>
+    <li><strong>EV / hybrid energy management.</strong> The globally optimal power-split for a known drive cycle comes from dynamic programming, which needs the future and can't run live. Imitating the DP solution produces a causal, real-time supervisory strategy that approaches the offline optimum.</li>
+    <li><strong>Calibration automation.</strong> A calibration engineer's tuning moves — how they adjust maps in response to test data — can be logged as demonstrations and cloned into an assistant that proposes the next adjustment.</li>
+    <li><strong>VHM decision policies.</strong> A senior technician's diagnostic sequence (which codes they read, which subsystem they probe next) clones into a triage policy — reliable on the common faults they demonstrated often, and back in off-distribution territory on the rare intermittent fault, exactly like Figure 2 in diagnostic clothing.</li>
+  </ul>
+  <div class="aside">
+    <span class="lbl">The recurring caveat</span>
+    Distilled policies are trustworthy inside the operating region the expert (human or optimizer) actually covered, and unsupervised outside it. Coverage of the demonstration set — not its sheer size — is what decides whether the policy is safe to deploy.
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="num">11 / FAILURE MODES</span>How imitation goes wrong</h2>
+  <p>Beyond compounding error, a handful of failure modes recur often enough to recognize on sight.</p>
+  <div class="cards">
+    <div class="card warn"><div class="tag">Spurious cues</div><h3>Causal confusion</h3>
+      <p>The policy latches onto a feature that <em>correlates</em> with the expert's action but doesn't <em>cause</em> it — e.g. a driving model that reads a dashboard brake indicator (which lights <em>because</em> the expert braked) and learns "indicator on → brake," so it never brakes on its own. Counter-intuitively, more information can make this worse (de Haan et al., 2019).</p>
+      <div class="meta">Tell-tale sign: great offline accuracy, poor closed-loop behavior.</div></div>
+    <div class="card warn"><div class="tag">Many right answers</div><h3>Mode averaging</h3>
+      <p>When the expert had multiple valid choices, a model predicting one action averages them into something neither expert would do (Figure 7). Mitigation: model the action distribution — mixtures, diffusion, or energy-based policies.</p>
+      <div class="meta">This is exactly the gap diffusion policies were built to close.</div></div>
+    <div class="card warn"><div class="tag">Garbage in</div><h3>Imperfect demonstrators</h3>
+      <p>Imitation faithfully reproduces whatever it is shown — biases, idiosyncrasies, bad habits. Inconsistent demonstrators (several people, different styles) leave the policy imitating a contradiction.</p>
+      <div class="meta">Mitigation: curate, weight by quality, or switch to a reward-based method that can surpass the data.</div></div>
+    <div class="card warn"><div class="tag">Slow drift</div><h3>Deployment distribution shift</h3>
+      <p>Even a good policy degrades when the world changes after training — new sensors, worn actuators, new road markings. The state distribution moves out from under a policy with no mechanism to notice.</p>
+      <div class="meta">Mitigation: monitor for out-of-distribution inputs, schedule re-collection, keep a human fallback.</div></div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="s12">
+  <h2><span class="num">12 / CHOOSING</span>Which method when</h2>
+  <p>A rough decision path for the classic four. It is not gospel — real projects mix methods — but it captures the questions that drive the choice.</p>
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 720 430" role="img" aria-label="Decision flowchart for choosing an imitation learning method">
+        <defs><marker id="arr3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4A453C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="12" fill="#211E1A" text-anchor="middle">
+          <rect x="250" y="14" width="220" height="50" rx="10" fill="#EDE7D8" stroke="#C8893A" stroke-width="2"/><text x="360" y="36" font-weight="600">Can you query the expert</text><text x="360" y="53">online, on new states?</text>
+          <rect x="40" y="150" width="220" height="50" rx="10" fill="#EDE7D8" stroke="#C8893A" stroke-width="2"/><text x="150" y="172" font-weight="600">Need to generalize</text><text x="150" y="189">beyond the demos?</text>
+          <rect x="470" y="150" width="210" height="50" rx="10" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="575" y="172" font-weight="600" fill="#2B4C7E">Use DAgger</text><text x="575" y="189" font-size="10.5" fill="#4A453C">interactive correction</text>
+          <rect x="20" y="300" width="200" height="64" rx="10" fill="#fff" stroke="#2B4C7E" stroke-width="2"/><text x="120" y="324" font-weight="600" fill="#2B4C7E">Use BC</text><text x="120" y="341" font-size="10.5" fill="#4A453C">plenty of demos,</text><text x="120" y="356" font-size="10.5" fill="#4A453C">short horizon</text>
+          <rect x="260" y="296" width="200" height="52" rx="10" fill="#EDE7D8" stroke="#C8893A" stroke-width="2"/><text x="360" y="318" font-weight="600">Have a simulator /</text><text x="360" y="335">cheap interaction?</text>
+          <rect x="500" y="296" width="190" height="52" rx="10" fill="#fff" stroke="#1F6F6B" stroke-width="2"/><text x="595" y="320" font-weight="600" fill="#1F6F6B">Use GAIL</text><text x="595" y="337" font-size="10.5" fill="#4A453C">adversarial, scalable</text>
+          <rect x="260" y="378" width="200" height="44" rx="10" fill="#fff" stroke="#1F6F6B" stroke-width="2"/><text x="360" y="405" font-weight="600" fill="#1F6F6B">Use IRL (recover reward)</text>
+        </g>
+        <g stroke="#4A453C" stroke-width="1.5" fill="none" marker-end="url(#arr3)">
+          <path d="M300,64 C220,95 160,118 152,148"/><path d="M420,64 C500,95 560,118 572,148"/>
+          <path d="M120,200 C120,235 120,262 120,298"/><path d="M200,200 C260,238 320,262 350,294"/>
+          <path d="M420,322 C460,322 480,322 498,322"/><path d="M350,348 C355,360 358,366 360,376"/>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#4A453C" font-weight="600">
+          <text x="205" y="108">no</text><text x="505" y="108" fill="#2B4C7E">yes</text><text x="95" y="250">no</text>
+          <text x="285" y="250" fill="#1F6F6B">yes</text><text x="460" y="312" fill="#1F6F6B">yes</text><text x="332" y="366">no</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 11.</b> Start from whether you can query the expert online. If yes, DAgger fixes most of BC's drift. If not, decide whether you only need to mimic (BC) or to generalize — and if generalizing, let access to a simulator pick GAIL over plain IRL.</figcaption>
+  </figure>
+  <p>One more axis sits <em>orthogonal</em> to this chart: how you <strong>represent</strong> the policy. Whichever box you land in, if the expert behaves multimodally, reach for a diffusion or sequence model; if per-step jitter is hurting you, predict action chunks; if you have a mountain of cross-task demonstrations, a VLA-style foundation policy may beat any single-task method.</p>
+</section>
+
+<!-- 13 -->
+<section id="s13">
+  <h2><span class="num">13 / PRACTICAL NOTES</span>If you actually build one</h2>
+  <ol class="notes">
+    <li><b>Cover the recovery states.</b> Deliberately include demonstrations of <em>getting back on track</em>, not just perfect runs. A policy trained only on flawless trajectories can't recover.</li>
+    <li><b>Reach for DAgger when an expert is queryable.</b> If you can ask the expert (human, planner, or MPC) "what would you do here?" online, DAgger fixes most of BC's drift for little extra code.</li>
+    <li><b>Watch compounding error in long episodes.</b> Measure performance over full episodes, not single-step accuracy; consider action chunking to cut the number of independent decisions.</li>
+    <li><b>Suspect causal confusion when offline accuracy and closed-loop behavior disagree.</b> Test in the loop, not just on the dataset.</li>
+    <li><b>Model multimodality.</b> If the expert had several valid choices, don't predict a single mean — use mixture, diffusion, or energy-based policies.</li>
+    <li><b>Exploit observation-only data.</b> Video without action labels is still usable (BCO, GAIfO) and is often the only data you have at scale.</li>
+    <li><b>The policy inherits the demonstrator's flaws — and its ceiling.</b> To exceed the expert, pair imitation with RL (DQfD-style) or learn from preferences.</li>
+    <li><b>Combine, don't choose.</b> Imitate to bootstrap a sane policy, then reinforcement-learn to refine past the expert.</li>
+  </ol>
+</section>
+
+<!-- 14 -->
+<section id="s14">
+  <h2><span class="num">14 / KEY TERMS</span>A short glossary</h2>
+  <div class="glossary">
+    <div class="row"><div class="term">Policy</div><div class="def">The function the agent learns: maps a situation (state) to an action.</div></div>
+    <div class="row"><div class="term">Behavioral cloning</div><div class="def">Supervised learning of a policy from (state, expert-action) pairs. The simplest form of imitation.</div></div>
+    <div class="row"><div class="term">Covariate shift</div><div class="def">When the states the policy meets at deployment differ from the states it was trained on.</div></div>
+    <div class="row"><div class="term">Compounding error</div><div class="def">Small per-step mistakes that push the agent into unfamiliar states, causing larger mistakes.</div></div>
+    <div class="row"><div class="term">DAgger</div><div class="def">Dataset Aggregation: iteratively label the states the current policy visits, fixing covariate shift.</div></div>
+    <div class="row"><div class="term">Inverse RL (IRL)</div><div class="def">Recovering the reward function the expert appears to optimize, rather than copying actions.</div></div>
+    <div class="row"><div class="term">Max-entropy IRL</div><div class="def">Resolves IRL's ambiguity by preferring the least-committed reward consistent with the demonstrations.</div></div>
+    <div class="row"><div class="term">GAIL / AIRL</div><div class="def">Adversarial imitation: a discriminator scores expert-likeness. AIRL additionally recovers a transferable reward.</div></div>
+    <div class="row"><div class="term">Diffusion policy</div><div class="def">A policy that models and samples from the full action distribution, handling multimodal experts without averaging.</div></div>
+    <div class="row"><div class="term">Action chunking</div><div class="def">Predicting and executing a short sequence of actions at once (e.g. ACT) to reduce compounding error.</div></div>
+    <div class="row"><div class="term">Decision Transformer</div><div class="def">Casting control as return-conditioned sequence prediction, bridging imitation and offline RL.</div></div>
+    <div class="row"><div class="term">VLA model</div><div class="def">Vision-Language-Action foundation model mapping image + instruction to actions, cloned from large demo sets.</div></div>
+    <div class="row"><div class="term">Imitation from observation</div><div class="def">Learning from state-only demonstrations (e.g. video), with actions inferred (BCO, GAIfO).</div></div>
+    <div class="row"><div class="term">RLHF / DPO</div><div class="def">Learning from human <em>preferences</em> rather than demonstrations; DPO optimizes preferences without an explicit reward model.</div></div>
+    <div class="row"><div class="term">Causal confusion</div><div class="def">Latching onto a feature that correlates with the expert's action without causing it.</div></div>
+    <div class="row"><div class="term">Mode averaging</div><div class="def">Collapsing several valid expert actions into a bad average when the policy outputs only one.</div></div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section id="s15">
+  <h2><span class="num">15 / REFERENCES</span>Where to read more</h2>
+  <p class="subhead">Foundations</p>
+  <ol class="refs">
+    <li>Pomerleau, D. A. (1989). <em>ALVINN: An Autonomous Land Vehicle in a Neural Network.</em> NeurIPS.</li>
+    <li>Ng, A. Y., &amp; Russell, S. (2000). <em>Algorithms for Inverse Reinforcement Learning.</em> ICML.</li>
+    <li>Abbeel, P., &amp; Ng, A. Y. (2004). <em>Apprenticeship Learning via Inverse Reinforcement Learning.</em> ICML.</li>
+    <li>Ziebart, B. D., et&nbsp;al. (2008). <em>Maximum Entropy Inverse Reinforcement Learning.</em> AAAI.</li>
+    <li>Ross, S., Gordon, G., &amp; Bagnell, D. (2011). <em>A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning.</em> AISTATS. — DAgger and the T² vs. T bound.</li>
+    <li>Bojarski, M., et&nbsp;al. (2016). <em>End to End Learning for Self-Driving Cars.</em> arXiv:1604.07316.</li>
+    <li>Ho, J., &amp; Ermon, S. (2016). <em>Generative Adversarial Imitation Learning.</em> NeurIPS.</li>
+    <li>de Haan, P., Jayaraman, D., &amp; Levine, S. (2019). <em>Causal Confusion in Imitation Learning.</em> NeurIPS.</li>
+  </ol>
+  <p class="subhead">Extensions &amp; modern methods</p>
+  <ol class="refs">
+    <li>Fu, J., Luo, K., &amp; Levine, S. (2018). <em>Learning Robust Rewards with Adversarial Inverse Reinforcement Learning (AIRL).</em> ICLR.</li>
+    <li>Garg, D., et&nbsp;al. (2021). <em>IQ-Learn: Inverse Soft-Q Learning for Imitation.</em> NeurIPS.</li>
+    <li>Laskey, M., et&nbsp;al. (2017). <em>DART: Noise Injection for Robust Imitation Learning.</em> CoRL.</li>
+    <li>Torabi, F., Warnell, G., &amp; Stone, P. (2018). <em>Behavioral Cloning from Observation (BCO)</em> and <em>Generative Adversarial Imitation from Observation (GAIfO).</em></li>
+    <li>Christiano, P., et&nbsp;al. (2017). <em>Deep Reinforcement Learning from Human Preferences.</em> NeurIPS.</li>
+    <li>Rafailov, R., et&nbsp;al. (2023). <em>Direct Preference Optimization (DPO).</em> NeurIPS.</li>
+    <li>Hester, T., et&nbsp;al. (2018). <em>Deep Q-Learning from Demonstrations (DQfD).</em> AAAI.</li>
+    <li>Chen, L., et&nbsp;al. (2021). <em>Decision Transformer: Reinforcement Learning via Sequence Modeling.</em> NeurIPS.</li>
+    <li>Chi, C., et&nbsp;al. (2023). <em>Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.</em> RSS.</li>
+    <li>Zhao, T., et&nbsp;al. (2023). <em>Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware (ACT / ALOHA).</em> RSS.</li>
+    <li>Brohan, A., et&nbsp;al. (2022/2023). <em>RT-1</em> and <em>RT-2: Vision-Language-Action Models.</em> Plus Open X-Embodiment (2023), Octo (2024), OpenVLA (2024).</li>
+  </ol>
+  <p class="subhead">Applications &amp; control</p>
+  <ol class="refs">
+    <li>Peng, X. B., et&nbsp;al. (2018). <em>DeepMimic.</em> SIGGRAPH; and (2021) <em>AMP: Adversarial Motion Priors.</em> SIGGRAPH.</li>
+    <li>Kaufmann, E., et&nbsp;al. (2020). <em>Deep Drone Acrobatics.</em> RSS. — Imitating an MPC expert.</li>
+    <li>Hertneck, M., et&nbsp;al. (2018). <em>Learning an Approximate Model Predictive Controller with Guarantees.</em> IEEE L-CSS.</li>
+    <li>Chen, S., et&nbsp;al. (2018). <em>Approximating Explicit Model Predictive Control Using Constrained Neural Networks.</em> ACC.</li>
+  </ol>
+  <p class="subhead">Surveys</p>
+  <ol class="refs">
+    <li>Argall, B. D., et&nbsp;al. (2009). <em>A Survey of Robot Learning from Demonstration.</em> Robotics and Autonomous Systems, 57(5).</li>
+    <li>Hussein, A., et&nbsp;al. (2017). <em>Imitation Learning: A Survey of Learning Methods.</em> ACM Computing Surveys, 50(2).</li>
+    <li>Osa, T., et&nbsp;al. (2018). <em>An Algorithmic Perspective on Imitation Learning.</em> Foundations and Trends in Robotics.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer><span class="byline">By Majid Mazouchi</span></footer>
+
+<script>
+/* ---------------- Figure 2: drift simulation ---------------- */
+(function(){
+  var canvas=document.getElementById('driftCanvas'); if(!canvas) return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,midY=H/2;
+  var amp=58,freq=0.013,bandHalf=34,roadHalf=95,mode='bc',noise=0.40;
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var carX,carY,finished,trail=[];
+  function center(x){ return midY+amp*Math.sin(x*freq); }
+  function reset(){ carX=12; carY=center(carX); finished=false; }
+  function drawRoad(){
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath();ctx.moveTo(0,center(0)-roadHalf);
+    for(var x=0;x<=W;x+=6)ctx.lineTo(x,center(x)-roadHalf);
+    for(var x2=W;x2>=0;x2-=6)ctx.lineTo(x2,center(x2)+roadHalf);
+    ctx.closePath();ctx.fillStyle='#e9e2d0';ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,center(0)-bandHalf);
+    for(var a=0;a<=W;a+=6)ctx.lineTo(a,center(a)-bandHalf);
+    for(var b=W;b>=0;b-=6)ctx.lineTo(b,center(b)+bandHalf);
+    ctx.closePath();ctx.fillStyle='rgba(31,111,107,0.16)';ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,center(0));
+    for(var c=0;c<=W;c+=4)ctx.lineTo(c,center(c));
+    ctx.strokeStyle='#1F6F6B';ctx.lineWidth=2;ctx.setLineDash([8,7]);ctx.stroke();ctx.setLineDash([]);
+  }
+  function drawCar(x,y,off){ ctx.fillStyle=off?'#B5482E':'#2B4C7E';
+    ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fbf9f2';ctx.lineWidth=2;ctx.stroke(); }
+  function step(){ if(finished)return;
+    var c=center(carX),dist=carY-c,absd=Math.abs(dist),baseGain=0.18,gain;
+    if(mode==='dagger'){gain=baseGain;}else{var t=absd/bandHalf;gain=baseGain*Math.exp(-0.9*t*t);}
+    var n=(Math.random()-0.5)*noise*9; carY+=-gain*dist+n; carX+=2.4;
+    var off=absd>bandHalf; trail.push({x:carX,y:carY,off:off}); if(trail.length>400)trail.shift();
+    if(absd>roadHalf||carX>=W-8)finished=true; }
+  function render(){ drawRoad();
+    for(var i=0;i<trail.length;i++){var p=trail[i];ctx.fillStyle=p.off?'rgba(181,72,46,0.5)':'rgba(43,76,126,0.4)';
+      ctx.beginPath();ctx.arc(p.x,p.y,2.4,0,Math.PI*2);ctx.fill();}
+    if(trail.length){var l=trail[trail.length-1];drawCar(l.x,l.y,l.off);}else drawCar(carX,carY,false);
+    ctx.font='12px "IBM Plex Mono", monospace';
+    if(finished){var lp=trail.length?trail[trail.length-1]:{off:false};
+      if(lp.off){ctx.fillStyle='#B5482E';ctx.fillText('\u26a0 left the road \u2014 errors compounded',14,22);}
+      else{ctx.fillStyle='#1F6F6B';ctx.fillText('\u2713 reached the end on the road',14,22);}}
+    else{ctx.fillStyle='#4A453C';ctx.fillText(mode==='dagger'?'DAgger: expert corrects off-center states':'Behavioral cloning: drifting unsupervised',14,22);} }
+  function loop(){ if(!reduce)step(); render(); requestAnimationFrame(loop); }
+  function restart(){ reset(); trail=[]; if(reduce){for(var k=0;k<320&&!finished;k++)step();} render(); }
+  function setActive(btn){ document.getElementById('btnBC').classList.remove('active');
+    document.getElementById('btnDAg').classList.remove('active'); btn.classList.add('active'); }
+  document.getElementById('btnBC').addEventListener('click',function(){mode='bc';setActive(this);restart();});
+  document.getElementById('btnDAg').addEventListener('click',function(){mode='dagger';setActive(this);restart();});
+  document.getElementById('btnReset').addEventListener('click',restart);
+  var sl=document.getElementById('noise'),sv=document.getElementById('noiseVal');
+  sl.addEventListener('input',function(){noise=(+sl.value)/100;sv.textContent=noise.toFixed(2);restart();});
+  restart(); if(!reduce)loop();
+})();
+
+/* ---------------- Figure 3: covariate shift ---------------- */
+(function(){
+  var canvas=document.getElementById('covCanvas'); if(!canvas)return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,baseY=H-34,scaleY=150;
+  function gauss(x,mu,sig){return Math.exp(-0.5*Math.pow((x-mu)/sig,2));}
+  function draw(shift){
+    ctx.clearRect(0,0,W,H);
+    var muT=W*0.40,sigT=70,muD=muT+shift*1.9,sigD=70+shift*0.9;
+    ctx.strokeStyle='#cdc4b0';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(20,baseY);ctx.lineTo(W-20,baseY);ctx.stroke();
+    var step=2,ovl=0;
+    for(var x=20;x<=W-20;x+=step){ovl+=Math.min(gauss(x,muT,sigT),gauss(x,muD,sigD))*step;}
+    ctx.beginPath();ctx.moveTo(20,baseY);
+    for(var x2=20;x2<=W-20;x2+=step){var t2=gauss(x2,muT,sigT),d2=gauss(x2,muD,sigD);
+      if(d2>t2&&d2>0.04){ctx.lineTo(x2,baseY-d2*scaleY);}else{ctx.lineTo(x2,baseY);}}
+    ctx.lineTo(W-20,baseY);ctx.closePath();ctx.fillStyle='rgba(181,72,46,0.28)';ctx.fill();
+    ctx.beginPath();
+    for(var a=20;a<=W-20;a+=2){var y=baseY-gauss(a,muT,sigT)*scaleY;(a===20)?ctx.moveTo(a,y):ctx.lineTo(a,y);}
+    ctx.strokeStyle='#1F6F6B';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.lineTo(W-20,baseY);ctx.lineTo(20,baseY);ctx.closePath();ctx.fillStyle='rgba(31,111,107,0.12)';ctx.fill();
+    ctx.beginPath();
+    for(var b=20;b<=W-20;b+=2){var y2=baseY-gauss(b,muD,sigD)*scaleY;(b===20)?ctx.moveTo(b,y2):ctx.lineTo(b,y2);}
+    ctx.strokeStyle='#2B4C7E';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.font='11px "IBM Plex Mono", monospace';ctx.fillStyle='#1F6F6B';
+    ctx.fillText('train',muT-16,baseY-gauss(muT,muT,sigT)*scaleY-8);
+    ctx.fillStyle='#2B4C7E';ctx.fillText('deploy',muD-20,baseY-gauss(muD,muD,sigD)*scaleY-8);
+    var of=Math.max(0,Math.min(1,ovl/(Math.sqrt(2*Math.PI)*sigT)));
+    document.getElementById('overlapVal').textContent=Math.round(of*100)+'%';
+    document.getElementById('oodVal').textContent=Math.round((1-of)*100)+'%';
+  }
+  var sl=document.getElementById('shift'),sv=document.getElementById('shiftVal');
+  function label(v){return v<25?'low':(v<55?'moderate':(v<80?'high':'severe'));}
+  function update(){var v=+sl.value;sv.textContent=label(v);draw(v*0.9);}
+  sl.addEventListener('input',update);update();
+})();
+
+/* ---------------- Figure 6: demonstrations vs performance ---------------- */
+(function(){
+  var canvas=document.getElementById('perfCanvas'); if(!canvas)return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  var padL=52,padR=20,padT=24,padB=44,x0=padL,x1=W-padR,y0=H-padB,y1=padT,nMin=1,nMax=10000,expert=0.95;
+  function nToX(n){var lg=(Math.log10(n)-Math.log10(nMin))/(Math.log10(nMax)-Math.log10(nMin));return x0+lg*(x1-x0);}
+  function xToN(px){var f=(px-x0)/(x1-x0);return Math.pow(10,Math.log10(nMin)+f*(Math.log10(nMax)-Math.log10(nMin)));}
+  function pToY(p){return y0-p*(y0-y1);}
+  function bc(n){return 0.68*(1-Math.exp(-n/180));}
+  function dg(n){return 0.93*(1-Math.exp(-n/240));}
+  function grid(){ ctx.clearRect(0,0,W,H);
+    ctx.font='10.5px "IBM Plex Mono", monospace';ctx.fillStyle='#4A453C';ctx.strokeStyle='#e3dccb';ctx.lineWidth=1;
+    for(var p=0;p<=1.0001;p+=0.25){var y=pToY(p);ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();ctx.fillText(Math.round(p*100)+'%',12,y+4);}
+    var ticks=[1,10,100,1000,10000];
+    for(var i=0;i<ticks.length;i++){var x=nToX(ticks[i]);ctx.strokeStyle='#e3dccb';ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();
+      ctx.fillStyle='#4A453C';ctx.textAlign='center';ctx.fillText(ticks[i],x,y0+18);ctx.textAlign='left';}
+    ctx.fillStyle='#4A453C';ctx.textAlign='center';ctx.fillText('number of demonstrations (log)',(x0+x1)/2,H-8);ctx.textAlign='left'; }
+  function curve(fn,color){ ctx.beginPath();
+    for(var px=x0;px<=x1;px+=2){var n=xToN(px),y=pToY(fn(n));(px===x0)?ctx.moveTo(px,y):ctx.lineTo(px,y);}
+    ctx.strokeStyle=color;ctx.lineWidth=2.6;ctx.stroke(); }
+  function marker(n){ var x=nToX(n);ctx.strokeStyle='#211E1A';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();ctx.setLineDash([]);
+    [['#2B4C7E',bc(n)],['#1F6F6B',dg(n)]].forEach(function(d){ctx.fillStyle=d[0];ctx.beginPath();ctx.arc(x,pToY(d[1]),5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fbf9f2';ctx.lineWidth=2;ctx.stroke();}); }
+  function draw(n){ grid();
+    ctx.strokeStyle='#9b958a';ctx.setLineDash([6,5]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,pToY(expert));ctx.lineTo(x1,pToY(expert));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#6b665c';ctx.font='10.5px "IBM Plex Mono", monospace';ctx.fillText('expert 95%',x1-78,pToY(expert)-6);
+    curve(bc,'#2B4C7E');curve(dg,'#1F6F6B');marker(n);
+    ctx.font='11px "IBM Plex Mono", monospace';ctx.fillStyle='#1F6F6B';ctx.fillText('DAgger',x1-70,pToY(dg(8000))-10);
+    ctx.fillStyle='#2B4C7E';ctx.fillText('BC',x1-70,pToY(bc(8000))+16); }
+  var sl=document.getElementById('demos');
+  function update(){var n=Math.round(xToN(x0+(+sl.value/100)*(x1-x0)));
+    document.getElementById('demosVal').textContent=n.toLocaleString();
+    document.getElementById('bcVal').textContent=Math.round(bc(n)*100)+'%';
+    document.getElementById('dgVal').textContent=Math.round(dg(n)*100)+'%'; draw(n);}
+  sl.addEventListener('input',update);update();
+})();
+
+/* ---------------- Figure 7: mode averaging vs diffusion ---------------- */
+(function(){
+  var canvas=document.getElementById('modeCanvas'); if(!canvas)return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,midY=H/2;
+  var startX=40,goalX=W-40,obsX=W/2,obsR=30,hump=78;
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var mode='mean',choice=0,t=0,raf=null;
+  function pathY(tt,m){ // m: 'up','down','mean'
+    var s=Math.sin(Math.PI*tt);
+    if(m==='up') return midY-hump*s;
+    if(m==='down') return midY+hump*s;
+    return midY; // mean -> straight
+  }
+  function drawScene(){
+    ctx.clearRect(0,0,W,H);
+    // demos (faint)
+    [['up'],['down']].forEach(function(m){ ctx.beginPath();
+      for(var tt=0;tt<=1.0001;tt+=0.02){var x=startX+(goalX-startX)*tt,y=pathY(tt,m[0]);(tt===0)?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      ctx.strokeStyle='rgba(31,111,107,0.5)';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([]); });
+    // obstacle
+    ctx.beginPath();ctx.arc(obsX,midY,obsR,0,Math.PI*2);ctx.fillStyle='#d9cfb6';ctx.fill();
+    ctx.strokeStyle='#9b958a';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='11px "IBM Plex Mono", monospace';ctx.fillStyle='#6b665c';ctx.textAlign='center';ctx.fillText('obstacle',obsX,midY+4);ctx.textAlign='left';
+    // start / goal
+    ctx.fillStyle='#4A453C';ctx.beginPath();ctx.arc(startX,midY,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1F6F6B';ctx.beginPath();ctx.arc(goalX,midY,5,0,Math.PI*2);ctx.fill();
+  }
+  function curMode(){ return mode==='mean'?'mean':(choice===0?'up':'down'); }
+  function collides(x,y){ return Math.hypot(x-obsX,y-midY) < obsR+4; }
+  function render(){
+    drawScene();
+    var m=curMode(),hit=false,hx,hy;
+    ctx.beginPath();
+    for(var tt=0;tt<=t+0.0001;tt+=0.01){var x=startX+(goalX-startX)*tt,y=pathY(tt,m);
+      if(tt===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      if(!hit&&collides(x,y)){hit=true;hx=x;hy=y;}}
+    ctx.strokeStyle='#2B4C7E';ctx.lineWidth=3;ctx.stroke();
+    // moving head
+    var hxh=startX+(goalX-startX)*t,hyh=pathY(t,m);
+    ctx.fillStyle='#2B4C7E';ctx.beginPath();ctx.arc(hxh,hyh,6,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fbf9f2';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='12px "IBM Plex Mono", monospace';
+    if(mode==='mean'&&hit){ ctx.fillStyle='#B5482E';
+      ctx.beginPath();ctx.moveTo(hx-8,hy-8);ctx.lineTo(hx+8,hy+8);ctx.moveTo(hx+8,hy-8);ctx.lineTo(hx-8,hy+8);ctx.lineWidth=3;ctx.stroke();
+      ctx.fillText('\u26a0 averaged straight into the obstacle',14,24); }
+    else if(t>=1){ ctx.fillStyle='#1F6F6B'; ctx.fillText('\u2713 sampled a single valid mode \u2014 went around',14,24); }
+    else { ctx.fillStyle='#4A453C'; ctx.fillText(mode==='mean'?'Behavioral cloning: predicting the mean action':'Diffusion policy: committing to one mode',14,24); }
+  }
+  function tick(){
+    if(!reduce){
+      if(mode==='mean'){ // stop at obstacle
+        var y=pathY(t,'mean');
+        if(!collides(startX+(goalX-startX)*t,y) && t<1) t+=0.012; 
+      } else if(t<1){ t+=0.012; }
+    } else { t=1; }
+    render(); raf=requestAnimationFrame(tick);
+  }
+  function restart(){ t=0; render(); }
+  function setActive(id){ ['btnMean','btnDiff'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+    document.getElementById(id).classList.add('active'); }
+  document.getElementById('btnMean').addEventListener('click',function(){mode='mean';setActive('btnMean');restart();});
+  document.getElementById('btnDiff').addEventListener('click',function(){mode='diff';choice=Math.random()<0.5?0:1;setActive('btnDiff');restart();});
+  document.getElementById('btnResample').addEventListener('click',function(){if(mode==='diff'){choice=Math.random()<0.5?0:1;}restart();});
+  restart(); if(!reduce)tick();
+})();
+</script>
+
+</body>
+</html>
