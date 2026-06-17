@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Framework in Action — Diagnosing &amp; Forecasting a Battery Fade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#ECEFEC; --paper:#F6F9F5; --ink:#16201D; --ink-soft:#46544E;
+  --teal:#0F766E; --signal:#B45309; --kg:#7A4E9E; --good:#2E7D52; --bad:#B0413A; --slate:#566A63;
+  --rule:#CBD6CF; --rule-soft:#DCE5DF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:860px; margin:0 auto; padding:0 26px}
+header.cover{padding:56px 0 30px; border-bottom:3px double var(--ink)}
+.classline{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-soft); display:flex; justify-content:space-between; border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:26px; flex-wrap:wrap; gap:8px}
+.classline .sig{color:var(--signal)}
+.doctype{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--teal); margin:0 0 16px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(30px,5.4vw,50px); line-height:1.07; letter-spacing:-.015em; margin:0 0 16px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(17px,2.3vw,21px); color:var(--ink-soft); margin:0 0 22px; max-width:66ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:0 0 22px}
+.byline b{color:var(--teal); font-weight:600}
+.metagrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px 26px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; border-top:1px solid var(--rule); padding-top:18px}
+.metagrid div span{color:var(--ink-soft); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase}
+.metagrid div b{font-weight:600}
+.box{margin:30px 0; padding:22px 24px; background:var(--paper); border:1px solid var(--rule)}
+.box.summary{border-left:3px solid var(--teal)}
+.box.key{border:2px solid var(--signal); background:#F6ECDD}
+.box .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; display:block; margin-bottom:10px}
+.box.summary .lab{color:var(--teal)} .box.key .lab{color:var(--signal)}
+.box p{margin:0 0 12px} .box p:last-child{margin:0}
+.box.key h3{margin:0 0 10px; font-family:"Fraunces",serif; font-size:21px}
+section{padding:44px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em; color:var(--teal); display:block; margin-bottom:9px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(24px,3.6vw,33px); line-height:1.12; margin:0 0 16px; letter-spacing:-.01em}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:30px 0 9px}
+p{margin:0 0 15px} .lead{font-size:19px}
+strong{font-weight:600} em{font-style:italic}
+ul{margin:0 0 16px; padding-left:22px} li{margin:0 0 8px}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink)}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); margin-bottom:6px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin-top:6px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:13.5px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 9px; font-weight:600}
+.tbl td{padding:9px 9px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl b{color:var(--ink)}
+/* step cards */
+.step{display:grid; grid-template-columns:42px 1fr; gap:14px; margin:16px 0; padding:16px 18px; background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--teal)}
+.step.gate{border-left:3px solid var(--signal); background:#F6ECDD}
+.step .nb{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px; color:#fff; background:var(--teal); width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center}
+.step.gate .nb{background:var(--signal)}
+.step h4{margin:0 0 4px; font-family:"Fraunces",serif; font-size:18px}
+.step .agent{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--teal); margin:0 0 8px}
+.step.gate .agent{color:var(--signal)}
+.step p{margin:0 0 9px; font-size:16px}
+.itags{display:flex; gap:7px; flex-wrap:wrap; margin-top:6px}
+.itag{font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap}
+.itag.s{background:#D2E6E2; color:var(--teal)}
+.itag.u{background:#F1E1CC; color:var(--signal)}
+.itag.k{background:#E7DCF0; color:var(--kg)}
+.itag.t{background:#DCE5DF; color:var(--slate)}
+.itag.o{background:#D6E8DC; color:var(--good)}
+.note{margin:22px 0; padding:15px 19px; background:#E5EAE5; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--signal); display:block; margin-bottom:6px}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--teal); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--signal)}
+footer{padding:50px 0 80px}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 0 20px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:3px 0}
+@media (max-width:560px){body{font-size:17px}.wrap{padding:0 18px}.metagrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="classline"><span>Agentic VHM · Worked Run</span><span class="sig">RUN-2026-BATT-01</span></div>
+  <p class="doctype">Framework Walkthrough</p>
+  <h1>The Framework in Action: A Battery Fade</h1>
+  <p class="subtitle">Watching the human-gated agent team diagnose and forecast the battery-degradation case — and, crucially, fusing the structured fleet data with the messy pile beside it: service notes, bulletins, DTC catalogs, manuals, and a knowledge graph.</p>
+  <p class="byline">By <b>Majid Mazouchi</b></p>
+  <div class="metagrid">
+    <div><span>Case</span><b>Battery SOH fade (subpopulation)</b></div>
+    <div><span>Verdict</span><b>Firmware v3.2.1 balancing bug</b></div>
+    <div><span>Inputs</span><b>Structured + unstructured + KG</b></div>
+    <div><span>Forecast</span><b>RUL 20 mo · PoF 89% → 1% fixed</b></div>
+  </div>
+  <div class="reslinks">
+    <span class="ic">▸</span>
+    <a href="agentic-rca-prognostics-framework.html">The framework (architecture)</a>
+    <a href="root-cause-analysis-battery-case-study.html">Battery case study</a>
+    <a href="nvh-preconditioning-rca-report.html">NVH</a>
+    <a href="manufacturing-rca-report.html">Manufacturing</a>
+  </div>
+</header>
+
+<div class="box summary">
+  <span class="lab">In one paragraph</span>
+  <p>A fleet monitor flags a cohort of vehicles whose battery state-of-health (SOH) is fading faster than the rest, with a cluster of battery DTCs. The agent team takes it from there: it pulls together the numeric telematics <em>and</em> the unstructured record — repair notes, technical bulletins, DTC definitions, cell datasheets, a prior root-cause report — builds them into one working context backed by a knowledge graph, then runs the diagnosis. A tempting correlation with fast-charging is rejected as a confounder; the real cause is a cell-balancing timing bug in firmware v3.2.1 that lets cell voltages drift apart and over-stress the pack. The prognostics engine forecasts remaining life and the effect of the patch; a human approves the fleet update; the loop then watches the fade rate fall and remembers the case.</p>
+</div>
+
+<!-- 1 -->
+<section id="s1">
+  <span class="snum">1 — What lands on the desk</span>
+  <h2>Two kinds of evidence, not one</h2>
+  <p class="lead">A real investigation never starts with a tidy table. It starts with a tidy table <em>and</em> a stack of paper.</p>
+  <p>The structured side is what you would expect: time-series telematics (SOH, per-cell voltages and the imbalance ΔV, charge events, pack temperatures), build genealogy (which firmware version and cell lot went into which VIN), and fleet signal tables. That is the data the five case studies analyzed.</p>
+  <p>But beside it sits everything that does not fit in a column: <strong>service and repair notes</strong> written by technicians, <strong>technical bulletins (TSBs)</strong>, <strong>engineering memos</strong>, the <strong>DTC catalog</strong> that says what each diagnostic trouble code means, <strong>OEM manuals and cell datasheets</strong> with the voltage limits, and <strong>prior RCA reports</strong>. A human analyst reads all of it instinctively. The framework has to ingest it deliberately — and that is the part this walkthrough makes explicit.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <span class="snum">2 — Feeding the machine</span>
+  <h2>Turning the paper pile into something queryable</h2>
+  <p>Structured and unstructured sources flow through different ingestion lanes into one unified working context. The numeric data is joined into a feature store; the documents are parsed, embedded for retrieval, and mined for entities and relationships that build a knowledge graph; DTCs are decoded to the subsystems they implicate.</p>
+  <figure>
+    <div class="figlab">Figure 1 — Ingestion &amp; fusion: structured + unstructured → unified context</div>
+    <svg id="d1" viewBox="0 0 820 540" role="img" aria-label="Ingestion and fusion diagram"></svg>
+    <figcaption><b>Everything becomes context.</b> The numeric lane (top) builds a <span style="color:var(--teal)"><b>feature store</b></span>. The document lane (bottom) is parsed, embedded into a <span style="color:var(--signal)"><b>vector index</b></span> for retrieval (RAG), and mined into a <span style="color:var(--kg)"><b>knowledge graph</b></span>; DTC codes are decoded to subsystems. The three together are what every agent reads.</figcaption>
+  </figure>
+  <table class="tbl">
+    <thead><tr><th>Unstructured source</th><th>How it is processed</th><th>What an agent does with it</th></tr></thead>
+    <tbody>
+      <tr><td><b>Service / repair notes</b></td><td>Parse → embed → extract entities</td><td>Hypothesis agent retrieves similar past complaints</td></tr>
+      <tr><td><b>Technical bulletins (TSB)</b></td><td>Embed + link to firmware/part in KG</td><td>Priors: "a balancing TSB exists for this BMS"</td></tr>
+      <tr><td><b>DTC catalog</b></td><td>Decode code → subsystem + meaning</td><td>Triage maps the DTC cluster to the pack/BMS</td></tr>
+      <tr><td><b>Cell datasheet / manuals</b></td><td>Extract limits (max cell V, temp)</td><td>Physics agent checks the over-voltage mechanism</td></tr>
+      <tr><td><b>Engineering memos</b></td><td>Embed → retrieval</td><td>Context on the v3.2.1 release &amp; known risks</td></tr>
+      <tr><td><b>Prior RCA reports</b></td><td>Embed + store signature features</td><td>Case memory: "we have seen this shape before"</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="lab">Why this matters</span>
+    Structured data tells you <em>what</em> correlates. The unstructured record tells you <em>what it means and whether it is possible</em> — the DTC's meaning, the cell's voltage limit, the existence of a balancing bulletin. Fusing both is what lets the system reject a confounder on mechanism, not just on statistics.
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <span class="snum">3 — The knowledge graph</span>
+  <h2>The map the agents walk</h2>
+  <p>The knowledge graph stitches the structured genealogy (this VIN has this pack, running this firmware) to facts extracted from documents (this firmware runs the balancing routine; this DTC indicates capacity loss; a bulletin references this routine). Agents traverse it to turn a loose symptom into a short list of mechanistically connected suspects.</p>
+  <figure>
+    <div class="figlab">Figure 2 — Knowledge graph for the battery case</div>
+    <svg id="d2" viewBox="0 0 820 450" role="img" aria-label="Knowledge graph of the battery case"></svg>
+    <figcaption><b>Entities and relationships.</b> The solid spine is the causal chain the agents end up confirming: firmware → balancing routine → cell ΔV → SOH fade. The <span style="color:var(--bad)"><b>dashed</b></span> edges are correlations without a mechanism — fast-charging and ambient temperature point at the symptom but are not causes. A retrieved <span style="color:var(--kg)"><b>bulletin</b></span> links straight to the balancing routine, giving the hypothesis a head start.</figcaption>
+  </figure>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <span class="snum">4 — The run, step by step</span>
+  <h2>Watching the agents work</h2>
+  <p>Each card is one stage. The colored tags show what it <em>reads</em> — <span class="itag s">structured</span> <span class="itag u">unstructured</span> <span class="itag k">graph</span> — plus the <span class="itag t">tool</span> it calls and the <span class="itag o">output</span> it produces. Orange cards are human gates.</p>
+
+  <div class="step">
+    <div class="nb">0</div>
+    <div><div class="agent">Fleet monitor → trigger</div>
+      <h4>A cohort is fading too fast</h4>
+      <p>Continuous monitoring flags VINs whose SOH slope exceeds the fleet, co-occurring with a cluster of battery DTCs. A case is opened automatically.</p>
+      <div class="itags"><span class="itag s">SOH time-series</span><span class="itag s">DTC events</span><span class="itag o">case opened</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">1</div>
+    <div><div class="agent">Triage agent</div>
+      <h4>Define the symptom and scope</h4>
+      <p>Decodes the DTC cluster against the catalog (capacity-loss codes implicate the pack/BMS), fixes the affected VIN set, and writes the success criterion: explain the excess fade.</p>
+      <div class="itags"><span class="itag s">feature store</span><span class="itag u">DTC catalog</span><span class="itag k">DTC → subsystem</span><span class="itag o">scoped problem</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">2</div>
+    <div><div class="agent">Hypothesis agent</div>
+      <h4>List the suspects across the 7 families</h4>
+      <p>Enumerates candidates (firmware balancing, fast-charging habit, cell lot, thermal exposure, manufacturing…). Retrieval surfaces a <em>prior RCA</em> with a similar fade shape and a <em>TSB</em> touching the BMS balancing routine; the graph already links the symptom to firmware and to fast-charging. Hypotheses are pre-ranked by these priors.</p>
+      <div class="itags"><span class="itag u">prior RCA report</span><span class="itag u">TSB / memo</span><span class="itag k">symptom ↔ firmware</span><span class="itag o">H1…H6 ranked</span></div>
+    </div>
+  </div>
+
+  <div class="step gate">
+    <div class="nb">G1</div>
+    <div><div class="agent">Human gate · scope &amp; hypotheses</div>
+      <h4>Engineer confirms the shortlist</h4>
+      <p>The reviewer sees the scope and the ranked hypotheses with their document citations, trims one implausible item, and approves.</p>
+      <div class="itags"><span class="itag o">approved hypothesis set</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">3</div>
+    <div><div class="agent">Statistics agent</div>
+      <h4>Screen what correlates</h4>
+      <p>Runs the correlation screen in a sandbox. Fast-charging frequency shows a strong tie to fade (r ≈ 0.74); cell ΔV is strong; ambient temperature looks weak. A naïve read would blame fast-charging.</p>
+      <div class="itags"><span class="itag s">feature store</span><span class="itag t">code · stats</span><span class="itag o">ranked correlations</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">4</div>
+    <div><div class="agent">Causal / confounder agent</div>
+      <h4>Hold the mechanism variable constant</h4>
+      <p>Partial correlation controlling for cell ΔV collapses fast-charging from 0.74 to ≈ −0.09 — it was riding along with the imbalance. Ambient temperature, freed of the confound, <em>emerges</em> as a secondary accelerant. The graph guides which variable to control.</p>
+      <div class="itags"><span class="itag s">feature store</span><span class="itag k">causal links</span><span class="itag t">partial correlation</span><span class="itag o">fast-charge = proxy</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">5</div>
+    <div><div class="agent">Physics / mechanism agent</div>
+      <h4>Is the cause even possible?</h4>
+      <p>Pulls max cell-voltage limits from the <em>cell datasheet</em> and confirms a real pathway: a balancing timing error lets ΔV grow, pushing cells past their voltage ceiling and accelerating fade. Fast-charging alone has no such pathway at the observed rates → vetoed as a cause.</p>
+      <div class="itags"><span class="itag u">cell datasheet</span><span class="itag k">firmware → balancing</span><span class="itag t">physics check</span><span class="itag o">mechanism: over-voltage</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">6</div>
+    <div><div class="agent">Confirmation agent</div>
+      <h4>Find the fingerprint</h4>
+      <p>Stratifies by firmware version. The v3.2.1 cohort shows the balancing-timing signature — elevated ΔV — that the other versions do not. That version split is the smoking gun.</p>
+      <div class="itags"><span class="itag s">feature store + genealogy</span><span class="itag t">code · stratify</span><span class="itag o">v3.2.1 signature</span></div>
+    </div>
+  </div>
+
+  <div class="step gate">
+    <div class="nb">G2</div>
+    <div><div class="agent">Human gate · root-cause sign-off</div>
+      <h4>Engineer signs the verdict</h4>
+      <p>Sees the converged evidence — statistics, mechanism, version signature — with confidence and the rejected confounder. Signs off.</p>
+      <div class="itags"><span class="itag o">root cause confirmed</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">7</div>
+    <div><div class="agent">Mitigation agent</div>
+      <h4>Propose the fix</h4>
+      <p>Recommends a firmware patch correcting the balancing timing, plus an interim charge-ceiling for the affected cohort. Retrieval confirms a precedent patch path in a prior bulletin.</p>
+      <div class="itags"><span class="itag u">TSB / patch precedent</span><span class="itag k">affected VINs</span><span class="itag o">patch + interim limit</span></div>
+    </div>
+  </div>
+
+  <div class="step gate">
+    <div class="nb">G3</div>
+    <div><div class="agent">Human gate · mitigation approval</div>
+      <h4>Choose the mitigation</h4>
+      <p>Reviewer weighs the patch vs the interim limit and the simulated effect, and approves the patch for validation.</p>
+      <div class="itags"><span class="itag o">mitigation chosen</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">8</div>
+    <div><div class="agent">Prognostics agent</div>
+      <h4>Forecast life, with and without the fix</h4>
+      <p>Runs a Monte-Carlo remaining-life model on the mechanism: median RUL ≈ 20 months (80% CI 16–25) if left alone; probability of failure by 24 months ≈ 89% unfixed versus ≈ 1% with the patch.</p>
+      <div class="itags"><span class="itag s">degradation features</span><span class="itag t">survival · Monte-Carlo</span><span class="itag o">RUL + PoF curves</span></div>
+    </div>
+  </div>
+
+  <div class="step gate">
+    <div class="nb">G4</div>
+    <div><div class="agent">Human gate · fleet action</div>
+      <h4>Approve the OTA</h4>
+      <p>Sees who is affected, the prognosis, and the risk. Approves the staged over-the-air rollout.</p>
+      <div class="itags"><span class="itag o">fleet action approved</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="nb">9</div>
+    <div><div class="agent">Deploy · monitor · learn</div>
+      <h4>Close the loop</h4>
+      <p>The patch ships staged and reversible. The loop monitors ΔV and the fade slope to confirm the fix worked, and writes the resolved case — including its signature — back into the knowledge graph and case memory for next time.</p>
+      <div class="itags"><span class="itag o">OTA deployed</span><span class="itag s">outcome monitored</span><span class="itag k">graph updated</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <span class="snum">5 — Which evidence each stage used</span>
+  <h2>Structured, unstructured, and graph — side by side</h2>
+  <p>The point of the run is that no single evidence stream carries it. The matrix shows which of the three each stage drew on; the decisive root-cause call (synthesis) used all three at once.</p>
+  <figure>
+    <div class="figlab">Figure 3 — Evidence-usage matrix</div>
+    <svg id="d3" viewBox="0 0 820 250" role="img" aria-label="Evidence usage matrix"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--teal)"></i> structured data</span>
+      <span><i class="dot" style="background:var(--signal)"></i> unstructured docs</span>
+      <span><i class="dot" style="background:var(--kg)"></i> knowledge graph</span>
+    </div>
+    <figcaption><b>A filled cell means the stage read that stream.</b> Statistics and confirmation lean on numbers; hypotheses and mechanism lean on documents and the graph; the synthesis fuses all three. Remove the unstructured column and the system can still correlate — but it can no longer reject the confounder on mechanism or start from the right priors.</figcaption>
+  </figure>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <span class="snum">6 — How the verdict was built</span>
+  <h2>Three streams, one conclusion</h2>
+  <p>The root-cause call at G2 was not a single test. It was the convergence of a statistical result, a physical possibility, and a graph-and-document prior — which is exactly why it survived scrutiny.</p>
+  <figure>
+    <div class="figlab">Figure 4 — Evidence fusion at the root-cause gate</div>
+    <svg id="d4" viewBox="0 0 820 300" role="img" aria-label="Evidence fusion diagram"></svg>
+    <figcaption><b>Convergence.</b> Structured statistics (the confounder collapses, the version splits), the unstructured mechanism (the datasheet voltage limit, a balancing bulletin), and the knowledge-graph path (firmware → balancing → ΔV) all point to the same place. Any one alone is weak; together they clear the four-gate test.</figcaption>
+  </figure>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <span class="snum">7 — The forecast</span>
+  <h2>What happens next, with and without the patch</h2>
+  <p>Because the mechanism is known, the prognostics engine can project it. The contrast is the whole business case for acting now.</p>
+  <figure>
+    <div class="figlab">Figure 5 — Probability of failure over time</div>
+    <svg id="d5" viewBox="0 0 820 350" role="img" aria-label="Probability of failure over months"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> no fix</span>
+      <span><i class="dot" style="background:var(--good)"></i> patched</span>
+    </div>
+    <figcaption><b>The intervention payoff.</b> Left alone, the affected cohort reaches ~89% probability of failure by 24 months (median remaining life ≈ 20 months, 80% CI 16–25). The firmware patch flattens the curve to ~1%. This forecast, with its uncertainty band, is what the human approves at G4.</figcaption>
+  </figure>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <span class="snum">8 — What the unstructured side bought us</span>
+  <h2>Practical notes</h2>
+  <ul>
+    <li><strong>Priors that save time.</strong> The TSB and the prior RCA let the Hypothesis agent start ranked, not blank — the balancing routine was a suspect before a single statistic was run.</li>
+    <li><strong>Mechanism grounding.</strong> The cell datasheet's voltage limit is what turned "fast-charging correlates" into "fast-charging has no pathway" — a rejection on physics, not just numbers.</li>
+    <li><strong>Meaning for the codes.</strong> The DTC catalog decoded a cluster of opaque codes into "pack/BMS capacity loss," scoping the case in seconds.</li>
+    <li><strong>Traceability.</strong> Every retrieved fact keeps a citation back to its source document, so a human at any gate can open the original — essential for accountability.</li>
+    <li><strong>Ingestion hygiene.</strong> Parse and OCR cleanly, chunk sensibly, de-duplicate near-identical notes, and stamp provenance and dates so a stale bulletin does not outvote current data.</li>
+    <li><strong>The graph compounds.</strong> Each resolved case adds nodes and edges, so the next similar symptom is diagnosed faster — the system genuinely learns.</li>
+  </ul>
+  <div class="box key">
+    <span class="lab">The takeaway</span>
+    <h3>Data finds the correlation; documents and the graph find the cause</h3>
+    <p>A purely structured pipeline would have flagged fast-charging and stopped. Fusing the unstructured record and the knowledge graph is what supplied the priors, the mechanism, and the meaning — and let the framework reject the confounder and name the firmware bug with confidence, all under human sign-off.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0">
+    <span class="ic">▸</span>
+    <a href="agentic-rca-prognostics-framework.html">The framework (architecture)</a>
+    <a href="root-cause-analysis-battery-case-study.html">Battery case study</a>
+    <a href="nvh-preconditioning-rca-report.html">NVH</a>
+    <a href="manufacturing-rca-report.html">Manufacturing</a>
+    <a href="environmental-rca-report.html">Environmental</a>
+    <a href="usage-rca-report.html">Usage</a>
+  </div>
+  <div class="rule" style="margin-top:24px"></div>
+  <p><b>RUN-2026-BATT-01 — Framework walkthrough on the battery case</b></p>
+  <p>By Majid Mazouchi</p>
+  <p>Schematic worked run · figures illustrative, consistent with the battery case study.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#16201D",inkSoft:"#46544E",ruleSoft:"#DCE5DF",teal:"#0F766E",
+    signal:"#B45309",kg:"#7A4E9E",good:"#2E7D52",bad:"#B0413A",slate:"#566A63",paper:"#F6F9F5"};
+  const MONO="'IBM Plex Mono',monospace";
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function ml_(p,x,y,arr,o){o=o||{};const lh=o.lh||12;const t=E(p,"text",{x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,"text-anchor":o.anchor||"middle","font-size":o.fs||10.5,"font-weight":o.weight||500});arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,"font-size":o.fs||10,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});e.textContent=s;return e;}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+  function chip(svg,x,y,w,h,label,o){o=o||{};E(svg,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,stroke:o.stroke||C.ink,"stroke-width":o.sw||1.5,"data-chip":"1"});const arr=Array.isArray(label)?label:[label],lh=o.lh||12,fs=o.fs||10;ml_(svg,x+w/2,y+h/2-(arr.length-1)*lh/2+fs*0.34,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});}
+  function head(svg,x2,y2,ang,col){const s=7;E(svg,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+(x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col});}
+  function arrow(svg,x1,y1,x2,y2,o){o=o||{};const col=o.color||C.slate;E(svg,"line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":o.w||1.5,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});if(!o.nohead)head(svg,x2,y2,Math.atan2(y2-y1,x2-x1),col);}
+  function elbow(svg,pts,o){o=o||{};const col=o.color||C.slate;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];E(svg,"line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:col,"stroke-width":o.w||1.5,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});if(i===pts.length-2&&!o.nohead)head(svg,b[0],b[1],Math.atan2(b[1]-a[1],b[0]-a[0]),col);}}
+
+  // ---------- D1 ingestion & fusion ----------
+  (function(){const svg=document.getElementById("d1");if(!svg)return;
+    lab(svg,130,16,"INPUTS",{fs:10,weight:600,fill:C.ink});
+    lab(svg,400,16,"INGESTION & FUSION",{fs:10,weight:600,fill:C.ink});
+    lab(svg,675,16,"UNIFIED CONTEXT",{fs:10,weight:600,fill:C.ink});
+    // structured inputs
+    lab(svg,24,34,"structured",{fs:9,anchor:"start",fill:C.teal,weight:600});
+    const sIn=["Telematics / feature store","Build genealogy (SW, lot)","Charge & cycle logs","Fleet signal tables"];
+    sIn.forEach((t,i)=>chip(svg,16,40+i*38,232,30,t,{fs:9.5,stroke:C.teal}));
+    // unstructured inputs
+    lab(svg,24,210,"unstructured",{fs:9,anchor:"start",fill:C.signal,weight:600});
+    const uIn=["Service / repair notes","Technical bulletins (TSB)","Engineering memos","DTC catalog & definitions","OEM manuals / cell datasheet","Prior RCA reports"];
+    uIn.forEach((t,i)=>chip(svg,16,216+i*38,232,30,t,{fs:9.5,stroke:C.signal}));
+    // ingest lanes
+    chip(svg,300,92,210,40,"ETL · join · feature build",{fs:10,stroke:C.teal});
+    const uLane=["Parse / OCR","Chunk + embed","Entity + relation extract","DTC decode → subsystem"];
+    uLane.forEach((t,i)=>chip(svg,300,250+i*46,210,38,t,{fs:9.5,stroke:C.signal}));
+    // context
+    chip(svg,560,92,232,44,"Feature store (numeric)",{fs:10,stroke:C.teal,tcolor:C.teal});
+    chip(svg,560,296,232,42,"Vector index — RAG",{fs:10,stroke:C.signal,tcolor:C.signal});
+    chip(svg,560,356,232,42,"Knowledge graph",{fs:10,stroke:C.kg,tcolor:C.kg});
+    chip(svg,560,452,232,44,"\u2192  AGENT TEAM",{fs:11,stroke:C.ink,weight:600});
+    // arrows: structured block -> ETL -> feature store
+    arrow(svg,248,112,300,112,{color:C.teal});
+    arrow(svg,510,112,560,114,{color:C.teal});
+    // unstructured block -> parse
+    arrow(svg,248,300,300,269,{color:C.signal});
+    // lane internal
+    arrow(svg,405,288,405,296,{color:C.signal});arrow(svg,405,334,405,342,{color:C.signal});arrow(svg,405,380,405,388,{color:C.signal});
+    // chunk/embed -> vector ; entity -> KG ; dtc -> KG
+    arrow(svg,510,317,560,317,{color:C.signal});
+    arrow(svg,510,365,560,372,{color:C.kg});
+    arrow(svg,510,415,556,388,{color:C.kg,dash:"4 3"});
+    // context -> agents
+    elbow(svg,[[676,136],[676,452]],{color:C.slate,nohead:false});
+    arrow(svg,676,338,676,452,{color:C.slate,nohead:true});
+    arrow(svg,676,398,676,452,{color:C.slate});
+  })();
+
+  // ---------- D2 knowledge graph ----------
+  (function(){const svg=document.getElementById("d2");if(!svg)return;
+    const N={};
+    function node(id,x,y,label,o){o=o||{};N[id]={x,y,w:o.w||130,h:o.h||44,cx:x+(o.w||130)/2,cy:y+(o.h||44)/2};
+      chip(svg,x,y,o.w||130,o.h||44,label,{fs:o.fs||9.5,stroke:o.stroke||C.slate,tcolor:o.tcolor,sw:o.sw||1.5,fill:o.fill});}
+    function edge(a,b,label,o){o=o||{};const A=N[a],B=N[b];
+      // connect nearest edges horizontally/vertically-ish; use center-to-center trimmed
+      let x1=A.cx,y1=A.cy,x2=B.cx,y2=B.cy;
+      arrow(svg,x1,y1,x2,y2,{color:o.color||C.slate,dash:o.dash||"",w:o.w||1.4});
+      if(label)lab(svg,(x1+x2)/2,(y1+y2)/2-4,label,{fs:8.5,fill:o.color||C.slate});}
+    // feeder column
+    node("veh",24,24,"Vehicle cohort");
+    node("pack",24,96,"Battery pack");
+    node("cells",24,168,"Cell group");
+    node("fw",24,250,"BMS firmware v3.2.1",{stroke:C.teal,tcolor:C.teal});
+    // causal chain
+    node("bal",230,250,"Balancing routine",{stroke:C.teal});
+    node("dv",420,250,"Cell \u0394V \u2191",{stroke:C.teal});
+    node("fade",600,244,"SOH fade (symptom)",{w:170,stroke:C.bad,tcolor:C.bad,sw:2});
+    // bulletin
+    node("tsb",230,150,"Bulletin / TSB",{stroke:C.kg,tcolor:C.kg});
+    // confounders / indicators below
+    node("amb",300,372,"Ambient temp",{stroke:C.slate});
+    node("fast",470,372,"Fast-charging",{stroke:C.bad,tcolor:C.bad});
+    node("dtc",650,372,"DTC P0A80",{stroke:C.slate});
+    // edges feeder
+    edge("veh","pack","has"); edge("pack","cells","contains"); edge("cells","fw","monitored by");
+    // chain
+    edge("fw","bal","runs",{color:C.teal}); edge("bal","dv","timing bug",{color:C.teal}); edge("dv","fade","drives fade",{color:C.teal,w:1.8});
+    // bulletin -> balancing
+    edge("tsb","bal","references",{color:C.kg,dash:"3 3"});
+    // confounders -> fade
+    edge("amb","fade","modifies",{color:C.slate,dash:"5 4"});
+    edge("fast","fade","correlates",{color:C.bad,dash:"5 4"});
+    edge("dtc","fade","indicates",{color:C.slate});
+  })();
+
+  // ---------- D3 evidence matrix ----------
+  (function(){const svg=document.getElementById("d3");if(!svg)return;
+    const stages=["Triage","Hypoth.","Stat\nscreen","Causal","Mechan.","Confirm","Synth.","Mitig.","Progn.","Deploy"];
+    const S=[1,0,1,1,0,1,1,0,1,1];
+    const U=[1,1,0,0,1,0,1,1,0,0];
+    const K=[1,1,0,1,1,0,1,1,0,1];
+    const rows=[["Structured",S,C.teal],["Unstructured",U,C.signal],["Knowledge graph",K,C.kg]];
+    const ml=132,mt=30,cw=(820-ml-20)/stages.length,rh=46;
+    stages.forEach((s,i)=>{const x=ml+cw*i+cw/2; s.split("\n").forEach((ln,j)=>lab(svg,x,mt-8+j*10,ln,{fs:8.5,fill:C.ink}));});
+    rows.forEach((r,ri)=>{const y=mt+18+ri*rh;
+      lab(svg,ml-10,y+5,r[0],{fs:10,anchor:"end",fill:r[2],weight:600});
+      stages.forEach((s,i)=>{const x=ml+cw*i+cw/2;
+        E(svg,"circle",{cx:x,cy:y,r:10,fill:r[1][i]?r[2]:"none",stroke:r[1][i]?r[2]:C.ruleSoft,"stroke-width":r[1][i]?0:1.5,opacity:r[1][i]?0.9:1});});
+    });
+  })();
+
+  // ---------- D4 evidence fusion ----------
+  (function(){const svg=document.getElementById("d4");if(!svg)return;
+    chip(svg,24,40,220,70,["Structured statistics","confounder collapses;","v3.2.1 version split"],{fs:9.5,stroke:C.teal,tcolor:C.teal,lh:13});
+    chip(svg,24,135,220,70,["Unstructured mechanism","cell-voltage limit;","balancing bulletin"],{fs:9.5,stroke:C.signal,tcolor:C.signal,lh:13});
+    chip(svg,24,230,220,60,["Knowledge-graph path","firmware \u2192 balancing \u2192 \u0394V"],{fs:9.5,stroke:C.kg,tcolor:C.kg,lh:13});
+    chip(svg,430,120,210,84,["Root cause:","firmware v3.2.1","balancing timing bug"],{fs:11,stroke:C.bad,tcolor:C.bad,sw:2,lh:15});
+    chip(svg,690,138,110,48,["Gate G2","sign-off"],{fs:10,stroke:C.signal,tcolor:C.signal});
+    arrow(svg,244,75,430,150,{color:C.teal});
+    arrow(svg,244,170,430,165,{color:C.signal});
+    arrow(svg,244,260,430,180,{color:C.kg});
+    arrow(svg,640,162,690,162,{color:C.bad});
+    lab(svg,337,95,"converge",{fs:9,fill:C.slate});
+  })();
+
+  // ---------- D5 PoF prognosis ----------
+  (function(){const svg=document.getElementById("d5");if(!svg)return;
+    const W=820,H=350,ml=58,mr=24,mt=20,mb=48;
+    const mo=[0,3,6,9,12,15,18,21,24,27,30];
+    const nofix=[0,0.01,0.03,0.08,0.18,0.34,0.54,0.74,0.89,0.96,0.99];
+    const fixed=[0,0,0,0.002,0.004,0.006,0.008,0.009,0.01,0.012,0.014];
+    const x=sc(0,30,ml,W-mr),y=sc(0,1,H-mb,mt);
+    for(let i=0;i<=5;i++){const v=i/5,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end"});}
+    [0,6,12,18,24,30].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo"));
+    lab(svg,(ml+W-mr)/2,H-10,"months in service");lab(svg,ml-46,mt+2,"P(failure)",{fs:10,anchor:"start"});
+    // RUL median marker at 20mo
+    E(svg,"line",{x1:x(20),y1:mt,x2:x(20),y2:H-mb,stroke:C.slate,"stroke-dasharray":"2 3",opacity:.6});
+    lab(svg,x(20),mt+10,"RUL median ~20mo",{fs:9,fill:C.slate});
+    // CI band 16-25
+    E(svg,"rect",{x:x(16),y:mt,width:x(25)-x(16),height:(H-mb)-mt,fill:C.slate,opacity:.06});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(nofix[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(fixed[i])])),fill:"none",stroke:C.good,"stroke-width":3});
+    // annotate 24mo points
+    E(svg,"circle",{cx:x(24),cy:y(0.89),r:4,fill:C.bad});lab(svg,x(24)-6,y(0.89)-8,"89%",{fs:10,fill:C.bad,anchor:"end",weight:600});
+    E(svg,"circle",{cx:x(24),cy:y(0.01),r:4,fill:C.good});lab(svg,x(24)+8,y(0.01)-6,"1%",{fs:10,fill:C.good,anchor:"start",weight:600});
+  })();
+})();
+</script>
+</body>
+</html>

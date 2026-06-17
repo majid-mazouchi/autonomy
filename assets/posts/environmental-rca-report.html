@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HV Isolation Faults — Environmental Root Cause Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#EFF1ED; --paper:#F8FAF6; --ink:#181C1B; --ink-soft:#48544F;
+  --rule:#CDD6CC; --rule-soft:#DEE5DC;
+  --sea:#2C6E8F; --signal:#BC5A1E; --bad:#B0413A; --good:#2E7D52; --slate:#566270;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:840px; margin:0 auto; padding:0 26px}
+header.cover{padding:54px 0 30px; border-bottom:3px double var(--ink)}
+.classline{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-soft); display:flex; justify-content:space-between;
+  border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:26px; flex-wrap:wrap; gap:8px}
+.classline .sig{color:var(--signal)}
+.doctype{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--sea); margin:0 0 16px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(30px,5.4vw,50px);
+  line-height:1.07; letter-spacing:-.015em; margin:0 0 16px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(17px,2.3vw,21px);
+  color:var(--ink-soft); margin:0 0 24px; max-width:64ch}
+.metagrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px 26px;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; border-top:1px solid var(--rule); padding-top:18px}
+.metagrid div span{color:var(--ink-soft); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase}
+.metagrid div b{font-weight:600}
+.box{margin:30px 0; padding:22px 24px; background:var(--paper); border:1px solid var(--rule)}
+.box.summary{border-left:3px solid var(--sea)}
+.box.finding{border-left:3px solid var(--signal); background:#F7ECE2}
+.box.rootcause{border:2px solid var(--signal); background:#F7ECE2}
+.box .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; display:block; margin-bottom:10px}
+.box.summary .lab{color:var(--sea)} .box.finding .lab,.box.rootcause .lab{color:var(--signal)}
+.box p{margin:0 0 12px} .box p:last-child{margin:0}
+.box.rootcause h3{margin:0 0 10px; font-family:"Fraunces",serif; font-size:21px}
+section{padding:42px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em; color:var(--sea); display:block; margin-bottom:9px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(23px,3.4vw,31px); line-height:1.13; margin:0 0 16px; letter-spacing:-.01em}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:19px; margin:30px 0 9px}
+p{margin:0 0 15px} .lead{font-size:19px}
+strong{font-weight:600} em{font-style:italic}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+sub,sup{font-size:.72em}
+figure{margin:28px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink)}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--sea); margin-bottom:6px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin-top:4px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px; font-weight:600}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:2px; white-space:nowrap}
+.tag.rej{background:#F1D9D6; color:var(--bad)} .tag.keep{background:#D5E5E0; color:var(--sea)}
+.tag.cause{background:#F4E0CF; color:var(--signal)}
+pre{background:#181C1B; color:#E8ECE4; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.6; padding:16px 18px; overflow-x:auto; margin:20px 0}
+pre .c{color:#8C9788} pre .k{color:#E0A07A} pre .s{color:#9DC08B}
+.note{margin:22px 0; padding:15px 19px; background:#E6EBE3; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--signal); display:block; margin-bottom:6px}
+.dtree{margin:24px 0; font-family:"IBM Plex Mono",monospace}
+.dnode{display:inline-block; background:#DDE6DC; border:1.6px solid var(--ink); border-radius:7px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink)}
+.dbranch{margin:6px 0 6px 14px; padding-left:20px; border-left:2px solid var(--rule)}
+.dedge{font-size:12.5px; color:var(--sea); font-weight:600; margin:12px 0 5px}
+.dleaf{display:inline-block; padding:7px 13px; border-radius:7px; font-size:13px; border:1.5px solid; line-height:1.4; max-width:48ch}
+.dleaf.root{background:#F4E0CF; border-color:var(--signal); color:var(--signal); font-weight:600}
+.dleaf.ok{background:#D5E5E0; border-color:var(--sea); color:var(--sea)}
+.dleaf.warn{background:#E9E6CF; border-color:var(--signal); color:var(--signal)}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--sea); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--signal)}
+footer{padding:50px 0 80px}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 0 20px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:3px 0}
+@media (max-width:560px){body{font-size:17px}.wrap{padding:0 18px}.metagrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--sea);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="classline"><span>Reliability · Environmental RCA</span><span class="sig">RCA-2026-ENV-0188</span></div>
+  <p class="doctype">Environmental Root Cause Report</p>
+  <h1>Intermittent HV Isolation Faults</h1>
+  <p class="subtitle">A transient high-voltage insulation warning, clustered in coastal climates and at dawn, traced past a convincing connector-lot Pareto to its true origin: overnight condensation bridging the HV creepage path — an environmental issue, not a component defect.</p>
+  <div class="metagrid">
+    <div><span>Prepared by</span><b>M. Mazouchi — VHM &amp; Diagnostics</b></div>
+    <div><span>Subsystem</span><b>HV insulation monitoring (IMD)</b></div>
+    <div><span>Sample</span><b>500 telematics events</b></div>
+    <div><span>Status</span><b>Root cause confirmed</b></div>
+    <div><span>Disposition</span><b>Env hardening + firmware validated</b></div>
+  </div>
+  <div class="reslinks">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Battery RCA</a>
+    <a href="nvh-preconditioning-rca-report.html">NVH RCA</a>
+    <a href="manufacturing-rca-report.html">Manufacturing RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="environmental-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+</header>
+
+<div class="box summary">
+  <span class="lab">Executive Summary</span>
+  <p>The fleet logs intermittent isolation-resistance faults: the Insulation Monitoring Device (IMD) reports HV-to-chassis isolation below the safety threshold, raising a DTC and occasionally blocking charge/drive. The faults are <strong>transient</strong> — they clear as the day warms — and concentrate in <strong>coastal, humid regions</strong> and at <strong>dawn</strong>. A 500-event telematics study isolated the cause to <strong>overnight condensation</strong>: when the connector surface cools below the dew point, a thin moisture film forms across the HV creepage path, and coastal salt makes it conductive, dropping isolation resistance below spec.</p>
+  <p>Defects clustered on connector lot <strong>Lc</strong> — but Lc was simply the lot allocated to coastal dealers. Holding the environment (dew-point margin, humidity, salt) constant, the lot association vanishes. The fix is environmental hardening (sealing/venting, hydrophobic coating, connector dry-out heating) plus a firmware debounce and active dry-out routine — not a connector recall. Coastal fault rate is <strong><span id="cf"></span></strong> versus <strong><span id="if_"></span></strong> inland.</p>
+</div>
+
+<div class="box finding">
+  <span class="lab">Principal Finding</span>
+  <p>The cause is <strong>environmental</strong> — condensation on the HV connector creepage path, amplified by coastal salt — not a <strong>material</strong> (connector lot) or <strong>manufacturing</strong> defect. The lot Pareto that triggered the investigation is a dealer-allocation artifact; a supplier recall would have changed nothing.</p>
+</div>
+
+<!-- 1 -->
+<section id="s1">
+  <span class="snum">1 — Symptom &amp; Scope</span>
+  <h2>A warning that comes and goes with the weather</h2>
+  <p class="lead">Healthy isolation sits in the tens of megohms. A transient tail is dropping below the half-megohm threshold.</p>
+  <p>The IMD continuously measures isolation resistance between the HV bus and chassis. When it falls below the threshold (here, <span id="thr"></span> MΩ), the vehicle logs an isolation DTC and may inhibit charging. The defining feature is that the fault is <em>intermittent and self-clearing</em>: it appears on cool, humid mornings and disappears once the vehicle warms — behavior no permanent insulation defect would show. Reports skew heavily coastal and toward the pre-dawn hours.</p>
+  <p>Because the symptom appears only under specific weather and time-of-day conditions, several environmental and component variables move together. Full telematics — weather, surface temperature, location, connector genealogy — make a disciplined attribution possible.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <span class="snum">2 — Data &amp; Telematics</span>
+  <h2>The instrumented events</h2>
+  <p>500 morning measurement events were logged across the fleet, each pairing the IMD isolation reading with the local weather, the connector surface temperature, the coastal/inland location, salt exposure, and the connector supplier lot.</p>
+  <table class="tbl">
+    <thead><tr><th>Channel</th><th>Meaning</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>dewpoint_margin_C</td><td>surface temp − dew point (&lt;0 = condensation)</td><td><span class="tag cause">Primary cause</span></td></tr>
+      <tr><td>RH_pct / salt_index</td><td>humidity; coastal + road-salt loading</td><td><span class="tag cause">Co-cause</span></td></tr>
+      <tr><td>coastal</td><td>coastal vs inland location</td><td>Environmental driver</td></tr>
+      <tr><td>connector_lot</td><td>connector supplier lot</td><td><span class="tag rej">Confounded proxy</span></td></tr>
+      <tr><td>time_of_day_h</td><td>hour of measurement</td><td>Diurnal evidence</td></tr>
+      <tr><td>Riso_Mohm</td><td>measured isolation resistance</td><td>Target variable</td></tr>
+    </tbody>
+  </table>
+  <p>The dataset is synthetic, generated from a condensation-physics model with a known ground truth so the method can be graded. Dew-point margin and salt are the true drivers; the connector lot is built as a dealer-allocation proxy with no leakage pathway of its own.</p>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <span class="snum">3 — Candidate Hypotheses</span>
+  <h2>The field of suspects</h2>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Family</th><th>Falsifiable prediction</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Condensation on creepage path</td><td>Environmental</td><td>Riso drops when surface &lt; dew point; transient</td></tr>
+      <tr><td>H2</td><td>Coastal salt contamination</td><td>Environmental</td><td>Worse at coast for same humidity</td></tr>
+      <tr><td>H3</td><td>Connector supplier lot</td><td>Material</td><td>Tracks lot; resistivity out of spec</td></tr>
+      <tr><td>H4</td><td>Seal / housing batch (ingress)</td><td>Manufacturing</td><td>Tracks build batch independent of weather</td></tr>
+      <tr><td>H5</td><td>HV insulation degradation</td><td>Electrical</td><td>Persistent low Riso, dry conditions</td></tr>
+      <tr><td>H6</td><td>IMD threshold / calibration</td><td>Software</td><td>Reading offset independent of environment</td></tr>
+    </tbody>
+  </table>
+  <p>H1 and H2 are the environmental chain; H3/H4 are the tempting non-environmental explanations; H5/H6 are the "is it even real?" checks. The data must distinguish a genuine, weather-driven leakage path from a component or sensor artifact.</p>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <span class="snum">4 — The Misleading Pareto</span>
+  <h2>Where a hasty investigation ends</h2>
+  <figure>
+    <div class="figlab">Figure 1 — Fault Pareto by connector lot</div>
+    <svg id="f1" viewBox="0 0 760 360" role="img" aria-label="Pareto of faults by connector lot"></svg>
+    <figcaption><b>The tempting conclusion.</b> Lot <span style="color:var(--bad)"><b>Lc</b></span> carries the large majority of faults — an open-and-shut case for a supplier 8D and a containment hold. The catch: Lc is also the lot shipped to coastal dealers, and the coast is where the weather does the damage.</figcaption>
+  </figure>
+  <p>A Pareto ranks association. To reach causation we need the continuous environmental variables and the discipline of holding them constant.</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <span class="snum">5 — Statistical Screen</span>
+  <h2>What actually tracks the isolation drop</h2>
+  <figure>
+    <div class="figlab">Figure 2 — Correlation with isolation resistance</div>
+    <svg id="f2" viewBox="0 0 760 340" role="img" aria-label="Bar chart of correlations"></svg>
+    <figcaption><b>Environment dominates.</b> Dew-point margin (r = <span id="r_dm"></span>) and humidity lead, with salt and coastal location close behind. Connector lot Lc (r = <span id="r_lot"></span>) trails them — strong enough to mislead a Pareto, weak relative to the weather it rides on.</figcaption>
+  </figure>
+  <p>Dew-point margin is the standout. But lot, coastal, and humidity all correlate, and only the four-gate test — association, significance, materiality, mechanism — separates cause from proxy.</p>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <span class="snum">6 — Rejecting the Connector Lot (H3)</span>
+  <h2>A dealer-allocation artifact</h2>
+  <p>Lot Lc's correlation has a logistics explanation: Lc was allocated mostly to coastal dealerships. It labels "this vehicle lives by the sea," nothing more. Two tests confirm it.</p>
+  <figure>
+    <div class="figlab">Figure 3 — Raw vs partial correlation (control for environment)</div>
+    <svg id="f3" viewBox="0 0 760 380" role="img" aria-label="Grouped bars raw vs partial correlation"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--slate)"></i> Raw</span>
+      <span><i class="dot" style="background:var(--signal)"></i> Partial (environment held constant)</span>
+    </div>
+    <figcaption><b>The collapse.</b> Holding dew-point margin, humidity and salt constant, <span style="color:var(--bad)"><b>connector lot Lc</b></span> falls from r = <span id="r_lot2"></span> to ≈ <span id="rp_lot"></span> (p &gt; 0.5) — pure confounding. <span style="color:var(--sea)"><b>Dew-point margin</b></span>, controlled for lot, holds at <span id="rdm_lot"></span>. The mirror test settles direction.</figcaption>
+  </figure>
+  <p>Second, the mechanism gate: the connector's bulk resistivity and contact resistance for lot Lc are within material spec — there is <em>no electrical pathway</em> by which the lot itself could shed megohms of isolation. Strong correlation, no mechanism: a confounder. <strong>H3 is rejected</strong>, and the supplier hold is released.</p>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <span class="snum">7 — Abduction: Weather, Refined to the Dew Point</span>
+  <h2>Not "it's humid" — "the surface is below the dew point"</h2>
+  <p>The regression makes the structure explicit. Lot explains little; humidity helps a lot; adding the dew-point margin and salt dominates and drives the lot coefficient to zero:</p>
+  <table class="tbl">
+    <thead><tr><th>Model</th><th>Lot coef.</th><th>R²</th></tr></thead>
+    <tbody>
+      <tr><td>Riso ~ lot</td><td id="m1_lot"></td><td id="m1_r2"></td></tr>
+      <tr><td>Riso ~ lot + humidity</td><td id="m2_lot"></td><td id="m2_r2"></td></tr>
+      <tr><td>Riso ~ lot + humidity + <b>dew-point margin + salt</b></td><td id="m3_lot"></td><td id="m3_r2"></td></tr>
+    </tbody>
+  </table>
+  <p>This is the abductive refinement. "It's humid" is incomplete — many humid mornings show no fault. The pattern that fits is sharper: faults appear when the connector <em>surface temperature falls below the dew point</em>, so moisture actually condenses on the creepage path, and worsen where salt makes that film conductive. Humidity is necessary background; the <em>dew-point margin</em> is the trigger. That refined, testable claim — <em>Riso collapses when margin &lt; 0, and recovers when the surface warms</em> — is what §8 confirms.</p>
+  <div class="note">
+    <span class="lab">Why this matters operationally</span>
+    Reading the cause as "the connector lot" leads to a recall that fixes nothing. Reading it as "humid customers" leads to declaring the complaint unactionable. The truth — condensation across a creepage path — is actionable by design: seal, coat, heat, and debounce.
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <span class="snum">8 — Physical Confirmation</span>
+  <h2>Where the data meets the dew point</h2>
+
+  <h3>8.1 — The diurnal signature</h3>
+  <p>If condensation is the cause, faults must cluster when surfaces are coldest — the pre-dawn hours — and clear as the sun warms the connector. The fault rate by hour shows exactly this:</p>
+  <figure>
+    <div class="figlab">Figure 4 — Fault rate by time of day</div>
+    <svg id="f4" viewBox="0 0 760 350" role="img" aria-label="Fault rate versus hour of day"></svg>
+    <figcaption><b>The decisive signature.</b> Faults spike near <span style="color:var(--sea)"><b>dawn</b></span> (~04–06h), when radiative cooling drives the surface below the dew point, and fall to near zero by midday. No component, lot, or sensor defect produces a diurnal pattern — only condensation does.</figcaption>
+  </figure>
+
+  <h3>8.2 — Isolation resistance vs dew-point margin</h3>
+  <p>Plotting Riso against the dew-point margin reveals a sharp knee at zero — the onset of condensation — and a clear coastal/inland separation driven by salt:</p>
+  <figure>
+    <div class="figlab">Figure 5 — Riso vs dew-point margin</div>
+    <svg id="f5" viewBox="0 0 760 360" role="img" aria-label="Isolation resistance versus dew-point margin"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> Coastal (salt)</span>
+      <span><i class="dot" style="background:var(--sea)"></i> Inland</span>
+    </div>
+    <figcaption><b>The mechanism, in one curve.</b> Above the dew point (margin &gt; 0) isolation is healthy; cross below zero and it collapses as the film forms. Coastal vehicles fall further for the same margin because salt makes the film conductive — confirming both environmental hypotheses (H1 condensation, H2 salt) as one chain.</figcaption>
+  </figure>
+
+  <h3>8.3 — The fault map</h3>
+  <figure>
+    <div class="figlab">Figure 6 — Margin vs isolation, by location</div>
+    <svg id="f6" viewBox="0 0 760 380" role="img" aria-label="Scatter of dew-point margin vs Riso"></svg>
+    <figcaption><b>Two populations, one threshold.</b> Faults (below the <span id="thr2"></span> MΩ line) sit almost entirely at negative dew-point margin and on the coast. Inland points at positive margin stay safely high — the susceptibility is environmental, not built-in.</figcaption>
+  </figure>
+</section>
+
+<div class="box rootcause">
+  <span class="lab">Root Cause Statement</span>
+  <h3>Confirmed root cause</h3>
+  <p>Intermittent HV isolation faults are caused by <strong>overnight condensation across the HV connector creepage path</strong>. When radiative cooling drops the connector surface below the dew point, a moisture film forms; coastal salt makes the film ionically conductive, bridging HV to chassis and pulling isolation resistance below the IMD threshold. The fault is transient because the film evaporates as the surface warms. Connector lot Lc and "coastal" are correlated proxies — Lc was allocated to coastal dealers — neither is causal once dew-point margin, humidity and salt are held constant.</p>
+  <p><b>Disposition:</b> H1 (condensation) + H2 (salt) confirmed as one chain. H3, H4, H5, H6 rejected (Appendix A).</p>
+</div>
+
+<!-- 9 decision tree -->
+<section id="s_tree">
+  <span class="snum">9 — Diagnostic Decision Tree</span>
+  <h2>The triage, distilled</h2>
+  <p>The recurring per-event decision compresses to three checks, evaluable from the IMD reading plus weather telematics. Each leaf names cause and action; thresholds come from the data (fault below <span id="thr3"></span> MΩ; condensation at dew-point margin &lt; 0).</p>
+  <div class="dtree">
+    <div class="dnode">Riso below threshold (isolation fault) ?</div>
+    <div class="dbranch">
+      <div class="dedge">NO ↓</div>
+      <div class="dleaf ok">Isolation healthy — no action</div>
+      <div class="dedge">YES ↓</div>
+      <div class="dnode">transient &amp; dew-point margin &lt; 0 (condensation) ?</div>
+      <div class="dbranch">
+        <div class="dedge">YES ↓</div>
+        <div class="dnode">coastal / high salt exposure ?</div>
+        <div class="dbranch">
+          <div class="dedge">YES ↓</div>
+          <div class="dleaf root">ROOT CAUSE — condensation + salt across creepage. Environmental hardening (seal/vent, hydrophobic coating, connector dry-out heater) + firmware debounce &amp; active dry-out. NOT a component fault.</div>
+          <div class="dedge">NO ↓</div>
+          <div class="dleaf warn">Condensation only — firmware dry-out + hydrophobic coating</div>
+        </div>
+        <div class="dedge">NO (persistent, dry) ↓</div>
+        <div class="dleaf warn">Genuine HV insulation degradation — inspect/replace HV harness or component</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 mitigation -->
+<section id="s10">
+  <span class="snum">10 — Containment &amp; Corrective Action</span>
+  <h2>Hardening against the weather</h2>
+  <p>The mechanism chain and its confounder, side by side:</p>
+  <figure>
+    <div class="figlab">Figure 7 — Root-cause chain &amp; the lot confounder</div>
+    <svg id="bd1" viewBox="0 0 760 300" role="img" aria-label="Causal chain block diagram"></svg>
+    <figcaption><b>One chain, one red herring.</b> Humid/coastal night → surface below dew point → condensation film → salt bridges HV to chassis → Riso drops → IMD fault. The dashed branch is lot Lc: allocated to the coast, correlated with the fault, electrically inert.</figcaption>
+  </figure>
+  <p>The fix attacks the film and the nuisance trip without touching the (sound) connector:</p>
+  <figure>
+    <div class="figlab">Figure 8 — Mitigation &amp; monitoring</div>
+    <svg id="bd2" viewBox="0 0 760 320" role="img" aria-label="Mitigation and monitoring block diagram"></svg>
+    <figcaption><b>Where the fixes act.</b> Sealing/venting, a hydrophobic conformal coating, and a small dry-out heater suppress the moisture film; the IMD logic adds a debounce and an active dry-out cycle so a transient dew event no longer trips a hard fault. Environmental hardening upstream, firmware tolerance downstream.</figcaption>
+  </figure>
+  <table class="tbl">
+    <thead><tr><th>Action</th><th>Type</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Hydrophobic conformal coating</td><td>Corrective (design)</td><td>Suppresses film; annual fault-days <span id="cum_u"></span> → <span id="cum_m"></span></td></tr>
+      <tr><td>Improved sealing / venting</td><td>Corrective (design)</td><td>Limits ingress &amp; condensation</td></tr>
+      <tr><td>Connector dry-out heater</td><td>Robustness</td><td>Holds surface above dew point</td></tr>
+      <tr><td>IMD debounce + active dry-out</td><td>Containment (SW)</td><td>Eliminates nuisance trips now</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 11 prognosis -->
+<section id="s_prog">
+  <span class="snum">11 — Prognosis</span>
+  <h2>Forecasting susceptibility and field exposure</h2>
+  <p>Because the cause is environmental and mechanistic, both the per-event susceptibility and the seasonal field exposure can be forecast. The susceptibility curve maps the trigger directly:</p>
+  <figure>
+    <div class="figlab">Figure 9 — Fault probability vs dew-point margin</div>
+    <svg id="pp1" viewBox="0 0 760 340" role="img" aria-label="Fault probability versus dew-point margin"></svg>
+    <figcaption><b>The trigger, quantified.</b> Fault probability switches sharply around margin = 0 — the condensation onset. This curve is the screen the firmware uses to anticipate a dew event and pre-empt it with a dry-out cycle rather than a hard fault.</figcaption>
+  </figure>
+  <p>Across a full year, the field exposure for a worst-case coastal vehicle — and the effect of the coating — is stark:</p>
+  <figure>
+    <div class="figlab">Figure 10 — Cumulative fault-days over a year (coastal vehicle)</div>
+    <svg id="pp2" viewBox="0 0 760 340" role="img" aria-label="Cumulative fault days over a year"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> Unmitigated</span>
+      <span><i class="dot" style="background:var(--good)"></i> Hydrophobic coating</span>
+    </div>
+    <figcaption><b>The hardening payoff.</b> Unmitigated, a worst-case coastal vehicle accumulates <span id="cum_u2"></span> fault-days across the year — condensation roughly half the mornings. The coating drops that to <span id="cum_m2"></span>, and the firmware debounce removes the residual nuisance trips.</figcaption>
+  </figure>
+</section>
+
+<!-- 12 recommendations -->
+<section id="s12">
+  <span class="snum">12 — Recommendations</span>
+  <h2>Field &amp; design action</h2>
+  <p>Immediate containment: deploy the IMD firmware debounce and active dry-out cycle fleet-wide so transient dew events no longer raise hard faults or block charging. Corrective action: add a hydrophobic conformal coating and improved sealing/venting at the HV connector in the next build, and qualify a small dry-out heater for high-exposure climates. Release the supplier hold on connector lot Lc — it was never causal. Verify by confirming the dawn fault peak disappears and Riso stays above threshold through condensation events in coastal validation vehicles, and track nuisance-fault rate by climate zone rather than by lot.</p>
+</section>
+
+<!-- App A -->
+<section id="appA">
+  <span class="snum">Appendix A — Hypothesis Disposition</span>
+  <h2>Kept or dropped</h2>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Disposition</th><th>Decisive evidence</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Condensation on creepage</td><td><span class="tag keep">Confirmed</span></td><td>Diurnal peak; Riso knee at margin = 0; transient</td></tr>
+      <tr><td>H2</td><td>Coastal salt</td><td><span class="tag keep">Confirmed</span></td><td>Coastal Riso lower at equal margin (salt)</td></tr>
+      <tr><td>H3</td><td>Connector lot</td><td><span class="tag rej">Rejected</span></td><td>Collapses under env control; resistivity in spec</td></tr>
+      <tr><td>H4</td><td>Seal/housing batch</td><td><span class="tag rej">Rejected</span></td><td>No build-batch split once weather controlled</td></tr>
+      <tr><td>H5</td><td>HV insulation degradation</td><td><span class="tag rej">Rejected</span></td><td>Faults transient, not persistent/dry</td></tr>
+      <tr><td>H6</td><td>IMD threshold / calibration</td><td><span class="tag rej">Rejected</span></td><td>Reading tracks weather, not a fixed offset</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- App B -->
+<section id="appB">
+  <span class="snum">Appendix B — Code &amp; Data</span>
+  <h2>Reproducibility</h2>
+  <p>The dataset and full analysis ship alongside as <code class="inl">isolation_fault_rca.py</code> (condensation-physics generator + diagnostic pipeline) and <code class="inl">isolation_events.csv</code> (500-event mockup). The core of the generator:</p>
+  <pre><span class="c"># condensation film bridges the HV creepage path</span>
+dewpoint_margin = surface_C - dewpoint_C        <span class="c"># &lt; 0 => condensation</span>
+film = 1/(1+exp(dewpoint_margin/1.5)) + 0.15*max((RH-70)/30,0)
+Riso = RCLEAN / (1 + 60*film*(1 + 1.5*salt_index))   <span class="c"># Mohm</span>
+fault = Riso &lt; 0.5                                <span class="c"># isolation threshold</span>
+
+<span class="c"># confounder: lot Lc allocated mostly to coastal dealers</span>
+p_Lc = where(coastal==1, 0.75, 0.18)             <span class="c"># proxy, resistivity in spec</span></pre>
+  <p>The pipeline reproduces every figure: the Pareto, correlation screen, partial-correlation confounder test (lot → r ≈ <span id="rp_lot2"></span>), staged regression (R² <span id="r2chain"></span>), the diurnal signature, the Riso–margin knee, and the prognosis.</p>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Battery RCA monograph</a>
+    <a href="nvh-preconditioning-rca-report.html">Preconditioning NVH RCA</a>
+    <a href="manufacturing-rca-report.html">Module-weld manufacturing RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="environmental-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+  <div class="rule" style="margin-top:24px"></div>
+  <p><b>RCA-2026-ENV-0188 — HV Isolation Faults</b></p>
+  <p>Prepared by M. Mazouchi</p>
+  <p>Synthetic 500-event study with known ground truth · figures computed from data.</p>
+</footer>
+
+</div>
+
+<script>
+const ENV = {"N": 500, "THRESH": 0.5, "raw": {"Dewpoint margin (C)": {"r": 0.935, "p": 1.4815512963304556e-225}, "Relative humidity": {"r": -0.871, "p": 7.998317782317745e-156}, "Salt index": {"r": -0.606, "p": 2.4097447482622768e-51}, "Connector lot = Lc": {"r": -0.369, "p": 1.536351378750212e-17}, "Coastal": {"r": -0.659, "p": 1.7754524534348165e-63}, "Ambient temp (C)": {"r": -0.176, "p": 7.876734206619151e-05}}, "partial_env": {"Connector lot = Lc": {"r": -0.021, "p": 0.6389724243815783}, "Coastal": {"r": -0.164, "p": 0.0002297680685447009}}, "dm_ctrl_lot": {"r": 0.926, "p": 4.002753149083943e-213}, "reg": {"m1_lot": -5.304, "m1_r2": 0.136, "m2_lot": -0.279, "m2_r2": 0.759, "m3_lot": -0.111, "m3_dm": 1.44, "m3_r2": 0.897}, "diurnal": {"hours": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22], "rate": [0.024, 0.17, 0.435, 0.206, 0.195, 0.029, 0.083, 0.068, 0.091, 0.049, 0.05, 0.058]}, "margin_curve": {"x": [-5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5], "coastal": [null, null, null, 0.183, 0.162, 0.261, 0.291, 0.466, 0.717, 1.135, 1.957, 3.945, 7.692, 10.088], "inland": [null, null, null, null, 0.325, 0.515, 0.628, 0.915, 1.461, 2.757, 4.527, 6.607, 10.177, 13.479]}, "pareto_lot": {"La": 8, "Lb": 8, "Lc": 46}, "scatter_margin": [[0.25, 0.181, 1], [2.67, 0.882, 1], [7.28, 12.792, 0], [6.24, 9.927, 0], [8.98, 16.791, 0], [7.4, 13.131, 0], [7.95, 15.184, 0], [0.42, 0.246, 1], [10.33, 18.81, 0], [4.11, 1.452, 1], [0.37, 0.238, 1], [3.64, 2.171, 0], [5.31, 3.605, 0], [0.35, 0.318, 1], [9.02, 17.172, 0], [5.64, 5.067, 1], [8.46, 15.406, 0], [6.84, 12.302, 0], [8.14, 15.108, 0], [2.82, 1.002, 1], [11.7, 19.286, 0], [8.52, 16.273, 0], [-3.7, 0.18, 0], [5.96, 6.067, 1], [1.56, 1.116, 0], [6.55, 10.09, 0], [3.89, 3.663, 0], [1.68, 1.273, 0], [4.71, 5.211, 0], [11.62, 19.368, 0], [-4.33, 0.158, 1], [3.06, 0.883, 1], [10.73, 18.981, 0], [2.64, 0.59, 1], [8.07, 15.702, 0], [9.21, 16.861, 0], [3.96, 1.057, 1], [12.89, 19.818, 0], [9.78, 17.78, 0], [8.07, 15.493, 0], [1.97, 0.574, 1], [6.97, 11.634, 0], [5.29, 5.856, 0], [9.66, 17.795, 0], [5.27, 4.273, 0], [3.42, 0.814, 1], [8.48, 15.855, 0], [5.82, 4.967, 1], [5.81, 7.615, 0], [6.9, 11.933, 0], [4.74, 4.56, 0], [10.83, 19.1, 0], [5.28, 3.2, 1], [2.57, 0.77, 1], [10.54, 18.778, 0], [6.05, 8.807, 0], [8.22, 15.421, 0], [0.56, 0.257, 1], [6.38, 9.947, 0], [-0.91, 0.205, 1], [4.61, 3.767, 0], [-0.55, 0.212, 1], [2.22, 0.557, 1], [8.97, 16.617, 0], [2.27, 0.5, 1], [5.2, 3.929, 1], [6.32, 9.515, 0], [6.81, 10.593, 0], [5.57, 4.42, 1], [2.82, 0.639, 1], [2.89, 0.684, 1], [4.84, 2.447, 1], [3.27, 1.52, 1], [2.08, 1.398, 0], [11.51, 19.282, 0], [11.85, 19.454, 0], [8.79, 16.608, 0], [0.37, 0.311, 1], [2.89, 0.859, 1], [1.89, 0.859, 0], [2.25, 1.153, 0], [6.14, 8.728, 0], [6.07, 8.786, 0], [6.24, 10.286, 0], [8.27, 13.585, 1], [0.29, 0.193, 1], [4.72, 2.612, 1], [10.8, 19.098, 0], [7.33, 12.97, 0], [0.13, 0.652, 0], [7.89, 14.441, 0], [11.15, 19.299, 0], [6.9, 12.109, 0], [4.62, 4.475, 0], [5.78, 3.604, 1], [2.54, 0.585, 1], [8.5, 15.881, 0], [5.27, 4.798, 1], [8.33, 15.65, 0], [9.43, 17.54, 0], [-0.43, 0.307, 1], [7.03, 12.346, 0], [2.09, 0.646, 1], [8.73, 16.5, 0], [3.38, 1.168, 1], [8.71, 16.752, 0], [-0.39, 0.281, 1], [10.26, 18.84, 0], [8.77, 16.146, 0], [9.04, 17.142, 0], [3.89, 2.552, 0], [-1.48, 0.114, 1], [1.09, 0.34, 1], [3.89, 3.23, 0], [-0.91, 0.286, 1], [8.12, 15.868, 0], [3.38, 2.805, 0], [0.45, 0.286, 1], [0.65, 0.582, 0], [5.19, 6.852, 0], [5.21, 4.734, 1], [3.02, 2.2, 0], [5.39, 2.875, 1], [11.99, 19.54, 0], [3.67, 3.232, 0], [-0.43, 0.627, 0], [5.43, 5.649, 0], [-1.99, 0.181, 1], [3.52, 2.621, 0], [2.58, 0.792, 1], [7.0, 12.233, 0], [8.61, 16.671, 0], [-0.53, 0.244, 1], [4.23, 1.716, 1], [6.82, 10.998, 0], [5.85, 6.909, 0], [9.52, 18.151, 0], [5.49, 3.499, 0], [5.56, 6.815, 0], [9.64, 17.752, 0], [2.82, 0.813, 1], [5.19, 5.574, 0], [0.52, 0.369, 1], [9.0, 17.146, 0], [3.98, 1.346, 1], [12.04, 19.467, 0], [8.2, 15.459, 0], [0.91, 0.376, 1], [11.48, 19.292, 0], [1.73, 0.809, 1], [3.19, 1.405, 0], [5.15, 2.503, 1], [5.2, 5.77, 0], [2.28, 0.734, 1], [2.13, 0.453, 1], [3.39, 1.281, 1], [11.39, 19.287, 0], [11.19, 19.114, 0], [7.21, 13.098, 0], [9.3, 17.497, 0], [11.56, 19.288, 0], [12.46, 19.774, 0], [7.42, 14.195, 0], [2.49, 0.559, 1], [4.34, 3.838, 0], [9.62, 17.693, 0], [0.28, 0.164, 1], [3.19, 0.698, 1], [4.92, 5.524, 0], [7.99, 15.46, 0], [-0.82, 0.265, 1], [7.93, 14.488, 0], [3.57, 2.71, 0], [5.26, 2.557, 1], [8.48, 16.323, 0], [6.23, 9.501, 0], [10.59, 19.048, 0], [12.97, 19.788, 0], [3.41, 2.711, 0], [3.68, 1.8, 1], [5.96, 8.911, 0], [10.33, 18.539, 0], [2.48, 1.564, 0], [4.89, 6.081, 0], [-0.88, 0.28, 1], [8.42, 15.776, 0], [10.59, 18.9, 0], [6.56, 9.528, 0], [3.36, 0.821, 1], [12.18, 19.575, 0], [5.19, 6.067, 0], [7.15, 8.872, 1], [1.18, 0.748, 0], [8.42, 16.109, 0], [7.16, 9.768, 1], [3.95, 1.235, 1], [7.37, 12.94, 0], [0.14, 0.367, 1], [1.39, 0.303, 1], [7.81, 12.883, 1], [7.68, 13.226, 0], [6.72, 10.774, 0], [5.76, 8.524, 0], [11.17, 19.15, 0], [1.52, 0.418, 1], [-0.85, 0.396, 0], [4.62, 2.576, 1], [2.99, 0.848, 1], [10.66, 18.943, 0], [6.9, 8.507, 1], [4.53, 1.641, 1], [3.96, 3.51, 0], [3.86, 3.477, 0], [3.49, 0.918, 1], [5.68, 7.846, 0], [1.29, 0.685, 0], [0.01, 0.323, 1], [0.47, 0.624, 0], [10.69, 18.995, 0], [8.44, 13.034, 1], [10.62, 18.743, 0], [9.19, 17.523, 0], [5.44, 7.286, 0], [3.78, 3.604, 0], [9.6, 18.142, 0], [10.85, 19.004, 0], [8.74, 16.372, 0], [5.7, 7.082, 0], [8.46, 15.382, 0], [-1.98, 0.313, 0], [1.64, 0.357, 1], [9.4, 17.578, 0], [5.42, 2.851, 1], [7.7, 14.732, 0], [3.48, 0.805, 1], [9.89, 18.585, 0], [9.63, 17.985, 0], [9.19, 17.34, 0], [-1.6, 0.146, 1], [2.98, 2.186, 0]], "prog": {"mx": [-6.0, -5.5, -5.0, -4.5, -4.0, -3.5, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0], "suscept": [0.993, 0.989, 0.982, 0.971, 0.953, 0.924, 0.881, 0.818, 0.731, 0.622, 0.5, 0.378, 0.269, 0.182, 0.119, 0.076, 0.047, 0.029, 0.018, 0.011, 0.007, 0.004, 0.002, 0.002, 0.001, 0.001, 0.0, 0.0, 0.0], "months": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "cum_unmit": [0, 13, 26, 36, 46, 63, 78, 94, 110, 130, 144, 155, 172], "cum_mit": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "strat": {"coastal_fault": 0.301, "inland_fault": 0.013, "coastal_meanR": 2.05, "inland_meanR": 11.59, "fault_rate": 0.124}};
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#181C1B",inkSoft:"#48544F",ruleSoft:"#DEE5DC",sea:"#2C6E8F",
+    signal:"#BC5A1E",bad:"#B0413A",good:"#2E7D52",slate:"#566270",paper:"#F8FAF6"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function ml_(p,x,y,arr,o){o=o||{};const lh=o.lh||13;const t=E(p,"text",{x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,"text-anchor":o.anchor||"middle","font-size":o.fs||12,"font-weight":o.weight||500});arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,"font-size":o.fs||10,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});e.textContent=s;return e;}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.filter(p=>p).map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+  function box(svg,x,y,w,h,label,o){o=o||{};E(svg,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,stroke:o.stroke||C.ink,"stroke-width":o.sw||1.6});const arr=Array.isArray(label)?label:[label],lh=o.lh||13,fs=o.fs||11.5;ml_(svg,x+w/2,y+h/2-(arr.length-1)*lh/2+fs*0.34,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});}
+  function head(svg,x2,y2,ang,col){const s=7.5;E(svg,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+(x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col});}
+  function arrow(svg,x1,y1,x2,y2,o){o=o||{};const col=o.color||C.ink;E(svg,"line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});head(svg,x2,y2,Math.atan2(y2-y1,x2-x1),col);}
+  function elbow(svg,pts,o){o=o||{};const col=o.color||C.ink;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];E(svg,"line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});if(i===pts.length-2)head(svg,b[0],b[1],Math.atan2(b[1]-a[1],b[0]-a[0]),col);}}
+
+  // F1 Pareto by lot
+  (function(){const svg=D("f1");if(!svg)return;const W=760,H=360,ml=58,mr=50,mt=24,mb=46;
+    const p=ENV.pareto_lot;const items=Object.keys(p).map(k=>({k,v:p[k]})).sort((a,b)=>b.v-a.v);
+    const tot=items.reduce((s,i)=>s+i.v,0),ymax=items[0].v*1.15;
+    const gw=(W-mr-ml)/items.length,y=sc(0,ymax,H-mb,mt),yc=sc(0,1,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end"});}
+    lab(svg,ml-40,mt+2,"faults",{fs:10,anchor:"start"});let cum=0;const cp=[];
+    items.forEach((it,i)=>{const cx=ml+gw*i+gw/2,bw=Math.min(70,gw*.5);
+      E(svg,"rect",{x:cx-bw/2,y:y(it.v),width:bw,height:(H-mb)-y(it.v),fill:it.k==="Lc"?C.bad:C.slate,opacity:.85});
+      lab(svg,cx,y(it.v)-6,it.v,{fs:11,fill:C.ink,weight:600});lab(svg,cx,H-mb+18,it.k,{fs:11,fill:C.ink});
+      cum+=it.v;cp.push([cx,yc(cum/tot)]);});
+    E(svg,"path",{d:pathD(cp),fill:"none",stroke:C.signal,"stroke-width":2});cp.forEach(pt=>E(svg,"circle",{cx:pt[0],cy:pt[1],r:3,fill:C.signal}));
+    [0,.5,1].forEach(v=>lab(svg,W-mr+8,yc(v)+4,Math.round(v*100)+"%",{anchor:"start",fs:9.5,fill:C.signal}));
+  })();
+
+  // F2 raw corr bars (abs)
+  (function(){const svg=D("f2");if(!svg)return;const W=760,H=340,ml=210,mr=60,mt=14,mb=34;
+    const raw=ENV.raw;const items=Object.keys(raw).map(k=>({k,r:raw[k].r})).sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
+    const x=sc(0,1,ml,W-mr),bh=(H-mt-mb)/items.length;
+    [0,.25,.5,.75,1].forEach(v=>{const xx=x(v);E(svg,"line",{x1:xx,y1:mt,x2:xx,y2:H-mb,stroke:C.ruleSoft});lab(svg,xx,H-mb+18,v.toFixed(2));});
+    lab(svg,(ml+W-mr)/2,H-10,"|Pearson r| vs isolation resistance");
+    items.forEach((it,i)=>{const yy=mt+i*bh+6,h=bh-12;const isDm=it.k.indexOf("Dewpoint")===0,isLot=it.k.indexOf("Connector")===0;
+      const col=isDm?C.sea:(isLot?C.bad:(it.k.indexOf("Salt")===0||it.k.indexOf("humid")>=0||it.k.indexOf("Coastal")===0?C.slate:C.slate));
+      E(svg,"rect",{x:ml,y:yy,width:Math.max(x(Math.abs(it.r))-ml,0),height:h,fill:isDm?C.sea:(isLot?C.bad:C.slate),opacity:(isDm||isLot)?.95:.6});
+      lab(svg,ml-10,yy+h/2+4,it.k,{anchor:"end",fs:11,fill:C.ink});lab(svg,x(Math.abs(it.r))+6,yy+h/2+4,it.r.toFixed(2),{anchor:"start",fs:10.5,fill:isDm?C.sea:(isLot?C.bad:C.slate),weight:600});});
+  })();
+
+  // F3 partial bars
+  (function(){const svg=D("f3");if(!svg)return;const W=760,H=380,ml=58,mr=20,mt=20,mb=66;
+    const rows=[{lab:"Lot Lc",raw:ENV.raw["Connector lot = Lc"].r,par:ENV.partial_env["Connector lot = Lc"].r},
+      {lab:"Coastal",raw:ENV.raw["Coastal"].r,par:ENV.partial_env["Coastal"].r},
+      {lab:"Dewpt margin *",raw:ENV.raw["Dewpoint margin (C)"].r,par:ENV.dm_ctrl_lot.r}];
+    const y=sc(0,1,H-mb,mt),gw=(W-mr-ml)/rows.length;
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,v.toFixed(2),{anchor:"end"});});
+    lab(svg,ml-44,mt+2,"|r|",{fs:11,anchor:"start"});
+    rows.forEach((rw,i)=>{const cx=ml+gw*i+gw/2,bw=Math.min(46,gw*.32);
+      E(svg,"rect",{x:cx-bw-4,y:y(Math.abs(rw.raw)),width:bw,height:(H-mb)-y(Math.abs(rw.raw)),fill:C.slate,opacity:.85});
+      lab(svg,cx-bw/2-4,y(Math.abs(rw.raw))-5,Math.abs(rw.raw).toFixed(2),{fs:10,fill:C.slate});
+      E(svg,"rect",{x:cx+4,y:y(Math.abs(rw.par)),width:bw,height:(H-mb)-y(Math.abs(rw.par)),fill:C.signal,opacity:.92});
+      lab(svg,cx+bw/2+4,y(Math.abs(rw.par))-5,Math.abs(rw.par).toFixed(2),{fs:10,fill:C.signal});
+      lab(svg,cx,H-mb+20,rw.lab,{fs:11.5,fill:C.ink});});
+    lab(svg,ml+gw*0+gw/2,H-mb+38,"collapses",{fs:9.5,fill:C.bad});
+    lab(svg,ml+gw*1+gw/2,H-mb+38,"mostly via env",{fs:9.5,fill:C.slate});
+    lab(svg,ml+gw*2+gw/2,H-mb+38,"survives",{fs:9.5,fill:C.signal});
+    lab(svg,W-mr,H-10,"* margin partial controls for lot",{anchor:"end",fs:9.5});
+  })();
+
+  // F4 diurnal
+  (function(){const svg=D("f4");if(!svg)return;const W=760,H=350,ml=54,mr=24,mt=20,mb=46;
+    const hh=ENV.diurnal.hours,rt=ENV.diurnal.rate,ymax=Math.max(...rt)*1.15;
+    const x=sc(0,24,ml,W-mr),y=sc(0,ymax,H-mb,mt),bw=(W-mr-ml)/hh.length*0.7;
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end"});}
+    [0,4,6,8,12,18,24].forEach(h=>lab(svg,x(h),H-mb+18,h+"h"));
+    lab(svg,(ml+W-mr)/2,H-10,"hour of day");lab(svg,ml-44,mt+2,"fault rate",{fs:10,anchor:"start"});
+    hh.forEach((h,i)=>{const cx=x(h+1);const dawn=(h>=4&&h<8);E(svg,"rect",{x:cx-bw/2,y:y(rt[i]),width:bw,height:(H-mb)-y(rt[i]),fill:dawn?C.sea:C.slate,opacity:dawn?.9:.55});});
+    lab(svg,x(5),y(ymax*0.92),"dawn condensation",{fs:10,fill:C.sea});
+  })();
+
+  // F5 Riso vs margin (coastal vs inland)
+  (function(){const svg=D("f5");if(!svg)return;const W=760,H=360,ml=58,mr=24,mt=20,mb=46;
+    const m=ENV.margin_curve,x=sc(-6,8,ml,W-mr),y=sc(0,Math.max(...m.coastal.concat(m.inland).filter(v=>v!=null))*1.1,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=y.range?0:0;}
+    const ymax=Math.max(...m.coastal.concat(m.inland).filter(v=>v!=null))*1.1;
+    const yy2=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,Y=yy2(v);E(svg,"line",{x1:ml,y1:Y,x2:W-mr,y2:Y,stroke:C.ruleSoft});lab(svg,ml-9,Y+4,v.toFixed(0),{anchor:"end"});}
+    [-6,-3,0,3,6,8].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"dew-point margin (°C)  — surface minus dew point");lab(svg,ml-44,mt+2,"Riso MΩ",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:x(0),y1:mt,x2:x(0),y2:H-mb,stroke:C.slate,"stroke-dasharray":"2 3",opacity:.6});lab(svg,x(0),mt-4,"condensation",{fs:9,fill:C.slate});
+    E(svg,"line",{x1:ml,y1:yy2(ENV.THRESH),x2:W-mr,y2:yy2(ENV.THRESH),stroke:C.bad,"stroke-dasharray":"5 4"});lab(svg,W-mr,yy2(ENV.THRESH)-5,"threshold",{anchor:"end",fs:9,fill:C.bad});
+    E(svg,"path",{d:pathD(m.x.map((xx,i)=>m.coastal[i]!=null?[x(xx),yy2(m.coastal[i])]:null)),fill:"none",stroke:C.bad,"stroke-width":2.6});
+    E(svg,"path",{d:pathD(m.x.map((xx,i)=>m.inland[i]!=null?[x(xx),yy2(m.inland[i])]:null)),fill:"none",stroke:C.sea,"stroke-width":2.6});
+  })();
+
+  // F6 scatter margin vs Riso
+  (function(){const svg=D("f6");if(!svg)return;const W=760,H=380,ml=58,mr=24,mt=20,mb=48;
+    const p=ENV.scatter_margin,ymax=Math.max(...p.map(d=>d[1]))*1.05;
+    const x=sc(-7,8,ml,W-mr),y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,v.toFixed(0),{anchor:"end"});}
+    [-6,-3,0,3,6].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"dew-point margin (°C)");lab(svg,ml-44,mt+2,"Riso MΩ",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:ml,y1:y(ENV.THRESH),x2:W-mr,y2:y(ENV.THRESH),stroke:C.bad,"stroke-dasharray":"5 4"});lab(svg,W-mr,y(ENV.THRESH)-5,"fault threshold",{anchor:"end",fs:9,fill:C.bad});
+    E(svg,"line",{x1:x(0),y1:mt,x2:x(0),y2:H-mb,stroke:C.slate,"stroke-dasharray":"2 3",opacity:.5});
+    p.forEach(d=>E(svg,"circle",{cx:x(d[0]),cy:y(d[1]),r:3.6,fill:d[2]?C.bad:C.sea,opacity:.55}));
+  })();
+
+  // BD1 mechanism chain
+  (function(){const svg=D("bd1");if(!svg)return;
+    const r=[[10,"Humid +","coastal night"],[160,"Surface <","dew point"],[310,"Condensation","film"],[460,"Salt bridges","HV→chassis"],[610,"Riso ↓","IMD fault"]];
+    r.forEach((b,i)=>{box(svg,b[0],74,140,58,[b[1],b[2]],{fs:11,stroke:i===0?C.sea:(i===4?C.signal:C.ink),sw:i===4?2.2:1.6,tcolor:i===4?C.signal:C.ink});if(i<4)arrow(svg,b[0]+140,103,r[i+1][0],103);});
+    box(svg,300,212,160,42,["Connector lot Lc"],{fs:11,stroke:C.bad});
+    arrow(svg,80,132,330,212,{color:C.bad,dash:"5 4"});lab(svg,150,185,"coastal allocation",{fs:9,fill:C.bad});
+    elbow(svg,[[460,233],[530,233],[530,132]],{color:C.bad,dash:"5 4"});
+    const xm=510,ym=190;E(svg,"line",{x1:xm-6,y1:ym-6,x2:xm+6,y2:ym+6,stroke:C.bad,"stroke-width":2});E(svg,"line",{x1:xm-6,y1:ym+6,x2:xm+6,y2:ym-6,stroke:C.bad,"stroke-width":2});
+    lab(svg,560,205,"correlation only",{fs:9,fill:C.bad,anchor:"start"});
+  })();
+
+  // BD2 mitigation + monitoring
+  (function(){const svg=D("bd2");if(!svg)return;
+    box(svg,40,20,180,42,["Seal / vent"],{fs:11,stroke:C.good});
+    box(svg,290,20,180,42,["Hydrophobic coating"],{fs:11,stroke:C.good});
+    box(svg,540,20,180,42,["Connector heater"],{fs:11,stroke:C.good});
+    box(svg,300,108,160,46,["Moisture film ↓"],{fs:11.5,stroke:C.sea,tcolor:C.sea});
+    arrow(svg,130,62,350,108,{color:C.good});arrow(svg,380,62,380,108,{color:C.good});arrow(svg,630,62,420,108,{color:C.good});
+    box(svg,20,206,170,46,["HV–chassis","leakage ↓"],{fs:11});
+    box(svg,210,206,150,46,["IMD: Riso ↑"],{fs:11.5,stroke:C.sea,tcolor:C.sea});
+    box(svg,380,206,200,46,["Fault logic:","debounce + dry-out"],{fs:10.5,stroke:C.signal});
+    box(svg,600,206,150,46,["No nuisance","DTC"],{fs:11,stroke:C.good,tcolor:C.good});
+    elbow(svg,[[380,154],[380,180],[105,180],[105,206]],{color:C.sea});
+    arrow(svg,190,229,210,229);arrow(svg,360,229,380,229);arrow(svg,580,229,600,229);
+  })();
+
+  // PP1 susceptibility
+  (function(){const svg=D("pp1");if(!svg)return;const W=760,H=340,ml=54,mr=24,mt=20,mb=46;
+    const mx=ENV.prog.mx,su=ENV.prog.suscept,x=sc(-6,8,ml,W-mr),y=sc(0,1,H-mb,mt);
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end"});});
+    [-6,-3,0,3,6].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"dew-point margin (°C)");lab(svg,ml-44,mt+2,"P(fault)",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:x(0),y1:mt,x2:x(0),y2:H-mb,stroke:C.slate,"stroke-dasharray":"2 3",opacity:.6});lab(svg,x(0),mt-4,"condensation onset",{fs:9,fill:C.slate});
+    E(svg,"path",{d:pathD(mx.map((m,i)=>[x(m),y(su[i])])),fill:"none",stroke:C.sea,"stroke-width":3});
+  })();
+
+  // PP2 cumulative fault-days
+  (function(){const svg=D("pp2");if(!svg)return;const W=760,H=340,ml=54,mr=24,mt=20,mb=46;
+    const mo=ENV.prog.months,un=ENV.prog.cum_unmit,mi=ENV.prog.cum_mit,ymax=Math.max(...un)*1.1;
+    const x=sc(0,12,ml,W-mr),y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end"});}
+    [0,3,6,9,12].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo"));
+    lab(svg,(ml+W-mr)/2,H-10,"month of year");lab(svg,ml-46,mt+2,"fault-days",{fs:10,anchor:"start"});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(un[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(mi[i])])),fill:"none",stroke:C.good,"stroke-width":3});
+    lab(svg,x(9),y(un[9])-8,"unmitigated",{fill:C.bad,fs:11,anchor:"middle"});
+    lab(svg,x(9),y(mi[9])+ -6,"coated ≈ 0",{fill:C.good,fs:11,anchor:"middle"});
+  })();
+
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  const r=ENV.raw,pe=ENV.partial_env,rg=ENV.reg,st=ENV.strat,pr=ENV.prog;
+  set("cf",Math.round(st.coastal_fault*100)+"%");set("if_",Math.round(st.inland_fault*100)+"%");
+  set("thr",ENV.THRESH);set("thr2",ENV.THRESH);set("thr3",ENV.THRESH);
+  set("r_dm",r["Dewpoint margin (C)"].r.toFixed(2));set("r_lot",r["Connector lot = Lc"].r.toFixed(2));
+  set("r_lot2",r["Connector lot = Lc"].r.toFixed(2));
+  set("rp_lot",pe["Connector lot = Lc"].r.toFixed(2));set("rp_lot2",pe["Connector lot = Lc"].r.toFixed(2));
+  set("rdm_lot",ENV.dm_ctrl_lot.r.toFixed(2));
+  set("m1_lot",rg.m1_lot.toFixed(2));set("m1_r2",rg.m1_r2.toFixed(2));
+  set("m2_lot",rg.m2_lot.toFixed(2));set("m2_r2",rg.m2_r2.toFixed(2));
+  set("m3_lot",rg.m3_lot.toFixed(2));set("m3_r2",rg.m3_r2.toFixed(2));
+  set("r2chain",rg.m1_r2.toFixed(2)+" → "+rg.m2_r2.toFixed(2)+" → "+rg.m3_r2.toFixed(2));
+  set("cum_u",pr.cum_unmit[pr.cum_unmit.length-1]);set("cum_m",pr.cum_mit[pr.cum_mit.length-1]);
+  set("cum_u2",pr.cum_unmit[pr.cum_unmit.length-1]);set("cum_m2",pr.cum_mit[pr.cum_mit.length-1]);
+})();
+</script>
+</body>
+</html>

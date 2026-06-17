@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Anatomy of a Root Cause — A Battery Degradation Case Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044;
+  --rule:#DAD1BF; --rule-soft:#E7DFD0;
+  --rust:#C2410C; --rust-deep:#9A3412;
+  --teal:#0F766E; --amber:#B45309; --slate:#475569;
+  --good:#0F766E; --bad:#B91C1C; --hold:#B45309;
+  --buggy:#C2410C; --healthy:#0F766E;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+
+/* ---- header ---- */
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px);
+  line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px);
+  color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em;
+  color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+
+/* ---- abstract ---- */
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper);
+  border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+
+/* ---- section structure ---- */
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em;
+  color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px);
+  line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic}
+strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+.callout-name{font-variant-caps:small-caps; letter-spacing:.02em; font-weight:600}
+
+/* ---- figures ---- */
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper);
+  border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55;
+  color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+
+/* ---- code ---- */
+pre{background:#211C15; color:#EDE6D6; font-family:"IBM Plex Mono",monospace;
+  font-size:13px; line-height:1.6; padding:18px 20px; overflow-x:auto;
+  border-radius:2px; margin:22px 0}
+pre .c{color:#9A8F78} pre .k{color:#E0A07A} pre .s{color:#9DC08B} pre .n{color:#D8B26A}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft);
+  padding:1px 6px; border-radius:3px}
+
+/* ---- tables ---- */
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14.5px;
+  font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink);
+  padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+  padding:2px 8px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.tag.keep{background:#DCEFEC; color:var(--teal)}
+.tag.drop{background:#F6DED7; color:var(--bad)}
+.tag.hold{background:#F7E9CF; color:var(--hold)}
+
+/* ---- verdict cards ---- */
+.verdict{display:grid; grid-template-columns:1fr; gap:14px; margin:26px 0}
+.vcard{border:1px solid var(--rule); background:var(--paper); padding:18px 20px;
+  border-left:4px solid var(--slate)}
+.vcard.keep{border-left-color:var(--teal)}
+.vcard.drop{border-left-color:var(--bad)}
+.vcard.hold{border-left-color:var(--hold)}
+.vcard h4{font-family:"Fraunces",serif; font-size:18px; margin:0 0 4px; font-weight:600}
+.vcard .meta{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft);
+  margin:0 0 9px}
+.vcard p{margin:0; font-size:15.5px}
+
+/* ---- aside / note ---- */
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0;
+  border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+
+/* ---- abduction ladder ---- */
+.ladder{margin:28px 0; counter-reset:rung}
+.rung{display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--rule-soft)}
+.rung:first-child{border-top:none}
+.rung .num{flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+  background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace;
+  font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center}
+.rung .body h4{margin:2px 0 4px; font-family:"Fraunces",serif; font-size:17px; font-weight:600}
+.rung .body p{margin:0; font-size:15.5px}
+.rung .body .move{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--rust)}
+
+/* ---- legend ---- */
+.legend{display:flex; gap:18px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace;
+  font-size:12px; color:var(--ink-soft); margin-top:4px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+
+/* ---- algorithm boxes ---- */
+.algo{margin:26px 0; border:1px solid var(--ink); background:var(--paper)}
+.algo .hd{background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace;
+  font-size:12px; letter-spacing:.12em; padding:9px 16px; text-transform:uppercase;
+  display:flex; justify-content:space-between}
+.algo .hd .nm{color:#E0A07A}
+.algo .bd{padding:14px 18px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.72}
+.algo .ln{white-space:pre-wrap}
+.algo .io{color:var(--teal); font-weight:600}
+.algo .kw{color:var(--rust); font-weight:600}
+.algo .cm{color:var(--ink-soft)}
+.algo .i1{padding-left:22px} .algo .i2{padding-left:44px} .algo .i3{padding-left:66px}
+
+.partlead{max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic}
+
+/* ---- decision tree ---- */
+.dtree{margin:26px 0; font-family:"IBM Plex Mono",monospace}
+.dnode{display:inline-block; background:#EFE7D6; border:1.6px solid var(--ink);
+  border-radius:7px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink)}
+.dbranch{margin:6px 0 6px 14px; padding-left:20px; border-left:2px solid var(--rule)}
+.dedge{font-size:12.5px; color:var(--rust); font-weight:600; margin:12px 0 5px}
+.dleaf{display:inline-block; padding:7px 13px; border-radius:7px; font-size:13px;
+  border:1.5px solid; line-height:1.4; max-width:46ch}
+.dleaf.root{background:#F7E7DF; border-color:var(--rust); color:var(--rust); font-weight:600}
+.dleaf.ok{background:#DCEFEC; border-color:var(--teal); color:var(--teal)}
+.dleaf.warn{background:#F7E9CF; border-color:var(--amber); color:var(--amber)}
+
+
+
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px;
+  flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px;
+  border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+
+@media (max-width:560px){
+  body{font-size:17px}
+  .wrap{padding:0 18px}
+  header.masthead{padding:48px 0 32px}
+  .verdict{gap:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Diagnostics · Prognostics · A Worked Case</p>
+  <h1>The Anatomy of a Root Cause</h1>
+  <p class="subtitle">A fleet of batteries is aging too fast. The statistics point one way, the physics another. This is how you tell a true cause from a convincing impostor.</p>
+  <div class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Vehicle Health Monitoring Notes</div>
+</header>
+
+<div class="abstract">
+  <span class="lab">Abstract</span>
+  <p>We follow a single anomaly — a cohort of electric vehicles losing battery health faster than the model allows — from first alarm to confirmed root cause and forward into a prognosis. Along the way we meet the central hazard of diagnostics: a feature that <em>correlates</em> beautifully with failure but <em>causes</em> nothing. The tool that rescues us is abduction — inference to the best explanation — disciplined by partial correlation and, finally, by physics. All figures are computed from a simulated 240-vehicle fleet with a known ground truth, so we can grade our own detective work.</p>
+</div>
+<div class="reslinks" style="justify-content:flex-start">
+  <span class="ic">▸</span>
+  <a href="nvh-preconditioning-rca-report.html">Companion report: Preconditioning-mode NVH RCA</a>
+  <a href="manufacturing-rca-report.html">Companion: Module-weld manufacturing RCA</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="battery-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="signal">
+  <span class="snum">§ 01 — The Signal</span>
+  <h2>An alarm with no obvious cause</h2>
+  <p class="lead">It starts as a line on a dashboard that bends the wrong way.</p>
+  <p>You monitor a fleet of 240 vehicles. The battery <strong>state-of-health (SOH)</strong> — estimated onboard from capacity fade and internal-resistance rise — is supposed to decline gently, a few percent a year. Instead, a sizeable slice of the fleet is shedding health at roughly <strong>double</strong> the baseline rate. No crashes, no thermal events, no diagnostic trouble codes. Just a population quietly dividing into two: the ordinary, and the alarming.</p>
+  <p>The first job is not to explain it. The first job is to <em>see its shape</em>. When we plot SOH against age and color by the two emerging groups, the fleet is unmistakably bimodal — two trajectories, not one cloud.</p>
+
+  <figure>
+    <div class="figlab">Figure 1 — Fleet SOH trajectories</div>
+    <svg id="fig1" viewBox="0 0 720 380" role="img" aria-label="Two diverging SOH-over-time trajectories"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--buggy)"></i> Fast-fading cohort</span>
+      <span><i class="dot" style="background:var(--healthy)"></i> Baseline cohort</span>
+    </div>
+    <figcaption><b>The anomaly, made visible.</b> Two populations separate cleanly over 36 months. The fast-fading group reaches the 80% end-of-life threshold years early. The question is not <em>whether</em> something is wrong — it is <em>what</em>, and that is where most investigations go astray.</figcaption>
+  </figure>
+
+  <p>Two trajectories means two regimes — something is sorting these vehicles into camps. The investigation is the search for the sorting variable, and for the <em>mechanism</em> behind it.</p>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="frame">
+  <span class="snum">§ 02 — The Frame</span>
+  <h2>Diagnosis answers <em>why</em>; prognosis answers <em>when</em></h2>
+  <p>Before chasing causes, fix the vocabulary, because the two halves of the job have different standards of proof.</p>
+  <p><strong>Diagnosis</strong> is a snapshot: given the evidence now, what is the fault and what mechanism produced it? <strong>Prognosis</strong> is the projection: given that mechanism and the operating profile ahead, how much useful life remains? The hinge between them is the <em>mechanism</em>. Diagnose only a correlation and your prognosis is a guess with error bars wide enough to drive through. Diagnose the mechanism and the same data becomes a degradation model you can extrapolate, intervene on, and price.</p>
+  <div class="note">
+    <span class="lab">Why the rigor matters</span>
+    A root cause is not "the variable most associated with failure." It is the variable that, if you <em>changed</em> it, would change the failure. Association is cheap; intervention is the test. Everything below is machinery for telling those two apart without running 240 destructive experiments.
+  </div>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="hypotheses">
+  <span class="snum">§ 03 — Hypothesis Generation</span>
+  <h2>The candidate field</h2>
+  <p>Good diagnostics begins by being generous, then ruthless. We enumerate every plausible cause first, deliberately spanning the failure-mode families so we don't quietly assume the answer:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Family</th><th>Hypothesis for this fleet</th></tr></thead>
+    <tbody>
+      <tr><td>Thermal</td><td>Hot-climate operation accelerates calendar aging (Arrhenius).</td></tr>
+      <tr><td>Usage / behavior</td><td>Frequent DC fast-charging stresses cells.</td></tr>
+      <tr><td>Usage / storage</td><td>Long dwell at high state-of-charge drives calendar fade.</td></tr>
+      <tr><td>Mechanical / wear</td><td>Cumulative cycling (depth × count) wears the electrodes.</td></tr>
+      <tr><td>Electrical / control</td><td>A balancing fault lets cells drift apart, over-stressing the weak ones.</td></tr>
+      <tr><td>Software / firmware</td><td>A specific build mismanages the battery — the upstream suspect.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Each is a story about a <em>cause</em>. None is yet measurable. The next step is the one beginners skip: translating each story into a number we can actually pull off the bus.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="features">
+  <span class="snum">§ 04 — From Hypothesis to Feature</span>
+  <h2>Make every suspicion measurable</h2>
+  <p>A hypothesis you cannot measure is a hypothesis you cannot reject. So we map each candidate to a feature already present in the telemetry — CAN logs, BMS snapshots, charge records:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Hypothesis</th><th>Measurable feature</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Thermal aging</td><td>Mean ambient temperature (°C)</td><td>BMS / climate log</td></tr>
+      <tr><td>Fast-charging stress</td><td>DC fast-charge events / month</td><td>Charge records</td></tr>
+      <tr><td>High-SOC storage</td><td>% time parked above 80% SOC</td><td>BMS state log</td></tr>
+      <tr><td>Cycling wear</td><td>Equivalent full cycles</td><td>Coulomb counter</td></tr>
+      <tr><td>Balancing fault</td><td>Post-charge cell-voltage spread, ΔV (mV)</td><td>Per-cell BMS telemetry</td></tr>
+      <tr><td>Firmware</td><td>Build version (categorical)</td><td>ECU manifest</td></tr>
+    </tbody>
+  </table>
+
+  <p>Now the outcome — annualized SOH fade rate (%/yr) — and six candidate features sit in one table, 240 rows deep. The detective work can begin.</p>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="raw">
+  <span class="snum">§ 05 — First Pass</span>
+  <h2>What the raw correlations say</h2>
+  <p>The reflex move — and the right place to start — is to correlate each feature against the fade rate and rank them.</p>
+
+  <pre><span class="c"># Step 1 — rank candidates by raw association with fade rate</span>
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">for</span> name, x <span class="k">in</span> features.items():
+    r, p = stats.pearsonr(x, degradation_rate)
+    print(f<span class="s">"{name:24s}  r={r:+.3f}  p={p:.1e}"</span>)</pre>
+
+  <figure>
+    <div class="figlab">Figure 2 — Raw correlation with fade rate</div>
+    <svg id="fig2" viewBox="0 0 720 360" role="img" aria-label="Bar chart of Pearson correlations"></svg>
+    <figcaption><b>The leaderboard.</b> Cell-imbalance ΔV leads, but <span style="color:var(--rust)"><b>fast-charging is right behind it</b></span> — a strong, plausible, intuitively satisfying r&nbsp;=&nbsp;<span id="fc_r"></span>. This is exactly the kind of result that ends a lazy investigation. It shouldn't end this one.</figcaption>
+  </figure>
+
+  <p>Two features stand out: <span class="callout-name">cell-imbalance ΔV</span> and <span class="callout-name">fast-charge frequency</span>. The fast-charging result is seductive: it has a clean engineering narrative (fast charging is "hard on batteries," everyone knows that), a strong coefficient, and a vanishingly small p-value. Plot it and it looks like a smoking gun.</p>
+
+  <figure>
+    <div class="figlab">Figure 3 — Fast-charging vs. fade rate</div>
+    <svg id="fig3" viewBox="0 0 720 400" role="img" aria-label="Scatter of fast-charge events vs fade rate"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--buggy)"></i> On firmware v3.2.1</span>
+      <span><i class="dot" style="background:var(--healthy)"></i> Other builds</span>
+    </div>
+    <figcaption><b>Convincing — and wrong.</b> The upward trend is real and tight. A team under deadline pressure writes "fast-charging causes accelerated fade," recommends throttling DC charge rates, and closes the ticket. Notice the coloring, though: the high-fast-charge cars are almost all the same firmware build. Hold that thought.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="trap">
+  <span class="snum">§ 06 — The Trap</span>
+  <h2>When the statistics are loud and the physics is silent</h2>
+  <p>Here is the discipline that separates a diagnosis from a coincidence. Before accepting fast-charging, we ask the four questions every candidate root cause must survive:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Test</th><th>Fast-charging</th></tr></thead>
+    <tbody>
+      <tr><td>1. Correlated?</td><td>Yes — strongly (r ≈ <span class="fc_r2"></span>).</td></tr>
+      <tr><td>2. Statistically significant?</td><td>Yes — p ≪ 0.001.</td></tr>
+      <tr><td>3. Explains real variance?</td><td>Yes — alone it accounts for a large share.</td></tr>
+      <tr><td>4. <b>Mechanistically plausible?</b></td><td><b>This is where it stumbles.</b></td></tr>
+    </tbody>
+  </table>
+
+  <p>Three of four pass. The fourth is the one that matters, and it is uncomfortable. When we look at the actual charge sessions, the DC fast-charges in this fleet are <em>within rated C-rate</em>, the pack temperatures during them stay <em>inside the thermal window</em>, and the cell chemistry is qualified for exactly this duty. There is no mechanism by which charging that the cell is specified to tolerate should, by itself, double the fade rate. The number is loud; the physics says nothing.</p>
+
+  <div class="note">
+    <span class="lab">The rule</span>
+    A correlation with no mechanism is not a finding — it is a <em>clue</em>. It is telling you something true about the data, just not what it appears to say. The honest response is not "ignore it" and not "believe it." It is to ask: <em>what could produce this correlation without being its cause?</em> That question is the doorway to abduction.
+  </div>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="abduction">
+  <span class="snum">§ 07 — Abduction</span>
+  <h2>Reasoning to the best explanation</h2>
+  <p>We are not deducing (we have no law that forces a conclusion) and we are not blindly guessing. We are doing what a diagnostician actually does: surveying the candidate explanations and asking which one <em>best accounts for the whole pattern</em> — the strong fast-charge correlation, the absent mechanism, and the equally strong ΔV signal. That is <strong>abduction</strong>: inference to the best explanation.</p>
+  <p>The best explanation for "strong correlation, no mechanism" is almost always a <strong>confounder</strong>: a hidden third variable that drives both the suspect feature and the outcome. So we form a new, sharper hypothesis:</p>
+  <p style="padding-left:20px; border-left:3px solid var(--rust); font-style:italic; color:var(--ink-soft)">Fast-charging does not cause the fade. Both fast-charging and the fade are downstream of something else — and the firmware coloring in Figure 3 is the hint. Suppose a firmware build mismanages cell balancing <em>and</em> ships an aggressive charge profile. Then its cars both fast-charge more <em>and</em> degrade faster, with no causal arrow between those two at all.</p>
+
+  <h3>The test: hold the suspected mechanism constant</h3>
+  <p>If ΔV (the balancing signal) is the real driver, then <em>among cars with the same ΔV</em>, fast-charging should carry no extra information about fade. We compute the <strong>partial correlation</strong> — the correlation of each feature with fade after regressing out ΔV:</p>
+
+  <pre><span class="c"># Partial correlation: corr(feature, fade) with ΔV held constant</span>
+<span class="k">def</span> partial_corr(x, y, z):
+    rx = x - np.polyval(np.polyfit(z, x, <span class="n">1</span>), z)   <span class="c"># strip z from x</span>
+    ry = y - np.polyval(np.polyfit(z, y, <span class="n">1</span>), z)   <span class="c"># strip z from y</span>
+    <span class="k">return</span> stats.pearsonr(rx, ry)            <span class="c"># what's left</span>
+
+partial_corr(fast_charge, fade, z=cell_imbalance_dV)</pre>
+
+  <figure>
+    <div class="figlab">Figure 4 — Raw vs. partial correlation (control for ΔV)</div>
+    <svg id="fig4" viewBox="0 0 720 400" role="img" aria-label="Grouped bars comparing raw and partial correlation"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--slate)"></i> Raw correlation</span>
+      <span><i class="dot" style="background:var(--rust)"></i> Partial (ΔV held constant)</span>
+    </div>
+    <figcaption><b>The reveal — in both directions.</b> <span style="color:var(--rust)"><b>Fast-charging collapses</b></span> from a commanding r&nbsp;≈&nbsp;<span class="fc_r2"></span> to statistical noise once ΔV is held constant: it was a proxy, not a cause. Meanwhile <span style="color:var(--amber)"><b>ambient temperature</b></span>, which looked unimportant in the raw ranking, <em>emerges</em> — its genuine but modest effect was being masked. Raw correlation misled us twice, in opposite directions.</figcaption>
+  </figure>
+
+  <p>The mirror-image test confirms it: hold <em>fast-charging</em> constant and ΔV barely moves (r&nbsp;=&nbsp;<span id="dv_partial"></span>). The dependence runs one way. A multiple regression tells the same story in coefficients — the moment ΔV enters the model, the fast-charge coefficient falls to near zero while the model's explanatory power jumps:</p>
+
+  <table class="tbl">
+    <thead><tr><th>Model</th><th>Fast-charge coef.</th><th>ΔV coef.</th><th>R²</th></tr></thead>
+    <tbody>
+      <tr><td>fade ~ fast-charge + ambient</td><td id="rn_fc"></td><td>—</td><td id="rn_r2"></td></tr>
+      <tr><td>fade ~ fast-charge + ambient + <b>ΔV</b></td><td id="rf_fc"></td><td id="rf_dv"></td><td id="rf_r2"></td></tr>
+    </tbody>
+  </table>
+
+  <p>Abduction has done its work: it took an anomaly the raw statistics couldn't resolve and proposed a structure — a confounder — that the partial-correlation test then confirmed. But we are not finished. A surviving statistical signal is still only a strong clue. It must now pass the test fast-charging failed: <em>physics</em>.</p>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="physics">
+  <span class="snum">§ 08 — The Smoking Gun</span>
+  <h2>Where statistics and physics finally agree</h2>
+  <p>ΔV survived every statistical test. Now we demand a mechanism — and unlike fast-charging, ΔV has one ready. The question is concrete: <em>why would a few millivolts of post-charge cell spread accelerate fade?</em></p>
+  <p>A battery pack charges as a series string under one current. The BMS terminates charge on <em>pack</em> voltage. If balancing is healthy, all cells sit at nearly the same voltage and rise together, each topping out safely below the over-voltage stress line. But if balancing fails, the cells drift apart — and the <strong>weakest, highest-voltage cell is driven past its limit</strong> while the pack average still looks fine. We pull the per-cell traces from a balanced pack and an imbalanced one during a single charge:</p>
+
+  <figure>
+    <div class="figlab">Figure 5 — Per-cell voltage during charge</div>
+    <svg id="fig5" viewBox="0 0 720 410" role="img" aria-label="Per-cell voltage traces, balanced vs imbalanced pack"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--healthy)"></i> Balanced pack cells</span>
+      <span><i class="dot" style="background:var(--buggy)"></i> Imbalanced — weak cell</span>
+      <span><i class="dot" style="background:var(--bad)"></i> Over-voltage stress line</span>
+    </div>
+    <figcaption><b>The mechanism, caught in the act.</b> In the balanced pack (left, teal) every cell crests safely. In the imbalanced pack (right) the weak cell is pushed across the <b>4.25&nbsp;V over-voltage line</b> on every single charge while the pack-level reading stays nominal. Repeated micro-over-voltage drives lithium plating and electrolyte breakdown on that cell — the physical pathway from "millivolts of spread" to "accelerated capacity loss."</figcaption>
+  </figure>
+
+  <p>Now the four tests all pass for ΔV at once: strong correlation, significant, dominant share of variance, <em>and</em> a clean, observable physical mechanism. This is what a root cause looks like when you've actually found it — the numbers and the physics stop arguing and start agreeing.</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="firmware">
+  <span class="snum">§ 09 — Upstream</span>
+  <h2>Following the chain to its source</h2>
+  <p>ΔV is the mechanism, but a mechanism has an origin. Cells don't drift apart on their own — something stopped balancing them. We stratify the fleet by firmware build, the last suspect on our original list:</p>
+
+  <figure>
+    <div class="figlab">Figure 6 — Stratification by firmware build</div>
+    <svg id="fig6" viewBox="0 0 720 300" role="img" aria-label="Bars comparing buggy and healthy firmware cohorts"></svg>
+    <figcaption><b>The origin.</b> Cars on build <b>v3.2.1</b> show a mean ΔV of <span id="dv_buggy"></span>&nbsp;mV and fade at <span id="degr_buggy"></span>&nbsp;%/yr; every other build sits near <span id="dv_healthy"></span>&nbsp;mV and <span id="degr_healthy"></span>&nbsp;%/yr. The split is categorical, not gradual — the signature of a software defect, not a wear process.</figcaption>
+  </figure>
+
+  <p>Inspecting the build confirms it: a timing bug in the cell-balancing controller — it only equalizes during a narrow state window and misses the windows where the weak cell is drifting. The same build also carried an aggressive DC-charge default, which is <em>why</em> its cars fast-charged more — and why fast-charging looked guilty in Figure 3. The phantom correlation finally has an honest explanation.</p>
+
+  <p>The full causal chain, recovered end to end:</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:2.2; color:var(--ink)">
+    firmware v3.2.1 bug &nbsp;→&nbsp; balancing fails &nbsp;→&nbsp; cell ΔV grows<br>
+    &nbsp;→&nbsp; weak cell over-volts each charge &nbsp;→&nbsp; <b style="color:var(--rust)">accelerated SOH fade</b><br>
+    <span style="color:var(--ink-soft)">(same build's aggressive charge default &nbsp;→&nbsp; more fast-charging &nbsp;=&nbsp; the red herring)</span>
+  </p>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="verdicts">
+  <span class="snum">§ 10 — The Verdicts</span>
+  <h2>Three features, three different fates</h2>
+  <p>The case rests on recognizing that "correlated with failure" resolves into three genuinely different roles — and that raw correlation cannot tell them apart:</p>
+
+  <div class="verdict">
+    <div class="vcard keep">
+      <h4>Cell-imbalance ΔV &nbsp;<span class="tag keep">Root cause</span></h4>
+      <p class="meta">raw r ≈ <span class="dv_r"></span> · survives all controls · mechanism confirmed</p>
+      <p>Strong in the raw ranking, undiminished under control, and backed by an observable physical pathway. Accept — and act on it.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>Fast-charging frequency &nbsp;<span class="tag drop">Spurious</span></h4>
+      <p class="meta">raw r ≈ <span class="fc_r2"></span> · collapses under control · no mechanism</p>
+      <p>Loud in the raw ranking, gone the moment ΔV is held constant, and never had a mechanism. A confounded proxy for the firmware build. Reject — throttling charge rates would have fixed nothing.</p>
+    </div>
+    <div class="vcard hold">
+      <h4>Ambient temperature &nbsp;<span class="tag hold">Contributing</span></h4>
+      <p class="meta">raw r ≈ <span id="temp_r"></span> · emerges under control · modest mechanism</p>
+      <p>Nearly invisible in the raw ranking, yet a real secondary cause revealed once ΔV is removed — a genuine Arrhenius effect, masked by the dominant driver. Keep it in the prognostic model; it is not the headline.</p>
+    </div>
+  </div>
+
+  <p>Note the symmetry of the two failures of naïve correlation: one feature looked important and wasn't; another looked unimportant and was. The same instrument — partial correlation, then physics — corrected both.</p>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="ladder">
+  <span class="snum">§ 11 — The Reasoning, Distilled</span>
+  <h2>The abductive ladder</h2>
+  <p>Stripped of the battery specifics, here is the move that did the real work — repeatable on any diagnostic problem:</p>
+
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body">
+      <span class="move">Observe</span>
+      <h4>Surprise, not just a value</h4>
+      <p>The fleet split into two fade regimes. An anomaly worth explaining is a pattern your current model didn't predict.</p>
+    </div></div>
+    <div class="rung"><div class="num">2</div><div class="body">
+      <span class="move">Enumerate</span>
+      <h4>Generate the candidate field generously</h4>
+      <p>Span the failure-mode families before testing any one, so the answer isn't smuggled in as an assumption.</p>
+    </div></div>
+    <div class="rung"><div class="num">3</div><div class="body">
+      <span class="move">Operationalize</span>
+      <h4>Turn each cause into a measurable feature</h4>
+      <p>A hypothesis you can't measure is one you can't reject. Map suspicion to telemetry.</p>
+    </div></div>
+    <div class="rung"><div class="num">4</div><div class="body">
+      <span class="move">Screen</span>
+      <h4>Rank by association — but distrust the ranking</h4>
+      <p>Raw correlation is a flashlight, not a verdict. It shows you where to look, including at impostors.</p>
+    </div></div>
+    <div class="rung"><div class="num">5</div><div class="body">
+      <span class="move">Confront</span>
+      <h4>Demand a mechanism</h4>
+      <p>Strong correlation + no physics = a clue about a hidden variable, never a conclusion. This is the trigger to reason abductively.</p>
+    </div></div>
+    <div class="rung"><div class="num">6</div><div class="body">
+      <span class="move">Abduce</span>
+      <h4>Propose the structure that best explains the whole pattern</h4>
+      <p>"Confounder" is the usual best explanation for loud-stats-no-mechanism. Name the hidden driver and predict what holding it constant should do.</p>
+    </div></div>
+    <div class="rung"><div class="num">7</div><div class="body">
+      <span class="move">Control</span>
+      <h4>Test the structure: partial correlation, stratification, regression</h4>
+      <p>True causes survive controls; proxies collapse; masked contributors emerge. The data sorts itself once you ask the conditional question.</p>
+    </div></div>
+    <div class="rung"><div class="num">8</div><div class="body">
+      <span class="move">Confirm</span>
+      <h4>Close the loop with physics</h4>
+      <p>The surviving candidate must show its mechanism in the raw signal — here, the weak cell crossing the over-voltage line on every charge.</p>
+    </div></div>
+  </div>
+
+  <div class="note">
+    <span class="lab">On choosing the next hypothesis</span>
+    When a hypothesis is rejected, you don't pick the next one at random. Order the field by <em>expected information per unit effort</em>: prefer the candidate that (a) is most prior-probable in your fleet, (b) would explain the most observed failures if true, and (c) is cheapest to test with data you already have. Rejection is not a dead end — each "no" reshapes the remaining probabilities, which is exactly what abduction formalizes.
+  </div>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="prognosis">
+  <span class="snum">§ 12 — Diagnosis Becomes Prognosis</span>
+  <h2>From the mechanism, a forecast — and a decision</h2>
+  <p>Because we found the <em>mechanism</em> and not merely a correlate, the diagnosis converts directly into a prognosis. We know ΔV drives fade and we know the firmware fix collapses ΔV back to the healthy range. So for an affected vehicle — say, one currently at 91% SOH and 14 months old — we can project two futures and put a number on the intervention:</p>
+
+  <figure>
+    <div class="figlab">Figure 7 — Remaining-life projection</div>
+    <svg id="fig7" viewBox="0 0 720 380" role="img" aria-label="RUL projection with and without OTA fix"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> No intervention</span>
+      <span><i class="dot" style="background:var(--healthy)"></i> After OTA balancing fix</span>
+      <span><i class="dot" style="background:var(--ink-soft)"></i> 80% end-of-life</span>
+    </div>
+    <figcaption><b>The payoff of a real root cause.</b> Left untreated, the vehicle crosses the 80% end-of-life line years early. Patch the balancing controller over the air, ΔV recovers, and the fade rate drops to baseline — extending useful life substantially. This forecast is only trustworthy <em>because</em> the diagnosis was mechanistic. Had we "fixed" fast-charging, the curve would not have moved at all.</figcaption>
+  </figure>
+
+  <p>And it generalizes: any vehicle on build v3.2.1 carries the same latent risk, even those not yet visibly degrading. The diagnosis becomes a <em>fleet-wide screen</em> — flag every affected VIN, prioritize by current ΔV, push the OTA, and verify recovery in the post-patch telemetry. Diagnosis told us why; prognosis told us who's next and how much time we have.</p>
+</section>
+
+<!-- ===================== 13 ===================== -->
+<section id="audit">
+  <span class="snum">§ 13 — The Audit Trail</span>
+  <h2>Make the reasoning legible to others — and to agents</h2>
+  <p>A root cause nobody can follow is a root cause nobody will trust. The investigation above should be logged not as a conclusion but as a <em>decision path</em> — the artifact that lets a reviewer, a regulator, or a downstream automated agent reconstruct exactly how you got there:</p>
+  <pre><span class="c"># Decision record — one node per inference, machine- and human-readable</span>
+{
+  <span class="s">"observation"</span>: <span class="s">"bimodal SOH fade; fast cohort ~2x baseline"</span>,
+  <span class="s">"hypotheses"</span>: [<span class="s">"thermal"</span>,<span class="s">"fast_charge"</span>,<span class="s">"high_soc"</span>,<span class="s">"cycling"</span>,<span class="s">"balancing"</span>,<span class="s">"firmware"</span>],
+  <span class="s">"screen"</span>: {<span class="s">"method"</span>:<span class="s">"pearson"</span>, <span class="s">"top"</span>:[<span class="s">"dV"</span>,<span class="s">"fast_charge"</span>]},
+  <span class="s">"challenge"</span>: {<span class="s">"feature"</span>:<span class="s">"fast_charge"</span>, <span class="s">"mechanism"</span>:<span class="s">null</span>,
+                <span class="s">"flag"</span>:<span class="s">"strong corr, no physics -> suspect confounder"</span>},
+  <span class="s">"abduction"</span>: <span class="s">"both fast_charge and fade are downstream of firmware build"</span>,
+  <span class="s">"control"</span>: {<span class="s">"partial_r(fast_charge|dV)"</span>:<span class="n">-0.09</span>,   <span class="c"># collapsed</span>
+              <span class="s">"partial_r(dV|fast_charge)"</span>:<span class="n">0.82</span>}, <span class="c"># survived</span>
+  <span class="s">"physics"</span>: <span class="s">"weak cell crosses 4.25V on every charge (per-cell trace)"</span>,
+  <span class="s">"root_cause"</span>: <span class="s">"firmware v3.2.1 balancing timing bug"</span>,
+  <span class="s">"action"</span>: {<span class="s">"fix"</span>:<span class="s">"OTA balancing patch"</span>, <span class="s">"screen"</span>:<span class="s">"all v3.2.1 VINs"</span>},
+  <span class="s">"confidence"</span>: <span class="s">"high — stats + mechanism + categorical stratification agree"</span>
+}</pre>
+  <p>Logged this way, every link in the chain carries its own evidence and its own rejected alternatives. That is what makes the diagnosis defensible, the prognosis auditable, and the whole pipeline safe to hand to an autonomous diagnostic agent — which, after all, must reason exactly like this, just faster.</p>
+</section>
+
+<!-- ===================== PART II DIVIDER ===================== -->
+<section id="partII" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part II</p>
+  <h2 style="font-size:clamp(28px,4.5vw,40px)">The Foundations</h2>
+  <p style="max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic">
+    The case is closed. What follows is the theory underneath every move we made — the concepts that turn a lucky guess into a repeatable method.</p>
+</section>
+
+<!-- ===================== F1 ===================== -->
+<section id="f1">
+  <span class="snum">§ F1 — Two Questions</span>
+  <h2>Diagnosis and prognosis are different jobs</h2>
+  <p>They sit on the same data but answer different questions and carry different burdens of proof.</p>
+  <p><strong>Diagnosis</strong> is inverse inference: from observed effects (symptoms, signals, codes) back to the hidden state that produced them. Its standard of proof is <em>mechanistic identification</em> — you must name the fault and the pathway. <strong>Prognosis</strong> is forward inference: from the identified state and the expected operating profile, project the future trajectory and the time to a threshold. Its standard of proof is <em>predictive calibration</em> — your forecasts must match what actually happens.</p>
+  <p>The mechanism is the bridge. Formally, if degradation follows some rate law</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:15px">d(SOH)/dt = f(state, stressors; θ)</p>
+  <p>then diagnosis is the act of identifying <em>f</em> and its parameters θ, and prognosis is integrating that law forward to find when SOH crosses end-of-life. Diagnose only a correlation and you have no <em>f</em> to integrate — only a line you are extrapolating on faith. Diagnose the mechanism and θ and the same telemetry becomes a calibrated forecast you can act on. This is exactly why, in the case study, finding the <em>balancing mechanism</em> (not just the fast-charge correlation) is what made the remaining-life projection trustworthy.</p>
+</section>
+
+<!-- ===================== F2 ===================== -->
+<section id="f2">
+  <span class="snum">§ F2 — The Candidate Space</span>
+  <h2>Why hypotheses come in families</h2>
+  <p>Hypothesis generation fails most often by omission — the true cause was never on the list. The defense is to enumerate by <em>failure-mode family</em>, because families are how physical systems actually break, and spanning them guarantees coverage:</p>
+  <table class="tbl">
+    <thead><tr><th>Family</th><th>Generating mechanism</th><th>Signature in data</th></tr></thead>
+    <tbody>
+      <tr><td>Mechanical / wear</td><td>Fatigue, friction, cyclic loading</td><td>Monotonic drift with usage/cycles</td></tr>
+      <tr><td>Thermal</td><td>Arrhenius-accelerated chemistry</td><td>Correlates with temperature exposure</td></tr>
+      <tr><td>Electrical / control</td><td>Sensor drift, actuator fault, control-loop error</td><td>Step changes, regime shifts</td></tr>
+      <tr><td>Software / firmware</td><td>Logic defect in a specific build</td><td>Categorical split by version</td></tr>
+      <tr><td>Manufacturing</td><td>Material or assembly variance</td><td>Batch / lot clustering</td></tr>
+      <tr><td>Usage / environment</td><td>Abuse, duty cycle, contamination</td><td>Correlates with operating profile</td></tr>
+    </tbody>
+  </table>
+  <p>The "signature" column is the practical payoff: each family leaves a different fingerprint, which tells you what to plot. A categorical split (as in our firmware case) looks nothing like a wear process's smooth drift — and recognizing that difference is half the diagnosis.</p>
+</section>
+
+<!-- ===================== F3 ===================== -->
+<section id="f3">
+  <span class="snum">§ F3 — The Four Gates</span>
+  <h2>What it takes to call something a cause</h2>
+  <p>A candidate is promoted from "associated" to "causal" only by clearing four gates in order. The first three are statistical; the fourth is physical, and it is the one that catches impostors.</p>
+  <table class="tbl">
+    <thead><tr><th>Gate</th><th>Question</th><th>Tool</th><th>What failure looks like</th></tr></thead>
+    <tbody>
+      <tr><td>1 · Association</td><td>Do they move together?</td><td>Correlation, mutual information</td><td>Flat scatter</td></tr>
+      <tr><td>2 · Significance</td><td>Could it be chance?</td><td>p-value, confidence interval</td><td>Wide CI, large p</td></tr>
+      <tr><td>3 · Materiality</td><td>Does it explain enough?</td><td>Effect size, R², variance share</td><td>Significant but tiny effect</td></tr>
+      <tr><td>4 · Mechanism</td><td>Is there a physical pathway?</td><td>First-principles model, bench test</td><td>No story, or story contradicts data</td></tr>
+    </tbody>
+  </table>
+  <p>Fast-charging cleared gates 1–3 and failed gate 4 — that is the exact profile of a confounded variable, and why gate 4 is non-negotiable. A fifth, meta-gate sits above all of these: <strong>robustness under control</strong>. A true cause keeps its association when you hold other variables constant; a proxy does not. That meta-gate is the subject of §F5.</p>
+  <div class="note">
+    <span class="lab">A warning about gate 3</span>
+    Statistical significance and materiality are not the same thing. With enough vehicles, a cause that explains 0.5% of the variance will still post p ≪ 0.001. Significance answers "is the effect real?"; effect size answers "is it worth acting on?" Conflating them is how teams chase real-but-trivial factors while the dominant driver hides in plain sight.
+  </div>
+</section>
+
+<!-- ===================== F4 ===================== -->
+<section id="f4">
+  <span class="snum">§ F4 — Three Ways to Reason</span>
+  <h2>Deduction, induction, abduction</h2>
+  <p>Diagnostics uses all three, but it is <em>powered</em> by abduction. The distinction is worth making precise, because each has a different job and a different fallibility.</p>
+
+  <h3>Deduction — from rule to certain consequence</h3>
+  <p>Given a rule and a case, the conclusion is guaranteed. <em>Rule:</em> a balancing failure produces cell drift. <em>Case:</em> this car's balancer is dead. <em>Therefore:</em> this car will show cell drift. Truth-preserving, but it only works once you already have the rule — deduction tests hypotheses, it does not generate them.</p>
+
+  <h3>Induction — from cases to general rule</h3>
+  <p>Observe many buggy-build cars all showing drift, and generalize: "this build causes drift." Induction builds the rules that deduction later uses. It is probabilistic — the next case could break the pattern — and it is how the statistical screens in the case study earn their keep.</p>
+
+  <h3>Abduction — from observation to best explanation</h3>
+  <p>This is the diagnostic engine. We observe an effect (cell drift <em>and</em> accelerated fade) and ask: of all the explanations that <em>could</em> produce this, which one accounts for it best? Abduction is generative — it proposes hypotheses — and it is openly fallible: the best <em>current</em> explanation may be overturned by new evidence. Its selection criteria are explanatory: prefer the hypothesis that covers the most observations, invokes the fewest unsupported assumptions, and coheres with known mechanism.</p>
+
+  <p>In practice the three chain into a loop, and naming the loop is what makes the method teachable:</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:2">
+    <b style="color:var(--rust)">abduce</b> a hypothesis &nbsp;→&nbsp; <b style="color:var(--teal)">deduce</b> its testable consequences<br>
+    &nbsp;→&nbsp; test <b style="color:var(--amber)">inductively</b> against data &nbsp;→&nbsp; update &nbsp;↻</p>
+  <p>The whole case study is one turn of this loop: we abduced "confounder," deduced "then fast-charge should lose its signal once ΔV is held constant," and confirmed it inductively in the partial-correlation test.</p>
+</section>
+
+<!-- ===================== F5 ===================== -->
+<section id="f5">
+  <span class="snum">§ F5 — Confounding &amp; Control</span>
+  <h2>The math behind "hold it constant"</h2>
+  <p>A <strong>confounder</strong> is a variable Z that causes both the suspect feature X and the outcome Y. It manufactures an association between X and Y even when no arrow runs from X to Y. Our case is the textbook shape:</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:1.9">
+    firmware (Z) &nbsp;→&nbsp; fast-charge (X)<br>
+    firmware (Z) &nbsp;→&nbsp; ΔV &nbsp;→&nbsp; fade (Y)<br>
+    <span style="color:var(--rust)">∴ X and Y correlate, with no X → Y</span></p>
+  <p><strong>Partial correlation</strong> dissolves the illusion. To get the association between X and Y that is <em>not</em> explained by Z, regress Z out of each and correlate what remains:</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:1.9">
+    r<sub>XY·Z</sub> = corr( X − X̂(Z),&nbsp; Y − Ŷ(Z) )</p>
+  <p>If every bit of the X–Y association ran through Z, both residuals are now independent and the partial correlation falls to zero — which is precisely what happened to fast-charging (r: 0.74 → −0.09). If X genuinely drives Y, the association survives, as ΔV did.</p>
+
+  <h3>The masking case — confounding's mirror image</h3>
+  <p>Ambient temperature did the opposite: weak raw correlation, strong partial. This is <strong>suppression</strong> (or masking). A dominant driver — ΔV — carried so much of the variance that ambient's genuine but modest effect was buried in the marginal correlation. Removing the dominant variable unmasks the smaller true one. The lesson cuts both ways: raw correlation under-states real causes as readily as it over-states fake ones.</p>
+
+  <div class="note">
+    <span class="lab">Control the right variable, or be misled</span>
+    Conditioning is not always virtuous. Control for a <em>mediator</em> (a variable <em>on</em> the causal path, like ΔV when you are asking about the firmware's total effect) and you block the very effect you want to measure. Control for a <em>collider</em> (a common <em>effect</em> of X and Y) and you can manufacture a correlation from nothing. Partial correlation is a scalpel: powerful, and dangerous in the wrong place. The causal diagram, not the correlation matrix, tells you what to condition on.
+  </div>
+</section>
+
+<!-- ===================== F6 ===================== -->
+<section id="f6">
+  <span class="snum">§ F6 — When a Hypothesis Is Rejected</span>
+  <h2>Choosing what to test next</h2>
+  <p>Rejection is not a dead end — it is information. The question is which surviving candidate to test next, and the answer is an economics problem: maximize <strong>expected information per unit of effort</strong>. Three factors set the order:</p>
+  <p><strong>Prior probability.</strong> What is the base rate of this failure family in your fleet? A known-common mode is worth testing before an exotic one, all else equal.</p>
+  <p><strong>Coverage.</strong> If true, how much of the observed pattern would this hypothesis explain? Prefer candidates that, if confirmed, close the most of the case at once.</p>
+  <p><strong>Testability.</strong> Can you test it with data already in hand, or does it require a bench experiment that takes weeks? Cheap, fast tests come first even at slightly lower prior.</p>
+  <p>Each rejection then reshapes the field. Viewed through Bayes, observing "test failed" reallocates posterior probability mass across the remaining hypotheses — the eliminated candidate's prior flows to those still standing, sharpening the next choice. Diagnosis is therefore not a checklist run top to bottom but an adaptive search whose ordering updates after every result. This is what we did implicitly when fast-charging's mechanism failure pushed us straight to the confounder hypothesis rather than to the next item on the original list.</p>
+</section>
+
+<!-- ===================== F7 ===================== -->
+<section id="f7">
+  <span class="snum">§ F7 — Mechanism Into Forecast</span>
+  <h2>How diagnosis becomes prognosis</h2>
+  <p>Once the rate law <em>f</em> is identified, prognosis is integration. For our fleet the diagnosed mechanism makes ΔV the dominant stressor, so a usable model is</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px">
+    fade_rate ≈ β₀ + β₁·ΔV + β₂·(T − 20)⁺ + …</p>
+  <p>and remaining useful life is the time until the integrated SOH reaches the end-of-life threshold:</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:14px">
+    RUL = ( SOH_now − SOH_eol ) / fade_rate</p>
+  <p>The mechanism does three things no curve-fit can. It tells you <em>which covariates belong</em> in <em>f</em> (ΔV and temperature, not fast-charge). It tells you <em>how an intervention changes the forecast</em> — patch the balancer, ΔV collapses, β₁·ΔV shrinks, the curve bends up. And it lets you <em>screen the unaffected</em> — any car on the buggy build carries the latent risk before it ever shows symptoms. A purely statistical RUL fit can extrapolate the past; only a mechanistic one can answer the counterfactual "what happens if we act," which is the only question a fleet operator actually cares about.</p>
+</section>
+
+<!-- ===================== PART III DIVIDER ===================== -->
+<section id="partIII" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part III</p>
+  <h2 style="font-size:clamp(28px,4.5vw,40px)">Systems, Flow &amp; Algorithms</h2>
+  <p class="partlead">The same investigation, drawn as a machine: the pipeline it lives in, the decision flow it follows, and the algorithms that execute it.</p>
+</section>
+
+<!-- ===================== S1 ===================== -->
+<section id="s1">
+  <span class="snum">§ S1 — The Pipeline</span>
+  <h2>Where diagnosis and prognosis sit</h2>
+  <p>Every health-monitoring system is the same five-stage pipe: raw signals in, a decision out, and a loop that never stops. Diagnosis and prognosis are two distinct engines inside it, with the diagnostic output <em>feeding</em> the prognostic input.</p>
+
+  <figure>
+    <div class="figlab">Diagram 1 — End-to-end VHM pipeline</div>
+    <svg id="d1" viewBox="0 0 720 300" role="img" aria-label="Block diagram of the vehicle health monitoring pipeline"></svg>
+    <figcaption><b>Two engines, one pipe.</b> Acquisition turns sensors into features. The <span style="color:var(--rust)"><b>diagnostic engine</b></span> answers <em>what is wrong and why</em> — it isolates the fault and identifies the mechanism. The <span style="color:var(--teal)"><b>prognostic engine</b></span> answers <em>when and how much</em> — it turns that mechanism into a remaining-life forecast. Action closes the loop, and the cycle repeats on the next telemetry batch.</figcaption>
+  </figure>
+
+  <p>The arrow between the two engines is the load-bearing one. A prognosis built on a misdiagnosis inherits the error and amplifies it over the projection horizon. That is the systems-level reason the case study spent so long separating a true cause from a confounder before projecting anything.</p>
+</section>
+
+<!-- ===================== S2 ===================== -->
+<section id="s2">
+  <span class="snum">§ S2 — The Causal Block Diagram</span>
+  <h2>The example, as a graph of cause</h2>
+  <p>Strip the battery case to its wiring and it becomes a causal diagram — the "answer key" the analysis was trying to recover. Reading it explains, at a glance, why fast-charging fooled the raw statistics.</p>
+
+  <figure>
+    <div class="figlab">Diagram 2 — Causal structure of the fleet</div>
+    <svg id="d2" viewBox="0 0 720 380" role="img" aria-label="Causal directed graph of the battery degradation case"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--teal)"></i> Causal pathway</span>
+      <span><i class="dot" style="background:var(--bad)"></i> Spurious (no arrow)</span>
+      <span><i class="dot" style="background:var(--amber)"></i> Secondary cause</span>
+    </div>
+    <figcaption><b>The fork that fooled us.</b> The firmware build is a <em>common cause</em>: it drives fast-charging (via an aggressive default) and, separately, drives ΔV (via the balancing bug). Fast-charge and fade therefore correlate while no arrow connects them — the definition of confounding. Only ΔV and ambient temperature have arrows into fade.</figcaption>
+  </figure>
+
+  <p>This is what §F5 means in pictures: condition on the firmware build (or on ΔV, which carries its effect), and the fast-charge → fade association evaporates because the path that created it is blocked.</p>
+</section>
+
+<!-- ===================== S3 ===================== -->
+<section id="s3">
+  <span class="snum">§ S3 — The Decision Flowchart</span>
+  <h2>The investigation as a flow</h2>
+  <p>Here is the whole method as an operational flowchart — the path any case follows, with the decision diamonds that route it. Note the two ways out of "no": a feature with no mechanism triggers the confounder branch rather than an immediate reject.</p>
+
+  <figure>
+    <div class="figlab">Diagram 3 — Root-cause decision flow</div>
+    <svg id="d3" viewBox="0 0 720 800" role="img" aria-label="Flowchart of the root cause analysis decision process"></svg>
+    <figcaption><b>The route from alarm to root cause.</b> The spine runs top to bottom; the <span style="color:var(--rust)"><b>confounder branch</b></span> (right) handles the dangerous case of strong statistics with no physics; every rejection returns to the screen to test the next-best hypothesis. Only a candidate that survives <em>both</em> control and physics exits to prognosis.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== S4 ===================== -->
+<section id="s4">
+  <span class="snum">§ S4 — The Algorithms</span>
+  <h2>Three routines that run the method</h2>
+  <p>The flowchart compiles into three cooperating algorithms. The first drives the search, the second is the confounder test it calls at the critical branch, and the third converts the surviving diagnosis into a forecast.</p>
+
+  <div class="algo">
+    <div class="hd"><span>Algorithm 1</span><span class="nm">Abductive Root-Cause Search</span></div>
+    <div class="bd">
+<div class="ln"><span class="io">Input:</span>  outcome y, candidate features F, telemetry</div>
+<div class="ln"><span class="io">Output:</span> root cause c*, mechanism m, confidence</div>
+<div class="ln"> </div>
+<div class="ln">H &larr; enumerate hypotheses across failure-mode families <span class="cm"># §F2</span></div>
+<div class="ln">rank F by |corr(f, y)|                                <span class="cm"># screen, §05</span></div>
+<div class="ln"><span class="kw">for</span> f <span class="kw">in</span> F (descending score):</div>
+<div class="ln i1"><span class="kw">if not</span> (significant(f,y) <span class="kw">and</span> material(f,y)): <span class="kw">continue</span></div>
+<div class="ln i1"><span class="kw">if</span> mechanism_exists(f):                         <span class="cm"># gate 4</span></div>
+<div class="ln i2"><span class="kw">if</span> confirm_physics(f): <span class="kw">return</span> (f, mechanism, high)</div>
+<div class="ln i1"><span class="kw">else</span>:                       <span class="cm"># strong stats, no mechanism</span></div>
+<div class="ln i2">Z &larr; abduce_confounder(f, H)         <span class="cm"># best explanation</span></div>
+<div class="ln i2"><span class="kw">if</span> partial_corr(f, y | Z) &asymp; 0:    <span class="cm"># Algorithm 2</span></div>
+<div class="ln i3">mark f spurious; <span class="kw">continue</span></div>
+<div class="ln i2"><span class="kw">else</span>: promote Z (or its mediator) into F</div>
+<div class="ln i1">update priors over remaining H            <span class="cm"># §F6, Bayesian</span></div>
+<div class="ln"><span class="kw">return</span> best-supported candidate</div>
+    </div>
+  </div>
+
+  <div class="algo">
+    <div class="hd"><span>Algorithm 2</span><span class="nm">Confounder Test · Partial Correlation</span></div>
+    <div class="bd">
+<div class="ln"><span class="io">Input:</span>  suspect x, outcome y, control variable z</div>
+<div class="ln"><span class="io">Output:</span> verdict {spurious | retained}</div>
+<div class="ln"> </div>
+<div class="ln">r_x &larr; x &minus; OLS_fit(z &rarr; x)        <span class="cm"># residual of x given z</span></div>
+<div class="ln">r_y &larr; y &minus; OLS_fit(z &rarr; y)        <span class="cm"># residual of y given z</span></div>
+<div class="ln">(r, p) &larr; pearson(r_x, r_y)</div>
+<div class="ln"><span class="kw">if</span> |r| small <span class="kw">and</span> p large:</div>
+<div class="ln i1"><span class="kw">return</span> spurious        <span class="cm"># association ran entirely through z</span></div>
+<div class="ln"><span class="kw">else</span>:</div>
+<div class="ln i1"><span class="kw">return</span> retained        <span class="cm"># x carries signal z cannot explain</span></div>
+    </div>
+  </div>
+
+  <div class="algo">
+    <div class="hd"><span>Algorithm 3</span><span class="nm">Mechanistic Prognosis · RUL</span></div>
+    <div class="bd">
+<div class="ln"><span class="io">Input:</span>  mechanism m, state SOH_now, stressors s, threshold SOH_eol</div>
+<div class="ln"><span class="io">Output:</span> RUL, RUL_after_fix, life_gain</div>
+<div class="ln"> </div>
+<div class="ln">f &larr; fade_rate = &beta;0 + &Sigma; &beta;i&middot;si     <span class="cm"># covariates chosen BY m, §F7</span></div>
+<div class="ln">rate &larr; f(s)</div>
+<div class="ln">RUL &larr; (SOH_now &minus; SOH_eol) / rate</div>
+<div class="ln"> <span class="cm"># intervention counterfactual</span></div>
+<div class="ln">s&prime; &larr; apply_fix(s)               <span class="cm"># e.g. &Delta;V &rarr; healthy range</span></div>
+<div class="ln">RUL_fix &larr; (SOH_now &minus; SOH_eol) / f(s&prime;)</div>
+<div class="ln"><span class="kw">return</span> RUL, RUL_fix, (RUL_fix &minus; RUL)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== S5 ===================== -->
+<section id="s5">
+  <span class="snum">§ S5 — The Two Engines, Up Close</span>
+  <h2>Diagnostic vs. prognostic, applied</h2>
+  <p>Now we open the two middle blocks of Diagram 1 and run the example through each in turn. They consume different inputs, run different math, and emit different outputs — but they are joined at the mechanism.</p>
+
+  <figure>
+    <div class="figlab">Diagram 4 — Inside the two engines</div>
+    <svg id="d4" viewBox="0 0 720 430" role="img" aria-label="Side by side internals of the diagnostic and prognostic engines"></svg>
+    <figcaption><b>What each engine computes.</b> The diagnostic engine performs detection → isolation → root-cause attribution, emitting a fault label and a mechanism. The prognostic engine takes that mechanism, parameterizes a degradation law, integrates it to the end-of-life threshold, and emits a remaining-life estimate with its counterfactual under intervention.</figcaption>
+  </figure>
+
+  <h3>The diagnostic pass — for one vehicle</h3>
+  <p>Take VIN on build v3.2.1, currently <strong>91% SOH at 14 months</strong>, measured post-charge <strong>ΔV ≈ 55 mV</strong>:</p>
+  <p style="padding-left:20px; border-left:3px solid var(--rust)">
+    <b>Detection:</b> fade rate sits well above the fleet baseline band → flag. &nbsp;
+    <b>Isolation:</b> the anomaly localizes to the pack, and within it to cell-voltage spread, not temperature or cycling. &nbsp;
+    <b>Attribution:</b> high ΔV + firmware = v3.2.1 + the confirmed over-voltage trace ⇒ root cause is the <span class="callout-name">balancing-controller timing bug</span>. Output: <code class="inl">{fault: balancing_bug, mechanism: weak-cell over-voltage, confidence: high}</code>.</p>
+
+  <h3>The prognostic pass — same vehicle</h3>
+  <p>The diagnosis hands the prognostic engine the mechanism, which fixes the rate law's covariates (ΔV dominant, ambient secondary). Using the fleet-fitted rates:</p>
+  <table class="tbl">
+    <thead><tr><th>Scenario</th><th>Fade rate</th><th>RUL to 80% SOH</th></tr></thead>
+    <tbody>
+      <tr><td>No intervention (ΔV ≈ 55 mV)</td><td><span id="ex_rate_no"></span> %/yr</td><td>(91 − 80) / rate ≈ <span id="ex_rul_no"></span> mo</td></tr>
+      <tr><td>After OTA fix (ΔV → ≈ 9 mV)</td><td><span id="ex_rate_fix"></span> %/yr</td><td>≈ <span id="ex_rul_fix"></span> mo</td></tr>
+    </tbody>
+  </table>
+  <p>The intervention roughly <strong id="ex_gain"></strong> the remaining life — a number the operator can weigh against the cost of the OTA campaign. This is the payoff of the whole method: because the diagnostic engine identified a <em>mechanism</em> and not a correlate, the prognostic engine can answer the counterfactual "what happens if we act." Had the diagnosis blamed fast-charging, Algorithm 3 would have applied a fix to <code class="inl">s</code> that changes nothing in <em>f</em> — and the RUL line would not have moved at all.</p>
+</section>
+
+<!-- ===================== S6 ===================== -->
+<section id="s6">
+  <span class="snum">§ S6 — The Diagnostic Decision Tree</span>
+  <h2>The same logic as a tree you can walk</h2>
+  <p>The flowchart in §S3 is the full investigative <em>process</em>. Once the method has run and the causes are known, the recurring per-vehicle decision compresses into a short <strong>decision tree</strong> of feature thresholds — walk it from the top and any vehicle lands in a fault class in three questions. The split points come straight from the data: the buggy cohort sits near 53&nbsp;mV ΔV and the healthy near 9&nbsp;mV, so a 25&nbsp;mV cut separates them cleanly.</p>
+
+  <div class="dtree">
+    <div class="dnode">post-charge ΔV &gt; 25 mV ?</div>
+    <div class="dbranch">
+      <div class="dedge">NO ↓</div>
+      <div class="dleaf ok">Healthy aging — routine monitoring, no action</div>
+      <div class="dedge">YES ↓</div>
+      <div class="dnode">firmware build = v3.2.1 ?</div>
+      <div class="dbranch">
+        <div class="dedge">YES ↓</div>
+        <div class="dleaf root">ROOT CAUSE — balancing-controller bug. Push OTA fix; screen all v3.2.1 VINs; hand to prognosis.</div>
+        <div class="dedge">NO ↓</div>
+        <div class="dnode">sustained ambient &gt; 30 °C ?</div>
+        <div class="dbranch">
+          <div class="dedge">YES ↓</div>
+          <div class="dleaf warn">Thermal-driven fade — flag climate exposure, model Arrhenius term</div>
+          <div class="dedge">NO ↓</div>
+          <div class="dleaf warn">Imbalance, origin unknown — bench-test cell &amp; balancer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>This is the diagnostic engine of Diagram 1 distilled into production form: cheap to evaluate on every vehicle, and every leaf names both a fault <em>and</em> an action. Note the ordering encodes the analysis — ΔV first because it is the dominant, mechanism-backed signal; firmware second to confirm the origin; ambient last as the secondary cause.</p>
+</section>
+
+<!-- ===================== S7 ===================== -->
+<section id="s7">
+  <span class="snum">§ S7 — Simulating the Future</span>
+  <h2>Predicting <em>when</em> failure arrives</h2>
+  <p>Figure 7 drew the <em>average</em> future. Real prognosis is probabilistic: the fade rate varies across vehicles (parameter uncertainty) and wobbles month to month (process noise), so the honest output is a <strong>distribution over failure times</strong>, not a single line. We make Algorithm 3 stochastic and run a Monte Carlo — 4,000 future SOH trajectories for the affected vehicle, each with its own sampled fade rate, advanced month by month until it crosses the 80% end-of-life threshold.</p>
+
+  <h3>The forecast as a fan</h3>
+  <p>Plotting the 10th–90th percentile band shows where the vehicle is likely to be over time, not just the median guess:</p>
+  <figure>
+    <div class="figlab">Figure 8 — Forecast fan chart</div>
+    <svg id="p1" viewBox="0 0 720 380" role="img" aria-label="Fan chart of simulated future SOH"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> No fix: median &amp; 10–90% band</span>
+      <span><i class="dot" style="background:var(--healthy)"></i> After OTA fix: median</span>
+      <span><i class="dot" style="background:var(--ink-soft)"></i> 80% EOL</span>
+    </div>
+    <figcaption><b>Uncertainty made visible.</b> The shaded band is the 10th–90th percentile of 4,000 simulated futures with no intervention; the spread is the forecast's honesty about what it doesn't know. The fix (teal) bends the whole distribution away from the end-of-life line.</figcaption>
+  </figure>
+
+  <h3>The probability of failure over time</h3>
+  <p>Integrating the failure times into a cumulative curve answers the operator's actual question — <em>what is the chance this vehicle has failed by month T?</em></p>
+  <figure>
+    <div class="figlab">Figure 9 — Probability of failure vs. time</div>
+    <svg id="p2" viewBox="0 0 720 350" role="img" aria-label="Cumulative probability of failure over time"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> No fix</span>
+      <span><i class="dot" style="background:var(--healthy)"></i> After OTA fix</span>
+    </div>
+    <figcaption><b>The decision-grade output.</b> Untreated, the vehicle reaches a <span id="prog_pof"></span> chance of having crossed end-of-life by 24 months; with the fix that falls to <span id="prog_fix_pof"></span>. This is the curve a warranty-reserve or recall-timing decision is actually priced against.</figcaption>
+  </figure>
+
+  <h3>The remaining-life distribution</h3>
+  <figure>
+    <div class="figlab">Figure 10 — RUL distribution (no fix)</div>
+    <svg id="p3" viewBox="0 0 720 340" role="img" aria-label="Histogram of remaining useful life"></svg>
+    <figcaption><b>A number with a spread.</b> Median remaining life is <b><span id="prog_med"></span> months</b>, with an 80% interval of <span id="prog_ci_lo"></span>–<span id="prog_ci_hi"></span> months. Quoting the median alone hides the left tail — the vehicles that fail soonest — which is exactly where the warranty risk concentrates.</figcaption>
+  </figure>
+
+  <p>Together these three views are the prognostic engine's full answer: not "it will last 20 months," but a calibrated forecast with its uncertainty, a failure-probability curve to act on, and a counterfactual showing the fix moves the median from <span id="prog_med2"></span> to <b><span id="prog_fix_med"></span> months</b>. Because the underlying diagnosis was mechanistic, every one of these curves responds correctly when we simulate the intervention — the payoff promised back in §F1.</p>
+</section>
+
+<!-- ===================== APPENDIX DIVIDER ===================== -->
+<section id="appendix" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Appendix</p>
+
+  <h2 style="font-size:clamp(28px,4.5vw,40px)">Code &amp; Data</h2>
+  <p style="max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic">
+    Everything in this monograph is reproducible. The complete script and the generated dataset are provided alongside; the essential listings are reproduced here.</p>
+</section>
+
+<!-- ===================== A1 ===================== -->
+<section id="a1">
+  <span class="snum">§ A1 — The Mockup Data Source</span>
+  <h2>A fleet with a known ground truth</h2>
+  <p>The dataset is synthetic by design: to <em>grade</em> a diagnostic method you must know the true answer in advance. We simulate 240 vehicles, planting one real causal chain and one deliberate confounder, then let the analysis try to recover the truth from the data alone. The generated table (<code class="inl">fleet.csv</code>) has one row per vehicle with these columns:</p>
+  <table class="tbl">
+    <thead><tr><th>Column</th><th>Meaning</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>firmware_v321</td><td>1 if on the buggy build</td><td>Root upstream cause</td></tr>
+      <tr><td>cell_imbalance_mV</td><td>Post-charge cell ΔV</td><td><span class="tag keep">Mechanism</span></td></tr>
+      <tr><td>fast_charge_per_mo</td><td>DC fast-charge events / month</td><td><span class="tag drop">Confounded proxy</span></td></tr>
+      <tr><td>ambient_C</td><td>Mean ambient temperature</td><td><span class="tag hold">Modest cause</span></td></tr>
+      <tr><td>cycle_count</td><td>Equivalent full cycles</td><td>Minor cause</td></tr>
+      <tr><td>soc_dwell_pct</td><td>% time parked above 80% SOC</td><td>Null (decoy)</td></tr>
+      <tr><td>age_months</td><td>Vehicle age</td><td>Minor cause</td></tr>
+      <tr><td>fade_rate_pct_yr</td><td>Annualized SOH fade rate</td><td>Outcome (target)</td></tr>
+    </tbody>
+  </table>
+  <p>Crucially, <code class="inl">fast_charge_per_mo</code> enters the fade equation with <em>zero</em> coefficient — any correlation it shows is an artifact of its shared parent, the firmware build. That single design choice is what makes the dataset a fair test of whether the method can resist a convincing impostor.</p>
+</section>
+
+<!-- ===================== A2 ===================== -->
+<section id="a2">
+  <span class="snum">§ A2 — Data Generation</span>
+  <h2>Planting the ground truth</h2>
+  <p>Each block below is one edge of the causal graph. Read top to bottom, it is the graph itself, written in code:</p>
+<pre><span class="c"># === SECTION: data-generation (the mockup data source) ===========</span>
+<span class="c"># Each block below is one edge of the ground-truth causal graph.</span>
+
+<span class="c"># Root upstream cause: ~42% of the fleet runs the buggy build v3.2.1.</span>
+firmware_buggy = (rng.random(N) &lt; 0.42).astype(int)
+
+<span class="c"># Confounding link: the buggy build also shipped an aggressive DC</span>
+<span class="c"># fast-charge default, so those cars fast-charge more often.</span>
+<span class="c"># (This is why fast-charging will LOOK guilty but cause nothing.)</span>
+fast_charge_pm = np.where(firmware_buggy == 1,
+                          rng.normal(15, 3.0, N),
+                          rng.normal(6, 2.5, N)).clip(0)
+
+<span class="c"># Ambient temperature: set by the owner&#x27;s climate, independent of</span>
+<span class="c"># firmware. ~40% of owners live in a warm region.</span>
+region_warm = (rng.random(N) &lt; 0.40).astype(int)
+ambient_C = np.where(region_warm == 1,
+                     rng.normal(31, 3.0, N),
+                     rng.normal(18, 4.0, N))
+
+<span class="c"># Nuisance / secondary features.</span>
+age_months  = rng.uniform(6, 36, N)
+cycle_count = age_months * rng.normal(38, 6, N)      <span class="c">  # cycles grow with age</span>
+soc_dwell   = rng.uniform(5, 60, N)                  <span class="c">  # % time parked &gt; 80% SOC</span>
+
+<span class="c"># THE bridging variable: post-charge cell-voltage spread dV (mV).</span>
+<span class="c"># Driven almost entirely by the firmware bug; tiny aging term.</span>
+cell_imbalance_mV = (
+    np.where(firmware_buggy == 1, rng.normal(52, 8, N),
+                                  rng.normal(6, 2.5, N))
+    + 0.004 * cycle_count
+    + rng.normal(0, 2.5, N)
+).clip(2)
+
+<span class="c"># OUTCOME: annualized SOH fade rate (%/yr).</span>
+<span class="c"># TRUE drivers = dV (dominant) + ambient (modest) + cycling (small).</span>
+<span class="c"># NOTE: fast_charge_pm has NO coefficient here -&gt; any correlation it</span>
+<span class="c"># shows with fade is pure confounding through the firmware build.</span>
+degr_rate = (
+    1.8
+    + 0.075 * cell_imbalance_mV
+    + 0.075 * np.maximum(ambient_C - 20, 0)
+    + 0.0010 * cycle_count
+    + rng.normal(0, 0.45, N)
+).clip(0.5)
+
+<span class="c"># Convenience: SOH after 24 months under the current fade rate.</span>
+soh_24mo = (100 - degr_rate * 2.0).clip(60)
+
+<span class="c"># Assemble the table and write the mockup data source to CSV.</span>
+fields = [&quot;vin&quot;, &quot;firmware_v321&quot;, &quot;fast_charge_per_mo&quot;, &quot;ambient_C&quot;,
+          &quot;age_months&quot;, &quot;cycle_count&quot;, &quot;soc_dwell_pct&quot;,
+          &quot;cell_imbalance_mV&quot;, &quot;fade_rate_pct_yr&quot;, &quot;soh_24mo_pct&quot;]
+
+def write_csv(path=&quot;fleet.csv&quot;):
+    with open(path, &quot;w&quot;, newline=&quot;&quot;) as f:
+        w = csv.writer(f)
+        w.writerow(fields)
+        for i in range(N):
+            w.writerow([
+                f&quot;VIN{i:04d}&quot;, int(firmware_buggy[i]),
+                round(float(fast_charge_pm[i]), 2), round(float(ambient_C[i]), 2),
+                round(float(age_months[i]), 1), round(float(cycle_count[i]), 0),
+                round(float(soc_dwell[i]), 1), round(float(cell_imbalance_mV[i]), 1),
+                round(float(degr_rate[i]), 3), round(float(soh_24mo[i]), 2),
+            ])
+    print(f&quot;wrote {path}  ({N} rows)&quot;)
+</pre>
+  <p>Run as a script, this writes <code class="inl">fleet.csv</code> and prints the full analysis below it.</p>
+</section>
+
+<!-- ===================== A3 ===================== -->
+<section id="a3">
+  <span class="snum">§ A3 — The Diagnostic Pipeline</span>
+  <h2>Recovering the truth from the data</h2>
+  <p>The same four moves from the case study, as functions: the correlation screen (§05), the partial-correlation control that exposes the confounder (§07), the regression where the fast-charge coefficient dies, and the firmware stratification that finds the origin (§09).</p>
+<pre><span class="c"># === SECTION: analysis (the diagnostic pipeline) =================</span>
+features = {
+    &quot;Cell imbalance dV (mV)&quot;:  cell_imbalance_mV,
+    &quot;Fast-charge events / mo&quot;: fast_charge_pm,
+    &quot;Ambient temp (C)&quot;:        ambient_C,
+    &quot;Cycle count&quot;:             cycle_count,
+    &quot;High-SOC dwell (%)&quot;:      soc_dwell,
+    &quot;Age (months)&quot;:            age_months,
+}
+
+def correlation_screen(y):
+    &quot;&quot;&quot;Step 1 - rank candidates by raw Pearson correlation.&quot;&quot;&quot;
+    print(&quot;\n[1] RAW correlation vs fade rate&quot;)
+    for name, x in features.items():
+        r, p = stats.pearsonr(x, y)
+        print(f&quot;    {name:24s}  r={r:+.3f}  p={p:.1e}&quot;)
+
+def partial_corr(x, y, z):
+    &quot;&quot;&quot;corr(x, y) with the linear effect of z removed from both.
+    True causes survive this; confounded proxies collapse.&quot;&quot;&quot;
+    rx = x - np.polyval(np.polyfit(z, x, 1), z) <span class="c">  # residual of x | z</span>
+    ry = y - np.polyval(np.polyfit(z, y, 1), z) <span class="c">  # residual of y | z</span>
+    return stats.pearsonr(rx, ry)
+
+def partial_screen(y, control, control_name):
+    print(f&quot;\n[2] PARTIAL correlation (controlling for {control_name})&quot;)
+    for name, x in features.items():
+        if x is control:
+            continue
+        r, p = partial_corr(x, y, control)
+        verdict = &quot;survives&quot; if abs(r) &gt; 0.3 and p &lt; 0.05 else &quot;COLLAPSES&quot;
+        print(f&quot;    {name:24s}  r={r:+.3f}  p={p:.2f}   {verdict}&quot;)
+
+def regression(y):
+    &quot;&quot;&quot;Step 3 - watch the fast-charge coefficient die when dV enters.&quot;&quot;&quot;
+    def fit(cols):
+        X = np.column_stack([np.ones(N)] + cols)
+        b, *_ = np.linalg.lstsq(X, y, rcond=None)
+        pred = X @ b
+        r2 = 1 - np.sum((y - pred)**2) / np.sum((y - y.mean())**2)
+        return b, r2
+    b1, r2_1 = fit([fast_charge_pm, ambient_C])
+    b2, r2_2 = fit([fast_charge_pm, ambient_C, cell_imbalance_mV])
+    print(&quot;\n[3] REGRESSION&quot;)
+    print(f&quot;    naive  fade~fc+amb        : fc_coef={b1[1]:+.3f}  R2={r2_1:.3f}&quot;)
+    print(f&quot;    full   fade~fc+amb+dV     : fc_coef={b2[1]:+.3f}  &quot;
+          f&quot;dV_coef={b2[3]:+.3f}  R2={r2_2:.3f}&quot;)
+
+def stratify(y):
+    &quot;&quot;&quot;Step 4 - follow the chain upstream to the firmware build.&quot;&quot;&quot;
+    bug = firmware_buggy == 1
+    print(&quot;\n[4] FIRMWARE STRATIFICATION&quot;)
+    print(f&quot;    v3.2.1 (buggy) : dV={cell_imbalance_mV[bug].mean():5.1f} mV   &quot;
+          f&quot;fade={degr_rate[bug].mean():.2f} %/yr   (n={bug.sum()})&quot;)
+    print(f&quot;    other builds   : dV={cell_imbalance_mV[~bug].mean():5.1f} mV   &quot;
+          f&quot;fade={degr_rate[~bug].mean():.2f} %/yr   (n={(~bug).sum()})&quot;)
+</pre>
+  <p>The printed output reproduces every number quoted in Parts I and II — fast-charge collapsing to r ≈ −0.09 under control, ΔV holding at ≈ 0.82, the regression coefficient falling from +0.27 to −0.02, and the categorical firmware split. The method recovers the planted truth without ever being told it.</p>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0; border-top:none">
+    <span class="ic">▸</span>
+    <a href="nvh-preconditioning-rca-report.html">Companion report: Preconditioning-mode NVH RCA</a>
+    <a href="manufacturing-rca-report.html">Companion: Module-weld manufacturing RCA</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="battery-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+  <div class="rule"></div>
+  <p><b>The Anatomy of a Root Cause</b></p>
+  <p>By Majid Mazouchi</p>
+  <p>Figures computed from a 240-vehicle synthetic fleet with known ground truth.</p>
+</footer>
+
+</div>
+
+<script>
+const DATA = {"N": 240, "raw": {"Cell imbalance \u0394V (mV)": {"r": 0.924, "p": 2.590713052207483e-101}, "Fast-charge events / mo": {"r": 0.742, "p": 3.4297732490243187e-43}, "Ambient temp (\u00b0C)": {"r": 0.136, "p": 0.035880220882683986}, "Cycle count": {"r": 0.25, "p": 9.287831761398442e-05}, "High-SOC dwell (%)": {"r": -0.005, "p": 0.9445138807775572}, "Age (months)": {"r": 0.238, "p": 0.000195405453498217}}, "partial": {"Fast-charge events / mo": {"r": -0.087, "p": 0.18155226148320294}, "Ambient temp (\u00b0C)": {"r": 0.532, "p": 5.658809963250091e-19}, "Cycle count": {"r": 0.531, "p": 7.554591594196257e-19}, "High-SOC dwell (%)": {"r": 0.033, "p": 0.609009269621085}, "Age (months)": {"r": 0.474, "p": 7.641455701876447e-15}}, "partial_dv_ctrl_fc": {"r": 0.823, "p": 2.4041425217971693e-60}, "reg_naive": {"fast_charge": 0.274, "ambient": 0.048, "r2": 0.585}, "reg_full": {"fast_charge": -0.019, "ambient": 0.052, "dv": 0.081, "r2": 0.896}, "strat": {"buggy_mean_degr": 6.93, "healthy_mean_degr": 3.66, "buggy_mean_dv": 53.3, "healthy_mean_dv": 9.3, "n_buggy": 96, "n_healthy": 144}, "scatters": {"dv": [[9.26, 4.63, 0], [11.36, 2.97, 0], [7.15, 2.9, 0], [60.26, 7.43, 1], [61.99, 7.83, 1], [53.25, 7.16, 1], [12.1, 4.73, 0], [6.08, 3.44, 0], [5.1, 2.54, 0], [9.03, 3.7, 0], [14.66, 5.11, 0], [6.46, 2.9, 0], [10.24, 3.26, 0], [13.49, 3.17, 0], [10.04, 4.39, 0], [6.12, 3.84, 0], [9.05, 3.53, 0], [17.42, 3.42, 0], [8.63, 3.56, 0], [9.25, 3.52, 0], [8.64, 3.08, 0], [10.58, 3.8, 0], [10.97, 3.77, 0], [51.91, 5.9, 1], [2.13, 3.71, 0], [48.52, 4.79, 1], [12.24, 4.81, 0], [11.78, 3.44, 0], [47.51, 6.34, 1], [39.26, 6.27, 1], [53.84, 7.22, 1], [11.88, 4.09, 0], [5.8, 3.93, 0], [52.45, 7.73, 1], [7.9, 3.08, 0], [57.16, 6.67, 1], [12.27, 3.3, 0], [3.04, 3.29, 0], [4.2, 3.17, 0], [2.0, 2.84, 0], [47.03, 7.3, 1], [10.22, 3.34, 0], [10.34, 2.29, 0], [53.65, 7.06, 1], [16.39, 4.97, 0], [6.46, 2.91, 0], [7.99, 2.76, 0], [13.79, 4.28, 0], [9.39, 3.46, 0], [7.82, 3.25, 0], [58.17, 6.23, 1], [12.07, 3.2, 0], [5.56, 2.16, 0], [6.93, 2.62, 0], [6.81, 3.48, 0], [6.77, 3.77, 0], [12.68, 3.87, 0], [62.3, 7.85, 1], [67.32, 7.68, 1], [41.71, 6.01, 1], [66.54, 9.24, 1], [49.5, 6.91, 1], [11.01, 3.39, 0], [16.52, 4.77, 0], [11.48, 3.54, 0], [7.83, 2.59, 0], [5.87, 3.83, 0], [10.98, 2.99, 0], [6.63, 4.2, 0], [48.27, 6.66, 1], [11.91, 3.51, 0], [50.83, 6.71, 1], [13.79, 4.51, 0], [10.08, 3.17, 0], [6.95, 3.45, 0], [44.04, 5.41, 1], [14.9, 5.02, 0], [48.22, 5.53, 1], [3.22, 2.46, 0], [10.89, 4.02, 0], [13.42, 3.8, 0], [11.18, 3.18, 0], [44.81, 6.52, 1], [55.65, 6.86, 1], [4.46, 2.51, 0], [12.41, 3.84, 0], [13.34, 4.87, 0], [15.5, 3.36, 0], [66.99, 9.87, 1], [73.85, 8.08, 1], [52.13, 7.44, 1], [67.98, 9.08, 1], [65.37, 7.61, 1], [5.34, 3.47, 0], [39.55, 6.22, 1], [12.77, 4.45, 0], [11.7, 4.42, 0], [11.37, 3.37, 0], [43.16, 6.21, 1], [8.43, 4.68, 0], [48.62, 6.07, 1], [45.39, 5.15, 1], [14.93, 2.78, 0], [6.9, 3.7, 0], [5.97, 3.3, 0], [46.94, 6.63, 1], [39.66, 6.95, 1], [7.87, 3.12, 0], [4.17, 2.76, 0], [8.02, 3.32, 0], [12.06, 3.74, 0], [8.42, 4.12, 0], [57.43, 8.01, 1], [64.7, 7.62, 1], [63.1, 7.3, 1], [9.69, 2.96, 0], [12.37, 4.52, 0], [51.37, 7.28, 1], [10.83, 4.84, 0], [2.34, 2.47, 0], [49.09, 7.21, 1], [67.81, 8.12, 1], [52.49, 7.46, 1], [51.5, 7.36, 1], [66.2, 7.84, 1], [13.59, 3.27, 0], [12.09, 4.74, 0], [6.38, 3.06, 0], [8.15, 4.36, 0], [46.97, 6.91, 1]], "fc": [[13.62, 7.28, 1], [10.81, 3.08, 0], [6.84, 2.58, 0], [8.57, 3.51, 0], [16.79, 7.46, 1], [5.9, 3.63, 0], [15.57, 6.48, 1], [3.84, 2.3, 0], [3.56, 3.37, 0], [8.05, 3.71, 0], [7.24, 4.19, 0], [11.36, 3.81, 1], [8.05, 2.76, 0], [5.6, 4.87, 0], [3.41, 2.96, 0], [13.83, 6.97, 1], [14.98, 7.22, 1], [2.52, 4.97, 0], [7.45, 3.37, 0], [16.16, 6.34, 1], [20.17, 6.52, 1], [7.38, 3.17, 0], [14.09, 6.23, 1], [13.1, 7.44, 1], [5.85, 3.08, 0], [14.32, 6.43, 1], [13.49, 5.64, 1], [6.91, 3.29, 0], [4.14, 4.52, 0], [16.78, 4.79, 1], [3.69, 3.27, 0], [14.47, 5.53, 1], [5.77, 3.42, 0], [5.99, 3.61, 0], [11.68, 6.58, 1], [9.46, 3.54, 0], [12.77, 9.87, 1], [10.25, 3.17, 0], [19.59, 9.24, 1], [4.24, 3.52, 0], [17.01, 6.27, 1], [3.6, 3.52, 0], [8.61, 3.17, 0], [5.74, 4.74, 0], [8.39, 4.12, 0], [5.11, 3.84, 0], [1.77, 2.84, 0], [1.9, 4.09, 0], [7.08, 2.47, 0], [17.62, 7.83, 1], [15.64, 7.16, 1], [14.82, 7.29, 1], [19.04, 7.43, 1], [5.0, 4.2, 0], [4.18, 2.78, 0], [5.69, 3.8, 0], [8.27, 3.56, 0], [14.59, 7.06, 1], [3.56, 4.09, 0], [6.53, 3.83, 0], [5.4, 2.59, 0], [9.09, 7.73, 1], [4.9, 2.74, 0], [7.69, 3.26, 0], [2.99, 4.22, 0], [0.36, 4.49, 0], [19.71, 7.88, 1], [9.83, 5.02, 0], [16.01, 6.49, 1], [6.75, 5.53, 0], [2.19, 2.91, 0], [7.66, 4.77, 0], [6.59, 4.39, 0], [6.58, 1.89, 0], [12.92, 8.48, 1], [10.77, 3.48, 0], [6.18, 4.28, 0], [7.36, 3.12, 0], [7.16, 7.02, 1], [11.24, 7.52, 1], [13.58, 7.21, 1], [9.58, 7.61, 1], [6.96, 3.93, 0], [9.55, 7.36, 1], [5.84, 3.34, 0], [8.4, 7.85, 1], [15.47, 5.49, 1], [8.84, 2.46, 0], [9.48, 3.44, 0], [5.1, 3.46, 0], [6.51, 3.67, 0], [3.77, 3.77, 0], [5.35, 2.99, 0], [4.42, 4.45, 0], [5.08, 3.47, 0], [17.95, 8.01, 1], [17.56, 8.65, 1], [15.53, 7.73, 1], [5.86, 5.11, 0], [9.16, 5.15, 1], [15.96, 6.04, 1], [11.55, 6.91, 1], [9.36, 4.73, 0], [4.46, 2.9, 0], [15.14, 6.01, 1], [11.55, 7.05, 1], [4.35, 3.18, 0], [5.4, 3.77, 0], [5.12, 3.88, 0], [1.84, 3.3, 0], [7.41, 3.44, 0], [8.6, 5.3, 0], [12.84, 8.04, 1], [0.93, 3.45, 0], [13.05, 6.95, 1], [14.86, 6.32, 1], [2.23, 4.42, 0], [13.39, 7.68, 1], [6.17, 2.25, 0], [17.42, 7.65, 1], [0.81, 2.54, 0], [2.64, 4.88, 0], [7.71, 3.71, 0], [15.12, 6.98, 1], [4.08, 3.88, 0], [12.69, 5.24, 1], [4.1, 3.84, 0], [14.88, 8.46, 1], [12.17, 6.73, 1], [4.73, 2.82, 0]], "temp": [[7.66, 3.37, 0], [25.72, 6.32, 1], [29.53, 7.46, 1], [27.68, 6.67, 1], [17.13, 3.18, 0], [23.54, 8.58, 1], [31.16, 4.77, 0], [38.02, 6.95, 1], [10.59, 6.45, 1], [13.19, 3.46, 0], [29.22, 4.12, 0], [37.06, 9.24, 1], [18.9, 2.82, 0], [19.26, 3.08, 0], [20.49, 2.22, 0], [34.01, 4.84, 0], [20.56, 6.72, 1], [18.6, 7.68, 1], [32.49, 3.87, 0], [30.67, 4.09, 0], [36.22, 8.81, 1], [15.6, 7.84, 1], [18.88, 6.39, 1], [30.38, 4.87, 0], [28.86, 4.02, 0], [21.7, 2.76, 0], [20.66, 2.78, 0], [19.34, 3.51, 0], [27.67, 4.68, 0], [32.12, 5.19, 0], [19.03, 2.84, 0], [31.48, 3.67, 0], [26.61, 6.91, 1], [23.45, 3.88, 0], [16.56, 7.22, 1], [33.65, 4.74, 0], [21.36, 3.85, 0], [34.47, 6.97, 1], [26.3, 4.2, 0], [13.46, 6.31, 1], [13.07, 6.37, 1], [14.41, 3.08, 0], [22.25, 7.88, 1], [18.37, 7.62, 1], [28.96, 2.46, 0], [31.66, 7.21, 1], [29.68, 8.3, 1], [25.27, 3.19, 0], [12.35, 2.3, 0], [16.47, 5.53, 1], [12.25, 6.58, 1], [14.31, 4.22, 0], [27.82, 5.6, 0], [18.88, 6.97, 1], [22.84, 6.91, 1], [16.69, 2.91, 0], [29.85, 6.21, 1], [32.77, 3.7, 0], [30.31, 6.98, 1], [21.16, 3.8, 0], [15.88, 3.39, 0], [20.89, 5.24, 1], [20.83, 3.84, 0], [36.57, 3.48, 0], [22.24, 4.51, 0], [16.52, 7.85, 1], [16.19, 7.29, 1], [30.99, 9.87, 1], [21.3, 5.86, 1], [28.85, 3.52, 0], [30.36, 4.02, 0], [19.66, 3.52, 0], [22.77, 4.81, 0], [30.62, 5.3, 0], [17.29, 3.06, 0], [34.07, 7.3, 1], [18.95, 7.44, 1], [17.82, 3.84, 0], [37.93, 5.53, 0], [33.69, 5.03, 0], [32.44, 5.11, 0], [30.36, 6.63, 1], [9.24, 7.14, 1], [31.58, 3.93, 0], [17.56, 3.03, 0], [16.66, 6.68, 1], [19.15, 6.07, 1], [23.35, 3.17, 0], [23.59, 3.74, 0], [34.52, 7.16, 1], [13.38, 3.32, 0], [19.22, 2.59, 0], [18.91, 1.73, 0], [20.14, 5.9, 1], [31.29, 3.83, 0], [12.73, 3.39, 0], [19.03, 5.15, 1], [31.66, 4.63, 0], [22.94, 7.28, 1], [23.07, 2.77, 0], [16.87, 6.3, 1], [9.44, 4.45, 0], [25.37, 3.71, 0], [30.87, 6.48, 1], [19.14, 7.52, 1], [26.11, 2.69, 0], [32.61, 4.12, 0], [26.99, 8.01, 1], [12.72, 3.47, 0], [18.71, 4.39, 0], [33.23, 3.53, 0], [34.08, 4.91, 0], [17.59, 5.9, 1], [13.35, 3.68, 0], [15.28, 7.73, 1], [28.33, 7.65, 1], [23.56, 5.23, 1], [30.75, 3.44, 0], [31.4, 4.57, 0], [16.75, 4.28, 0], [28.32, 8.03, 1], [28.76, 3.29, 0], [29.38, 2.73, 0], [20.51, 6.23, 1], [28.9, 3.3, 0], [23.19, 2.96, 0], [15.13, 5.21, 1], [16.65, 2.59, 0], [25.75, 6.22, 1], [18.79, 2.9, 0]]}, "soh_curves": {"months": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36], "buggy": [100.0, 98.84, 97.69, 96.53, 95.38, 94.22, 93.07, 91.91, 90.76, 89.61, 88.45, 87.3, 86.14, 84.98, 83.83, 82.67, 81.52, 80.36, 79.21], "healthy": [100.0, 99.39, 98.78, 98.17, 97.56, 96.95, 96.34, 95.73, 95.12, 94.51, 93.9, 93.29, 92.68, 92.07, 91.46, 90.85, 90.24, 89.63, 89.02]}, "traces": {"t": [0.0, 1.0, 2.0, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 9.2, 10.2, 11.2, 12.2, 13.2, 14.2, 15.3, 16.3, 17.3, 18.3, 19.3, 20.3, 21.4, 22.4, 23.4, 24.4, 25.4, 26.4, 27.5, 28.5, 29.5, 30.5, 31.5, 32.5, 33.6, 34.6, 35.6, 36.6, 37.6, 38.6, 39.7, 40.7, 41.7, 42.7, 43.7, 44.7, 45.8, 46.8, 47.8, 48.8, 49.8, 50.8, 51.9, 52.9, 53.9, 54.9, 55.9, 56.9, 58.0, 59.0, 60.0], "balanced": {"cell0": [3.62, 3.6585, 3.6944, 3.7277, 3.7587, 3.7875, 3.8143, 3.8392, 3.8624, 3.884, 3.904, 3.9226, 3.94, 3.9561, 3.9711, 3.985, 3.998, 4.01, 4.0212, 4.0317, 4.0413, 4.0504, 4.0587, 4.0665, 4.0738, 4.0805, 4.0868, 4.0926, 4.098, 4.1031, 4.1078, 4.1121, 4.1162, 4.12, 4.1235, 4.1267, 4.1298, 4.1326, 4.1352, 4.1376, 4.1399, 4.142, 4.144, 4.1458, 4.1475, 4.1491, 4.1505, 4.1519, 4.1532, 4.1543, 4.1554, 4.1565, 4.1574, 4.1583, 4.1591, 4.1599, 4.1606, 4.1612, 4.1619, 4.1624], "cell1": [3.624, 3.6625, 3.6984, 3.7317, 3.7627, 3.7915, 3.8183, 3.8432, 3.8664, 3.888, 3.908, 3.9266, 3.944, 3.9601, 3.9751, 3.989, 4.002, 4.014, 4.0252, 4.0357, 4.0453, 4.0544, 4.0627, 4.0705, 4.0778, 4.0845, 4.0908, 4.0966, 4.102, 4.1071, 4.1118, 4.1161, 4.1202, 4.124, 4.1275, 4.1307, 4.1338, 4.1366, 4.1392, 4.1416, 4.1439, 4.146, 4.148, 4.1498, 4.1515, 4.1531, 4.1545, 4.1559, 4.1572, 4.1583, 4.1594, 4.1605, 4.1614, 4.1623, 4.1631, 4.1639, 4.1646, 4.1652, 4.1659, 4.1664], "cell2": [3.628, 3.6665, 3.7024, 3.7357, 3.7667, 3.7955, 3.8223, 3.8472, 3.8704, 3.892, 3.912, 3.9306, 3.948, 3.9641, 3.9791, 3.993, 4.006, 4.018, 4.0292, 4.0397, 4.0493, 4.0584, 4.0667, 4.0745, 4.0818, 4.0885, 4.0948, 4.1006, 4.106, 4.1111, 4.1158, 4.1201, 4.1242, 4.128, 4.1315, 4.1347, 4.1378, 4.1406, 4.1432, 4.1456, 4.1479, 4.15, 4.152, 4.1538, 4.1555, 4.1571, 4.1585, 4.1599, 4.1612, 4.1623, 4.1634, 4.1645, 4.1654, 4.1663, 4.1671, 4.1679, 4.1686, 4.1692, 4.1699, 4.1704], "cell3": [3.632, 3.6705, 3.7064, 3.7397, 3.7707, 3.7995, 3.8263, 3.8512, 3.8744, 3.896, 3.916, 3.9346, 3.952, 3.9681, 3.9831, 3.997, 4.01, 4.022, 4.0332, 4.0437, 4.0533, 4.0624, 4.0707, 4.0785, 4.0858, 4.0925, 4.0988, 4.1046, 4.11, 4.1151, 4.1198, 4.1241, 4.1282, 4.132, 4.1355, 4.1387, 4.1418, 4.1446, 4.1472, 4.1496, 4.1519, 4.154, 4.156, 4.1578, 4.1595, 4.1611, 4.1625, 4.1639, 4.1652, 4.1663, 4.1674, 4.1685, 4.1694, 4.1703, 4.1711, 4.1719, 4.1726, 4.1732, 4.1739, 4.1744]}, "imbalanced": {"cell0": [3.6, 3.6392, 3.6757, 3.7097, 3.7412, 3.7705, 3.7978, 3.8232, 3.8468, 3.8687, 3.8892, 3.9081, 3.9258, 3.9422, 3.9574, 3.9716, 3.9848, 3.9971, 4.0085, 4.0191, 4.029, 4.0382, 4.0467, 4.0547, 4.062, 4.0689, 4.0753, 4.0812, 4.0867, 4.0919, 4.0966, 4.1011, 4.1052, 4.1091, 4.1126, 4.1159, 4.119, 4.1219, 4.1246, 4.127, 4.1294, 4.1315, 4.1335, 4.1354, 4.1371, 4.1387, 4.1402, 4.1416, 4.1429, 4.1441, 4.1452, 4.1462, 4.1472, 4.1481, 4.1489, 4.1497, 4.1504, 4.1511, 4.1517, 4.1523], "cell1": [3.61, 3.6499, 3.6871, 3.7216, 3.7537, 3.7836, 3.8114, 3.8372, 3.8612, 3.8835, 3.9043, 3.9236, 3.9416, 3.9583, 3.9738, 3.9883, 4.0017, 4.0142, 4.0258, 4.0366, 4.0467, 4.056, 4.0647, 4.0728, 4.0803, 4.0873, 4.0938, 4.0998, 4.1054, 4.1107, 4.1155, 4.12, 4.1242, 4.1281, 4.1318, 4.1352, 4.1383, 4.1412, 4.1439, 4.1465, 4.1488, 4.151, 4.153, 4.1549, 4.1567, 4.1583, 4.1598, 4.1612, 4.1626, 4.1638, 4.1649, 4.166, 4.167, 4.1679, 4.1687, 4.1695, 4.1702, 4.1709, 4.1716, 4.1722], "cell2": [3.59, 3.632, 3.6711, 3.7075, 3.7413, 3.7727, 3.802, 3.8292, 3.8544, 3.8779, 3.8998, 3.9201, 3.939, 3.9566, 3.973, 3.9882, 4.0023, 4.0155, 4.0277, 4.0391, 4.0496, 4.0595, 4.0686, 4.0771, 4.085, 4.0924, 4.0992, 4.1056, 4.1115, 4.117, 4.1221, 4.1269, 4.1313, 4.1354, 4.1392, 4.1428, 4.1461, 4.1492, 4.152, 4.1547, 4.1572, 4.1595, 4.1616, 4.1636, 4.1654, 4.1672, 4.1688, 4.1703, 4.1716, 4.1729, 4.1741, 4.1752, 4.1763, 4.1772, 4.1781, 4.179, 4.1797, 4.1805, 4.1811, 4.1817], "weak": [3.7, 3.7413, 3.7798, 3.8155, 3.8488, 3.8797, 3.9084, 3.9352, 3.96, 3.9831, 4.0046, 4.0246, 4.0432, 4.0605, 4.0766, 4.0916, 4.1055, 4.1184, 4.1304, 4.1416, 4.152, 4.1617, 4.1707, 4.179, 4.1868, 4.194, 4.2007, 4.207, 4.2128, 4.2182, 4.2233, 4.2279, 4.2323, 4.2363, 4.2401, 4.2436, 4.2468, 4.2499, 4.2527, 4.2553, 4.2577, 4.26, 4.2621, 4.264, 4.2659, 4.2675, 4.2691, 4.2706, 4.2719, 4.2732, 4.2744, 4.2755, 4.2765, 4.2774, 4.2783, 4.2791, 4.2799, 4.2806, 4.2813, 4.2819]}}, "proj": {"months": [14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48], "no_fix": [91.0, 89.84, 88.69, 87.53, 86.38, 85.22, 84.07, 82.91, 81.76, 80.61, 79.45, 78.3, 77.14, 75.98, 74.83, 73.67, 72.52, 71.36], "fix": [91.0, 90.39, 89.78, 89.17, 88.56, 87.95, 87.34, 86.73, 86.12, 85.51, 84.9, 84.29, 83.68, 83.07, 82.46, 81.85, 81.24, 80.63], "cur_soh": 91.0}};
+const PROG = {"months": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48], "soh0": 91.0, "eol": 80.0, "horizon": 48, "no_fix": {"p10": [91.0, 90.16, 89.45, 88.73, 88.05, 87.34, 86.65, 85.96, 85.25, 84.53, 83.86, 83.17, 82.46, 81.78, 81.1, 80.38, 79.7, 79.03, 78.33, 77.65, 76.92, 76.19, 75.55, 74.83, 74.13, 73.41, 72.68, 71.98, 71.28, 70.61, 69.89, 69.19, 68.53, 67.83, 67.15, 66.49, 65.74, 65.05, 64.35, 63.7, 63.01, 62.31, 61.62, 60.93, 60.2, 59.56, 58.86, 58.11, 57.45], "p50": [91.0, 90.42, 89.84, 89.26, 88.68, 88.09, 87.52, 86.94, 86.36, 85.78, 85.2, 84.62, 84.04, 83.46, 82.86, 82.3, 81.73, 81.16, 80.57, 80.01, 79.42, 78.85, 78.26, 77.65, 77.09, 76.53, 75.95, 75.38, 74.81, 74.25, 73.66, 73.08, 72.51, 71.95, 71.35, 70.77, 70.2, 69.61, 69.03, 68.43, 67.89, 67.29, 66.71, 66.12, 65.54, 64.96, 64.39, 63.82, 63.25], "p90": [91.0, 90.68, 90.24, 89.8, 89.33, 88.87, 88.41, 87.98, 87.51, 87.07, 86.61, 86.15, 85.7, 85.22, 84.78, 84.32, 83.84, 83.35, 82.91, 82.47, 82.02, 81.59, 81.11, 80.63, 80.19, 79.71, 79.22, 78.78, 78.32, 77.85, 77.36, 76.92, 76.47, 76.03, 75.59, 75.13, 74.63, 74.19, 73.7, 73.3, 72.83, 72.31, 71.83, 71.39, 70.98, 70.55, 70.05, 69.6, 69.17], "pof": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.006, 0.022, 0.063, 0.139, 0.25, 0.371, 0.497, 0.616, 0.711, 0.786, 0.847, 0.888, 0.918, 0.943, 0.959, 0.973, 0.982, 0.986, 0.988, 0.992, 0.994, 0.996, 0.997, 0.998, 0.998, 0.999, 0.999, 0.999, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], "rul_med": 20.0, "rul_p10": 16.0, "rul_p90": 25.0, "hist": [0, 0, 0, 0, 88, 912, 1463, 924, 384, 158, 37, 22, 7, 3, 1, 1, 0], "hist_edges": [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51]}, "fix": {"p10": [91.0, 90.53, 90.13, 89.74, 89.36, 88.97, 88.58, 88.2, 87.81, 87.43, 87.06, 86.68, 86.3, 85.92, 85.54, 85.16, 84.75, 84.39, 84.01, 83.65, 83.25, 82.88, 82.5, 82.12, 81.73, 81.33, 80.96, 80.59, 80.2, 79.85, 79.47, 79.1, 78.69, 78.3, 77.92, 77.57, 77.17, 76.79, 76.41, 76.03, 75.65, 75.28, 74.9, 74.53, 74.13, 73.74, 73.36, 72.96, 72.59], "p50": [91.0, 90.7, 90.39, 90.09, 89.78, 89.48, 89.19, 88.88, 88.58, 88.27, 87.96, 87.66, 87.37, 87.07, 86.75, 86.44, 86.13, 85.82, 85.51, 85.2, 84.9, 84.6, 84.3, 84.0, 83.68, 83.38, 83.08, 82.77, 82.45, 82.16, 81.84, 81.54, 81.25, 80.94, 80.63, 80.33, 80.01, 79.7, 79.41, 79.11, 78.81, 78.5, 78.18, 77.87, 77.6, 77.28, 76.98, 76.65, 76.34], "p90": [91.0, 90.87, 90.66, 90.43, 90.21, 89.98, 89.76, 89.53, 89.32, 89.09, 88.86, 88.62, 88.38, 88.16, 87.92, 87.69, 87.44, 87.22, 87.02, 86.78, 86.55, 86.33, 86.12, 85.91, 85.66, 85.42, 85.19, 84.97, 84.72, 84.5, 84.26, 84.05, 83.83, 83.58, 83.39, 83.14, 82.89, 82.67, 82.42, 82.24, 81.99, 81.76, 81.51, 81.27, 81.06, 80.82, 80.6, 80.37, 80.13], "pof": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.002, 0.004, 0.008, 0.014, 0.029, 0.049, 0.079, 0.119, 0.166, 0.216, 0.271, 0.324, 0.381, 0.441, 0.496, 0.549, 0.592, 0.641, 0.688, 0.723, 0.752, 0.785, 0.811, 0.835, 0.856, 0.873, 1.0], "rul_med": 37.0, "rul_p10": 29.0, "rul_p90": 48.0, "hist": [0, 0, 0, 0, 0, 0, 0, 15, 102, 360, 606, 681, 605, 524, 353, 246, 508], "hist_edges": [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51]}};
+// ============ FIGURE RENDERERS ============
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#211C15",inkSoft:"#5A5044",rule:"#DAD1BF",ruleSoft:"#E7DFD0",
+    rust:"#C2410C",teal:"#0F766E",amber:"#B45309",slate:"#475569",bad:"#B91C1C",
+    buggy:"#C2410C",healthy:"#0F766E",paper:"#FBF8F1"};
+  const MONO="'IBM Plex Mono',monospace";
+  function el(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function txt(p,x,y,s,a){const o=Object.assign({x:x,y:y,"font-family":MONO,fill:C.inkSoft},a||{});const e=el(p,"text",o);e.textContent=s;return e;}
+  function S(id){return document.getElementById(id);}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function path(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+
+  // ---------- Fig 1 ----------
+  (function(){
+    const svg=S("fig1"); if(!svg)return;
+    const W=720,H=380,ml=56,mr=20,mt=22,mb=46;
+    const months=DATA.soh_curves.months;
+    const x=sc(0,36,ml,W-mr), y=sc(78,100,H-mb,mt);
+    // grid + y labels
+    for(let v=80;v<=100;v+=5){const yy=y(v);
+      el(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      txt(svg,ml-9,yy+4,v+"%",{"text-anchor":"end","font-size":11});}
+    // x labels
+    [0,12,24,36].forEach(mo=>{txt(svg,x(mo),H-mb+20,mo+"mo",{"text-anchor":"middle","font-size":11});});
+    txt(svg,ml-40,mt+4,"SOH",{"font-size":10,fill:C.inkSoft});
+    // EOL line at 80
+    el(svg,"line",{x1:ml,y1:y(80),x2:W-mr,y2:y(80),stroke:C.inkSoft,"stroke-width":1,"stroke-dasharray":"3 3"});
+    // curves
+    const mk=(arr)=>arr.map((v,i)=>[x(months[i]),y(Math.max(v,78))]);
+    el(svg,"path",{d:path(mk(DATA.soh_curves.healthy)),fill:"none",stroke:C.healthy,"stroke-width":3,"stroke-linejoin":"round"});
+    el(svg,"path",{d:path(mk(DATA.soh_curves.buggy)),fill:"none",stroke:C.buggy,"stroke-width":3,"stroke-linejoin":"round"});
+    txt(svg,x(30),y(DATA.soh_curves.healthy[15])-8,"baseline",{fill:C.healthy,"font-size":11,"text-anchor":"middle"});
+    txt(svg,x(20),y(DATA.soh_curves.buggy[10])-8,"fast-fading",{fill:C.buggy,"font-size":11,"text-anchor":"middle"});
+  })();
+
+  // ---------- Fig 2: raw correlation bars ----------
+  (function(){
+    const svg=S("fig2"); if(!svg)return;
+    const W=720,H=360,ml=210,mr=60,mt=14,mb=34;
+    const raw=DATA.raw;
+    const items=Object.keys(raw).map(k=>({k,r:raw[k].r})).sort((a,b)=>b.r-a.r);
+    const x=sc(0,1,ml,W-mr);
+    const bh=(H-mt-mb)/items.length;
+    // axis
+    [0,0.25,0.5,0.75,1].forEach(v=>{const xx=x(v);
+      el(svg,"line",{x1:xx,y1:mt,x2:xx,y2:H-mb,stroke:C.ruleSoft,"stroke-width":1});
+      txt(svg,xx,H-mb+18,v.toFixed(2),{"text-anchor":"middle","font-size":11});});
+    txt(svg,(ml+W-mr)/2,H-12,"Pearson r  (vs. fade rate)",{"text-anchor":"middle","font-size":11});
+    items.forEach((it,i)=>{
+      const yy=mt+i*bh+6, h=bh-12;
+      const isFC=it.k.indexOf("Fast")===0, isDV=it.k.indexOf("Cell")===0;
+      const col=isFC?C.rust:(isDV?C.teal:C.slate);
+      el(svg,"rect",{x:ml,y:yy,width:x(it.r)-ml,height:h,fill:col,opacity:isFC||isDV?0.95:0.55});
+      txt(svg,ml-10,yy+h/2+4,it.k,{"text-anchor":"end","font-size":11.5,fill:C.ink});
+      txt(svg,x(it.r)+6,yy+h/2+4,it.r.toFixed(3),{"font-size":11,fill:col,"font-weight":600});
+    });
+  })();
+
+  // ---------- scatter helper ----------
+  function scatter(id,key,xlab,xmax,trend){
+    const svg=S(id); if(!svg)return;
+    const W=720,H=key==="dv"?400:400,ml=56,mr=22,mt=20,mb=48;
+    const pts=DATA.scatters[key];
+    const ymax=Math.max(...pts.map(p=>p[1]))*1.05;
+    const x=sc(0,xmax,ml,W-mr), y=sc(0,ymax,H-mb,mt);
+    // grid
+    for(let i=0;i<=4;i++){const v=ymax*i/4, yy=y(v);
+      el(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      txt(svg,ml-9,yy+4,v.toFixed(1),{"text-anchor":"end","font-size":10.5});}
+    for(let i=0;i<=4;i++){const v=xmax*i/4, xx=x(v);
+      txt(svg,xx,H-mb+18,Math.round(v),{"text-anchor":"middle","font-size":10.5});}
+    txt(svg,(ml+W-mr)/2,H-12,xlab,{"text-anchor":"middle","font-size":11});
+    txt(svg,ml-42,mt+2,"fade",{"font-size":10}); txt(svg,ml-42,mt+15,"%/yr",{"font-size":10});
+    // trend line (LS over points)
+    if(trend){
+      let n=pts.length,sx=0,sy=0,sxx=0,sxy=0;
+      pts.forEach(p=>{sx+=p[0];sy+=p[1];sxx+=p[0]*p[0];sxy+=p[0]*p[1];});
+      const b=(n*sxy-sx*sy)/(n*sxx-sx*sx), a=(sy-b*sx)/n;
+      el(svg,"line",{x1:x(0),y1:y(a),x2:x(xmax),y2:y(a+b*xmax),stroke:C.ink,"stroke-width":1.5,"stroke-dasharray":"5 4",opacity:.55});
+    }
+    // points
+    pts.forEach(p=>{el(svg,"circle",{cx:x(p[0]),cy:y(p[1]),r:4,
+      fill:p[2]?C.buggy:C.healthy,opacity:.62,stroke:p[2]?C.buggy:C.healthy,"stroke-width":.5});});
+  }
+  scatter("fig3","fc","DC fast-charge events / month",26,true);
+  scatter("fig4_unused","dv","",1,false); // guard
+  // ΔV scatter not separately shown; fig4 is the partial-corr bars
+
+  // ---------- Fig 4: raw vs partial grouped bars ----------
+  (function(){
+    const svg=S("fig4"); if(!svg)return;
+    const W=720,H=400,ml=58,mr=20,mt=20,mb=78;
+    // features to show: fast_charge, ambient, cycle, age  (those with partials), plus ΔV via partial_dv_ctrl_fc
+    const rows=[
+      {lab:"Fast-charge",raw:DATA.raw["Fast-charge events / mo"].r,par:DATA.partial["Fast-charge events / mo"].r},
+      {lab:"Ambient °C",raw:DATA.raw["Ambient temp (°C)"].r,par:DATA.partial["Ambient temp (°C)"].r},
+      {lab:"Cycle count",raw:DATA.raw["Cycle count"].r,par:DATA.partial["Cycle count"].r},
+      {lab:"Cell ΔV*",raw:DATA.raw["Cell imbalance ΔV (mV)"].r,par:DATA.partial_dv_ctrl_fc.r},
+    ];
+    const y=sc(0,1,H-mb,mt), x0=ml, gw=(W-mr-ml)/rows.length;
+    // y grid
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);
+      el(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      txt(svg,ml-9,yy+4,v.toFixed(2),{"text-anchor":"end","font-size":11});});
+    txt(svg,ml-44,mt+2,"|r|",{"font-size":11});
+    rows.forEach((rw,i)=>{
+      const cx=x0+gw*i+gw/2, bw=Math.min(38,gw*0.34);
+      const rawAbs=Math.abs(rw.raw), parAbs=Math.abs(rw.par);
+      // raw
+      el(svg,"rect",{x:cx-bw-3,y:y(rawAbs),width:bw,height:(H-mb)-y(rawAbs),fill:C.slate,opacity:.85});
+      txt(svg,cx-bw/2-3,y(rawAbs)-5,rw.raw.toFixed(2),{"text-anchor":"middle","font-size":10,fill:C.slate});
+      // partial
+      el(svg,"rect",{x:cx+3,y:y(parAbs),width:bw,height:(H-mb)-y(parAbs),fill:C.rust,opacity:.92});
+      txt(svg,cx+bw/2+3,y(parAbs)-5,rw.par.toFixed(2),{"text-anchor":"middle","font-size":10,fill:C.rust});
+      // label
+      txt(svg,cx,H-mb+20,rw.lab,{"text-anchor":"middle","font-size":11.5,fill:C.ink});
+    });
+    // annotations
+    txt(svg,x0+gw*0+gw/2,H-mb+40,"collapses ↓",{"text-anchor":"middle","font-size":10,fill:C.rust});
+    txt(svg,x0+gw*1+gw/2,H-mb+40,"emerges ↑",{"text-anchor":"middle","font-size":10,fill:C.amber});
+    txt(svg,x0+gw*3+gw/2,H-mb+40,"survives",{"text-anchor":"middle","font-size":10,fill:C.teal});
+    txt(svg,W-mr,H-10,"* ΔV partial controls for fast-charge",{"text-anchor":"end","font-size":9.5,fill:C.inkSoft});
+  })();
+
+  // ---------- Fig 5: per-cell voltage traces ----------
+  (function(){
+    const svg=S("fig5"); if(!svg)return;
+    const W=720,H=410,mt=24,mb=44;
+    const t=DATA.traces.t, n=t.length;
+    const ov=4.25; // over-voltage line
+    function panel(x0,x1,data,title,markWeak){
+      const ml=x0+50,mr=x1-14, y=sc(3.55,4.35,H-mb,mt), x=sc(0,t[n-1],ml,mr);
+      // border + title
+      txt(svg,(ml+mr)/2,mt-6,title,{"text-anchor":"middle","font-size":11.5,fill:C.ink,"font-weight":600});
+      // y grid (only on left panel labels)
+      for(let v=3.6;v<=4.3;v+=0.2){const yy=y(v);
+        el(svg,"line",{x1:ml,y1:yy,x2:mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+        if(x0<360) txt(svg,ml-8,yy+4,v.toFixed(1),{"text-anchor":"end","font-size":10});}
+      // overvoltage line
+      el(svg,"line",{x1:ml,y1:y(ov),x2:mr,y2:y(ov),stroke:C.bad,"stroke-width":1.4,"stroke-dasharray":"4 3"});
+      // traces
+      Object.keys(data).forEach(key=>{
+        const arr=data[key], isWeak=key==="weak";
+        const pts=arr.map((v,i)=>[x(t[i]),y(v)]);
+        el(svg,"path",{d:path(pts),fill:"none",
+          stroke:isWeak?C.buggy:(markWeak?C.buggy:C.healthy),
+          "stroke-width":isWeak?2.6:1.6,opacity:isWeak?1:(markWeak?.5:.8)});
+      });
+      txt(svg,(ml+mr)/2,H-mb+20,"charge time (min)",{"text-anchor":"middle","font-size":10});
+    }
+    panel(40,360,DATA.traces.balanced,"Balanced pack",false);
+    panel(360,W,DATA.traces.imbalanced,"Imbalanced pack",true);
+    // overvoltage label
+    txt(svg,W-18,sc(3.55,4.35,H-mb,mt)(4.25)-5,"4.25 V over-voltage",{"text-anchor":"end","font-size":9.5,fill:C.bad});
+  })();
+
+  // ---------- Fig 6: firmware stratification ----------
+  (function(){
+    const svg=S("fig6"); if(!svg)return;
+    const W=720,H=300,mt=24,mb=40;
+    const s=DATA.strat;
+    function group(cx,gw,title,dv,degr,dvMax,col){
+      const y1=sc(0,dvMax,H-mb,mt), y2=sc(0,12,H-mb,mt);
+      const bw=44;
+      // ΔV bar (left of pair) scaled to its own axis; degr bar right
+      el(svg,"rect",{x:cx-bw-6,y:y1(dv),width:bw,height:(H-mb)-y1(dv),fill:col,opacity:.85});
+      txt(svg,cx-bw/2-6,y1(dv)-6,dv+"mV",{"text-anchor":"middle","font-size":10.5,fill:col});
+      el(svg,"rect",{x:cx+6,y:y2(degr),width:bw,height:(H-mb)-y2(degr),fill:col,opacity:.45});
+      txt(svg,cx+bw/2+6,y2(degr)-6,degr+"%/yr",{"text-anchor":"middle","font-size":10.5,fill:C.inkSoft});
+      txt(svg,cx,H-mb+20,title,{"text-anchor":"middle","font-size":12,fill:C.ink,"font-weight":600});
+      txt(svg,cx-bw/2-6,H-mb+34,"ΔV",{"text-anchor":"middle","font-size":9,fill:C.inkSoft});
+      txt(svg,cx+bw/2+6,H-mb+34,"fade",{"text-anchor":"middle","font-size":9,fill:C.inkSoft});
+    }
+    const dvMax=Math.max(s.buggy_mean_dv,s.healthy_mean_dv)*1.25;
+    group(W*0.30,0,"v3.2.1  (buggy)",s.buggy_mean_dv,s.buggy_mean_degr,dvMax,C.buggy);
+    group(W*0.70,0,"other builds",s.healthy_mean_dv,s.healthy_mean_degr,dvMax,C.healthy);
+    el(svg,"line",{x1:W/2,y1:mt-4,x2:W/2,y2:H-mb,stroke:C.ruleSoft,"stroke-width":1});
+  })();
+
+  // ---------- Fig 7: RUL projection ----------
+  (function(){
+    const svg=S("fig7"); if(!svg)return;
+    const W=720,H=380,ml=56,mr=22;
+    const MT=20,MB=46;
+    const p=DATA.proj, mo=p.months;
+    const x=sc(mo[0],mo[mo.length-1],ml,W-mr), y=sc(75,95,H-MB,MT);
+    for(let v=75;v<=95;v+=5){const yy=y(v);
+      el(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      txt(svg,ml-9,yy+4,v+"%",{"text-anchor":"end","font-size":11});}
+    [14,24,36,48].forEach(m=>txt(svg,x(m),H-MB+18,m+"mo",{"text-anchor":"middle","font-size":11}));
+    // EOL
+    el(svg,"line",{x1:ml,y1:y(80),x2:W-mr,y2:y(80),stroke:C.inkSoft,"stroke-width":1,"stroke-dasharray":"3 3"});
+    txt(svg,W-mr,y(80)-5,"80% EOL",{"text-anchor":"end","font-size":10,fill:C.inkSoft});
+    const mk=arr=>arr.map((v,i)=>[x(mo[i]),y(Math.max(v,75))]);
+    el(svg,"path",{d:path(mk(p.no_fix)),fill:"none",stroke:C.bad,"stroke-width":3});
+    el(svg,"path",{d:path(mk(p.fix)),fill:"none",stroke:C.healthy,"stroke-width":3});
+    txt(svg,x(40),y(p.no_fix[13])+16,"no fix",{fill:C.bad,"font-size":11,"text-anchor":"middle"});
+    txt(svg,x(42),y(p.fix[14])-8,"after OTA fix",{fill:C.healthy,"font-size":11,"text-anchor":"middle"});
+    // start marker
+    el(svg,"circle",{cx:x(mo[0]),cy:y(p.cur_soh),r:4,fill:C.ink});
+    txt(svg,x(mo[0])+8,y(p.cur_soh)-8,"today: 91%",{"font-size":10,fill:C.ink});
+  })();
+
+  // ---------- fill inline numbers ----------
+  function setAll(cls,val){document.querySelectorAll("."+cls).forEach(e=>e.textContent=val);}
+  function set(id,val){const e=S(id);if(e)e.textContent=val;}
+  set("fc_r",DATA.raw["Fast-charge events / mo"].r.toFixed(3));
+  setAll("fc_r2",DATA.raw["Fast-charge events / mo"].r.toFixed(2));
+  setAll("dv_r",DATA.raw["Cell imbalance ΔV (mV)"].r.toFixed(2));
+  set("temp_r",DATA.raw["Ambient temp (°C)"].r.toFixed(2));
+  set("dv_partial",DATA.partial_dv_ctrl_fc.r.toFixed(2));
+  set("rn_fc",DATA.reg_naive.fast_charge.toFixed(3));
+  set("rn_r2",DATA.reg_naive.r2.toFixed(3));
+  set("rf_fc",DATA.reg_full.fast_charge.toFixed(3));
+  set("rf_dv",DATA.reg_full.dv.toFixed(3));
+  set("rf_r2",DATA.reg_full.r2.toFixed(3));
+  set("dv_buggy",DATA.strat.buggy_mean_dv);
+  set("dv_healthy",DATA.strat.healthy_mean_dv);
+  set("degr_buggy",DATA.strat.buggy_mean_degr);
+  set("degr_healthy",DATA.strat.healthy_mean_degr);
+})();
+</script>
+<script>
+// ============ PROGNOSTIC SIMULATION CHARTS ============
+(function(){
+  if(typeof PROG==="undefined")return;
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#211C15",inkSoft:"#5A5044",ruleSoft:"#E7DFD0",rust:"#C2410C",
+    teal:"#0F766E",bad:"#B91C1C",amber:"#B45309"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function tx(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,
+    "font-size":o.fs||11,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});e.textContent=s;return e;}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+  const mo=PROG.months, n=mo.length, mmax=PROG.horizon;
+
+  // ---- P1 fan chart ----
+  (function(){const svg=D("p1");if(!svg)return;
+    const W=720,H=380,ml=56,mr=22,mt=20,mb=46;
+    const x=sc(0,mmax,ml,W-mr), y=sc(76,92,H-mb,mt);
+    for(let v=76;v<=92;v+=4){const yy=y(v);
+      E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      tx(svg,ml-9,yy+4,v+"%",{anchor:"end"});}
+    [0,12,24,36,48].forEach(m=>tx(svg,x(m),H-mb+18,m+"mo"));
+    tx(svg,(ml+W-mr)/2,H-10,"months from now");
+    // EOL
+    E(svg,"line",{x1:ml,y1:y(80),x2:W-mr,y2:y(80),stroke:C.inkSoft,"stroke-width":1,"stroke-dasharray":"3 3"});
+    tx(svg,W-mr,y(80)-5,"80% EOL",{anchor:"end",fs:10});
+    const clamp=v=>Math.max(Math.min(v,92),76);
+    // no-fix band p10..p90
+    const nf=PROG.no_fix;
+    const up=mo.map((m,i)=>[x(m),y(clamp(nf.p90[i]))]);
+    const lo=mo.map((m,i)=>[x(m),y(clamp(nf.p10[i]))]).reverse();
+    E(svg,"path",{d:pathD(up.concat(lo))+" Z",fill:C.bad,opacity:.13,stroke:"none"});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(clamp(nf.p50[i]))])),fill:"none",stroke:C.bad,"stroke-width":3});
+    // fix median
+    const fx=PROG.fix;
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(clamp(fx.p50[i]))])),fill:"none",stroke:C.teal,"stroke-width":3,"stroke-dasharray":"6 4"});
+    tx(svg,x(40),y(clamp(nf.p50[40]))+16,"no fix",{fill:C.bad,fs:11});
+    tx(svg,x(42),y(clamp(fx.p50[42]))-8,"after fix",{fill:C.teal,fs:11});
+    E(svg,"circle",{cx:x(0),cy:y(91),r:4,fill:C.ink});
+    tx(svg,x(0)+10,y(91)-8,"today 91%",{anchor:"start",fs:10,fill:C.ink});
+  })();
+
+  // ---- P2 probability of failure ----
+  (function(){const svg=D("p2");if(!svg)return;
+    const W=720,H=350,ml=52,mr=22,mt=20,mb=46;
+    const x=sc(0,mmax,ml,W-mr), y=sc(0,1,H-mb,mt);
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);
+      E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft,"stroke-width":1});
+      tx(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end"});});
+    [0,12,24,36,48].forEach(m=>tx(svg,x(m),H-mb+18,m+"mo"));
+    tx(svg,(ml+W-mr)/2,H-10,"months from now");
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(PROG.no_fix.pof[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(PROG.fix.pof[i])])),fill:"none",stroke:C.teal,"stroke-width":3});
+    // 24-mo marker
+    E(svg,"line",{x1:x(24),y1:mt,x2:x(24),y2:H-mb,stroke:C.inkSoft,"stroke-width":1,"stroke-dasharray":"2 3"});
+    tx(svg,x(24),mt-4,"24 mo",{fs:9.5});
+    tx(svg,x(28),y(PROG.no_fix.pof[28])-8,"no fix",{fill:C.bad,fs:11,anchor:"start"});
+    tx(svg,x(40),y(PROG.fix.pof[40])-8,"after fix",{fill:C.teal,fs:11,anchor:"start"});
+  })();
+
+  // ---- P3 RUL histogram ----
+  (function(){const svg=D("p3");if(!svg)return;
+    const W=720,H=340,ml=52,mr=22,mt=20,mb=46;
+    const ed=PROG.no_fix.hist_edges, h=PROG.no_fix.hist;
+    const hmax=Math.max(...h)*1.1;
+    const x=sc(0,mmax,ml,W-mr), y=sc(0,hmax,H-mb,mt);
+    [0,12,24,36,48].forEach(m=>tx(svg,x(m),H-mb+18,m+"mo"));
+    tx(svg,(ml+W-mr)/2,H-10,"remaining useful life (months)");
+    tx(svg,ml-38,mt+2,"count",{fs:10,anchor:"start"});
+    for(let i=0;i<h.length;i++){
+      const x0=x(ed[i]), x1=x(ed[i+1]), bw=(x1-x0)-2;
+      const yy=y(h[i]);
+      E(svg,"rect",{x:x0+1,y:yy,width:Math.max(bw,1),height:(H-mb)-yy,fill:C.bad,opacity:.55});
+    }
+    // median + CI lines
+    const med=PROG.no_fix.rul_med, lo=PROG.no_fix.rul_p10, hi=PROG.no_fix.rul_p90;
+    [[lo,"p10",C.amber],[med,"median",C.ink],[hi,"p90",C.amber]].forEach(([m,lbl,col])=>{
+      E(svg,"line",{x1:x(m),y1:mt,x2:x(m),y2:H-mb,stroke:col,"stroke-width":lbl==="median"?2:1.4,"stroke-dasharray":lbl==="median"?"":"4 3"});
+      tx(svg,x(m),mt-4,lbl+" "+Math.round(m),{fs:9.5,fill:col});
+    });
+  })();
+
+  // ---- prose numbers ----
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  const pct=v=>Math.round(v*100)+"%";
+  set("prog_pof",pct(PROG.no_fix.pof[24]));
+  set("prog_fix_pof",pct(PROG.fix.pof[24]));
+  set("prog_med",Math.round(PROG.no_fix.rul_med));
+  set("prog_med2",Math.round(PROG.no_fix.rul_med));
+  set("prog_ci_lo",Math.round(PROG.no_fix.rul_p10));
+  set("prog_ci_hi",Math.round(PROG.no_fix.rul_p90));
+  set("prog_fix_med",Math.round(PROG.fix.rul_med));
+})();
+</script>
+<script>
+// ============ DIAGRAM RENDERERS (Part III) ============
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#211C15",inkSoft:"#5A5044",rule:"#DAD1BF",ruleSoft:"#E7DFD0",
+    rust:"#C2410C",teal:"#0F766E",amber:"#B45309",slate:"#475569",bad:"#B91C1C",
+    paper:"#FBF8F1",hi:"#F3EEE0"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function mtext(p,x,y,arr,o){o=o||{};const lh=o.lh||13.5;
+    const t=E(p,"text",Object.assign({x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,
+      "text-anchor":o.anchor||"middle","font-size":o.fs||12,"font-weight":o.weight||500},{}));
+    arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const t=E(p,"text",{x:x,y:y,"font-family":MONO,
+    "font-size":o.fs||9.5,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});t.textContent=s;return t;}
+  function box(svg,x,y,w,h,label,o){o=o||{};
+    E(svg,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,
+      stroke:o.stroke||C.ink,"stroke-width":o.sw||1.6});
+    const arr=Array.isArray(label)?label:[label], lh=o.lh||13.5, fs=o.fs||12.5;
+    const y0=y+h/2-(arr.length-1)*lh/2+fs*0.34;
+    mtext(svg,x+w/2,y0,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});}
+  function diamond(svg,cx,cy,w,h,label,o){o=o||{};
+    E(svg,"polygon",{points:cx+","+(cy-h/2)+" "+(cx+w/2)+","+cy+" "+cx+","+(cy+h/2)+" "+(cx-w/2)+","+cy,
+      fill:o.fill||C.hi,stroke:o.stroke||C.ink,"stroke-width":1.6});
+    const arr=Array.isArray(label)?label:[label];
+    mtext(svg,cx,cy-(arr.length-1)*6+4,arr,{fs:o.fs||11,lh:12});}
+  function head(svg,x2,y2,ang,col){const s=8;
+    E(svg,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+
+      (x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col});}
+  function arrow(svg,x1,y1,x2,y2,o){o=o||{};const col=o.color||C.ink;
+    E(svg,"line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":o.w||1.8,
+      "stroke-dasharray":o.dash||"","stroke-linecap":"round"});
+    head(svg,x2,y2,Math.atan2(y2-y1,x2-x1),col);}
+  function elbow(svg,pts,o){o=o||{};const col=o.color||C.ink;
+    for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];
+      E(svg,"line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:col,"stroke-width":o.w||1.8,
+        "stroke-dasharray":o.dash||"","stroke-linecap":"round"});
+      if(i===pts.length-2) head(svg,b[0],b[1],Math.atan2(b[1]-a[1],b[0]-a[0]),col);}}
+
+  // ---------- D1: VHM pipeline ----------
+  (function(){const svg=D("d1");if(!svg)return;
+    const W=720,top=100,h=68,w=124,mid=top+h/2;
+    const cx=[76,218,360,502,644].map(c=>c); // centers
+    const x=cx.map(c=>c-w/2);
+    const labels=[["Sensing &","Telemetry"],["Feature","Extraction"],
+      ["Diagnostic","Engine"],["Prognostic","Engine"],["Decision","& Action"]];
+    const subs=["CAN · BMS · logs","ΔV, temp, cycles","fault + root cause","model + RUL","OTA · recall · screen"];
+    const strokes=[C.ink,C.ink,C.rust,C.teal,C.ink];
+    const sw=[1.6,1.6,2.4,2.4,1.6];
+    // eyebrow group labels
+    lab(svg,147,72,"ACQUISITION",{fs:10,fill:C.inkSoft,weight:600});
+    lab(svg,360,72,"DIAGNOSIS · why",{fs:10,fill:C.rust,weight:600});
+    lab(svg,502,72,"PROGNOSIS · when",{fs:10,fill:C.teal,weight:600});
+    lab(svg,644,72,"ACTION",{fs:10,fill:C.inkSoft,weight:600});
+    for(let i=0;i<5;i++){
+      box(svg,x[i],top,w,h,labels[i],{stroke:strokes[i],sw:sw[i],fs:13,
+        tcolor:i===2?C.rust:(i===3?C.teal:C.ink)});
+      lab(svg,cx[i],top+h+18,subs[i],{fs:9.5});
+      if(i<4) arrow(svg,x[i]+w,mid,x[i+1],mid,{w:1.8});
+    }
+    // feedback loop
+    elbow(svg,[[644,top+h],[644,256],[76,256],[76,top+h]],{color:C.slate,dash:"4 3"});
+    lab(svg,360,270,"continuous monitoring loop",{fs:9.5,fill:C.slate});
+  })();
+
+  // ---------- D2: causal DAG ----------
+  (function(){const svg=D("d2");if(!svg)return;
+    // nodes
+    box(svg,110,34,180,52,["firmware","v3.2.1 (bug)"],{fs:12.5,stroke:C.ink,fill:"#EFE7D6"});
+    box(svg,485,34,150,52,["ambient","temperature"],{fs:12,stroke:C.amber});
+    box(svg,50,175,160,50,["DC fast-","charging"],{fs:12,stroke:C.bad});
+    box(svg,265,175,150,50,["cell ΔV","(mV)"],{fs:12,stroke:C.teal});
+    box(svg,355,293,170,54,["SOH fade","(outcome)"],{fs:12.5,stroke:C.rust,sw:2.4,fill:"#F7E7DF"});
+    // causal edges (teal)
+    elbow(svg,[[175,86],[130,150],[130,175]],{color:C.teal,w:2});
+    lab(svg,90,140,"charge default",{fs:9,fill:C.teal,anchor:"end"});
+    elbow(svg,[[250,86],[330,150],[330,175]],{color:C.teal,w:2});
+    lab(svg,360,138,"balancing fails",{fs:9,fill:C.teal,anchor:"start"});
+    arrow(svg,355,215,420,293,{color:C.teal,w:3});
+    lab(svg,415,250,"over-voltage",{fs:9,fill:C.teal,anchor:"start"});
+    // secondary (amber)
+    arrow(svg,545,86,475,293,{color:C.amber,w:1.8});
+    lab(svg,545,200,"Arrhenius",{fs:9,fill:C.amber,anchor:"start"});
+    // spurious (red dashed) fast-charge ~ fade
+    arrow(svg,165,225,360,318,{color:C.bad,w:1.8,dash:"5 4"});
+    lab(svg,250,300,"correlation, no cause",{fs:9,fill:C.bad,anchor:"middle"});
+    // X glyph on spurious edge
+    const xm=262,ym=271;
+    E(svg,"line",{x1:xm-6,y1:ym-6,x2:xm+6,y2:ym+6,stroke:C.bad,"stroke-width":2});
+    E(svg,"line",{x1:xm-6,y1:ym+6,x2:xm+6,y2:ym-6,stroke:C.bad,"stroke-width":2});
+    // annotation bracket
+    lab(svg,200,118,"common cause  ⇒  confounding",{fs:9.5,fill:C.inkSoft});
+  })();
+
+  // ---------- D3: RCA flowchart ----------
+  (function(){const svg=D("d3");if(!svg)return;
+    const sx=260, bw=220, bh=44, rx=560;
+    function bx(top,label,o){box(svg,sx-bw/2,top,bw,bh,label,o);return top+bh;}
+    // spine
+    bx(24,"Observe anomaly");
+    arrow(svg,sx,68,sx,92);
+    bx(92,"Enumerate hypothesis families");
+    arrow(svg,sx,136,sx,160);
+    bx(160,"Map hypotheses → features");
+    arrow(svg,sx,204,sx,228);
+    bx(228,"Correlation screen — rank");          // N4 (return target), mid y=250
+    arrow(svg,sx,272,sx,288);
+    diamond(svg,sx,330,154,84,["Statistically","strong?"]);
+    arrow(svg,sx,372,sx,400); lab(svg,sx+12,392,"yes",{fs:9,fill:C.teal,anchor:"start"});
+    bx(400,"Demand a mechanism");
+    arrow(svg,sx,444,sx,458);
+    diamond(svg,sx,500,154,84,["Mechanism","plausible?"]);
+    arrow(svg,sx,542,sx,572); lab(svg,sx+12,564,"yes",{fs:9,fill:C.teal,anchor:"start"});
+    bx(572,"Confirm physics in raw signal");
+    arrow(svg,sx,616,sx,648);
+    box(svg,sx-bw/2,648,bw,48,"ROOT CAUSE",{stroke:C.rust,sw:2.6,fill:"#F7E7DF",fs:14,weight:600,tcolor:C.rust});
+    arrow(svg,sx,696,sx,724);
+    box(svg,sx-bw/2,724,bw,44,"→ Prognosis: model + RUL",{stroke:C.teal,fs:12,tcolor:C.teal});
+    // REJECT node + return rail
+    box(svg,35,308,150,44,["Reject →","test next"],{stroke:C.slate,fs:11,tcolor:C.slate});
+    // D1 "no" -> reject
+    elbow(svg,[[183,330],[110,330],[110,308]],{color:C.slate});
+    lab(svg,150,322,"no",{fs:9,fill:C.bad,anchor:"middle"});
+    // return rail reject -> N4
+    elbow(svg,[[110,352],[110,398],[150,398],[150,250],[150,250],[sx-bw/2,250]],{color:C.slate,dash:"4 3"});
+    lab(svg,118,420,"re-rank",{fs:9,fill:C.slate,anchor:"start"});
+    // D2 "no" -> right branch
+    elbow(svg,[[337,500],[440,500],[440,480],[460,480]],{color:C.rust});
+    lab(svg,400,492,"no → abduce",{fs:9,fill:C.rust,anchor:"middle"});
+    box(svg,460,458,200,44,["Abduce:","suspect confounder"],{stroke:C.rust,fs:11});
+    arrow(svg,rx,502,rx,528);
+    box(svg,460,528,200,44,["Control: partial corr,","stratify, regress"],{stroke:C.ink,fs:11});
+    arrow(svg,rx,572,rx,590);
+    diamond(svg,rx,632,150,84,["Survives","control?"]);
+    // D3 yes -> merge to confirm-physics (N6 right edge x=370, mid y=594)
+    elbow(svg,[[485,632],[420,632],[420,594],[370,594]],{color:C.teal});
+    lab(svg,452,624,"yes",{fs:9,fill:C.teal,anchor:"middle"});
+    // D3 no -> terminal
+    arrow(svg,rx,674,rx,700,{color:C.bad});
+    box(svg,460,700,200,40,["Spurious → reject"],{stroke:C.bad,fs:11,tcolor:C.bad});
+    lab(svg,rx+12,690,"no",{fs:9,fill:C.bad,anchor:"start"});
+  })();
+
+  // ---------- D4: two engines ----------
+  (function(){const svg=D("d4");if(!svg)return;
+    // headers
+    E(svg,"rect",{x:30,y:18,width:300,height:30,fill:C.rust});
+    lab(svg,180,38,"DIAGNOSTIC ENGINE — why",{fs:11,fill:"#FBF8F1",weight:600});
+    E(svg,"rect",{x:390,y:18,width:300,height:30,fill:C.teal});
+    lab(svg,540,38,"PROGNOSTIC ENGINE — when",{fs:11,fill:"#FBF8F1",weight:600});
+    const lw=240,lh=46;
+    const Lx=60, Rx=410;
+    function col(x,tops,labels,acc){for(let i=0;i<tops.length;i++){
+      const dash=i===tops.length-1;
+      box(svg,x,tops[i],lw,lh,labels[i],{stroke:acc,fs:11.5,
+        sw:dash?1.4:1.6, fill:dash?"#F3EEE0":C.paper});
+      if(i<tops.length-1) arrow(svg,x+lw/2,tops[i]+lh,x+lw/2,tops[i+1],{w:1.6,color:acc});
+    }}
+    const tops=[70,148,226,316];
+    col(Lx,tops,[["Detection","fade vs baseline band"],["Isolation","localize to ΔV signal"],
+      ["Attribution","root cause + mechanism"],["fault label + mechanism","+ confidence"]],C.rust);
+    col(Rx,tops,[["Fit degradation law f","covariates set by mechanism"],
+      ["Integrate to threshold","RUL = ΔSOH / rate"],["Counterfactual","RUL under the fix"],
+      ["RUL + risk","+ life-gain of fix"]],C.teal);
+    // bridge: diagnostic output -> prognostic input
+    elbow(svg,[[Lx+lw,316+lh/2],[360,316+lh/2],[360,70+lh/2],[Rx,70+lh/2]],{color:C.ink,w:2});
+    lab(svg,360,200,"mechanism",{fs:9,fill:C.ink,anchor:"middle"});
+    lab(svg,360,212,"parameterizes f",{fs:9,fill:C.ink,anchor:"middle"});
+  })();
+
+  // ---------- worked example numbers ----------
+  const s=DATA.strat;
+  const rateNo=s.buggy_mean_degr, rateFix=s.healthy_mean_degr, soh=91, eol=80;
+  const rulNo=Math.round((soh-eol)/rateNo*12), rulFix=Math.round((soh-eol)/rateFix*12);
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  set("ex_rate_no",rateNo.toFixed(1)); set("ex_rate_fix",rateFix.toFixed(1));
+  set("ex_rul_no",rulNo); set("ex_rul_fix",rulFix);
+  set("ex_gain", (rulFix/rulNo>=1.8?"doubles":"extends"));
+})();
+</script>
+</body>
+</html>

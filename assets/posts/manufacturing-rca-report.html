@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module Weld Resistance — Manufacturing Root Cause Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F2EFE6; --paper:#FAF7EF; --ink:#1B1A18; --ink-soft:#544C40;
+  --rule:#D6CDBB; --rule-soft:#E5DCCC;
+  --steel:#2F4858; --signal:#B45309; --bad:#B0413A; --good:#15803D; --slate:#5A6472;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:840px; margin:0 auto; padding:0 26px}
+header.cover{padding:54px 0 30px; border-bottom:3px double var(--ink)}
+.classline{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-soft); display:flex; justify-content:space-between;
+  border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:26px; flex-wrap:wrap; gap:8px}
+.classline .sig{color:var(--signal)}
+.doctype{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--steel); margin:0 0 16px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(30px,5.4vw,50px);
+  line-height:1.07; letter-spacing:-.015em; margin:0 0 16px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(17px,2.3vw,21px);
+  color:var(--ink-soft); margin:0 0 24px; max-width:64ch}
+.metagrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px 26px;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; border-top:1px solid var(--rule); padding-top:18px}
+.metagrid div span{color:var(--ink-soft); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase}
+.metagrid div b{font-weight:600}
+.box{margin:30px 0; padding:22px 24px; background:var(--paper); border:1px solid var(--rule)}
+.box.summary{border-left:3px solid var(--steel)}
+.box.finding{border-left:3px solid var(--signal); background:#F7ECDD}
+.box.rootcause{border:2px solid var(--signal); background:#F7ECDD}
+.box .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; display:block; margin-bottom:10px}
+.box.summary .lab{color:var(--steel)} .box.finding .lab,.box.rootcause .lab{color:var(--signal)}
+.box p{margin:0 0 12px} .box p:last-child{margin:0}
+.box.rootcause h3{margin:0 0 10px; font-family:"Fraunces",serif; font-size:21px}
+section{padding:42px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em;
+  color:var(--steel); display:block; margin-bottom:9px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(23px,3.4vw,31px);
+  line-height:1.13; margin:0 0 16px; letter-spacing:-.01em}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:19px; margin:30px 0 9px}
+p{margin:0 0 15px} .lead{font-size:19px}
+strong{font-weight:600} em{font-style:italic}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+sub,sup{font-size:.72em}
+figure{margin:28px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55;
+  color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink)}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--steel); margin-bottom:6px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace;
+  font-size:12px; color:var(--ink-soft); margin-top:4px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px; font-weight:600}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:2px; white-space:nowrap}
+.tag.rej{background:#F1D9D6; color:var(--bad)} .tag.keep{background:#D7E0DE; color:var(--steel)}
+.tag.cause{background:#F5E2CE; color:var(--signal)}
+pre{background:#1B1A18; color:#ECE4D4; font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+  line-height:1.6; padding:16px 18px; overflow-x:auto; margin:20px 0}
+pre .c{color:#9A8F78} pre .k{color:#E0A07A} pre .s{color:#9DC08B}
+.note{margin:22px 0; padding:15px 19px; background:#EDE6D6; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--signal); display:block; margin-bottom:6px}
+.dtree{margin:24px 0; font-family:"IBM Plex Mono",monospace}
+.dnode{display:inline-block; background:#E7DECC; border:1.6px solid var(--ink); border-radius:7px;
+  padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink)}
+.dbranch{margin:6px 0 6px 14px; padding-left:20px; border-left:2px solid var(--rule)}
+.dedge{font-size:12.5px; color:var(--steel); font-weight:600; margin:12px 0 5px}
+.dleaf{display:inline-block; padding:7px 13px; border-radius:7px; font-size:13px; border:1.5px solid; line-height:1.4; max-width:48ch}
+.dleaf.root{background:#F5E2CE; border-color:var(--signal); color:var(--signal); font-weight:600}
+.dleaf.ok{background:#D7E0DE; border-color:var(--steel); color:var(--steel)}
+.dleaf.warn{background:#EFE3CD; border-color:var(--signal); color:var(--signal)}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px;
+  flex-wrap:wrap; align-items:center; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--steel); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--signal)}
+footer{padding:50px 0 80px}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 0 20px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:3px 0}
+@media (max-width:560px){body{font-size:17px}.wrap{padding:0 18px}.metagrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--steel);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="classline"><span>Manufacturing Quality · Process RCA</span><span class="sig">RCA-2026-MFG-0231</span></div>
+  <p class="doctype">Manufacturing Root Cause Report</p>
+  <h1>Elevated Module Weld Resistance</h1>
+  <p class="subtitle">A battery-module interconnect defect traced past a convincing supplier-lot Pareto to its real origin on the production floor: weld-electrode tip wear under a lax dressing interval — and the SPC fix that closes it.</p>
+  <div class="metagrid">
+    <div><span>Prepared by</span><b>M. Mazouchi — VHM &amp; Diagnostics</b></div>
+    <div><span>Process</span><b>Tab/busbar resistance welding</b></div>
+    <div><span>Sample</span><b>600 modules, EOL-instrumented</b></div>
+    <div><span>Status</span><b>Root cause confirmed</b></div>
+    <div><span>Disposition</span><b>Containment + PM fix validated</b></div>
+  </div>
+  <div class="reslinks">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Battery-degradation RCA</a>
+    <a href="nvh-preconditioning-rca-report.html">Preconditioning NVH RCA</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="manufacturing-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+</header>
+
+<div class="box summary">
+  <span class="lab">Executive Summary</span>
+  <p>A fraction of battery modules failed the end-of-line (EOL) interconnect-resistance spec (&gt; 80 µΩ), with field data showing these joints run hot and drift higher over service. A 600-module study with full production traceability isolated the defect to <strong>tab-to-busbar weld-electrode tip wear</strong>: as the tip wears between dressings, the weld nugget shrinks and joint resistance climbs past a knee.</p>
+  <p>The defects clustered on supplier foil lot <strong>L2</strong> — but L2 was simply the lot routed to <strong>Station B</strong>, whose dressing interval (4000 welds vs ~1500 on the other lines) let the electrode reach deep wear. Holding electrode wear constant, both the lot and the station associations vanish. Tightening the dressing interval lifts process capability from <strong>Cpk <span id="cpk_b"></span></strong> to <strong>Cpk <span id="cpk_a"></span></strong> and removes the escape; a 100% EOL resistance screen contains the field risk in the interim.</p>
+</div>
+
+<div class="box finding">
+  <span class="lab">Principal Finding</span>
+  <p>The cause is a <strong>tooling-maintenance</strong> defect (electrode dressing interval), not a <strong>material</strong> defect (supplier lot) and not a <strong>station hardware</strong> defect. The supplier-lot Pareto that triggered the investigation is a routing artifact; a supplier corrective action would have changed nothing.</p>
+</div>
+
+<!-- 1 -->
+<section id="s1">
+  <span class="snum">1 — Symptom &amp; Scope</span>
+  <h2>A resistance the spec won't allow</h2>
+  <p class="lead">Good joints sit near 35 µΩ. A tail of modules is landing well above 80.</p>
+  <p>End-of-line testing flags modules whose tab-to-busbar interconnect resistance exceeds the 80 µΩ upper spec limit. The concern is not cosmetic: a high-resistance joint dissipates more power, runs hotter under fast charge, and drifts further upward in service — raising the risk of thermal flags and warranty returns. The escape rate at EOL was running near <strong><span id="def_b"></span></strong>, far above target.</p>
+  <p>Because every module carries full production traceability — station, electrode state, supplier lot, line speed, shift, plant conditions — the data supports a disciplined attribution rather than a guess. The challenge, as always, is that several of those variables move together.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <span class="snum">2 — Data &amp; Traceability</span>
+  <h2>The instrumented build</h2>
+  <p>600 modules were logged at EOL with their full genealogy. Each record carries the weld station, the electrode wear (welds since the last tip dressing), the supplier foil lot, process parameters, plant conditions, and the measured interconnect resistance.</p>
+  <table class="tbl">
+    <thead><tr><th>Field</th><th>Meaning</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>electrode_cycles</td><td>welds since last tip dressing</td><td><span class="tag cause">Primary cause</span></td></tr>
+      <tr><td>station</td><td>weld station A / B / C</td><td>Wear-rate driver (dressing interval)</td></tr>
+      <tr><td>supplier_lot</td><td>tab/foil supplier lot</td><td><span class="tag rej">Confounded proxy</span></td></tr>
+      <tr><td>weld_energy_pct</td><td>weld schedule energy</td><td>In control (checked)</td></tr>
+      <tr><td>line_speed, humidity</td><td>throughput, plant RH</td><td>Decoys</td></tr>
+      <tr><td>interconnect_R_uohm</td><td>EOL joint resistance</td><td>Target variable</td></tr>
+      <tr><td>field_growth</td><td>in-service resistance drift</td><td>Prognosis input</td></tr>
+    </tbody>
+  </table>
+  <p>The dataset is synthetic, generated from a process model with a known ground truth so the method can be graded. Electrode wear is the only true driver of resistance; the supplier lot is built as a routing-linked proxy with no metallurgical path to the defect.</p>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <span class="snum">3 — Candidate Hypotheses</span>
+  <h2>The manufacturing suspects</h2>
+  <p>Seven hypotheses were carried, spanning the manufacturing failure-mode families:</p>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Family</th><th>Falsifiable prediction</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Supplier foil lot variance</td><td>Material</td><td>Defect tracks lot; foil resistivity out of spec</td></tr>
+      <tr><td>H2</td><td>Electrode tip wear</td><td>Tooling</td><td>R climbs with cycles-since-dress; resets at dressing</td></tr>
+      <tr><td>H3</td><td>Station / fixture hardware</td><td>Equipment</td><td>One station defective independent of wear</td></tr>
+      <tr><td>H4</td><td>Weld-schedule energy drift</td><td>Process</td><td>R tracks weld energy out of band</td></tr>
+      <tr><td>H5</td><td>Line speed / cycle time</td><td>Process</td><td>R tracks throughput</td></tr>
+      <tr><td>H6</td><td>Operator / shift</td><td>Process</td><td>R splits by shift</td></tr>
+      <tr><td>H7</td><td>Plant humidity / oxidation</td><td>Environmental</td><td>R tracks RH</td></tr>
+    </tbody>
+  </table>
+  <p>As before, several are not rivals but links in a chain: a station's dressing interval (H3) governs electrode wear (H2), which sets the joint resistance. Recognizing that prevents mistaking the station for the fix.</p>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <span class="snum">4 — The Misleading Pareto</span>
+  <h2>Where a hasty investigation ends</h2>
+  <p>The first instinct in a quality escape is a Pareto of defects by attribute. Sorted by supplier lot, it points an unambiguous finger:</p>
+  <figure>
+    <div class="figlab">Figure 1 — Defect Pareto by supplier lot</div>
+    <svg id="f1" viewBox="0 0 760 360" role="img" aria-label="Pareto chart of defects by supplier lot"></svg>
+    <figcaption><b>The tempting conclusion.</b> Lot <span style="color:var(--bad)"><b>L2</b></span> accounts for the large majority of escapes. A supplier 8D and a containment hold on L2 write themselves. The problem: this chart says nothing about <em>why</em> L2 — and the real reason is not the foil.</figcaption>
+  </figure>
+  <p>A Pareto ranks association, not causation. To go further we need the continuous process variables and the discipline of holding them against one another.</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <span class="snum">5 — Statistical Screen</span>
+  <h2>What actually tracks the resistance</h2>
+  <figure>
+    <div class="figlab">Figure 2 — Raw correlation with interconnect resistance</div>
+    <svg id="f2" viewBox="0 0 760 340" role="img" aria-label="Bar chart of raw correlations"></svg>
+    <figcaption><b>Three correlated suspects.</b> Electrode wear leads decisively (r = <span id="r_wear"></span>), with Station B and lot L2 trailing — both inflated because they ride along with wear. Weld energy, line speed and humidity are flat: the process parameters are in control.</figcaption>
+  </figure>
+  <p>Electrode wear is far and away the strongest signal, but station and lot are non-trivial, and a Pareto would have stopped at the lot. The four-gate test — association, significance, materiality, mechanism — is what separates them.</p>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <span class="snum">6 — Rejecting the Supplier Lot (H1)</span>
+  <h2>A routing artifact, not a material defect</h2>
+  <p>Lot L2's correlation has a mundane explanation: L2 was the foil lot fed predominantly to Station B. It is a label for "this module was built on Station B," nothing more. Two tests confirm it.</p>
+  <p>First, holding electrode wear constant collapses both the lot and the station associations to noise, while wear itself survives intact:</p>
+  <figure>
+    <div class="figlab">Figure 3 — Raw vs partial correlation (control for electrode wear)</div>
+    <svg id="f3" viewBox="0 0 760 380" role="img" aria-label="Grouped bars raw vs partial correlation"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--slate)"></i> Raw</span>
+      <span><i class="dot" style="background:var(--signal)"></i> Partial (wear held constant)</span>
+    </div>
+    <figcaption><b>The collapse.</b> <span style="color:var(--bad)"><b>Lot L2</b></span> falls from r = <span id="r_lot2"></span> to ≈ <span id="rp_lot"></span>, and <span style="color:var(--bad)"><b>Station B</b></span> from <span id="r_stn2"></span> to ≈ <span id="rp_stn"></span> — both fully mediated by wear. <span style="color:var(--signal)"><b>Electrode wear</b></span>, controlled for lot, holds at <span id="rw_lot"></span>. The mirror test settles direction.</figcaption>
+  </figure>
+  <p>Second, the mechanism gate: foil resistivity for lot L2 is within material spec, so there is <em>no metallurgical pathway</em> by which L2 could add tens of µΩ to a joint. Strong correlation, no mechanism — the signature of a confounder. <strong>H1 is rejected</strong>; the supplier hold is released.</p>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <span class="snum">7 — Abduction: Wear, Not Lot or Station</span>
+  <h2>Following the chain to the dressing interval</h2>
+  <p>The regression makes the mediation explicit. Lot alone explains little; adding station helps; adding the wear term dominates and drives the lot and station coefficients to near zero:</p>
+  <table class="tbl">
+    <thead><tr><th>Model</th><th>Lot coef.</th><th>Station coef.</th><th>R²</th></tr></thead>
+    <tbody>
+      <tr><td>R ~ lot</td><td id="m1_lot"></td><td>—</td><td id="m1_r2"></td></tr>
+      <tr><td>R ~ lot + station</td><td id="m2_lot"></td><td id="m2_stn"></td><td id="m2_r2"></td></tr>
+      <tr><td>R ~ lot + station + <b>wear</b></td><td id="m3_lot"></td><td id="m3_stn"></td><td id="m3_r2"></td></tr>
+    </tbody>
+  </table>
+  <p>This is the abductive step. The best explanation for "Station B is loud, but only its high-wear modules, and lot L2 just happens to ride along" is that the actionable cause is neither the station nor the lot but the <em>electrode condition</em> — specifically, welds since the last dressing. Station B is implicated only because its lax dressing interval lets wear run deep. The refined, testable claim: <em>resistance is set by cycles-since-dressing, and resets when the tip is dressed</em>. That prediction is the subject of §8.1, and it is decisive.</p>
+  <div class="note">
+    <span class="lab">Why this matters operationally</span>
+    Misreading station as the cause leads to replacing or re-qualifying Station B hardware — expensive and ineffective. The cause is a maintenance <em>schedule</em>. The right fix is a calendar, not a capital purchase.
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <span class="snum">8 — Process &amp; Metallurgical Confirmation</span>
+  <h2>Where the data meets the weld</h2>
+
+  <h3>8.1 — The control chart: a tooling-wear sawtooth</h3>
+  <p>If wear-since-dressing is the cause, resistance on Station B should climb across each dressing cycle and snap back when the tip is dressed — a sawtooth, not a random scatter. It does exactly that:</p>
+  <figure>
+    <div class="figlab">Figure 4 — SPC control chart, Station B (production order)</div>
+    <svg id="f4" viewBox="0 0 760 360" role="img" aria-label="Control chart sawtooth of resistance over production order"></svg>
+    <figcaption><b>The decisive signature.</b> Resistance ramps up as the electrode wears and drops at each <span style="color:var(--steel)"><b>dressing</b></span> (vertical resets), breaching the <span style="color:var(--bad)"><b>80 µΩ spec</b></span> near the top of every ramp. No material or environmental cause produces this shape — it is the fingerprint of tool wear.</figcaption>
+  </figure>
+
+  <h3>8.2 — Weld strength falls as resistance rises</h3>
+  <p>The metallurgical companion: as the tip wears, the weld nugget shrinks, so pull strength drops exactly as resistance climbs — two faces of the same loss of joint quality.</p>
+  <figure>
+    <div class="figlab">Figure 5 — Weld pull strength &amp; resistance vs electrode wear</div>
+    <svg id="f5" viewBox="0 0 760 360" role="img" aria-label="Pull strength and resistance versus electrode wear"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--good)"></i> Pull strength</span>
+      <span><i class="dot" style="background:var(--signal)"></i> Interconnect resistance</span>
+    </div>
+    <figcaption><b>One mechanism, two symptoms.</b> Past the wear knee (~<span id="knee1"></span> cycles) strength and resistance diverge together. This is the physical pathway the statistics pointed to — a shrinking nugget, not a resistive foil.</figcaption>
+  </figure>
+
+  <h3>8.3 — Process capability</h3>
+  <p>Capping the dressing interval so the tip never reaches deep wear transforms the resistance distribution relative to the spec limit:</p>
+  <figure>
+    <div class="figlab">Figure 6 — Process capability before vs after</div>
+    <svg id="f6" viewBox="0 0 760 360" role="img" aria-label="Capability histograms before and after"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> Current (lax dressing)</span>
+      <span><i class="dot" style="background:var(--good)"></i> Tightened dressing</span>
+    </div>
+    <figcaption><b>From incapable to capable.</b> The current process has a long tail across the <span style="color:var(--bad)"><b>80 µΩ</b></span> limit — <b>Cpk ≈ <span id="cpk_b2"></span></b>, escape <span id="def_b2"></span>. Tightening the dressing interval pulls the whole distribution down to <b>Cpk ≈ <span id="cpk_a2"></span></b> with effectively zero escape.</figcaption>
+  </figure>
+</section>
+
+<div class="box rootcause">
+  <span class="lab">Root Cause Statement</span>
+  <h3>Confirmed root cause</h3>
+  <p>Tab-to-busbar weld interconnect resistance exceeds spec because the weld-electrode tip is allowed to reach deep wear before dressing. On Station B the dressing interval (≈4000 welds) lets the tip wear well past the quality knee, shrinking the weld nugget and raising joint resistance above 80 µΩ. Supplier lot L2 and "Station B" are correlated proxies — L2 was routed to B, and B is the line with the lax interval — neither is causal once electrode wear is held constant. Station B mean resistance is <span id="bmean"></span> µΩ (<span id="bdef"></span> escape) versus <span id="acmean"></span> µΩ on lines A/C.</p>
+  <p><b>Disposition:</b> H2 (electrode wear) confirmed; H3/H6 act only through it. H1, H4, H5, H7 rejected (Appendix A).</p>
+</div>
+
+<!-- 9 decision tree -->
+<section id="s_tree">
+  <span class="snum">9 — Diagnostic Decision Tree</span>
+  <h2>The screen, distilled</h2>
+  <p>The recurring per-module decision compresses to three checks, evaluable at EOL or on the line — each leaf names cause and action. Thresholds come from the data (spec 80 µΩ; the wear knee near 1200 cycles, deep wear past ~3000).</p>
+  <div class="dtree">
+    <div class="dnode">EOL interconnect R &gt; 80 µΩ (USL) ?</div>
+    <div class="dbranch">
+      <div class="dedge">NO ↓</div>
+      <div class="dleaf ok">In spec — pass</div>
+      <div class="dedge">YES ↓</div>
+      <div class="dnode">electrode cycles-since-dress in deep wear (&gt; ~3000) ?</div>
+      <div class="dbranch">
+        <div class="dedge">YES ↓</div>
+        <div class="dleaf root">ROOT CAUSE — electrode tip wear (lax dressing). Dress tip now; tighten PM interval; 100% EOL resistance screen; quarantine modules since last dressing.</div>
+        <div class="dedge">NO ↓</div>
+        <div class="dnode">weld energy out of band ?</div>
+        <div class="dbranch">
+          <div class="dedge">YES ↓</div>
+          <div class="dleaf warn">Weld-schedule drift — recalibrate station energy/force</div>
+          <div class="dedge">NO ↓</div>
+          <div class="dleaf warn">Rare — inspect fixture/material &amp; contamination</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 mitigation -->
+<section id="s10">
+  <span class="snum">10 — Containment &amp; Corrective Action</span>
+  <h2>Closing the escape</h2>
+  <p>The fix is a maintenance and screening change inside the existing line — no new hardware. The process and its SPC feedback loop:</p>
+  <figure>
+    <div class="figlab">Figure 7 — Process flow with SPC dressing-control loop</div>
+    <svg id="bd1" viewBox="0 0 760 320" role="img" aria-label="Process flow block diagram with SPC feedback"></svg>
+    <figcaption><b>Where the fix lives.</b> EOL resistance feeds an SPC control chart; crossing the action limit triggers an electrode dressing (and, optionally, adaptive weld-energy compensation as the tip wears). The 100% EOL screen is the containment net that prevents field escapes while the PM interval is corrected.</figcaption>
+  </figure>
+  <p>The causal chain and the confounder, side by side:</p>
+  <figure>
+    <div class="figlab">Figure 8 — Root-cause chain &amp; the lot confounder</div>
+    <svg id="bd2" viewBox="0 0 760 300" role="img" aria-label="Causal chain block diagram"></svg>
+    <figcaption><b>One chain, one red herring.</b> Lax dressing → deep wear → small nugget → high resistance → field drift. The dashed branch is lot L2: routed to Station B, correlated with the defect, metallurgically inert.</figcaption>
+  </figure>
+  <table class="tbl">
+    <thead><tr><th>Action</th><th>Type</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Tighten electrode dressing interval</td><td>Corrective (PM)</td><td>Cpk <span id="cpk_b3"></span> → <span id="cpk_a3"></span></td></tr>
+      <tr><td>100% EOL resistance screen</td><td>Containment</td><td>Blocks field escapes now</td></tr>
+      <tr><td>Adaptive weld-energy compensation</td><td>Robustness</td><td>Flattens wear sensitivity</td></tr>
+      <tr><td>Quarantine since-last-dressing</td><td>Containment</td><td>Recovers suspect population</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 11 prognosis -->
+<section id="s_prog">
+  <span class="snum">11 — Prognosis</span>
+  <h2>Setting the interval, forecasting the field</h2>
+  <p>Because the cause is mechanistic, both the line fix and the field risk can be forecast. First, the dressing interval is an optimization: escape rate rises sharply with cycles-since-dress, so the interval is chosen to hold escape below target.</p>
+  <figure>
+    <div class="figlab">Figure 9 — Defect escape vs dressing interval</div>
+    <svg id="pp1" viewBox="0 0 760 350" role="img" aria-label="Escape rate versus dressing interval"></svg>
+    <figcaption><b>The maintenance set-point.</b> Escape is negligible until the interval lets wear cross the knee, then climbs steeply. Holding escape under a <span style="color:var(--good)"><b>0.5% target</b></span> sets the maximum dressing interval — a direct, quantitative PM specification rather than a guess.</figcaption>
+  </figure>
+  <p>Second, the field consequence of <em>not</em> screening: above-spec joints drift upward in service and eventually trip thermal flags.</p>
+  <figure>
+    <div class="figlab">Figure 10 — Field thermal-flag probability over service</div>
+    <svg id="pp2" viewBox="0 0 760 340" role="img" aria-label="Field thermal flag probability over months"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> Unscreened</span>
+      <span><i class="dot" style="background:var(--good)"></i> EOL-screened</span>
+    </div>
+    <figcaption><b>The containment payoff.</b> Without the EOL screen, the at-risk fraction reaches a <span id="pg_un"></span> chance of a field thermal flag within four years; with the screen it stays at essentially zero. This is the warranty exposure the 100% screen removes while the dressing interval is corrected upstream.</figcaption>
+  </figure>
+</section>
+
+<!-- 12 recommendations -->
+<section id="s12">
+  <span class="snum">12 — Recommendations</span>
+  <h2>Plant action</h2>
+  <p>Immediate containment: institute a 100% EOL interconnect-resistance screen across all stations, and quarantine modules built on Station B since its last electrode dressing. Corrective action: set every station's dressing interval from the escape-vs-interval curve at the 0.5% target, add an SPC control chart on EOL resistance with an action limit that auto-triggers dressing, and pilot adaptive weld-energy compensation to flatten the wear sensitivity. Release the supplier hold on lot L2 — it was never causal. Verify by confirming the sawtooth no longer breaches spec and Cpk holds above target on each line, and track field thermal-flag rate by build-since-dressing cohort.</p>
+</section>
+
+<!-- App A -->
+<section id="appA">
+  <span class="snum">Appendix A — Hypothesis Disposition</span>
+  <h2>Kept or dropped</h2>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Disposition</th><th>Decisive evidence</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Supplier foil lot</td><td><span class="tag rej">Rejected</span></td><td>Collapses under wear control; foil resistivity in spec</td></tr>
+      <tr><td>H2</td><td>Electrode tip wear</td><td><span class="tag keep">Confirmed</span></td><td>Survives control; sawtooth; strength–resistance link</td></tr>
+      <tr><td>H3</td><td>Station hardware</td><td><span class="tag rej">Rejected*</span></td><td>Effect fully mediated by wear (lax dressing), not hardware</td></tr>
+      <tr><td>H4</td><td>Weld energy drift</td><td><span class="tag rej">Rejected</span></td><td>Energy in control; flat correlation</td></tr>
+      <tr><td>H5</td><td>Line speed</td><td><span class="tag rej">Rejected</span></td><td>Flat correlation</td></tr>
+      <tr><td>H6</td><td>Operator / shift</td><td><span class="tag rej">Rejected</span></td><td>No split once wear controlled</td></tr>
+      <tr><td>H7</td><td>Plant humidity</td><td><span class="tag rej">Rejected</span></td><td>Flat correlation</td></tr>
+    </tbody>
+  </table>
+  <p style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft)">* Station B is the locus, but the actionable cause is its dressing interval, not station hardware.</p>
+</section>
+
+<!-- App B -->
+<section id="appB">
+  <span class="snum">Appendix B — Code &amp; Data</span>
+  <h2>Reproducibility</h2>
+  <p>The dataset and full analysis ship alongside as <code class="inl">weld_resistance_rca.py</code> (process-model generator + diagnostic pipeline) and <code class="inl">weld_modules.csv</code> (600-module mockup). The core of the generator:</p>
+  <pre><span class="c"># resistance climbs super-linearly past the electrode-wear knee</span>
+wear_term = max((electrode_cycles - KNEE)/1000, 0) ** 1.6
+R = 35 + 17*wear_term + 0.05*(weld_energy-100) + lot_resistivity + noise
+defect = R &gt; 80                              <span class="c"># microohm spec limit</span>
+
+<span class="c"># confounder: lot L2 routed mostly to Station B (the lax line)</span>
+p_L2 = where(station=="B", 0.80, 0.12)       <span class="c"># proxy, foil in spec</span>
+dress_interval = {"A":1500, "B":4000, "C":1700}  <span class="c"># B is lax</span></pre>
+  <p>The pipeline reproduces every figure: the Pareto, correlation screen, partial-correlation confounder test (lot → r ≈ <span id="rp_lot2"></span>), staged regression (R² <span id="r2chain"></span>), the SPC sawtooth, capability (Cpk <span id="cpk_chain"></span>), and the prognosis.</p>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Battery-degradation RCA monograph</a>
+    <a href="nvh-preconditioning-rca-report.html">Preconditioning NVH RCA report</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="manufacturing-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+  <div class="rule" style="margin-top:24px"></div>
+  <p><b>RCA-2026-MFG-0231 — Module Weld Resistance</b></p>
+  <p>Prepared by M. Mazouchi</p>
+  <p>Synthetic 600-module study with known ground truth · figures computed from data.</p>
+</footer>
+
+</div>
+
+<script>
+const MFG = {"N": 600, "USL": 80.0, "KNEE": 1200, "raw": {"Electrode wear (cyc)": {"r": 0.878, "p": 1.8026178558832753e-193}, "Station = B": {"r": 0.601, "p": 3.360072154794913e-60}, "Supplier lot = L2": {"r": 0.404, "p": 6.211752326083513e-25}, "Weld energy (%)": {"r": 0.0, "p": 0.9985431285787273}, "Line speed": {"r": -0.06, "p": 0.14342943694926663}, "Plant humidity": {"r": 0.037, "p": 0.3712181083601227}}, "partial_ctrl_wear": {"Station = B": {"r": 0.122, "p": 0.0028559464454913247}, "Supplier lot = L2": {"r": 0.089, "p": 0.030043332672211133}, "Weld energy (%)": {"r": 0.056, "p": 0.17064102564338635}, "Line speed": {"r": -0.017, "p": 0.6796388667855454}, "Plant humidity": {"r": 0.034, "p": 0.4049583440035435}}, "wear_ctrl_lot": {"r": 0.853, "p": 2.268040215311582e-171}, "reg": {"m1_lot": 18.48, "m1_r2": 0.163, "m2_lot": -2.633, "m2_stn": 29.121, "m2_r2": 0.363, "m3_lot": 1.058, "m3_stn": 0.374, "m3_r2": 0.966}, "pareto_station": {"A": 0, "B": 54, "C": 0}, "pareto_lot": {"L1": 4, "L2": 40, "L3": 10}, "saw": {"cyc": [83, 167, 250, 333, 417, 500, 583, 667, 750, 833, 917, 1000, 1083, 1167, 1250, 1333, 1417, 1500, 1583, 1667, 1750, 1833, 1917, 2000, 2083, 2167, 2250, 2333, 2417, 2500, 2583, 2667, 2750, 2833, 2917, 3000, 3083, 3167, 3250, 3333, 3417, 3500, 3583, 3667, 3750, 3833, 3917, 0, 83, 167, 250, 333, 417, 500, 583, 667, 750, 833, 917, 1000, 1083, 1167, 1250, 1333, 1417, 1500, 1583, 1667, 1750, 1833, 1917, 2000, 2083, 2167, 2250, 2333, 2417, 2500, 2583, 2667, 2750, 2833, 2917, 3000, 3083, 3167, 3250, 3333, 3417, 3500, 3583, 3667, 3750, 3833, 3917, 0, 83, 167, 250, 333, 417, 500, 583, 667, 750, 833, 917, 1000, 1083, 1167, 1250, 1333, 1417, 1500, 1583, 1667, 1750, 1833, 1917, 2000, 2083, 2167, 2250, 2333, 2417, 2500, 2583, 2667, 2750, 2833, 2917, 3000, 3083, 3167, 3250, 3333, 3417, 3500, 3583, 3667, 3750, 3833, 3917, 0, 83, 167, 250, 333, 417, 500], "R": [34.2, 29.3, 38.7, 29.7, 34.6, 34.0, 34.9, 33.9, 34.4, 34.5, 38.1, 35.4, 28.1, 30.9, 32.4, 37.2, 36.1, 37.4, 36.4, 40.1, 43.2, 37.8, 45.5, 48.6, 47.9, 52.5, 49.2, 54.4, 55.2, 60.4, 64.3, 61.5, 65.5, 74.5, 77.1, 78.1, 79.7, 81.7, 96.4, 93.5, 96.9, 103.6, 104.3, 105.5, 110.0, 114.6, 118.2, 31.4, 34.3, 35.2, 37.4, 34.3, 33.2, 31.2, 36.7, 37.2, 33.2, 33.3, 41.8, 35.2, 35.5, 36.4, 35.1, 27.4, 35.3, 39.9, 44.8, 41.1, 39.6, 51.9, 47.0, 48.9, 43.9, 51.2, 50.6, 56.3, 59.7, 62.5, 59.3, 65.8, 71.1, 76.2, 75.6, 76.4, 85.0, 80.3, 85.6, 89.9, 95.3, 97.7, 101.0, 105.2, 106.3, 111.6, 115.0, 34.2, 35.4, 36.2, 29.9, 28.5, 33.2, 36.6, 35.9, 34.5, 32.1, 37.5, 32.8, 41.4, 35.9, 40.5, 33.6, 35.5, 37.7, 35.7, 38.5, 45.3, 43.2, 43.2, 43.4, 47.5, 45.6, 47.5, 51.1, 55.7, 55.0, 56.9, 65.3, 60.7, 67.1, 72.0, 70.5, 82.5, 81.2, 91.5, 92.0, 90.6, 91.4, 96.1, 101.0, 106.4, 112.4, 118.4, 112.4, 39.8, 38.0, 32.8, 36.1, 35.5, 31.3, 32.1], "resets": [47, 95, 143], "step": 83.3}, "sat_curve": {"cyc": [0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000], "pull": [100.0, 100.0, 100.0, 100.0, 100.0, 99.9, 97.9, 94.7, 90.7, 86.0, 80.7, 74.9, 68.6, 61.8, 54.7, 47.1, 39.1], "R": [35.0, 35.0, 35.0, 35.0, 35.0, 35.1, 37.5, 41.5, 46.9, 53.4, 60.9, 69.3, 78.5, 88.6, 99.4, 111.0, 123.3]}, "scatter_wear": [[1772, 39.3, 1], [1265, 33.9, 0], [1097, 34.8, 0], [1460, 34.5, 2], [525, 30.9, 2], [3582, 109.3, 1], [21, 41.0, 2], [1869, 40.1, 1], [1484, 35.7, 0], [3596, 111.4, 1], [1222, 29.6, 1], [156, 39.8, 2], [1393, 36.9, 2], [3211, 92.8, 1], [3323, 96.3, 1], [394, 30.5, 0], [1097, 39.5, 0], [841, 39.6, 0], [3658, 103.4, 1], [3811, 118.8, 1], [1957, 49.5, 1], [3241, 88.7, 1], [2046, 44.1, 1], [1055, 38.6, 0], [1078, 33.9, 2], [208, 42.8, 1], [14, 31.3, 2], [935, 33.4, 1], [110, 32.2, 2], [1339, 38.1, 2], [744, 30.5, 2], [858, 31.9, 0], [512, 37.3, 0], [180, 33.1, 2], [383, 32.4, 1], [914, 32.8, 0], [109, 34.6, 0], [1162, 29.2, 0], [1475, 28.1, 0], [469, 31.7, 2], [1202, 36.1, 2], [2199, 53.1, 1], [784, 35.4, 1], [3647, 105.2, 1], [1125, 36.4, 0], [1707, 33.9, 1], [595, 31.2, 0], [257, 32.9, 0], [507, 34.1, 1], [472, 31.3, 2], [703, 41.4, 0], [147, 36.0, 0], [2576, 66.3, 1], [1305, 35.6, 0], [798, 33.7, 2], [64, 36.5, 0], [425, 38.4, 0], [2110, 59.9, 1], [2469, 57.0, 1], [579, 33.1, 0], [752, 33.0, 1], [1892, 51.2, 1], [614, 36.5, 0], [2202, 55.8, 1], [1510, 39.4, 1], [1334, 37.7, 2], [1457, 37.6, 0], [257, 38.3, 2], [252, 40.1, 0], [262, 36.2, 2], [1745, 47.9, 1], [2224, 52.4, 1], [227, 41.8, 1], [2585, 66.3, 1], [3991, 117.8, 1], [3945, 121.9, 1], [383, 29.2, 0], [374, 35.1, 1], [974, 40.2, 2], [1914, 43.2, 1], [418, 38.5, 0], [2294, 57.7, 1], [1061, 38.1, 2], [1550, 43.0, 1], [1040, 37.8, 2], [307, 40.2, 1], [1335, 39.5, 2], [581, 27.1, 2], [1065, 30.4, 2], [2362, 56.7, 1], [256, 33.9, 2], [1940, 51.4, 1], [1515, 32.1, 2], [1414, 31.1, 2], [89, 35.2, 2], [235, 30.1, 2], [1137, 43.9, 2], [2787, 73.3, 1], [1609, 38.5, 2], [689, 34.5, 2], [1582, 42.4, 2], [174, 32.8, 2], [1102, 37.8, 0], [1381, 38.2, 0], [1375, 36.5, 1], [883, 38.2, 1], [3807, 114.8, 1], [3362, 94.5, 1], [1221, 38.5, 2], [3095, 79.8, 1], [812, 30.2, 0], [963, 35.5, 0], [228, 30.8, 2], [2957, 72.9, 1], [723, 39.4, 2], [1689, 38.6, 2], [1506, 41.2, 2], [1290, 35.6, 2], [3218, 84.4, 1], [587, 36.8, 0], [759, 34.0, 0], [1450, 45.6, 0], [949, 36.8, 2], [1127, 33.2, 1], [530, 35.2, 2], [166, 28.5, 0], [484, 27.3, 0], [1086, 35.3, 2], [641, 31.4, 1], [195, 40.1, 2], [287, 36.5, 2], [3995, 123.4, 1], [1456, 35.4, 0], [989, 37.3, 2], [1500, 35.2, 2], [724, 33.5, 2], [3539, 101.3, 1], [2040, 51.9, 1], [131, 33.3, 2], [1536, 37.7, 1], [305, 37.3, 0], [439, 32.5, 0], [888, 35.6, 0], [575, 29.7, 2], [3142, 81.0, 1], [2595, 58.0, 1], [2485, 61.6, 1], [148, 29.3, 2], [934, 30.0, 0], [443, 30.0, 2], [61, 32.7, 0], [1535, 37.0, 2], [1364, 35.5, 1], [3551, 97.8, 1], [496, 40.9, 2], [390, 38.1, 2], [762, 37.1, 2], [2310, 50.2, 1], [1362, 33.1, 0], [776, 41.8, 1], [1119, 41.3, 2], [432, 42.7, 0], [1052, 29.9, 2], [2227, 47.3, 1], [999, 34.0, 0], [256, 36.2, 2], [979, 36.6, 2], [1105, 31.1, 0], [1038, 34.9, 0], [1543, 39.6, 2], [679, 41.1, 0], [464, 35.7, 1], [46, 34.8, 2], [1459, 37.2, 0], [471, 33.9, 2], [1492, 41.8, 1], [3764, 113.1, 1], [1167, 38.8, 0], [88, 36.2, 2], [1752, 41.7, 1], [12, 38.8, 0], [602, 32.8, 0], [299, 30.7, 2], [61, 29.5, 2], [1091, 25.1, 2], [3101, 84.0, 1], [856, 35.0, 0], [2457, 56.7, 1], [1408, 31.3, 0], [3505, 98.6, 1], [1145, 37.2, 0], [2260, 57.9, 1], [1457, 38.5, 2], [803, 31.0, 0], [2814, 69.1, 1], [745, 30.5, 0], [1018, 34.6, 0], [2367, 55.9, 1], [1233, 39.3, 0], [1263, 37.7, 0], [250, 33.6, 2], [1624, 40.3, 2], [441, 32.0, 0], [809, 34.9, 0], [846, 35.5, 2], [123, 38.7, 2], [2801, 75.7, 1], [842, 36.1, 0], [119, 34.3, 2], [2844, 75.8, 1], [284, 36.6, 1], [184, 41.1, 1], [1109, 24.1, 1], [3630, 105.7, 1], [1556, 40.3, 2], [620, 39.0, 0], [200, 34.1, 2], [3311, 85.5, 1], [1163, 37.1, 2], [1097, 31.9, 2]], "mean_R_lot": {"L1": 38.2, "L2": 57.2, "L3": 39.2}, "mean_R_stn": {"A": 35.6, "B": 62.7, "C": 35.2}, "cpk": {"before": 0.54, "after": 3.63, "defect_before": 0.09, "defect_after": 0.0}, "hist_before": {"edges": [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150], "h": [38, 358, 91, 32, 13, 14, 7, 13, 9, 17, 8, 0, 0]}, "hist_after": {"edges": [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150], "h": [67, 459, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "prog": {"intervals": [800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4200], "escape": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0005, 0.007, 0.0583, 0.1082, 0.1512, 0.2045, 0.2357, 0.284], "months": [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48], "pof_unscreened": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.007, 0.02, 0.038, 0.043, 0.05, 0.065, 0.068, 0.075, 0.078, 0.082, 0.082], "pof_screened": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "strat": {"B_meanR": 62.7, "AC_meanR": 35.4, "B_defect": 0.26, "AC_defect": 0.0}};
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#1B1A18",inkSoft:"#544C40",ruleSoft:"#E5DCCC",steel:"#2F4858",
+    signal:"#B45309",bad:"#B0413A",good:"#15803D",slate:"#5A6472",paper:"#FAF7EF"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function ml_(p,x,y,arr,o){o=o||{};const lh=o.lh||13;
+    const t=E(p,"text",{x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,"text-anchor":o.anchor||"middle","font-size":o.fs||12,"font-weight":o.weight||500});
+    arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,"font-size":o.fs||10,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});e.textContent=s;return e;}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+  function box(svg,x,y,w,h,label,o){o=o||{};E(svg,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,stroke:o.stroke||C.ink,"stroke-width":o.sw||1.6});
+    const arr=Array.isArray(label)?label:[label],lh=o.lh||13,fs=o.fs||11.5;ml_(svg,x+w/2,y+h/2-(arr.length-1)*lh/2+fs*0.34,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});}
+  function head(svg,x2,y2,ang,col){const s=7.5;E(svg,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+(x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col});}
+  function arrow(svg,x1,y1,x2,y2,o){o=o||{};const col=o.color||C.ink;E(svg,"line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});head(svg,x2,y2,Math.atan2(y2-y1,x2-x1),col);}
+  function elbow(svg,pts,o){o=o||{};const col=o.color||C.ink;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];E(svg,"line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});if(i===pts.length-2)head(svg,b[0],b[1],Math.atan2(b[1]-a[1],b[0]-a[0]),col);}}
+
+  // F1 Pareto by lot
+  (function(){const svg=D("f1");if(!svg)return;const W=760,H=360,ml=58,mr=50,mt=24,mb=46;
+    const p=MFG.pareto_lot;const items=Object.keys(p).map(k=>({k,v:p[k]})).sort((a,b)=>b.v-a.v);
+    const tot=items.reduce((s,i)=>s+i.v,0),ymax=items[0].v*1.15;
+    const x0=ml,gw=(W-mr-ml)/items.length,y=sc(0,ymax,H-mb,mt),yc=sc(0,1,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end"});}
+    lab(svg,ml-40,mt+2,"defects",{fs:10,anchor:"start"});
+    let cum=0;const cumpts=[];
+    items.forEach((it,i)=>{const cx=x0+gw*i+gw/2,bw=Math.min(70,gw*.5);
+      E(svg,"rect",{x:cx-bw/2,y:y(it.v),width:bw,height:(H-mb)-y(it.v),fill:it.k==="L2"?C.bad:C.slate,opacity:.85});
+      lab(svg,cx,y(it.v)-6,it.v,{fs:11,fill:C.ink,weight:600});lab(svg,cx,H-mb+18,it.k,{fs:11,fill:C.ink});
+      cum+=it.v;cumpts.push([cx,yc(cum/tot)]);});
+    E(svg,"path",{d:pathD(cumpts),fill:"none",stroke:C.signal,"stroke-width":2});
+    cumpts.forEach(pt=>E(svg,"circle",{cx:pt[0],cy:pt[1],r:3,fill:C.signal}));
+    [0,.5,1].forEach(v=>lab(svg,W-mr+8,yc(v)+4,Math.round(v*100)+"%",{anchor:"start",fs:9.5,fill:C.signal}));
+  })();
+
+  // raw corr bars (F2)
+  (function(){const svg=D("f2");if(!svg)return;const W=760,H=340,ml=205,mr=60,mt=14,mb=34;
+    const raw=MFG.raw;const items=Object.keys(raw).map(k=>({k,r:raw[k].r})).sort((a,b)=>b.r-a.r);
+    const x=sc(0,1,ml,W-mr),bh=(H-mt-mb)/items.length;
+    [0,.25,.5,.75,1].forEach(v=>{const xx=x(v);E(svg,"line",{x1:xx,y1:mt,x2:xx,y2:H-mb,stroke:C.ruleSoft});lab(svg,xx,H-mb+18,v.toFixed(2));});
+    lab(svg,(ml+W-mr)/2,H-10,"Pearson r vs interconnect R");
+    items.forEach((it,i)=>{const yy=mt+i*bh+6,h=bh-12;const isW=it.k.indexOf("Electrode")===0,isLot=it.k.indexOf("Supplier")===0,isStn=it.k.indexOf("Station")===0;
+      const col=isW?C.signal:(isLot?C.bad:(isStn?C.slate:C.slate));
+      E(svg,"rect",{x:ml,y:yy,width:Math.max(x(it.r)-ml,0),height:h,fill:col,opacity:(isW||isLot)?.95:.6});
+      lab(svg,ml-10,yy+h/2+4,it.k,{anchor:"end",fs:11,fill:C.ink});lab(svg,x(it.r)+6,yy+h/2+4,it.r.toFixed(2),{anchor:"start",fs:10.5,fill:col,weight:600});});
+  })();
+
+  // partial bars (F3)
+  (function(){const svg=D("f3");if(!svg)return;const W=760,H=380,ml=58,mr=20,mt=20,mb=66;
+    const rows=[{lab:"Lot L2",raw:MFG.raw["Supplier lot = L2"].r,par:MFG.partial_ctrl_wear["Supplier lot = L2"].r},
+      {lab:"Station B",raw:MFG.raw["Station = B"].r,par:MFG.partial_ctrl_wear["Station = B"].r},
+      {lab:"Wear *",raw:MFG.raw["Electrode wear (cyc)"].r,par:MFG.wear_ctrl_lot.r}];
+    const y=sc(0,1,H-mb,mt),gw=(W-mr-ml)/rows.length;
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,v.toFixed(2),{anchor:"end"});});
+    lab(svg,ml-44,mt+2,"|r|",{fs:11,anchor:"start"});
+    rows.forEach((rw,i)=>{const cx=ml+gw*i+gw/2,bw=Math.min(46,gw*.32);
+      E(svg,"rect",{x:cx-bw-4,y:y(Math.abs(rw.raw)),width:bw,height:(H-mb)-y(Math.abs(rw.raw)),fill:C.slate,opacity:.85});
+      lab(svg,cx-bw/2-4,y(Math.abs(rw.raw))-5,rw.raw.toFixed(2),{fs:10,fill:C.slate});
+      E(svg,"rect",{x:cx+4,y:y(Math.abs(rw.par)),width:bw,height:(H-mb)-y(Math.abs(rw.par)),fill:C.signal,opacity:.92});
+      lab(svg,cx+bw/2+4,y(Math.abs(rw.par))-5,rw.par.toFixed(2),{fs:10,fill:C.signal});
+      lab(svg,cx,H-mb+20,rw.lab,{fs:11.5,fill:C.ink});});
+    lab(svg,ml+gw*0+gw/2,H-mb+38,"collapses",{fs:9.5,fill:C.bad});
+    lab(svg,ml+gw*1+gw/2,H-mb+38,"collapses",{fs:9.5,fill:C.bad});
+    lab(svg,ml+gw*2+gw/2,H-mb+38,"survives",{fs:9.5,fill:C.signal});
+    lab(svg,W-mr,H-10,"* wear partial controls for lot",{anchor:"end",fs:9.5});
+  })();
+
+  // F4 control-chart sawtooth
+  (function(){const svg=D("f4");if(!svg)return;const W=760,H=360,ml=56,mr=24,mt=20,mb=46;
+    const s=MFG.saw,n=s.R.length,ymax=Math.max(...s.R)*1.08;
+    const x=sc(0,n-1,ml,W-mr),y=sc(20,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=20+(ymax-20)*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end"});}
+    lab(svg,ml-44,mt+2,"R µΩ",{fs:10,anchor:"start"});lab(svg,(ml+W-mr)/2,H-10,"production order (Station B)");
+    // USL
+    E(svg,"line",{x1:ml,y1:y(MFG.USL),x2:W-mr,y2:y(MFG.USL),stroke:C.bad,"stroke-dasharray":"5 4","stroke-width":1.4});
+    lab(svg,W-mr,y(MFG.USL)-5,"USL 80",{anchor:"end",fs:9.5,fill:C.bad});
+    // dressing resets
+    s.resets.forEach(k=>{E(svg,"line",{x1:x(k),y1:mt,x2:x(k),y2:H-mb,stroke:C.steel,"stroke-dasharray":"2 3",opacity:.7});lab(svg,x(k),mt-4,"dress",{fs:9,fill:C.steel});});
+    E(svg,"path",{d:pathD(s.R.map((r,i)=>[x(i),y(r)])),fill:"none",stroke:C.signal,"stroke-width":2});
+  })();
+
+  // F5 strength + R vs wear
+  (function(){const svg=D("f5");if(!svg)return;const W=760,H=360,ml=58,mr=58,mt=20,mb=46;
+    const s=MFG.sat_curve,xmax=Math.max(...s.cyc);
+    const x=sc(0,xmax,ml,W-mr),yL=sc(0,110,H-mb,mt),yR=sc(20,Math.max(...s.R)*1.05,H-mb,mt);
+    [0,1000,2000,3000,4000].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"electrode wear (cycles since dressing)");
+    [0,55,110].forEach(v=>lab(svg,ml-9,yL(v)+4,v,{anchor:"end",fill:C.good}));
+    lab(svg,ml-40,mt+2,"strength",{fs:9.5,anchor:"start",fill:C.good});
+    E(svg,"path",{d:pathD(s.cyc.map((c,i)=>[x(c),yL(s.pull[i])])),fill:"none",stroke:C.good,"stroke-width":2.6});
+    E(svg,"path",{d:pathD(s.cyc.map((c,i)=>[x(c),yR(s.R[i])])),fill:"none",stroke:C.signal,"stroke-width":2.6});
+    [40,80,120].forEach(v=>lab(svg,W-mr+8,yR(v)+4,v,{anchor:"start",fs:9.5,fill:C.signal}));
+    lab(svg,W-mr+8,mt+2,"R µΩ",{fs:9.5,anchor:"start",fill:C.signal});
+    E(svg,"line",{x1:x(MFG.KNEE),y1:mt,x2:x(MFG.KNEE),y2:H-mb,stroke:C.slate,"stroke-dasharray":"2 3",opacity:.6});
+    lab(svg,x(MFG.KNEE),H-mb-6,"knee",{fs:9,fill:C.slate});
+  })();
+
+  // F6 capability histograms
+  (function(){const svg=D("f6");if(!svg)return;const W=760,H=360,ml=56,mr=24,mt=20,mb=46;
+    const hb=MFG.hist_before,ha=MFG.hist_after,ed=hb.edges;
+    const xmax=ed[ed.length-1],hmax=Math.max(...hb.h,...ha.h)*1.1;
+    const x=sc(ed[0],xmax,ml,W-mr),y=sc(0,hmax,H-mb,mt);
+    for(let i=0;i<=3;i++){const v=hmax*i/3,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end"});}
+    [20,50,80,110,140].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"interconnect resistance (µΩ)");lab(svg,ml-42,mt+2,"count",{fs:10,anchor:"start"});
+    function bars(h,col){for(let i=0;i<h.h.length;i++){const x0=x(ed[i]),x1=x(ed[i+1]);E(svg,"rect",{x:x0+1,y:y(h.h[i]),width:Math.max(x1-x0-2,1),height:(H-mb)-y(h.h[i]),fill:col,opacity:.5});}}
+    bars(ha,C.good);bars(hb,C.bad);
+    E(svg,"line",{x1:x(MFG.USL),y1:mt,x2:x(MFG.USL),y2:H-mb,stroke:C.bad,"stroke-width":1.6,"stroke-dasharray":"5 4"});
+    lab(svg,x(MFG.USL)+4,mt+10,"USL 80",{anchor:"start",fs:9.5,fill:C.bad});
+    lab(svg,x(120),y(hmax*0.6),"Cpk "+MFG.cpk.before,{fs:11,fill:C.bad,weight:600});
+    lab(svg,x(45),y(hmax*0.85),"Cpk "+MFG.cpk.after,{fs:11,fill:C.good,weight:600});
+  })();
+
+  // BD1 process flow + SPC
+  (function(){const svg=D("bd1");if(!svg)return;
+    const r=[[26,"Cell"],[146,"Tab prep"],[266,"Resistance","weld"],[386,"Busbar","assy"],[506,"EOL R","test"],[626,"Module"]];
+    r.forEach((b,i)=>{const lbl=b.length>2?[b[1],b[2]]:[b[1]];box(svg,b[0],70,108,52,lbl,{fs:11,stroke:i===2?C.signal:C.ink,sw:i===2?2.2:1.6,tcolor:i===2?C.signal:C.ink});
+      if(i<5)arrow(svg,b[0]+108,96,r[i+1][0],96);});
+    box(svg,420,210,150,44,["SPC control chart"],{fs:11,stroke:C.steel});
+    box(svg,200,210,170,44,["dressing / energy comp"],{fs:10.5,stroke:C.steel});
+    elbow(svg,[[560,122],[560,232],[570,232]],{color:C.slate});lab(svg,610,210,"EOL R",{fs:9,fill:C.slate});
+    arrow(svg,420,232,370,232,{color:C.slate});
+    elbow(svg,[[285,210],[285,170],[320,170],[320,122]],{color:C.steel});lab(svg,330,160,"trigger dressing",{fs:9,fill:C.steel,anchor:"start"});
+  })();
+
+  // BD2 causal chain
+  (function(){const svg=D("bd2");if(!svg)return;
+    const r=[[10,"Lax dressing","interval (B)"],[160,"Electrode","wear ↑"],[310,"Weld nugget","shrinks"],[460,"Interconnect","R ↑"],[610,"Field drift","/ heat"]];
+    r.forEach((b,i)=>{box(svg,b[0],74,140,58,[b[1],b[2]],{fs:11,stroke:i===0?C.steel:(i===3?C.signal:C.ink),sw:i===3?2.2:1.6,tcolor:i===3?C.signal:C.ink});
+      if(i<4)arrow(svg,b[0]+140,103,r[i+1][0],103);});
+    box(svg,300,212,160,42,["Supplier lot L2"],{fs:11,stroke:C.bad});
+    arrow(svg,80,132,330,212,{color:C.bad,dash:"5 4"});lab(svg,150,185,"routed to B",{fs:9,fill:C.bad});
+    elbow(svg,[[460,233],[530,233],[530,132]],{color:C.bad,dash:"5 4"});
+    const xm=510,ym=190;E(svg,"line",{x1:xm-6,y1:ym-6,x2:xm+6,y2:ym+6,stroke:C.bad,"stroke-width":2});E(svg,"line",{x1:xm-6,y1:ym+6,x2:xm+6,y2:ym-6,stroke:C.bad,"stroke-width":2});
+    lab(svg,560,205,"correlation only",{fs:9,fill:C.bad,anchor:"start"});
+  })();
+
+  // PP1 escape vs interval
+  (function(){const svg=D("pp1");if(!svg)return;const W=760,H=350,ml=58,mr=24,mt=20,mb=46;
+    const iv=MFG.prog.intervals,es=MFG.prog.escape,ymax=Math.max(...es)*1.1;
+    const x=sc(iv[0],iv[iv.length-1],ml,W-mr),y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end"});}
+    [800,1600,2400,3200,4000].forEach(v=>lab(svg,x(v),H-mb+18,v));
+    lab(svg,(ml+W-mr)/2,H-10,"dressing interval (welds)");lab(svg,ml-46,mt+2,"escape",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:ml,y1:y(0.005),x2:W-mr,y2:y(0.005),stroke:C.good,"stroke-dasharray":"5 4"});lab(svg,W-mr,y(0.005)-5,"0.5% target",{anchor:"end",fs:9.5,fill:C.good});
+    E(svg,"path",{d:pathD(iv.map((v,i)=>[x(v),y(es[i])])),fill:"none",stroke:C.signal,"stroke-width":3});
+  })();
+
+  // PP2 field PoF
+  (function(){const svg=D("pp2");if(!svg)return;const W=760,H=340,ml=52,mr=24,mt=20,mb=46;
+    const mo=MFG.prog.months,un=MFG.prog.pof_unscreened,sc2=MFG.prog.pof_screened,mmax=mo[mo.length-1];
+    const ymax=Math.max(...un)*1.25||0.1;const x=sc(0,mmax,ml,W-mr),y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,(v*100).toFixed(0)+"%",{anchor:"end"});}
+    [0,12,24,36,48].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo"));
+    lab(svg,(ml+W-mr)/2,H-10,"service months");
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(un[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(sc2[i])])),fill:"none",stroke:C.good,"stroke-width":3});
+    lab(svg,x(40),y(un[14])-8,"unscreened",{fill:C.bad,fs:11,anchor:"start"});
+    lab(svg,x(40),y(0)+ -6,"screened ≈ 0",{fill:C.good,fs:11,anchor:"start"});
+  })();
+
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  const r=MFG.raw,pw=MFG.partial_ctrl_wear,rg=MFG.reg,ck=MFG.cpk;
+  set("cpk_b",ck.before);set("cpk_a",ck.after);set("cpk_b2",ck.before);set("cpk_a2",ck.after);
+  set("cpk_b3",ck.before);set("cpk_a3",ck.after);
+  set("def_b",Math.round(ck.defect_before*100)+"%");set("def_b2",Math.round(ck.defect_before*100)+"%");
+  set("r_wear",r["Electrode wear (cyc)"].r.toFixed(2));
+  set("r_lot2",r["Supplier lot = L2"].r.toFixed(2));set("r_stn2",r["Station = B"].r.toFixed(2));
+  set("rp_lot",pw["Supplier lot = L2"].r.toFixed(2));set("rp_lot2",pw["Supplier lot = L2"].r.toFixed(2));
+  set("rp_stn",pw["Station = B"].r.toFixed(2));set("rw_lot",MFG.wear_ctrl_lot.r.toFixed(2));
+  set("m1_lot",rg.m1_lot.toFixed(2));set("m1_r2",rg.m1_r2.toFixed(2));
+  set("m2_lot",rg.m2_lot.toFixed(2));set("m2_stn",rg.m2_stn.toFixed(2));set("m2_r2",rg.m2_r2.toFixed(2));
+  set("m3_lot",rg.m3_lot.toFixed(2));set("m3_stn",rg.m3_stn.toFixed(2));set("m3_r2",rg.m3_r2.toFixed(2));
+  set("r2chain",rg.m1_r2.toFixed(2)+" → "+rg.m2_r2.toFixed(2)+" → "+rg.m3_r2.toFixed(2));
+  set("cpk_chain",ck.before+" → "+ck.after);
+  set("knee1",MFG.KNEE);
+  set("bmean",MFG.strat.B_meanR);set("acmean",MFG.strat.AC_meanR);
+  set("bdef",Math.round(MFG.strat.B_defect*100)+"%");
+  set("pg_un",Math.round(Math.max(...MFG.prog.pof_unscreened)*100)+"%");
+})();
+</script>
+</body>
+</html>

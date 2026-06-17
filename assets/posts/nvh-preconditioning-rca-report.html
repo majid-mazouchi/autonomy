@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preconditioning-Mode NVH — Root Cause Investigation Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F3EFE5; --paper:#FAF7F0; --ink:#1C1A17; --ink-soft:#564E42;
+  --rule:#D8CFBC; --rule-soft:#E6DECE;
+  --petrol:#15616D; --signal:#C2410C; --bad:#B0413A; --good:#15803D; --amber:#B45309;
+  --slate:#4A5568;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:840px; margin:0 auto; padding:0 26px}
+
+/* ---- cover ---- */
+header.cover{padding:54px 0 30px; border-bottom:3px double var(--ink)}
+.classline{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-soft); display:flex; justify-content:space-between;
+  border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:26px; flex-wrap:wrap; gap:8px}
+.classline .sig{color:var(--signal)}
+.doctype{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--petrol); margin:0 0 16px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(30px,5.4vw,50px);
+  line-height:1.07; letter-spacing:-.015em; margin:0 0 16px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(17px,2.3vw,21px);
+  color:var(--ink-soft); margin:0 0 24px; max-width:64ch}
+.metagrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px 26px;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; border-top:1px solid var(--rule); padding-top:18px}
+.metagrid div span{color:var(--ink-soft); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase}
+.metagrid div b{font-weight:600}
+
+/* ---- boxes ---- */
+.box{margin:30px 0; padding:22px 24px; background:var(--paper); border:1px solid var(--rule)}
+.box.summary{border-left:3px solid var(--petrol)}
+.box.finding{border-left:3px solid var(--signal); background:#FBEDE4}
+.box.rootcause{border:2px solid var(--signal); background:#FBEDE4}
+.box .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; display:block; margin-bottom:10px}
+.box.summary .lab{color:var(--petrol)} .box.finding .lab,.box.rootcause .lab{color:var(--signal)}
+.box p{margin:0 0 12px} .box p:last-child{margin:0}
+.box.rootcause h3{margin:0 0 10px; font-family:"Fraunces",serif; font-size:21px}
+
+/* ---- sections ---- */
+section{padding:42px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em;
+  color:var(--petrol); display:block; margin-bottom:9px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(23px,3.4vw,31px);
+  line-height:1.13; margin:0 0 16px; letter-spacing:-.01em}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:19px; margin:30px 0 9px}
+p{margin:0 0 15px} .lead{font-size:19px}
+strong{font-weight:600} em{font-style:italic}
+a{color:var(--petrol)}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+sub,sup{font-size:.72em}
+
+/* ---- figures ---- */
+figure{margin:28px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55;
+  color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink)}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--petrol); margin-bottom:6px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace;
+  font-size:12px; color:var(--ink-soft); margin-top:4px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+
+/* ---- tables ---- */
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px; font-weight:600}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; padding:2px 7px;
+  border-radius:2px; white-space:nowrap}
+.tag.rej{background:#F2DAD7; color:var(--bad)} .tag.keep{background:#D6E8E4; color:var(--petrol)}
+.tag.cause{background:#F7E0D2; color:var(--signal)}
+
+pre{background:#1C1A17; color:#ECE4D4; font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+  line-height:1.6; padding:16px 18px; overflow-x:auto; margin:20px 0}
+pre .c{color:#9A8F78} pre .k{color:#E0A07A} pre .s{color:#9DC08B} pre .n{color:#D8B26A}
+
+.note{margin:22px 0; padding:15px 19px; background:#EEE7D7; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+
+/* ---- decision tree ---- */
+.dtree{margin:24px 0; font-family:"IBM Plex Mono",monospace}
+.dnode{display:inline-block; background:#E9E0CE; border:1.6px solid var(--ink);
+  border-radius:7px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink)}
+.dbranch{margin:6px 0 6px 14px; padding-left:20px; border-left:2px solid var(--rule)}
+.dedge{font-size:12.5px; color:var(--petrol); font-weight:600; margin:12px 0 5px}
+.dleaf{display:inline-block; padding:7px 13px; border-radius:7px; font-size:13px;
+  border:1.5px solid; line-height:1.4; max-width:48ch}
+.dleaf.root{background:#F7E0D2; border-color:var(--signal); color:var(--signal); font-weight:600}
+.dleaf.ok{background:#D6E8E4; border-color:var(--petrol); color:var(--petrol)}
+.dleaf.warn{background:#F2E4CC; border-color:var(--amber); color:var(--amber)}
+
+/* ---- resource links ---- */
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.02em;
+  display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:22px 0 0; padding-top:16px;
+  border-top:1px solid var(--rule)}
+.reslinks a{color:var(--petrol); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks a:hover{border-bottom-color:var(--petrol)}
+.reslinks .ic{color:var(--signal)}
+
+footer{padding:50px 0 80px}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 0 20px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:3px 0}
+
+@media (max-width:560px){
+  body{font-size:17px} .wrap{padding:0 18px}
+  .metagrid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--petrol);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="classline">
+    <span>Internal Engineering · VHM / NVH</span>
+    <span class="sig">RCA-2026-EM-0417</span>
+  </div>
+  <p class="doctype">Root Cause Investigation Report</p>
+  <h1>Tonal NVH During Battery Preconditioning</h1>
+  <p class="subtitle">A fleet-level acoustic complaint traced from symptom to electromagnetic mechanism: how high d-axis injection, magnetic saturation, and a structural resonance conspire to produce an audible 6th-order drone — and how to silence it.</p>
+  <div class="metagrid">
+    <div><span>Prepared by</span><b>M. Mazouchi — VHM &amp; Diagnostics</b></div>
+    <div><span>Subsystem</span><b>Traction drive · Active-heating mode</b></div>
+    <div><span>Fleet sample</span><b>320 vehicles, instrumented</b></div>
+    <div><span>Status</span><b>Root cause confirmed</b></div>
+    <div><span>Disposition</span><b>Mitigation validated (sim)</b></div>
+  </div>
+  <div class="reslinks">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Companion: Battery-degradation RCA monograph</a>
+    <a href="manufacturing-rca-report.html">Companion: Module-weld manufacturing RCA</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="nvh-rca-code-and-data.zip"><span class="ic">⤓</span> Code &amp; data (zip)</a>
+  </div>
+</header>
+
+<!-- EXEC SUMMARY -->
+<div class="box summary">
+  <span class="lab">Executive Summary</span>
+  <p>Customers report a tonal "drone/whine" that appears only when battery preconditioning (active stator heating) runs in cold ambient, at standstill. An instrumented 320-vehicle study isolated the annoyance to a tonal acoustic peak whose frequency tracks <strong>six times the heating injection frequency</strong>, not any rotational or auxiliary-pump order.</p>
+  <p>The investigation rejected the leading field hypothesis — coolant-pump noise — as a confounder, and established a two-part electromagnetic root cause: the aggressive thermal calibration commands a high d-axis current that <strong>saturates the stator and amplifies the 5th and 7th spatial harmonics</strong>, producing a dominant 6th-order radial force; this force becomes audible only in vehicles where <strong>6 × f<sub>inj</sub> coincides with the stator ovalizing mode</strong>. Two mitigations were simulated: anti-phase harmonic current injection (−15 dB on the offending order) and injection-frequency dithering (−8 dB).</p>
+</div>
+
+<!-- KEY FINDING -->
+<div class="box finding">
+  <span class="lab">Principal Finding</span>
+  <p>The complaint is <strong>not</strong> a pump, bearing, or PWM artifact. It is a saturation-driven 6th-order radial-force harmonic, resonantly amplified by the stator structure. The pump correlation that initially drew attention is an artifact of shared calibration, and disappears once d-axis current is held constant.</p>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="s1">
+  <span class="snum">1 — Symptom &amp; Scope</span>
+  <h2>What the field is reporting</h2>
+  <p class="lead">A narrow-band tone, only in one operating mode.</p>
+  <p>Warranty and quality channels logged a consistent description: a steady tonal drone or whine, perceived from the cabin and engine bay, present <em>only</em> while preconditioning is active and the vehicle is stationary, predominantly in cold ambient. It is absent while driving and absent during summer cabin cooling. Subjective pitch reports cluster in the low-kilohertz range.</p>
+  <p>Because preconditioning activates several subsystems at once — the traction inverter's active-heating injection, the coolant pump, valves, and sometimes the compressor — the symptom is operationally entangled. Multiple subsystems are "on" together, which is precisely the condition under which correlational reasoning misleads. The study was designed to break that entanglement.</p>
+  <figure>
+    <div class="figlab">Figure 1 — Fleet complaint map</div>
+    <svg id="f1" viewBox="0 0 760 400" role="img" aria-label="Scatter of injection current vs tonal SPL colored by resonance"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--signal)"></i> Near structural resonance</span>
+      <span><i class="dot" style="background:var(--petrol)"></i> Off resonance</span>
+    </div>
+    <figcaption><b>Two conditions must coincide.</b> Tonal SPL rises with d-axis current, but the loud population (≳60 dB(A)) is dominated by vehicles whose force harmonic sits near a structural resonance (orange). High current alone is necessary but not sufficient — a clue the investigation returns to in §6.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="s2">
+  <span class="snum">2 — Data &amp; Instrumentation</span>
+  <h2>The measured fleet</h2>
+  <p>320 vehicles were logged during preconditioning events with synchronized electrical, thermal, and acoustic channels. Each record carries the calibration identity, the commanded heating current and its injection frequency, auxiliary-pump duty, the motor structural variant (which sets the stator modal frequency), and the extracted tonal sound-pressure level at the complaint frequency. Signals were drawn from CAN, inverter telemetry, and a cabin microphone with order/spectral post-processing.</p>
+  <table class="tbl">
+    <thead><tr><th>Channel</th><th>Meaning</th><th>Role in analysis</th></tr></thead>
+    <tbody>
+      <tr><td>i_d_A</td><td>d-axis heating current amplitude</td><td><span class="tag cause">Primary cause</span></td></tr>
+      <tr><td>f_inj_Hz</td><td>heating injection electrical frequency</td><td>Sets force-harmonic frequency</td></tr>
+      <tr><td>struct_mode_Hz</td><td>stator ovalizing-mode frequency (by variant)</td><td>Resonance target</td></tr>
+      <tr><td>resonance_dB</td><td>modal gain at 6·f_inj</td><td><span class="tag cause">Co-cause</span></td></tr>
+      <tr><td>pump_duty_pct</td><td>coolant-pump duty during precond</td><td><span class="tag rej">Confounded proxy</span></td></tr>
+      <tr><td>cal_aggressive</td><td>thermal calibration identity</td><td>Upstream driver</td></tr>
+      <tr><td>tonal_freq_Hz</td><td>measured tonal peak frequency</td><td>Order-tracking evidence</td></tr>
+      <tr><td>SPL_tonal_dBA</td><td>tonal peak level — the annoyance</td><td>Target variable</td></tr>
+    </tbody>
+  </table>
+  <p>The dataset is synthetic, generated from a physics-based model with a known ground truth so the diagnostic method can be validated against the answer (full generator in the appendix). The d-axis current is the only true electromagnetic driver; pump duty is deliberately built as a calibration-linked proxy with no path to the tonal peak.</p>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="s3">
+  <span class="snum">3 — Candidate Hypotheses</span>
+  <h2>The field of suspects</h2>
+  <p>Six hypotheses were carried forward, spanning the failure-mode families so the true cause could not be excluded by assumption. Each is stated with the prediction it makes — the prediction is what later lets us reject or retain it.</p>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Family</th><th>Falsifiable prediction</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Bearing / rotating-element defect</td><td>Mechanical</td><td>Tone tracks a shaft order; present while driving</td></tr>
+      <tr><td>H2</td><td>Coolant-pump / aux noise</td><td>Mechanical</td><td>Tone tracks pump speed; scales with pump duty</td></tr>
+      <tr><td>H3</td><td>Inverter PWM switching tone</td><td>Electrical</td><td>Tone at switching freq / sidebands</td></tr>
+      <tr><td>H4</td><td>High i_d → spatial-harmonic shift</td><td>Electromagnetic</td><td>Tone at 6·f_inj; scales with i_d²</td></tr>
+      <tr><td>H5</td><td>Structural mode excitation</td><td>Structural</td><td>Loud only when forcing ≈ modal frequency</td></tr>
+      <tr><td>H6</td><td>Calibration (heating setpoint)</td><td>Software</td><td>Splits by calibration identity</td></tr>
+    </tbody>
+  </table>
+  <p>Note that H4, H5, and H6 are not rivals — they are links in one chain (a calibration sets the current; the current creates the force; the structure amplifies it). Recognizing that early prevents the common error of treating a multi-stage mechanism as competing single-cause explanations.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="s4">
+  <span class="snum">4 — Statistical Screen</span>
+  <h2>First pass: what correlates with the tone</h2>
+  <p>Ranking each logged channel against the tonal SPL gives the starting leaderboard:</p>
+  <figure>
+    <div class="figlab">Figure 2 — Raw correlation with tonal SPL</div>
+    <svg id="f2" viewBox="0 0 760 340" role="img" aria-label="Bar chart of raw correlations"></svg>
+    <figcaption><b>Three strong candidates.</b> d-axis current leads, but <span style="color:var(--bad)"><b>pump duty</b></span> is a close and intuitively appealing second — pumps are mechanical, audible, and obviously active during preconditioning. Resonance gain is also strong. The naïve reading blames the pump; §5 shows why that is wrong.</figcaption>
+  </figure>
+  <p>Pump duty (r = <span id="r_pump"></span>) is the dangerous result: a mechanically plausible, strongly correlated feature with an obvious story. It clears the first three diagnostic gates — association, significance, materiality. It fails the fourth, and the failure is only visible under control.</p>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="s5">
+  <span class="snum">5 — Rejecting the Pump (H2)</span>
+  <h2>A confounder, not a cause</h2>
+  <p>The pump correlation looks like this — tight enough to close a hasty investigation:</p>
+  <figure>
+    <div class="figlab">Figure 3 — Pump duty vs tonal SPL</div>
+    <svg id="f3" viewBox="0 0 760 380" role="img" aria-label="Scatter of pump duty vs tonal SPL"></svg>
+    <figcaption><b>Convincing on its face.</b> But the aggressive thermal calibration ramps <em>both</em> the heating current and the pump duty together, so pump duty is a stand-in for "this vehicle is on the aggressive calibration." The pump is correlated with the tone without causing it.</figcaption>
+  </figure>
+  <p>The test is partial correlation: hold the d-axis current constant and ask whether pump duty retains any association with the tone. It does not.</p>
+  <figure>
+    <div class="figlab">Figure 4 — Raw vs partial correlation (control for i_d)</div>
+    <svg id="f4" viewBox="0 0 760 380" role="img" aria-label="Grouped bars of raw and partial correlation"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--slate)"></i> Raw</span>
+      <span><i class="dot" style="background:var(--signal)"></i> Partial (i_d held constant)</span>
+    </div>
+    <figcaption><b>The collapse and the emergence.</b> <span style="color:var(--bad)"><b>Pump duty falls</b></span> from r = <span id="r_pump2"></span> to ≈ <span id="rp_pump"></span> (p &gt; 0.3) — pure confounding. Meanwhile <span style="color:var(--signal)"><b>resonance gain</b></span>, a modest raw correlate, <em>emerges</em> strongly once current is controlled: it is the second true driver, previously masked. The mirror test confirms direction — i_d controlling for pump holds at r = <span id="rid_pump"></span>.</figcaption>
+  </figure>
+  <p><strong>H2 is rejected.</strong> Two independent lines of evidence converge: the partial correlation eliminates the statistical association, and the order analysis in §7.1 shows the tonal frequency does not track pump speed at all. The pump is loud, but it is not <em>this</em> tone.</p>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="s6">
+  <span class="snum">6 — Abduction: Necessary but Not Sufficient</span>
+  <h2>Why d-axis current alone doesn't close the case</h2>
+  <p>Holding pump aside, d-axis current is a strong, surviving cause — and it has a mechanism (more on that in §7). But fitting the tone to current alone leaves a large unexplained residual: a meaningful population of high-current vehicles stays quiet. A cause that is real but incomplete is a signal that a second variable is in play.</p>
+  <p>The regression makes the gap explicit. Adding the saturation term (current²) to the pump model lifts explanatory power; adding the resonance gain lifts it sharply:</p>
+  <table class="tbl">
+    <thead><tr><th>Model</th><th>Pump coef.</th><th>R²</th></tr></thead>
+    <tbody>
+      <tr><td>SPL ~ pump</td><td id="m1_c"></td><td id="m1_r2"></td></tr>
+      <tr><td>SPL ~ pump + saturation(i_d²)</td><td id="m2_c"></td><td id="m2_r2"></td></tr>
+      <tr><td>SPL ~ pump + saturation + <b>resonance</b></td><td id="m3_c"></td><td id="m3_r2"></td></tr>
+    </tbody>
+  </table>
+  <p>The pump coefficient decays toward zero as real causes enter; the resonance term is what closes the case. This is the abductive move: the best explanation for "high current, yet quiet" is that the audible outcome requires the current-driven force to <em>land on a structural resonance</em>. The refined hypothesis becomes specific and testable — <em>loud iff i_d is high <strong>and</strong> 6·f<sub>inj</sub> ≈ stator mode</em> — and it is that conjunction the physics in §7 confirms.</p>
+  <div class="note">
+    <span class="lab">The reasoning, named</span>
+    We did not deduce this and we did not guess it. We observed a pattern the single-cause model could not account for (quiet high-current cars), and inferred the structure that best explains it (a resonance gate). Abduction proposes; the order analysis, saturation curve, and modal coincidence then confirm.
+  </div>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="s7">
+  <span class="snum">7 — Physical Confirmation</span>
+  <h2>Where the statistics meet the electromagnetics</h2>
+  <p>Statistical survival is necessary but not sufficient; a root cause must show its mechanism in the raw physics. Three independent confirmations follow.</p>
+
+  <h3>7.1 — Order tracking: the tone is electromagnetic, not mechanical</h3>
+  <p>If the tone were a bearing or pump artifact it would track a rotational or pump-speed order. It does not. The measured tonal frequency tracks <strong>6 × f<sub>inj</sub></strong> across the fleet — a clean line of slope 6 against injection frequency, with the vehicle at standstill (no shaft rotation to produce a mechanical order at all).</p>
+  <figure>
+    <div class="figlab">Figure 5 — Order tracking of the tonal peak</div>
+    <svg id="f5" viewBox="0 0 760 400" role="img" aria-label="Tonal frequency vs injection frequency with slope-6 line"></svg>
+    <figcaption><b>The decisive evidence.</b> Tonal frequency = 6·f<sub>inj</sub> (solid line), identifying the source as the 6th-order radial force arising from the 5th/7th spatial harmonics. A pump-speed or shaft order would lie on entirely different, non-coincident lines (dashed). At standstill, mechanical rotating orders cannot exist — H1 and H2 are physically excluded.</figcaption>
+  </figure>
+
+  <h3>7.2 — Saturation enriches the 5th and 7th harmonics</h3>
+  <p>Why a 6th-order force? In a three-phase winding the 5th and 7th MMF harmonics beat against the fundamental to produce a 6th-order radial force. Their amplitude is small in the linear regime but grows super-linearly once the high d-axis current drives the stator teeth into magnetic saturation, flattening and distorting the airgap flux.</p>
+  <figure>
+    <div class="figlab">Figure 6 — Spatial-harmonic content vs d-axis current</div>
+    <svg id="f6" viewBox="0 0 760 360" role="img" aria-label="5th and 7th harmonic amplitude vs current"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--signal)"></i> 5th harmonic</span>
+      <span><i class="dot" style="background:var(--petrol)"></i> 7th harmonic</span>
+    </div>
+    <figcaption><b>The saturation knee.</b> Both harmonics scale roughly with i_d² — doubling the heating current roughly quadruples the harmonic content, and with it the radial force. This is why the aggressive calibration's high current is the upstream driver: it sits well past the knee.</figcaption>
+  </figure>
+
+  <h3>7.3 — Resonance: the gate that decides who is loud</h3>
+  <p>The 6th-order force is present on every heating event, but it becomes <em>audible</em> only when its frequency meets a stator structural mode. Sweeping the ratio of forcing frequency to modal frequency reproduces the classic single-degree-of-freedom resonance peak, with magnification set by the modal quality factor (Q ≈ <span id="qf"></span>):</p>
+  <figure>
+    <div class="figlab">Figure 7 — Structural amplification vs frequency ratio</div>
+    <svg id="f7" viewBox="0 0 760 360" role="img" aria-label="Resonance amplification curve"></svg>
+    <figcaption><b>The conjunction explained.</b> Tonal SPL peaks sharply when 6·f<sub>inj</sub> / f<sub>mode</sub> ≈ 1. The two structural variants place their modes at different frequencies, so the same calibration is loud on one variant and quiet on the other — exactly the "necessary but not sufficient" pattern that drove the abduction in §6.</figcaption>
+  </figure>
+  <h3>7.4 — The mechanism, end to end</h3>
+  <p>Assembled, the confirmed chain runs from a calibration choice to an audible tone, with a structural resonance acting as the gate that decides which vehicles are affected:</p>
+  <figure>
+    <div class="figlab">Figure 9 — Root-cause mechanism chain</div>
+    <svg id="bd1" viewBox="0 0 760 320" role="img" aria-label="Block diagram of the NVH mechanism chain"></svg>
+    <figcaption><b>One chain, not three rival causes.</b> The aggressive calibration sets a high d-axis current; saturation amplifies the 5th/7th harmonics; their beat is a 6th-order radial force at 6·f<sub>inj</sub>; and the stator resonance (the diamond gate) magnifies it into the tone — but only when the force frequency meets the mode. The dashed branch is the pump confounder: driven by the same calibration, correlated with the complaint, causally inert.</figcaption>
+  </figure>
+</section>
+
+<!-- ROOT CAUSE -->
+<div class="box rootcause">
+  <span class="lab">Root Cause Statement</span>
+  <h3>Confirmed root cause</h3>
+  <p>The aggressive thermal calibration commands a high d-axis heating current. That current saturates the stator and amplifies the 5th and 7th spatial harmonics, producing a strong 6th-order radial Maxwell-stress wave at 6·f<sub>inj</sub>. On vehicles whose stator ovalizing mode lies near 6·f<sub>inj</sub>, a high-Q structural resonance magnifies this force into the audible tonal complaint. Mean tonal level on the aggressive calibration is <span id="aggr_spl"></span> dB(A) versus <span id="cons_spl"></span> dB(A) on the conservative one.</p>
+  <p><b>Disposition:</b> H4 + H5 + H6 confirmed as one chain. H1, H2, H3 rejected (see Appendix A).</p>
+</div>
+
+<!-- ===================== 8 DECISION TREE ===================== -->
+<section id="s_tree">
+  <span class="snum">8 — Diagnostic Decision Tree</span>
+  <h2>The investigation, distilled to a field test</h2>
+  <p>Once the mechanism is known, the recurring per-vehicle diagnosis compresses into three questions. This is what a service tool or an on-board monitor evaluates — each leaf names both the cause and the action. Split points come from the data: the heating current separates the calibrations (~240 A vs ~110 A), and the resonance window is set by the modal bandwidth.</p>
+
+  <div class="dtree">
+    <div class="dnode">tonal peak at ≈ 6 × f_inj ?</div>
+    <div class="dbranch">
+      <div class="dedge">NO ↓</div>
+      <div class="dleaf ok">Not this mechanism — check pump/shaft order, PWM sidebands (H1/H2/H3)</div>
+      <div class="dedge">YES ↓</div>
+      <div class="dnode">i_d in saturation regime (&gt; ~180 A) ?</div>
+      <div class="dbranch">
+        <div class="dedge">NO ↓</div>
+        <div class="dleaf warn">Low force amplitude — monitor; harmonic content below the knee</div>
+        <div class="dedge">YES ↓</div>
+        <div class="dnode">6·f_inj within ±8% of stator mode ?</div>
+        <div class="dbranch">
+          <div class="dedge">YES ↓</div>
+          <div class="dleaf root">ROOT CAUSE — saturation-driven 6th-order force at structural resonance. Apply HCI cancellation; dither f_inj; cap i_d on susceptible variant.</div>
+          <div class="dedge">NO ↓</div>
+          <div class="dleaf warn">High force but off-resonance — benign; revisit if modal frequency shifts (temp, aging, mounts)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>The ordering encodes the analysis: the order check first (it cleanly excludes the mechanical and PWM families), then the saturation gate (the primary cause), then the resonance gate (the co-cause that decides audibility).</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="s8">
+  <span class="snum">9 — Mitigation &amp; Validation</span>
+  <h2>Silencing the order</h2>
+  <p>With the mechanism identified, two mitigations follow directly — one electromagnetic, one structural-avoidance — and a third at the calibration level. Each was evaluated in simulation.</p>
+
+  <h3>8.1 — Harmonic current injection (HCI)</h3>
+  <p>Because the offending force is a specific order (6th), it can be cancelled at the source by injecting an anti-phase current component tuned to that order. Modeling <span id="hci_pct"></span>% cancellation of the 6th-order force removes the dominant peak from the radial-force spectrum:</p>
+  <figure>
+    <div class="figlab">Figure 10 — HCI augmentation of the current control loop</div>
+    <svg id="bd2" viewBox="0 0 760 360" role="img" aria-label="Block diagram of harmonic current injection added to the FOC loop"></svg>
+    <figcaption><b>Where the fix lives.</b> A 6th-order observer extracts the offending harmonic from the measured currents/position; an anti-phase reference is summed into the d–q current commands ahead of the PI regulators, so the inverter actively cancels the 6th-order radial-force component. No extra hardware; a controller change inside the existing field-oriented loop.</figcaption>
+  </figure>
+  <figure>
+    <div class="figlab">Figure 8 — Radial-force order spectrum, before vs after HCI</div>
+    <svg id="f8" viewBox="0 0 760 360" role="img" aria-label="Force order spectrum before and after HCI"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--slate)"></i> Baseline</span>
+      <span><i class="dot" style="background:var(--good)"></i> With HCI</span>
+    </div>
+    <figcaption><b>Targeted cancellation.</b> The 6th order — the only audible one — drops by ≈ <span id="hci_drop"></span> dB while the benign orders are untouched. HCI is the preferred fix: it preserves the full heating rate and requires only a controller change.</figcaption>
+  </figure>
+
+  <h3>8.2 — Injection-frequency dithering &amp; calibration</h3>
+  <p>Moving the injection frequency so that 6·f<sub>inj</sub> sits off the structural mode walks the operating point down the resonance curve. A <span id="detune_pct"></span>% detune yields ≈ <span id="dither_drop"></span> dB of relief on resonant vehicles — smaller than HCI but trivially deployable as an interim calibration patch. A variant-aware calibration that caps i_d for the susceptible stator variant is the conservative fallback, at the cost of a slower heating rate.</p>
+  <table class="tbl">
+    <thead><tr><th>Mitigation</th><th>Tonal reduction</th><th>Heating-rate cost</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td>Harmonic current injection (6th)</td><td id="t_hci"></td><td>None</td><td>Controller SW</td></tr>
+      <tr><td>Injection-frequency dither</td><td id="t_dither"></td><td>Minor</td><td>Calibration</td></tr>
+      <tr><td>Variant-aware i_d cap</td><td>High (avoids regime)</td><td>Moderate</td><td>Calibration</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 10 PROGNOSIS ===================== -->
+<section id="s_prog">
+  <span class="snum">10 — Prognosis: Forecasting Complaints</span>
+  <h2>Predicting the complaint wave before it lands</h2>
+  <p>Because the root cause is mechanistic, the diagnosis becomes a forward forecast. The quality-relevant "failure" here is a logged customer complaint, and its likelihood grows with cold-season exposure: each preconditioning event on a resonant, aggressive-calibration vehicle has a chance of being audibly annoying, and repeated annoyance drives complaints. We run a Monte Carlo over the at-risk cohort — 5,000 customers, weekly preconditioning events through a six-month cold season — and track when each first complains, with and without the HCI fix.</p>
+
+  <h3>10.1 — Accumulating exposure</h3>
+  <figure>
+    <div class="figlab">Figure 11 — Cumulative annoyance-event exposure</div>
+    <svg id="pp1" viewBox="0 0 760 360" role="img" aria-label="Fan chart of cumulative annoyance events"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> No fix: median &amp; 10–90% band</span>
+      <span><i class="dot" style="background:var(--good)"></i> After HCI: median</span>
+    </div>
+    <figcaption><b>The pressure builds.</b> Untreated, audible events accumulate steeply across the cold season; the HCI fix flattens the curve because most events fall below the audibility threshold after the −15 dB reduction.</figcaption>
+  </figure>
+
+  <h3>10.2 — Probability of a complaint</h3>
+  <figure>
+    <div class="figlab">Figure 12 — Cumulative complaint probability</div>
+    <svg id="pp2" viewBox="0 0 760 350" role="img" aria-label="Cumulative complaint probability over time"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bad)"></i> No fix</span>
+      <span><i class="dot" style="background:var(--good)"></i> After HCI</span>
+    </div>
+    <figcaption><b>The warranty-grade output.</b> Untreated, an at-risk vehicle reaches a <span id="pg_pof"></span> chance of a logged complaint within three months; with the fix that falls to <span id="pg_fix_pof"></span>. This is the curve a campaign-timing and warranty-reserve decision is priced against.</figcaption>
+  </figure>
+
+  <h3>10.3 — Time to first complaint</h3>
+  <figure>
+    <div class="figlab">Figure 13 — Distribution of time-to-first-complaint (no fix)</div>
+    <svg id="pp3" viewBox="0 0 760 330" role="img" aria-label="Histogram of months to first complaint"></svg>
+    <figcaption><b>A median of <span id="pg_med"></span> months</b> for at-risk vehicles, with a long early tail — the vehicles that complain in the first weeks are the ones that set the campaign clock. Quoting an average alone would hide that the loudest customers surface almost immediately.</figcaption>
+  </figure>
+
+  <p>The forecast generalizes to a fleet screen: every vehicle on the aggressive calibration whose stator variant places its mode within the resonance window is in the at-risk cohort, before any complaint is filed. The prognosis tells the program both <em>how many</em> and <em>how soon</em> — and how completely the HCI fix removes the exposure.</p>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="s9">
+  <span class="snum">11 — Recommendations</span>
+  <h2>Fleet action</h2>
+  <p>The diagnosis converts directly into a screen and a remedy. Because the root cause is mechanistic, the affected population can be identified before complaints arrive: any vehicle on the aggressive calibration whose stator variant places its mode within the resonance window of 6·f<sub>inj</sub> is at risk.</p>
+  <p>Recommended sequence: deploy the HCI 6th-order cancellation as the primary OTA controller fix; ship the injection-frequency dither as an immediate interim relief for in-warranty resonant vehicles; and fold a variant-aware heating calibration into the next release so the regime is avoided by design. Post-fix, verify by confirming the 6·f<sub>inj</sub> tonal peak has dropped below the audibility threshold in re-instrumented vehicles, and track complaint rate by calibration-and-variant cohort.</p>
+</section>
+
+<!-- ===================== APPENDIX ===================== -->
+<section id="appA">
+  <span class="snum">Appendix A — Hypothesis Disposition</span>
+  <h2>Why each suspect was kept or dropped</h2>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Hypothesis</th><th>Disposition</th><th>Decisive evidence</th></tr></thead>
+    <tbody>
+      <tr><td>H1</td><td>Bearing / rotating defect</td><td><span class="tag rej">Rejected</span></td><td>Tone present at standstill; no shaft order exists</td></tr>
+      <tr><td>H2</td><td>Coolant-pump noise</td><td><span class="tag rej">Rejected</span></td><td>Partial corr collapses; tone ≠ pump order (§5, §7.1)</td></tr>
+      <tr><td>H3</td><td>PWM switching tone</td><td><span class="tag rej">Rejected</span></td><td>Tone at 6·f_inj, not switching freq; scales with i_d²</td></tr>
+      <tr><td>H4</td><td>High i_d harmonic shift</td><td><span class="tag keep">Confirmed</span></td><td>Survives control; saturation curve; order = 6·f_inj</td></tr>
+      <tr><td>H5</td><td>Structural mode excitation</td><td><span class="tag keep">Confirmed</span></td><td>Resonance peak at 6·f_inj ≈ f_mode (§7.3)</td></tr>
+      <tr><td>H6</td><td>Calibration setpoint</td><td><span class="tag keep">Confirmed</span></td><td>Stratifies by cal identity; sets i_d level</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="appB">
+  <span class="snum">Appendix B — Code &amp; Data</span>
+  <h2>Reproducibility</h2>
+  <p>The fleet dataset and the full analysis are provided alongside this report as <code class="inl">nvh_precond_rca.py</code> (physics-based generator + diagnostic pipeline) and <code class="inl">nvh_fleet.csv</code> (320-vehicle mockup). The essential physics of the generator:</p>
+  <pre><span class="c"># saturation enriches 5th/7th -> 6th-order radial force</span>
+H57   = (i_d / I_d0) ** 2                  <span class="c"># harmonic content vs current</span>
+f_force = 6.0 * f_inj                       <span class="c"># dominant radial-force order</span>
+A_res = 1 / sqrt((1-(f_force/f_mode)**2)**2 + (f_force/(Q*f_mode))**2)
+F_radial  = H57 * A_res                     <span class="c"># amplitude (norm.)</span>
+SPL_tonal = 20*log10(F_radial) + 42 + noise <span class="c"># dB(A) at 6*f_inj</span>
+
+<span class="c"># confounder: aggressive cal drives BOTH i_d and pump duty</span>
+i_d       = where(cal_aggressive, ~240A, ~110A)
+pump_duty = where(cal_aggressive, ~72%, ~46%)   <span class="c"># proxy, no path to tone</span></pre>
+  <p>The diagnostic pipeline reproduces every figure: the correlation screen, the partial-correlation confounder test (pump → r ≈ <span id="rp_pump2"></span>), the staged regression (R² <span id="r2chain"></span>), order tracking, the saturation and resonance curves, and the HCI mitigation.</p>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Companion monograph: Battery-degradation RCA</a>
+    <a href="manufacturing-rca-report.html">Companion: Module-weld manufacturing RCA</a>
+    <a href="environmental-rca-report.html">Companion: HV isolation environmental RCA</a>
+    <a href="usage-rca-report.html">Companion: Brake-corrosion usage/behavior RCA</a>
+    <a href="nvh-rca-code-and-data.zip"><span class="ic">⤓</span> NVH code &amp; data (zip)</a>
+  </div>
+  <div class="rule" style="margin-top:24px"></div>
+  <p><b>RCA-2026-EM-0417 — Preconditioning-Mode NVH</b></p>
+  <p>Prepared by M. Mazouchi</p>
+  <p>Synthetic 320-vehicle study with known ground truth · figures computed from data.</p>
+</footer>
+
+</div>
+
+<script>
+const NVH = {"N": 320, "QF": 10.0, "raw": {"Pump duty (%)": {"r": 0.673, "p": 1.259145815335811e-43}, "i_d injection (A)": {"r": 0.791, "p": 8.334353260627789e-70}, "Resonance gain (dB)": {"r": 0.65, "p": 8.110027570953776e-40}, "Inj. frequency (Hz)": {"r": 0.198, "p": 0.0003561468034132786}, "Ambient temp (C)": {"r": -0.002, "p": 0.9707260607187608}, "Precond fraction": {"r": 0.01, "p": 0.8638944261314613}}, "partial_ctrl_id": {"Pump duty (%)": {"r": 0.052, "p": 0.355334842467417}, "Resonance gain (dB)": {"r": 0.947, "p": 1.7219741191298343e-158}, "Inj. frequency (Hz)": {"r": 0.328, "p": 1.8862274521510075e-09}, "Ambient temp (C)": {"r": 0.048, "p": 0.3896416560062225}, "Precond fraction": {"r": -0.021, "p": 0.7040381536214627}}, "id_ctrl_pump": {"r": 0.563, "p": 3.992262626901917e-28}, "reg": {"m1_pump_coef": 0.426, "m1_r2": 0.453, "m2_pump_coef": 0.08, "m2_r2": 0.598, "m3_pump_coef": 0.037, "m3_r2": 0.906}, "scatter_pump": [[49.32, 35.29, 0, 0], [47.89, 40.31, 0, 1], [48.14, 40.25, 0, 1], [71.89, 60.94, 1, 1], [43.85, 42.77, 0, 1], [49.26, 40.08, 0, 1], [90.17, 70.89, 1, 1], [39.98, 43.44, 0, 1], [54.9, 39.57, 0, 0], [82.77, 53.88, 1, 1], [74.05, 65.61, 1, 1], [75.23, 59.77, 1, 1], [76.55, 66.02, 1, 1], [63.53, 60.49, 1, 1], [58.03, 59.7, 0, 1], [72.55, 70.1, 1, 1], [43.71, 52.1, 0, 1], [49.21, 37.69, 0, 0], [67.83, 67.04, 1, 1], [44.07, 46.15, 0, 1], [74.4, 56.55, 1, 1], [68.91, 54.18, 1, 1], [74.42, 57.3, 1, 1], [72.26, 55.09, 1, 1], [76.46, 64.69, 1, 1], [46.01, 37.74, 0, 1], [68.94, 56.47, 1, 1], [75.25, 73.67, 1, 1], [56.41, 44.65, 0, 1], [34.5, 42.4, 0, 1], [49.9, 51.23, 0, 1], [51.77, 49.47, 0, 1], [59.95, 37.35, 0, 0], [46.46, 41.98, 0, 1], [47.83, 39.09, 0, 1], [82.69, 57.57, 1, 1], [74.85, 59.85, 1, 1], [69.87, 54.91, 1, 1], [84.36, 57.19, 1, 1], [82.32, 53.84, 1, 1], [99.66, 56.38, 1, 1], [47.39, 46.09, 0, 1], [67.26, 62.68, 1, 1], [71.73, 63.04, 1, 1], [69.1, 71.45, 1, 1], [27.96, 46.07, 0, 1], [74.5, 67.72, 1, 1], [67.46, 54.59, 1, 1], [70.04, 53.15, 1, 1], [87.78, 47.54, 1, 0], [40.37, 45.13, 0, 1], [37.78, 42.04, 0, 1], [30.28, 42.42, 0, 1], [54.32, 47.93, 0, 1], [57.49, 36.67, 0, 1], [55.44, 34.57, 0, 1], [44.13, 39.84, 0, 1], [53.29, 47.03, 0, 1], [42.86, 45.29, 0, 1], [83.48, 57.92, 1, 1], [74.88, 64.34, 1, 1], [45.91, 37.06, 0, 1], [53.06, 44.14, 0, 1], [53.75, 39.38, 0, 1], [68.75, 60.22, 1, 1], [51.18, 44.74, 0, 1], [37.95, 41.21, 0, 1], [74.4, 52.65, 1, 1], [70.7, 53.27, 1, 1], [63.05, 49.35, 0, 1], [40.06, 48.01, 0, 1], [41.15, 59.03, 0, 1], [51.28, 48.64, 0, 1], [52.57, 38.58, 0, 1], [72.98, 69.85, 1, 1], [52.96, 46.33, 0, 1], [40.51, 43.3, 0, 1], [55.29, 56.85, 0, 1], [34.65, 59.29, 0, 1], [33.38, 42.78, 0, 1], [61.34, 41.4, 0, 1], [56.86, 51.92, 0, 1], [55.84, 52.12, 0, 1], [72.42, 67.2, 1, 1], [40.13, 42.15, 0, 1], [69.79, 61.25, 1, 1], [66.3, 62.64, 1, 1], [82.82, 62.11, 1, 1], [42.08, 43.37, 0, 1], [59.56, 53.93, 0, 1], [62.83, 60.86, 1, 1], [52.79, 49.12, 0, 1], [49.94, 58.14, 0, 1], [53.46, 47.57, 0, 1], [54.62, 53.81, 1, 1], [47.46, 44.6, 0, 1], [76.96, 54.69, 1, 1], [51.38, 42.79, 0, 1], [36.49, 46.17, 0, 1], [59.05, 40.04, 0, 1], [82.3, 60.02, 1, 1], [85.98, 63.05, 1, 1], [63.84, 52.91, 1, 0], [76.17, 69.36, 1, 1], [72.82, 70.44, 1, 1], [38.69, 57.22, 0, 1], [47.59, 29.58, 0, 1], [63.7, 60.37, 1, 1], [69.0, 54.96, 1, 1], [82.19, 67.3, 1, 1], [75.7, 69.65, 1, 1], [52.68, 46.53, 0, 1], [40.57, 42.32, 0, 1], [78.27, 55.89, 1, 1], [51.74, 29.82, 0, 0], [72.94, 47.71, 1, 0], [70.32, 65.93, 1, 1], [69.94, 59.96, 1, 1], [58.98, 55.62, 0, 1], [60.91, 55.39, 1, 1], [47.97, 44.31, 0, 1], [63.31, 70.02, 1, 1], [71.65, 63.85, 1, 1], [36.65, 49.58, 0, 1], [39.96, 43.54, 0, 0], [58.85, 56.64, 1, 1], [34.21, 44.28, 0, 1], [59.42, 49.39, 0, 1], [31.31, 44.52, 0, 1], [57.16, 43.15, 0, 1], [34.65, 42.23, 0, 1], [70.67, 67.82, 1, 1], [70.48, 71.19, 1, 1], [36.93, 36.61, 0, 0], [36.91, 38.48, 0, 1], [57.89, 39.5, 0, 0], [53.58, 32.8, 0, 0], [41.16, 38.49, 0, 1], [38.09, 42.43, 0, 1], [35.67, 59.04, 0, 1], [70.18, 54.94, 1, 1], [49.51, 45.48, 0, 1], [50.23, 50.4, 0, 1], [72.3, 54.93, 1, 1], [69.7, 55.54, 1, 1], [39.22, 52.37, 0, 1], [50.24, 41.98, 0, 1], [79.52, 55.46, 1, 1], [73.74, 52.23, 1, 0], [68.7, 59.95, 1, 1]], "scatter_id": [[84.7, 35.29, 0, 0], [105.95, 40.31, 0, 1], [105.67, 40.25, 0, 1], [218.7, 60.94, 1, 1], [95.34, 42.77, 0, 1], [117.43, 40.08, 0, 1], [260.52, 70.89, 1, 1], [117.3, 43.44, 0, 1], [113.81, 39.57, 0, 0], [239.01, 53.88, 1, 1], [210.18, 65.61, 1, 1], [257.83, 59.77, 1, 1], [234.35, 66.02, 1, 1], [265.09, 60.49, 1, 1], [126.15, 59.7, 0, 1], [223.09, 70.1, 1, 1], [98.17, 52.1, 0, 1], [141.74, 37.69, 0, 0], [216.25, 67.04, 1, 1], [113.11, 46.15, 0, 1], [233.49, 56.55, 1, 1], [249.7, 54.18, 1, 1], [235.37, 57.3, 1, 1], [234.79, 55.09, 1, 1], [212.5, 64.69, 1, 1], [80.57, 37.74, 0, 1], [261.19, 56.47, 1, 1], [266.9, 73.67, 1, 1], [115.75, 44.65, 0, 1], [118.73, 42.4, 0, 1], [119.28, 51.23, 0, 1], [130.96, 49.47, 0, 1], [94.71, 37.35, 0, 0], [109.21, 41.98, 0, 1], [108.21, 39.09, 0, 1], [207.02, 57.57, 1, 1], [249.01, 59.85, 1, 1], [230.92, 54.91, 1, 1], [239.74, 57.19, 1, 1], [248.75, 53.84, 1, 1], [239.14, 56.38, 1, 1], [146.37, 46.09, 0, 1], [233.75, 62.68, 1, 1], [211.93, 63.04, 1, 1], [239.02, 71.45, 1, 1], [113.02, 46.07, 0, 1], [228.38, 67.72, 1, 1], [230.71, 54.59, 1, 1], [269.95, 53.15, 1, 1], [249.37, 47.54, 1, 0], [104.6, 45.13, 0, 1], [112.72, 42.04, 0, 1], [92.83, 42.42, 0, 1], [146.97, 47.93, 0, 1], [77.12, 36.67, 0, 1], [79.67, 34.57, 0, 1], [129.98, 39.84, 0, 1], [114.14, 47.03, 0, 1], [115.42, 45.29, 0, 1], [208.86, 57.92, 1, 1], [270.35, 64.34, 1, 1], [89.57, 37.06, 0, 1], [92.41, 44.14, 0, 1], [79.45, 39.38, 0, 1], [232.69, 60.22, 1, 1], [93.99, 44.74, 0, 1], [114.77, 41.21, 0, 1], [228.35, 52.65, 1, 1], [228.1, 53.27, 1, 1], [134.63, 49.35, 0, 1], [103.19, 48.01, 0, 1], [134.57, 59.03, 0, 1], [88.93, 48.64, 0, 1], [82.9, 38.58, 0, 1], [287.49, 69.85, 1, 1], [102.8, 46.33, 0, 1], [100.12, 43.3, 0, 1], [124.16, 56.85, 0, 1], [132.53, 59.29, 0, 1], [112.95, 42.78, 0, 1], [118.37, 41.4, 0, 1], [108.55, 51.92, 0, 1], [129.45, 52.12, 0, 1], [214.6, 67.2, 1, 1], [79.7, 42.15, 0, 1], [227.96, 61.25, 1, 1], [269.45, 62.64, 1, 1], [219.68, 62.11, 1, 1], [109.49, 43.37, 0, 1], [154.27, 53.93, 0, 1], [234.88, 60.86, 1, 1], [114.1, 49.12, 0, 1], [134.39, 58.14, 0, 1], [123.29, 47.57, 0, 1], [251.89, 53.81, 1, 1], [103.83, 44.6, 0, 1], [208.81, 54.69, 1, 1], [120.28, 42.79, 0, 1], [129.52, 46.17, 0, 1], [96.43, 40.04, 0, 1], [221.06, 60.02, 1, 1], [201.86, 63.05, 1, 1], [290.42, 52.91, 1, 0], [270.18, 69.36, 1, 1], [241.25, 70.44, 1, 1], [120.49, 57.22, 0, 1], [52.51, 29.58, 0, 1], [274.11, 60.37, 1, 1], [240.15, 54.96, 1, 1], [267.29, 67.3, 1, 1], [223.3, 69.65, 1, 1], [138.36, 46.53, 0, 1], [77.24, 42.32, 0, 1], [228.04, 55.89, 1, 1], [77.49, 29.82, 0, 0], [242.37, 47.71, 1, 0], [245.05, 65.93, 1, 1], [212.58, 59.96, 1, 1], [103.56, 55.62, 0, 1], [243.57, 55.39, 1, 1], [111.0, 44.31, 0, 1], [247.59, 70.02, 1, 1], [227.34, 63.85, 1, 1], [126.98, 49.58, 0, 1], [124.88, 43.54, 0, 0], [246.53, 56.64, 1, 1], [91.18, 44.28, 0, 1], [121.11, 49.39, 0, 1], [99.21, 44.52, 0, 1], [88.37, 43.15, 0, 1], [105.82, 42.23, 0, 1], [215.7, 67.82, 1, 1], [265.64, 71.19, 1, 1], [109.09, 36.61, 0, 0], [105.71, 38.48, 0, 1], [99.44, 39.5, 0, 0], [101.77, 32.8, 0, 0], [99.24, 38.49, 0, 1], [107.47, 42.43, 0, 1], [125.08, 59.04, 0, 1], [220.84, 54.94, 1, 1], [100.57, 45.48, 0, 1], [115.52, 50.4, 0, 1], [238.99, 54.93, 1, 1], [212.03, 55.54, 1, 1], [121.62, 52.37, 0, 1], [102.24, 41.98, 0, 1], [202.2, 55.46, 1, 1], [225.71, 52.23, 1, 0], [270.24, 59.95, 1, 1]], "scatter_order": [[276.1, 1660.8], [125.4, 747.4], [258.4, 1546.8], [199.1, 1200.5], [168.4, 1026.3], [165.4, 995.4], [280.2, 1673.2], [205.5, 1244.8], [131.6, 780.4], [166.7, 1021.6], [227.4, 1381.4], [223.5, 1336.0], [271.6, 1618.8], [194.4, 1158.3], [297.7, 1787.5], [202.6, 1224.9], [223.6, 1342.1], [304.2, 1816.8], [289.9, 1737.6], [162.9, 979.3], [224.9, 1356.6], [184.4, 1113.0], [299.1, 1794.2], [154.4, 921.5], [309.5, 1855.3], [153.7, 926.9], [268.9, 1613.6], [195.8, 1182.6], [179.3, 1066.5], [219.2, 1313.0], [228.5, 1362.5], [251.8, 1514.8], [138.8, 848.8], [203.4, 1220.5], [186.5, 1123.4], [182.8, 1102.1], [191.6, 1144.6], [221.3, 1333.4], [167.7, 1012.7], [156.7, 933.8], [198.5, 1185.2], [170.9, 1027.1], [224.6, 1343.2], [232.2, 1384.8], [200.2, 1210.5], [165.0, 988.4], [265.0, 1612.6], [208.0, 1230.8], [144.0, 871.1], [306.1, 1836.7], [183.7, 1090.2], [197.0, 1170.6], [178.2, 1075.2], [158.5, 957.0], [206.6, 1232.1], [276.4, 1658.0], [120.0, 718.1], [176.9, 1054.3], [203.8, 1210.9], [174.1, 1036.8], [188.2, 1129.4], [185.0, 1107.9], [254.0, 1513.5], [168.4, 1020.6], [232.3, 1395.2], [213.4, 1282.0], [171.3, 1025.5], [281.6, 1688.4], [130.8, 779.5], [187.7, 1124.0], [213.8, 1286.5], [222.6, 1344.5], [251.6, 1514.4], [173.1, 1048.8], [271.7, 1636.2], [251.8, 1513.8], [240.8, 1439.9], [191.8, 1133.8], [250.6, 1503.9], [321.7, 1932.8], [163.8, 993.6], [239.2, 1424.6], [252.5, 1514.3], [216.5, 1279.7], [212.0, 1268.6], [192.3, 1156.9], [167.9, 1001.1], [259.3, 1560.3], [167.0, 996.9], [220.9, 1314.6], [235.7, 1407.2], [252.8, 1501.0], [207.9, 1241.8], [184.4, 1103.5], [128.4, 770.3], [229.5, 1372.1], [265.1, 1582.1], [206.5, 1248.2], [198.2, 1189.2], [275.8, 1653.8], [246.1, 1480.5], [225.1, 1359.1], [120.0, 703.3], [219.0, 1315.7], [214.9, 1281.1], [221.2, 1338.5], [249.0, 1500.8], [191.0, 1160.8], [188.1, 1130.1], [199.4, 1208.3], [296.2, 1769.2], [135.9, 816.7], [248.8, 1493.1], [205.9, 1244.9], [120.0, 708.7], [318.2, 1911.4], [250.6, 1504.5], [238.6, 1444.6], [260.5, 1551.8], [171.7, 1037.2], [272.7, 1640.9], [273.6, 1634.5], [252.9, 1522.3], [259.1, 1548.1], [146.2, 866.2], [294.6, 1786.3], [234.1, 1412.9], [178.5, 1073.1], [203.3, 1217.6], [247.7, 1487.0], [135.1, 801.6], [271.8, 1622.4], [214.1, 1290.6], [315.4, 1889.7], [183.5, 1109.0], [151.1, 908.8], [309.0, 1853.5], [141.7, 841.9], [269.6, 1623.5], [270.5, 1637.2], [158.5, 956.7], [235.5, 1399.1], [294.6, 1764.9], [210.2, 1259.5], [156.3, 928.7], [225.1, 1345.9], [164.6, 987.5], [209.1, 1246.5], [128.2, 767.2], [251.3, 1516.4]], "order_decoys": {"slope6": 6, "fmax": 340}, "sat_curve": {"id": [60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280], "h5": [0.146, 0.267, 0.427, 0.626, 0.865, 1.145, 1.466, 1.83, 2.235, 2.683, 3.174, 3.709], "h7": [0.085, 0.165, 0.275, 0.419, 0.597, 0.812, 1.065, 1.357, 1.689, 2.063, 2.48, 2.941]}, "res_curve": {"ratio": [0.6, 0.62, 0.64, 0.66, 0.68, 0.7, 0.72, 0.74, 0.76, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12, 1.14, 1.16, 1.18, 1.2, 1.22, 1.24, 1.26, 1.28, 1.3, 1.32, 1.34, 1.36, 1.38, 1.4], "spl": [45.84, 46.17, 46.53, 46.91, 47.32, 47.77, 48.25, 48.77, 49.35, 49.97, 50.66, 51.43, 52.28, 53.24, 54.32, 55.55, 56.94, 58.5, 60.14, 61.52, 62.0, 61.2, 59.58, 57.77, 56.05, 54.5, 53.12, 51.88, 50.76, 49.75, 48.82, 47.96, 47.17, 46.42, 45.73, 45.07, 44.45, 43.86, 43.31, 42.77, 42.26], "Q": 10.0}, "force_orders": {"orders": [2, 4, 6, 8, 10, 12], "before": [6, 9, 26, 7, 4, 3], "after": [6, 9, 11.1, 7, 4, 3]}, "spl_hist": {"loud": 68, "quiet": 252}, "mitig": {"hci_drop": 14.9, "dither_drop": 8.2, "hci_cancel_pct": 82, "detune_pct": 18}, "strat": {"aggr_spl": 60.3, "cons_spl": 45.4, "aggr_id": 237.0, "cons_id": 109.0, "loud_resonant_frac": 0.94}};
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#1C1A17",inkSoft:"#564E42",ruleSoft:"#E6DECE",petrol:"#15616D",
+    signal:"#C2410C",bad:"#B0413A",good:"#15803D",amber:"#B45309",slate:"#4A5568"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function tx(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,
+    "font-size":o.fs||11,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});e.textContent=s;return e;}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+
+  // ---- F1 complaint map: i_d vs SPL colored by resonant ----
+  (function(){const svg=D("f1");if(!svg)return;
+    const W=760,H=400,ml=60,mr=24,mt=20,mb=48;
+    const p=NVH.scatter_id; const xmax=300,ymax=Math.max(...p.map(d=>d[1]))*1.04;
+    const x=sc(0,xmax,ml,W-mr), y=sc(28,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=28+(ymax-28)*i/4,yy=y(v);
+      E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10.5});}
+    [0,75,150,225,300].forEach(v=>tx(svg,x(v),H-mb+18,v,{fs:10.5}));
+    tx(svg,(ml+W-mr)/2,H-10,"d-axis heating current  i_d (A)");
+    tx(svg,ml-44,mt+2,"tonal",{fs:10,anchor:"start"});tx(svg,ml-44,mt+14,"dB(A)",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:ml,y1:y(60),x2:W-mr,y2:y(60),stroke:C.inkSoft,"stroke-dasharray":"3 3"});
+    tx(svg,W-mr,y(60)-5,"60 dB(A)",{anchor:"end",fs:9.5});
+    p.forEach(d=>{E(svg,"circle",{cx:x(d[0]),cy:y(d[1]),r:4,fill:d[3]?C.signal:C.petrol,opacity:.6});});
+  })();
+
+  // ---- F2 raw correlation bars ----
+  (function(){const svg=D("f2");if(!svg)return;
+    const W=760,H=340,ml=205,mr=66,mt=14,mb=34;
+    const raw=NVH.raw; const items=Object.keys(raw).map(k=>({k,r:raw[k].r})).sort((a,b)=>b.r-a.r);
+    const x=sc(0,1,ml,W-mr), bh=(H-mt-mb)/items.length;
+    [0,.25,.5,.75,1].forEach(v=>{const xx=x(v);E(svg,"line",{x1:xx,y1:mt,x2:xx,y2:H-mb,stroke:C.ruleSoft});tx(svg,xx,H-mb+18,v.toFixed(2),{fs:10.5});});
+    tx(svg,(ml+W-mr)/2,H-10,"Pearson r vs tonal SPL");
+    items.forEach((it,i)=>{const yy=mt+i*bh+6,h=bh-12;
+      const isPump=it.k.indexOf("Pump")===0,isId=it.k.indexOf("i_d")===0;
+      const col=isPump?C.bad:(isId?C.signal:(it.k.indexOf("Reson")===0?C.petrol:C.slate));
+      E(svg,"rect",{x:ml,y:yy,width:Math.max(x(it.r)-ml,0),height:h,fill:col,opacity:(isPump||isId)?.95:.6});
+      tx(svg,ml-10,yy+h/2+4,it.k,{anchor:"end",fs:11,fill:C.ink});
+      tx(svg,x(it.r)+6,yy+h/2+4,it.r.toFixed(2),{anchor:"start",fs:10.5,fill:col,weight:600});});
+  })();
+
+  // ---- F3 pump scatter ----
+  (function(){const svg=D("f3");if(!svg)return;
+    const W=760,H=380,ml=58,mr=24,mt=20,mb=48;const p=NVH.scatter_pump;
+    const ymax=Math.max(...p.map(d=>d[1]))*1.04;
+    const x=sc(0,100,ml,W-mr), y=sc(28,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=28+(ymax-28)*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10.5});}
+    [0,25,50,75,100].forEach(v=>tx(svg,x(v),H-mb+18,v,{fs:10.5}));
+    tx(svg,(ml+W-mr)/2,H-10,"coolant-pump duty (%)");tx(svg,ml-42,mt+2,"tonal dB(A)",{fs:10,anchor:"start"});
+    // trend
+    let n=p.length,sx=0,sy=0,sxx=0,sxy=0;p.forEach(d=>{sx+=d[0];sy+=d[1];sxx+=d[0]*d[0];sxy+=d[0]*d[1];});
+    const b=(n*sxy-sx*sy)/(n*sxx-sx*sx),a=(sy-b*sx)/n;
+    E(svg,"line",{x1:x(20),y1:y(a+b*20),x2:x(95),y2:y(a+b*95),stroke:C.ink,"stroke-dasharray":"5 4",opacity:.5,"stroke-width":1.5});
+    p.forEach(d=>{E(svg,"circle",{cx:x(d[0]),cy:y(d[1]),r:4,fill:d[2]?C.bad:C.slate,opacity:.55});});
+  })();
+
+  // ---- F4 raw vs partial bars ----
+  (function(){const svg=D("f4");if(!svg)return;
+    const W=760,H=380,ml=58,mr=20,mt=20,mb=70;
+    const rows=[
+      {lab:"Pump duty",raw:NVH.raw["Pump duty (%)"].r,par:NVH.partial_ctrl_id["Pump duty (%)"].r},
+      {lab:"Resonance",raw:NVH.raw["Resonance gain (dB)"].r,par:NVH.partial_ctrl_id["Resonance gain (dB)"].r},
+      {lab:"Inj. freq",raw:NVH.raw["Inj. frequency (Hz)"].r,par:NVH.partial_ctrl_id["Inj. frequency (Hz)"].r},
+      {lab:"i_d *",raw:NVH.raw["i_d injection (A)"].r,par:NVH.id_ctrl_pump.r},
+    ];
+    const y=sc(0,1,H-mb,mt),gw=(W-mr-ml)/rows.length;
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,v.toFixed(2),{anchor:"end",fs:10.5});});
+    tx(svg,ml-44,mt+2,"|r|",{fs:11,anchor:"start"});
+    rows.forEach((rw,i)=>{const cx=ml+gw*i+gw/2,bw=Math.min(40,gw*.34);
+      const ra=Math.abs(rw.raw),pa=Math.abs(rw.par);
+      E(svg,"rect",{x:cx-bw-3,y:y(ra),width:bw,height:(H-mb)-y(ra),fill:C.slate,opacity:.85});
+      tx(svg,cx-bw/2-3,y(ra)-5,rw.raw.toFixed(2),{fs:10,fill:C.slate});
+      E(svg,"rect",{x:cx+3,y:y(pa),width:bw,height:(H-mb)-y(pa),fill:C.signal,opacity:.92});
+      tx(svg,cx+bw/2+3,y(pa)-5,rw.par.toFixed(2),{fs:10,fill:C.signal});
+      tx(svg,cx,H-mb+20,rw.lab,{fs:11.5,fill:C.ink});});
+    tx(svg,ml+gw*0+gw/2,H-mb+38,"collapses",{fs:9.5,fill:C.bad});
+    tx(svg,ml+gw*1+gw/2,H-mb+38,"emerges",{fs:9.5,fill:C.petrol});
+    tx(svg,ml+gw*3+gw/2,H-mb+38,"survives",{fs:9.5,fill:C.signal});
+    tx(svg,W-mr,H-10,"* i_d partial controls for pump",{anchor:"end",fs:9.5});
+  })();
+
+  // ---- F5 order tracking ----
+  (function(){const svg=D("f5");if(!svg)return;
+    const W=760,H=400,ml=64,mr=24,mt=20,mb=48;const p=NVH.scatter_order;
+    const x=sc(120,340,ml,W-mr), y=sc(600,2100,H-mb,mt);
+    [600,1000,1400,1800,2100].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,v,{anchor:"end",fs:10});});
+    [150,220,290,340].forEach(v=>tx(svg,x(v),H-mb+18,v,{fs:10.5}));
+    tx(svg,(ml+W-mr)/2,H-10,"injection frequency  f_inj (Hz)");
+    tx(svg,ml-50,mt+2,"tonal",{fs:10,anchor:"start"});tx(svg,ml-50,mt+14,"freq Hz",{fs:10,anchor:"start"});
+    // decoy lines
+    E(svg,"line",{x1:x(120),y1:y(120*2),x2:x(340),y2:y(340*2),stroke:C.slate,"stroke-dasharray":"4 4",opacity:.6});
+    tx(svg,x(330),y(330*2)-6,"pump order (×2)",{fs:9,fill:C.slate,anchor:"end"});
+    E(svg,"line",{x1:x(120),y1:y(900),x2:x(340),y2:y(900),stroke:C.slate,"stroke-dasharray":"2 4",opacity:.5});
+    tx(svg,x(150),y(900)-6,"bearing band",{fs:9,fill:C.slate,anchor:"start"});
+    // slope-6 line
+    E(svg,"line",{x1:x(120),y1:y(120*6),x2:x(340),y2:y(340*6),stroke:C.signal,"stroke-width":2.4});
+    tx(svg,x(300),y(300*6)+16,"6 × f_inj",{fs:11,fill:C.signal,anchor:"middle"});
+    p.forEach(d=>{E(svg,"circle",{cx:x(d[0]),cy:y(d[1]),r:3.5,fill:C.signal,opacity:.55});});
+  })();
+
+  // ---- F6 saturation curve ----
+  (function(){const svg=D("f6");if(!svg)return;
+    const W=760,H=360,ml=58,mr=24,mt=20,mb=46;const s=NVH.sat_curve;
+    const xmax=Math.max(...s.id),ymax=Math.max(...s.h5,...s.h7)*1.08;
+    const x=sc(40,xmax,ml,W-mr), y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,v.toFixed(1),{anchor:"end",fs:10});}
+    [60,120,180,240].forEach(v=>tx(svg,x(v),H-mb+18,v,{fs:10.5}));
+    tx(svg,(ml+W-mr)/2,H-10,"d-axis current i_d (A)");tx(svg,ml-46,mt+2,"harm.",{fs:10,anchor:"start"});tx(svg,ml-46,mt+14,"ampl.",{fs:10,anchor:"start"});
+    E(svg,"path",{d:pathD(s.id.map((a,i)=>[x(a),y(s.h5[i])])),fill:"none",stroke:C.signal,"stroke-width":2.6});
+    E(svg,"path",{d:pathD(s.id.map((a,i)=>[x(a),y(s.h7[i])])),fill:"none",stroke:C.petrol,"stroke-width":2.6});
+    tx(svg,x(250),y(s.h5[s.h5.length-1])+4,"5th",{fs:11,fill:C.signal,anchor:"start"});
+    tx(svg,x(250),y(s.h7[s.h7.length-1])-6,"7th",{fs:11,fill:C.petrol,anchor:"start"});
+  })();
+
+  // ---- F7 resonance curve ----
+  (function(){const svg=D("f7");if(!svg)return;
+    const W=760,H=360,ml=58,mr=24,mt=20,mb=46;const r=NVH.res_curve;
+    const ymax=Math.max(...r.spl)*1.04,ymin=Math.min(...r.spl)-2;
+    const x=sc(0.6,1.4,ml,W-mr), y=sc(ymin,ymax,H-mb,mt);
+    [0.6,0.8,1.0,1.2,1.4].forEach(v=>{const xx=x(v);E(svg,"line",{x1:xx,y1:mt,x2:xx,y2:H-mb,stroke:C.ruleSoft});tx(svg,xx,H-mb+18,v.toFixed(1),{fs:10.5});});
+    for(let i=0;i<=3;i++){const v=ymin+(ymax-ymin)*i/3,yy=y(v);tx(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10});}
+    tx(svg,(ml+W-mr)/2,H-10,"6·f_inj / f_mode");tx(svg,ml-44,mt+2,"SPL dB(A)",{fs:10,anchor:"start"});
+    E(svg,"line",{x1:x(1),y1:mt,x2:x(1),y2:H-mb,stroke:C.signal,"stroke-dasharray":"3 3",opacity:.7});
+    tx(svg,x(1),mt-4,"resonance",{fs:9.5,fill:C.signal});
+    E(svg,"path",{d:pathD(r.ratio.map((rr,i)=>[x(rr),y(r.spl[i])])),fill:"none",stroke:C.petrol,"stroke-width":2.8});
+  })();
+
+  // ---- F8 force-order spectrum before/after ----
+  (function(){const svg=D("f8");if(!svg)return;
+    const W=760,H=360,ml=58,mr=24,mt=20,mb=48;const fo=NVH.force_orders;
+    const ymax=Math.max(...fo.before)*1.12;
+    const n=fo.orders.length,gw=(W-mr-ml)/n,y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});tx(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10});}
+    tx(svg,(ml+W-mr)/2,H-10,"radial-force temporal order (× f_inj)");tx(svg,ml-44,mt+2,"dB",{fs:10,anchor:"start"});
+    fo.orders.forEach((o,i)=>{const cx=ml+gw*i+gw/2,bw=Math.min(30,gw*.32);
+      E(svg,"rect",{x:cx-bw-2,y:y(fo.before[i]),width:bw,height:(H-mb)-y(fo.before[i]),fill:C.slate,opacity:.85});
+      E(svg,"rect",{x:cx+2,y:y(fo.after[i]),width:bw,height:(H-mb)-y(fo.after[i]),fill:C.good,opacity:.85});
+      tx(svg,cx,H-mb+20,o+"th",{fs:11,fill:o===6?C.signal:C.ink,weight:o===6?600:400});});
+    tx(svg,ml+gw*2+gw/2,y(fo.before[2])-8,"target",{fs:9.5,fill:C.signal});
+  })();
+
+  // ---- fill inline numbers ----
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  set("r_pump",NVH.raw["Pump duty (%)"].r.toFixed(2));
+  set("r_pump2",NVH.raw["Pump duty (%)"].r.toFixed(2));
+  set("rp_pump",NVH.partial_ctrl_id["Pump duty (%)"].r.toFixed(2));
+  set("rp_pump2",NVH.partial_ctrl_id["Pump duty (%)"].r.toFixed(2));
+  set("rid_pump",NVH.id_ctrl_pump.r.toFixed(2));
+  set("m1_c",NVH.reg.m1_pump_coef.toFixed(3));set("m1_r2",NVH.reg.m1_r2.toFixed(2));
+  set("m2_c",NVH.reg.m2_pump_coef.toFixed(3));set("m2_r2",NVH.reg.m2_r2.toFixed(2));
+  set("m3_c",NVH.reg.m3_pump_coef.toFixed(3));set("m3_r2",NVH.reg.m3_r2.toFixed(2));
+  set("r2chain",NVH.reg.m1_r2.toFixed(2)+" → "+NVH.reg.m2_r2.toFixed(2)+" → "+NVH.reg.m3_r2.toFixed(2));
+  set("qf",NVH.QF);
+  set("aggr_spl",NVH.strat.aggr_spl);set("cons_spl",NVH.strat.cons_spl);
+  set("hci_pct",NVH.mitig.hci_cancel_pct);set("hci_drop",NVH.mitig.hci_drop);
+  set("detune_pct",NVH.mitig.detune_pct);set("dither_drop",NVH.mitig.dither_drop);
+  set("t_hci","≈ "+NVH.mitig.hci_drop+" dB");set("t_dither","≈ "+NVH.mitig.dither_drop+" dB");
+})();
+</script>
+<script>
+// ============ BLOCK DIAGRAMS + PROGNOSIS CHARTS ============
+const NVHPROG = {"weeks": 26, "no_fix": {"months": [0.0, 0.23, 0.46, 0.69, 0.92, 1.15, 1.38, 1.62, 1.85, 2.08, 2.31, 2.54, 2.77, 3.0, 3.23, 3.46, 3.69, 3.92, 4.15, 4.38, 4.62, 4.85, 5.08, 5.31, 5.54, 5.77, 6.0], "p10": [0.0, 2.0, 4.0, 7.0, 11.0, 14.0, 17.0, 21.0, 24.0, 27.0, 31.0, 34.0, 38.0, 41.0, 44.0, 48.0, 52.0, 55.0, 58.0, 62.0, 65.0, 69.0, 73.0, 76.0, 80.0, 83.0, 86.0], "p50": [0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 28.0, 33.0, 37.0, 41.0, 45.0, 49.0, 53.0, 58.0, 62.0, 66.0, 70.0, 74.0, 78.0, 83.0, 87.0, 91.0, 95.0, 100.0, 104.0, 108.0], "p90": [0.0, 7.0, 12.0, 17.0, 22.0, 27.0, 32.0, 36.0, 41.0, 46.0, 50.0, 55.0, 59.0, 64.0, 69.0, 73.0, 78.0, 83.0, 87.0, 92.0, 97.0, 101.0, 106.0, 110.0, 115.0, 119.0, 123.1], "pof": [0.0, 0.075, 0.149, 0.217, 0.281, 0.332, 0.382, 0.432, 0.478, 0.514, 0.552, 0.587, 0.62, 0.648, 0.675, 0.7, 0.723, 0.748, 0.768, 0.787, 0.802, 0.817, 0.83, 0.844, 0.855, 0.866, 0.874], "med_wk": 8.0, "hist": [375, 710, 577, 500, 409, 366, 305, 256, 242, 193, 152, 136, 110, 40], "edges": [0.0, 0.46, 0.92, 1.38, 1.85, 2.31, 2.77, 3.23, 3.69, 4.15, 4.62, 5.08, 5.54, 6.0, 6.46]}, "fix": {"months": [0.0, 0.23, 0.46, 0.69, 0.92, 1.15, 1.38, 1.62, 1.85, 2.08, 2.31, 2.54, 2.77, 3.0, 3.23, 3.46, 3.69, 3.92, 4.15, 4.38, 4.62, 4.85, 5.08, 5.31, 5.54, 5.77, 6.0], "p10": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "p50": [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0, 3.0, 3.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0], "p90": [0.0, 1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0, 6.0, 7.0, 8.0, 9.0, 9.0, 10.0, 11.0, 11.0, 12.0, 13.0, 14.0, 14.0, 15.0, 16.0, 17.0, 17.0, 18.0, 19.0, 19.0], "pof": [0.0, 0.007, 0.012, 0.016, 0.02, 0.028, 0.034, 0.039, 0.044, 0.051, 0.057, 0.062, 0.066, 0.071, 0.078, 0.082, 0.086, 0.093, 0.098, 0.103, 0.107, 0.109, 0.115, 0.119, 0.121, 0.127, 0.132], "med_wk": 12.0, "hist": [33, 46, 60, 54, 64, 55, 45, 51, 59, 46, 34, 46, 42, 24], "edges": [0.0, 0.46, 0.92, 1.38, 1.85, 2.31, 2.77, 3.23, 3.69, 4.15, 4.62, 5.08, 5.54, 6.0, 6.46]}, "pof_3mo_nofix": 0.648, "pof_3mo_fix": 0.071, "med_mo_nofix": 1.8};
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#1C1A17",inkSoft:"#564E42",ruleSoft:"#E6DECE",petrol:"#15616D",
+    signal:"#C2410C",bad:"#B0413A",good:"#15803D",amber:"#B45309",slate:"#4A5568",paper:"#FAF7F0"};
+  const MONO="'IBM Plex Mono',monospace";
+  function D(id){return document.getElementById(id);}
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function ml_(p,x,y,arr,o){o=o||{};const lh=o.lh||13;
+    const t=E(p,"text",{x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,"text-anchor":o.anchor||"middle","font-size":o.fs||12,"font-weight":o.weight||500});
+    arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const t=E(p,"text",{x:x,y:y,"font-family":MONO,"font-size":o.fs||9.5,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400});t.textContent=s;return t;}
+  function box(svg,x,y,w,h,label,o){o=o||{};
+    E(svg,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,stroke:o.stroke||C.ink,"stroke-width":o.sw||1.6});
+    const arr=Array.isArray(label)?label:[label],lh=o.lh||13,fs=o.fs||12;
+    ml_(svg,x+w/2,y+h/2-(arr.length-1)*lh/2+fs*0.34,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});}
+  function diamond(svg,cx,cy,w,h,label,o){o=o||{};
+    E(svg,"polygon",{points:cx+","+(cy-h/2)+" "+(cx+w/2)+","+cy+" "+cx+","+(cy+h/2)+" "+(cx-w/2)+","+cy,fill:o.fill||"#EEE7D7",stroke:o.stroke||C.ink,"stroke-width":1.6});
+    const arr=Array.isArray(label)?label:[label];ml_(svg,cx,cy-(arr.length-1)*6+4,arr,{fs:o.fs||10.5,lh:12});}
+  function head(svg,x2,y2,ang,col){const s=7.5;E(svg,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+(x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col});}
+  function arrow(svg,x1,y1,x2,y2,o){o=o||{};const col=o.color||C.ink;
+    E(svg,"line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});head(svg,x2,y2,Math.atan2(y2-y1,x2-x1),col);}
+  function elbow(svg,pts,o){o=o||{};const col=o.color||C.ink;
+    for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];
+      E(svg,"line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:col,"stroke-width":o.w||1.7,"stroke-dasharray":o.dash||"","stroke-linecap":"round"});
+      if(i===pts.length-2)head(svg,b[0],b[1],Math.atan2(b[1]-a[1],b[0]-a[0]),col);}}
+  function sc(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+  function pathD(pts){return pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");}
+
+  // ---- bd1 mechanism chain ----
+  (function(){const svg=D("bd1");if(!svg)return;
+    const r1=[[14,"Aggressive","calibration"],[197,"High i_d","injection"],[380,"Magnetic","saturation"],[563,"5th & 7th","harmonics"]];
+    r1.forEach((b,i)=>{box(svg,b[0],60,165,54,[b[1],b[2]],{fs:12,stroke:i===0?C.petrol:C.ink});
+      if(i<3)arrow(svg,b[0]+165,87,r1[i+1][0],87);});
+    // wrap
+    elbow(svg,[[645,114],[645,140],[130,140],[130,180]],{color:C.ink});
+    box(svg,40,180,180,54,["6th-order force","@ 6·f_inj"],{fs:12,stroke:C.signal});
+    diamond(svg,400,207,120,80,["≈ stator","mode ?"]);
+    arrow(svg,220,207,340,207);
+    box(svg,560,180,170,54,["Tonal NVH"],{fs:13,stroke:C.signal,sw:2.2,fill:"#F7E0D2",tcolor:C.signal});
+    arrow(svg,460,207,560,207,{color:C.signal});
+    lab(svg,510,198,"yes ×Q",{fs:9.5,fill:C.signal});
+    arrow(svg,400,247,400,272,{color:C.slate});
+    lab(svg,400,286,"no → off-resonance: quiet",{fs:9.5,fill:C.slate});
+    // confounder
+    box(svg,14,262,120,42,["High pump","duty"],{fs:10.5,stroke:C.bad});
+    arrow(svg,96,114,74,262,{color:C.bad,dash:"5 4"});
+    elbow(svg,[[134,300],[645,300],[645,234]],{color:C.bad,dash:"5 4"});
+    const xm=350,ym=300;E(svg,"line",{x1:xm-6,y1:ym-6,x2:xm+6,y2:ym+6,stroke:C.bad,"stroke-width":2});E(svg,"line",{x1:xm-6,y1:ym+6,x2:xm+6,y2:ym-6,stroke:C.bad,"stroke-width":2});
+    lab(svg,250,294,"correlation, no cause",{fs:9,fill:C.bad});
+  })();
+
+  // ---- bd2 HCI control loop ----
+  (function(){const svg=D("bd2");if(!svg)return;
+    box(svg,14,70,110,46,["i_d*, i_q*"],{fs:11.5,stroke:C.petrol});
+    const sx=160,sy=93;E(svg,"circle",{cx:sx,cy:sy,r:14,fill:C.paper,stroke:C.ink,"stroke-width":1.6});lab(svg,sx,sy+5,"+",{fs:16,fill:C.ink,weight:600});
+    box(svg,205,70,95,46,["PI current","control"],{fs:11});
+    box(svg,315,70,110,46,["dq→abc","SVPWM"],{fs:11});
+    box(svg,440,70,85,46,["Inverter"],{fs:11.5});
+    box(svg,540,70,90,46,["PMSM"],{fs:12,stroke:C.petrol});
+    arrow(svg,124,93,sx-14,93);arrow(svg,sx+14,93,205,93);arrow(svg,300,93,315,93);arrow(svg,425,93,440,93);arrow(svg,525,93,540,93);
+    box(svg,300,230,120,44,["abc→dq"],{fs:11.5});
+    elbow(svg,[[585,116],[585,252],[420,252]],{color:C.slate});
+    lab(svg,500,244,"measured i_d, i_q",{fs:9,fill:C.slate});
+    elbow(svg,[[300,252],[160,252],[160,107]],{color:C.slate});
+    // injection
+    box(svg,470,296,160,44,["6th-order observer"],{fs:11,stroke:C.good});
+    box(svg,150,296,180,44,["anti-phase 6th ref"],{fs:11,stroke:C.good});
+    elbow(svg,[[360,274],[360,318],[470,318]],{color:C.good});
+    arrow(svg,470,318,330,318,{color:C.good});
+    elbow(svg,[[240,296],[240,150],[160,150],[160,107]],{color:C.good});
+    lab(svg,250,142,"injected into refs",{fs:9,fill:C.good,anchor:"start"});
+  })();
+
+  // ---- prognosis charts ----
+  if(typeof NVHPROG==="undefined")return;
+  const mo=NVHPROG.no_fix.months, mmax=mo[mo.length-1];
+  // pp1 fan (cumulative annoyance events)
+  (function(){const svg=D("pp1");if(!svg)return;
+    const W=760,H=360,ml=58,mr=24,mt=20,mb=46;const nf=NVHPROG.no_fix,fx=NVHPROG.fix;
+    const ymax=Math.max(...nf.p90)*1.05;
+    const x=sc(0,mmax,ml,W-mr),y=sc(0,ymax,H-mb,mt);
+    for(let i=0;i<=4;i++){const v=ymax*i/4,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10.5});}
+    [0,1,2,3,4,5,6].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo",{fs:10}));
+    lab(svg,(ml+W-mr)/2,H-10,"cold-season months");lab(svg,ml-46,mt+2,"annoy.",{fs:10,anchor:"start"});lab(svg,ml-46,mt+14,"events",{fs:10,anchor:"start"});
+    const up=mo.map((m,i)=>[x(m),y(nf.p90[i])]),lo=mo.map((m,i)=>[x(m),y(nf.p10[i])]).reverse();
+    E(svg,"path",{d:pathD(up.concat(lo))+" Z",fill:C.bad,opacity:.13});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(nf.p50[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(fx.p50[i])])),fill:"none",stroke:C.good,"stroke-width":3,"stroke-dasharray":"6 4"});
+    lab(svg,x(4.5),y(nf.p50[20])-8,"no fix",{fill:C.bad,fs:11});lab(svg,x(4.5),y(fx.p50[20])-8,"after HCI",{fill:C.good,fs:11});
+  })();
+  // pp2 complaint probability
+  (function(){const svg=D("pp2");if(!svg)return;
+    const W=760,H=350,ml=52,mr=24,mt=20,mb=46;const nf=NVHPROG.no_fix,fx=NVHPROG.fix;
+    const x=sc(0,mmax,ml,W-mr),y=sc(0,1,H-mb,mt);
+    [0,.25,.5,.75,1].forEach(v=>{const yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v*100)+"%",{anchor:"end",fs:10.5});});
+    [0,1,2,3,4,5,6].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo",{fs:10}));
+    lab(svg,(ml+W-mr)/2,H-10,"cold-season months");
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(nf.pof[i])])),fill:"none",stroke:C.bad,"stroke-width":3});
+    E(svg,"path",{d:pathD(mo.map((m,i)=>[x(m),y(fx.pof[i])])),fill:"none",stroke:C.good,"stroke-width":3});
+    E(svg,"line",{x1:x(3),y1:mt,x2:x(3),y2:H-mb,stroke:C.inkSoft,"stroke-dasharray":"2 3"});lab(svg,x(3),mt-4,"3 mo",{fs:9.5});
+    lab(svg,x(4),y(nf.pof[18])-8,"no fix",{fill:C.bad,fs:11,anchor:"start"});lab(svg,x(4),y(fx.pof[18])+14,"after HCI",{fill:C.good,fs:11,anchor:"start"});
+  })();
+  // pp3 time-to-complaint histogram
+  (function(){const svg=D("pp3");if(!svg)return;
+    const W=760,H=330,ml=52,mr=24,mt=20,mb=46;const nf=NVHPROG.no_fix;
+    const ed=nf.edges,h=nf.hist,hmax=Math.max(...h)*1.12;
+    const x=sc(0,mmax,ml,W-mr),y=sc(0,hmax,H-mb,mt);
+    for(let i=0;i<=3;i++){const v=hmax*i/3,yy=y(v);E(svg,"line",{x1:ml,y1:yy,x2:W-mr,y2:yy,stroke:C.ruleSoft});lab(svg,ml-9,yy+4,Math.round(v),{anchor:"end",fs:10});}
+    [0,1,2,3,4,5,6].forEach(m=>lab(svg,x(m),H-mb+18,m+"mo",{fs:10}));
+    lab(svg,(ml+W-mr)/2,H-10,"months to first complaint");lab(svg,ml-40,mt+2,"count",{fs:10,anchor:"start"});
+    for(let i=0;i<h.length;i++){const x0=x(ed[i]),x1=x(ed[i+1]);E(svg,"rect",{x:x0+1,y:y(h[i]),width:Math.max(x1-x0-2,1),height:(H-mb)-y(h[i]),fill:C.bad,opacity:.55});}
+    const med=NVHPROG.med_mo_nofix;E(svg,"line",{x1:x(med),y1:mt,x2:x(med),y2:H-mb,stroke:C.ink,"stroke-width":2});lab(svg,x(med),mt-4,"median "+med+"mo",{fs:9.5,fill:C.ink});
+  })();
+  function set(id,v){const e=D(id);if(e)e.textContent=v;}
+  set("pg_pof",Math.round(NVHPROG.pof_3mo_nofix*100)+"%");
+  set("pg_fix_pof",Math.round(NVHPROG.pof_3mo_fix*100)+"%");
+  set("pg_med",NVHPROG.med_mo_nofix);
+})();
+</script>
+</body>
+</html>

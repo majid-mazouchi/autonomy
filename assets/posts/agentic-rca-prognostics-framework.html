@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Human-Gated Agentic Framework for Root-Cause &amp; Prognostic Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#EFEDE5; --paper:#F8F6EE; --ink:#1A1A1C; --ink-soft:#4C4C54;
+  --rule:#D3CDBE; --rule-soft:#E3DDCE;
+  --navy:#2A4A7C; --signal:#BD5E26; --good:#2E7D52; --warn:#B7791F; --bad:#B0413A; --slate:#5A6472;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:860px; margin:0 auto; padding:0 26px}
+header.cover{padding:56px 0 30px; border-bottom:3px double var(--ink)}
+.classline{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-soft); display:flex; justify-content:space-between;
+  border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:26px; flex-wrap:wrap; gap:8px}
+.classline .sig{color:var(--signal)}
+.doctype{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--navy); margin:0 0 16px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(31px,5.6vw,54px);
+  line-height:1.06; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(17px,2.3vw,21px);
+  color:var(--ink-soft); margin:0 0 24px; max-width:66ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:0 0 22px}
+.byline b{color:var(--navy); font-weight:600}
+.metagrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px 26px;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; border-top:1px solid var(--rule); padding-top:18px}
+.metagrid div span{color:var(--ink-soft); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase}
+.metagrid div b{font-weight:600}
+.box{margin:30px 0; padding:22px 24px; background:var(--paper); border:1px solid var(--rule)}
+.box.summary{border-left:3px solid var(--navy)}
+.box.key{border-left:3px solid var(--signal); background:#F6ECE0}
+.box .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; display:block; margin-bottom:10px}
+.box.summary .lab{color:var(--navy)} .box.key .lab{color:var(--signal)}
+.box p{margin:0 0 12px} .box p:last-child{margin:0}
+section{padding:44px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em; color:var(--navy); display:block; margin-bottom:9px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(24px,3.6vw,33px); line-height:1.12; margin:0 0 16px; letter-spacing:-.01em}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:32px 0 9px}
+p{margin:0 0 15px} .lead{font-size:19px}
+strong{font-weight:600} em{font-style:italic}
+ul,ol{margin:0 0 16px; padding-left:22px} li{margin:0 0 8px}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink)}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--navy); margin-bottom:6px}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:13.5px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 9px; font-weight:600}
+.tbl td{padding:9px 9px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl b{color:var(--ink)}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:2px; white-space:nowrap}
+.tag.g{background:#F1E2CE; color:var(--signal)} .tag.k{background:#D6DEEA; color:var(--navy)} .tag.ok{background:#D5E5DD; color:var(--good)}
+.note{margin:22px 0; padding:15px 19px; background:#E7E3D6; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--signal); display:block; margin-bottom:6px}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--navy); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--signal)}
+.refs{font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.5}
+.refs h3{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--navy); margin:22px 0 8px}
+.refs li{margin:0 0 7px}
+footer{padding:50px 0 80px}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 0 20px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:3px 0}
+@media (max-width:560px){body{font-size:17px}.wrap{padding:0 18px}.metagrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+/* interactive diagram styles */
+svg.dgm .node{cursor:pointer}
+svg.dgm .node, svg.dgm .edge{transition:opacity .15s}
+svg.dgm.has-sel .node:not(.hl){opacity:.28}
+svg.dgm.has-sel .edge:not(.hl){opacity:.10}
+svg.dgm .node.hl rect, svg.dgm .node.hl polygon{stroke-width:3}
+.flowline{stroke-dasharray:6 7; animation:dgm-march .9s linear infinite}
+.busflow{stroke-dasharray:9 9; animation:dgm-march 1.2s linear infinite}
+@keyframes dgm-march{to{stroke-dashoffset:-13}}
+#dgm-tip{position:fixed; max-width:250px; background:#1A1A1C; color:#F4F1E8; font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px; line-height:1.45; padding:9px 12px; border-radius:7px; box-shadow:0 6px 18px rgba(0,0,0,.28);
+  opacity:0; transition:opacity .12s; pointer-events:none; z-index:200}
+#dgm-tip b{color:#fff}
+.dgm-ctrl{font-family:"IBM Plex Mono",monospace; font-size:12px; margin:8px 0 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.dgm-ctrl button{font-family:"IBM Plex Mono",monospace; font-size:11.5px; padding:4px 13px; border:1px solid var(--rule);
+  background:var(--paper); color:var(--navy); border-radius:5px; cursor:pointer}
+.dgm-ctrl button:hover{background:#fff}
+.dgm-ctrl .hint{color:var(--ink-soft); font-size:11px}
+@media (prefers-reduced-motion:reduce){.flowline,.busflow{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--navy);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <div class="classline"><span>Systems Architecture · Agentic VHM</span><span class="sig">NOTE-2026-ARCH-01</span></div>
+  <p class="doctype">Architecture Monograph</p>
+  <h1>A Human-Gated Agentic Framework for Root-Cause &amp; Prognostic Analysis</h1>
+  <p class="subtitle">How to replace the human analyst at the keyboard — but not the human judgment — with a closed-loop team of AI agents that finds the root cause, forecasts what happens next, and asks a person before it does anything that matters.</p>
+  <p class="byline">By <b>Majid Mazouchi</b></p>
+  <div class="metagrid">
+    <div><span>Scope</span><b>RCA → prognosis, closed loop</b></div>
+    <div><span>Pattern</span><b>Hybrid · human-in-the-loop</b></div>
+    <div><span>Substrate</span><b>LLM agents + deterministic tools</b></div>
+    <div><span>Grounding</span><b>The five worked RCA case studies</b></div>
+  </div>
+  <div class="reslinks">
+    <span class="ic">▸</span> Worked examples this framework automates:
+    <a href="root-cause-analysis-battery-case-study.html">Battery</a>
+    <a href="nvh-preconditioning-rca-report.html">NVH</a>
+    <a href="manufacturing-rca-report.html">Manufacturing</a>
+    <a href="environmental-rca-report.html">Environmental</a>
+    <a href="usage-rca-report.html">Usage</a>
+    <a href="framework-battery-walkthrough.html" style="color:var(--signal)">▶ See it run (battery)</a>
+  </div>
+</header>
+
+<div class="box summary">
+  <span class="lab">In one paragraph</span>
+  <p>Across five case studies — battery fade, NVH, weld resistance, isolation faults, brake corrosion — the <em>method</em> never changed: define the symptom, list candidate causes, screen them statistically, reject the confounders, abduce the best explanation, confirm it with a physical signature, then forecast the future and decide what to do. This document turns that repeatable method into a <strong>framework of cooperating AI agents</strong>. Numbers are computed by real tools, not guessed by a language model; physics decides whether a cause is even possible; and a human signs off at the few points where being wrong is expensive or unsafe. The loop does not stop at the diagnosis: it forecasts remaining life, recommends a fix, watches whether the fix worked, and remembers the case for next time.</p>
+</div>
+
+<!-- 1 -->
+<section id="s1">
+  <span class="snum">1 — What we are automating, and why gate it</span>
+  <h2>The method, then the machine</h2>
+  <p class="lead">The five reports all walk the same path. That path is the specification for the agents.</p>
+  <p>Every case study followed one pipeline: a <strong>symptom</strong> is observed; <strong>hypotheses</strong> are drawn from a small set of failure-mode families (mechanical, thermal, electrical, software, manufacturing, usage, environmental); a <strong>statistical screen</strong> finds what correlates; <strong>confounders are rejected</strong> by holding variables constant and by asking whether a physical mechanism even exists; the surviving explanation is reached by <strong>abduction</strong>; it is <strong>confirmed</strong> by a signature unique to the cause (a control-chart sawtooth, a diurnal peak, an order-tracking spike); the <strong>root cause</strong> is stated; a <strong>mitigation</strong> is designed; and a <strong>prognosis</strong> forecasts what happens with and without the fix.</p>
+  <p>Because the steps are explicit, they can be handed to agents. But three of them carry real consequences — declaring a root cause, approving a fix, and acting on a fleet — so those get <strong>human gates</strong>. The goal is not full autonomy; it is to do the slow, repetitive 90% automatically and bring a person in for the 10% that needs judgment or carries liability.</p>
+  <div class="note">
+    <span class="lab">Three words in the title</span>
+    <b>Hybrid</b> — language-model agents do the reasoning and orchestration; deterministic tools (statistics, causal inference, physics simulators) do the calculating. <b>Closed-loop</b> — the system acts, then measures whether the action worked, and learns. <b>Human-gated</b> — at a few defined checkpoints a person must approve before the loop continues.
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <span class="snum">2 — Design principles</span>
+  <h2>Seven rules that keep it honest</h2>
+  <ol>
+    <li><strong>The model plans; the tools compute.</strong> A language model should never eyeball a p-value or a remaining-life number. It decides <em>which</em> test to run, then calls a real function that runs it. This is what makes the system trustworthy and reproducible.</li>
+    <li><strong>Every claim is grounded.</strong> A stated cause must point to a specific tool output or data row. A verifier rejects any sentence that is not backed by evidence — this is how hallucinated mechanisms are caught.</li>
+    <li><strong>Physics is a hard gate.</strong> A strong correlation is not a cause if no physical pathway exists. The framework keeps a mechanism check that can veto a statistically attractive but physically impossible explanation (the supplier-lot trap in three of the five cases).</li>
+    <li><strong>Humans gate the expensive and the irreversible.</strong> Declaring a root cause, approving a mitigation, and acting on the fleet are checkpoints, not autonomous steps.</li>
+    <li><strong>Everything is reproducible and auditable.</strong> Versioned data, fixed random seeds, and a full trace of every agent step and tool call. If asked "why did you conclude this?", the system can replay the path.</li>
+    <li><strong>Start supervised, earn autonomy.</strong> Begin with a human approving almost everything; relax gates only for case types the system has proven it handles (see the autonomy ladder, §7).</li>
+    <li><strong>Remember every case.</strong> A resolved case becomes a retrievable memory, so the next similar symptom starts from prior experience instead of a blank page.</li>
+  </ol>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <span class="snum">3 — The framework at a glance</span>
+  <h2>The complete reference architecture</h2>
+  <p>Read it top to bottom as authority, bottom to top as flow. People sit at the top and approve. The orchestrator plans. A team of specialist agents does the work, checked by a verification layer, computing through deterministic tools, all standing on a foundation of data and knowledge. A feedback bus along the bottom closes the loop. <em>The diagrams below are interactive — hover or tap any block for what it does; the workflow can be played step by step, and the loop animates.</em></p>
+  <figure>
+    <div class="figlab">Figure 1 — Layered reference architecture</div>
+    <svg id="d1" viewBox="0 0 820 630" role="img" aria-label="Layered reference architecture diagram"></svg>
+    <figcaption><b>Six layers plus a feedback bus.</b> Human gates (approvals) · orchestration &amp; memory (the planner and the workflow graph) · the agent team (one specialist per RCA stage) · verification &amp; guardrails (the checks that keep agents honest) · tools, now including the ingestion that turns documents into context · and at the base, data &amp; knowledge held as both <span style="color:var(--signal)"><b>structured</b></span> signals and <span style="color:var(--signal)"><b>unstructured</b></span> records, fused into a feature store, a vector index, and a <span style="color:var(--signal)"><b>knowledge graph</b></span>. The bottom bar is the closed loop: deploy, monitor, detect drift, learn, update the graph.</figcaption>
+  </figure>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <span class="snum">4 — The components, one layer at a time</span>
+  <h2>What the framework needs</h2>
+
+  <h3>4.1 — Data &amp; knowledge (the foundation)</h3>
+  <p>Nothing works without a clean, queryable substrate — and a working version of this framework taught us that the substrate is <em>two kinds of evidence, not one</em>. The <strong>structured</strong> side is the numeric record: telematics and a <strong>feature store</strong> (time-series signals, measurements), <strong>build genealogy</strong> (which part, lot, station, software version went into which vehicle), and charge/cycle logs. The <strong>unstructured</strong> side is everything that does not fit in a column: <strong>service and repair notes</strong>, <strong>technical bulletins (TSBs)</strong> and engineering memos, the <strong>DTC catalog</strong> that defines each trouble code, <strong>OEM manuals and component datasheets</strong> (where the physical limits live), and <strong>prior RCA reports</strong>.</p>
+  <p>The two flow through different ingestion lanes (the tools of §4.4) into one working context. Numeric data is joined into the feature store. Documents are parsed (and OCR'd), chunked and embedded into a <strong>vector index</strong> for retrieval (RAG), and mined for entities and relationships that populate a <strong>knowledge graph</strong>; DTC codes are decoded to the subsystems they implicate. The knowledge graph then links structured genealogy to extracted facts — <em>this VIN runs this firmware; this firmware runs the balancing routine; a bulletin references that routine</em> — so an agent can traverse from a loose symptom to a short list of mechanistically connected suspects. A <strong>case memory</strong> of past resolved RCAs (with their signatures) and a <strong>provenance/audit</strong> store complete the layer, the latter keeping every retrieved fact tied to its source document. Practical note: most failed investigations fail here — missing genealogy, un-joined data, or unread documents — not in the reasoning.</p>
+
+  <h3>4.2 — Orchestration &amp; memory (the planner)</h3>
+  <p>The <strong>orchestrator</strong> (a supervisor agent) turns a symptom into a plan and walks it through a <strong>state graph</strong> — the explicit workflow of Figure 2, where each node is a stage and edges include loops and human gates. It manages <strong>working memory</strong> (the current case file) and <strong>long-term memory</strong> (retrieval over past cases). Think of it as the lead investigator who assigns tasks, not the one doing every calculation.</p>
+
+  <h3>4.3 — The agent team (one specialist per stage)</h3>
+  <p>Each RCA stage becomes a focused agent with a narrow job, its own tools, and a clear hand-off. Narrow agents are easier to test and harder to derail than one do-everything agent.</p>
+  <table class="tbl">
+    <thead><tr><th>Agent</th><th>Its one job</th><th>Tools it calls</th><th>Feeds gate</th></tr></thead>
+    <tbody>
+      <tr><td><b>Triage</b></td><td>Define the symptom, scope, and success criteria</td><td>Data query, case retrieval</td><td>G1</td></tr>
+      <tr><td><b>Hypothesis</b></td><td>List candidate causes across the 7 families</td><td>FMEA/taxonomy KB, retrieval</td><td>G1</td></tr>
+      <tr><td><b>Statistics</b></td><td>Correlation screen; the four-gate test</td><td>Code sandbox, stats/ML</td><td>—</td></tr>
+      <tr><td><b>Causal / confounder</b></td><td>Hold variables constant; reject proxies</td><td>Causal inference (partial corr, DAG)</td><td>—</td></tr>
+      <tr><td><b>Physics / mechanism</b></td><td>Does a physical pathway exist? Simulate it</td><td>Physics sim / surrogate models</td><td>G2</td></tr>
+      <tr><td><b>Confirmation</b></td><td>Design the signature test (sawtooth, diurnal…)</td><td>Code sandbox, signal processing</td><td>G2</td></tr>
+      <tr><td><b>Synthesis</b></td><td>State the root cause with evidence</td><td>—</td><td>G2</td></tr>
+      <tr><td><b>Mitigation</b></td><td>Propose containment + corrective + robustness</td><td>KB, simulation (what-if)</td><td>G3</td></tr>
+      <tr><td><b>Prognostics</b></td><td>Forecast RUL / probability of failure</td><td>Survival models, Monte-Carlo</td><td>G4</td></tr>
+      <tr><td><b>Reporter</b></td><td>Generate the human-readable report</td><td>Templating</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.4 — Tools (where the real computing happens)</h3>
+  <p>The hybrid principle lives here. Agents call deterministic functions: a sandboxed <strong>code executor</strong> (Python with pandas, SciPy, scikit-learn), <strong>statistical/ML</strong> routines, a <strong>causal-inference</strong> toolkit (partial correlation, mediation, DAGs), and <strong>physics simulators or surrogates</strong> (thermal, electromagnetic, electrochemical). This layer also owns the <strong>ingestion tools</strong> the data layer depends on: document <strong>parsing/OCR</strong>, <strong>chunking and embedding</strong>, <strong>entity-and-relation extraction</strong> (to build the knowledge graph), a <strong>DTC decoder</strong>, and <strong>retrieval (RAG)</strong> over the vector index. The numbers in every figure of the five reports came from tools exactly like these — never from prose; and the priors, meanings, and physical limits came from these retrieval and extraction tools.</p>
+
+  <h3>4.5 — Verification &amp; guardrails (keeping agents honest)</h3>
+  <p>This is the layer that makes the difference between a demo and a system you trust. It encodes the four-gate test as machine checks and adds grounding, uncertainty, and a critic.</p>
+  <table class="tbl">
+    <thead><tr><th>Gate / check</th><th>Question</th><th>How it is enforced</th></tr></thead>
+    <tbody>
+      <tr><td><b>Association</b></td><td>Does it correlate?</td><td>Effect size above a set floor</td></tr>
+      <tr><td><b>Significance</b></td><td>Could it be chance?</td><td>p-value / confidence on held-out data</td></tr>
+      <tr><td><b>Materiality</b></td><td>Does it explain enough?</td><td>Variance explained (ΔR²) threshold</td></tr>
+      <tr><td><b>Mechanism</b></td><td>Is it physically possible?</td><td>Physics agent must find a pathway</td></tr>
+      <tr><td><b>Grounding</b></td><td>Is the claim backed by data?</td><td>Verifier rejects uncited statements; each fact links to its source row or document</td></tr>
+      <tr><td><b>Uncertainty</b></td><td>How sure are we?</td><td>Confidence score attached to every output</td></tr>
+      <tr><td><b>Evidence fusion</b></td><td>Do independent streams agree?</td><td>A root cause must converge statistics + mechanism + graph, not rest on one</td></tr>
+      <tr><td><b>Critic / reflection</b></td><td>What did we miss?</td><td>Second agent argues the opposite case</td></tr>
+    </tbody>
+  </table>
+  <p>The critic deserves emphasis: a dedicated agent whose only job is to attack the leading explanation — propose a confounder, demand the mechanism, look for the alternative. This is the structural defense against an agent falling in love with its first idea. Equally important is <strong>evidence fusion</strong>: the strongest conclusions are the ones where independent streams agree — a statistical result, a physical mechanism drawn from a datasheet, and a path through the knowledge graph all pointing the same way. A cause backed by only one stream is treated as a lead, not a verdict.</p>
+
+  <h3>4.6 — Human gates (the people in the loop)</h3>
+  <p>Four checkpoints, each an asynchronous approval with full context and a one-click override. Gates are where accountability lives.</p>
+  <table class="tbl">
+    <thead><tr><th>Gate</th><th>Before…</th><th>The human sees</th><th>Can…</th></tr></thead>
+    <tbody>
+      <tr><td><b>G1</b></td><td>committing to a hypothesis set</td><td>symptom, scope, candidate causes</td><td>add/cut hypotheses</td></tr>
+      <tr><td><b>G2</b></td><td>declaring the root cause</td><td>evidence, confounders rejected, mechanism, confidence</td><td>accept / send back</td></tr>
+      <tr><td><b>G3</b></td><td>committing to a mitigation</td><td>options, trade-offs, simulated effect</td><td>choose / revise</td></tr>
+      <tr><td><b>G4</b></td><td>acting on the fleet</td><td>prognosis, who is affected, risk</td><td>approve / stage / hold</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.7 — The prognostics engine</h3>
+  <p>Diagnosis answers "what is wrong"; prognosis answers "what happens next, and when." Once the mechanism is known, a degradation model projects it forward: remaining useful life (RUL), probability of failure over time, and the effect of each mitigation. The engine uses <strong>survival / reliability models</strong> (Weibull, Cox), <strong>physics-of-failure</strong> projections, and <strong>Monte-Carlo</strong> simulation for confidence intervals — exactly the prognosis sections of the five reports (RUL fans, escape-vs-interval curves, fault-day forecasts). Crucially, it reports uncertainty, not a single number, so G4 is an informed decision.</p>
+
+  <h3>4.8 — Closed-loop feedback &amp; learning</h3>
+  <p>After G4, the chosen action is deployed (an OTA update, a maintenance-interval change, a field bulletin). The loop then <strong>monitors the outcome</strong> — did the fault rate fall, did Cpk rise, did the dawn fault peak vanish? It runs <strong>drift detection</strong> to catch the world changing, <strong>updates the case memory</strong> so the next investigation is faster, and <strong>re-opens automatically</strong> if the symptom recurs. This is what makes it a loop rather than a one-shot report generator.</p>
+
+  <h3>4.9 — Observability, evaluation &amp; governance</h3>
+  <p>Around all of it: full <strong>tracing</strong> of agent steps and tool calls; an <strong>evaluation harness</strong> that replays known cases (the five reports make an ideal golden set — the system must reproduce each ground-truth root cause); <strong>cost and latency</strong> tracking; <strong>access control</strong> and <strong>audit logs</strong>; and alignment with safety and quality standards (§10). If you cannot measure whether the agents are right, you cannot relax the gates.</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <span class="snum">5 — How it flows end to end</span>
+  <h2>One symptom, all the way around</h2>
+  <p>The orchestrator walks the state graph below. Forward edges advance the case; the dashed edges are the loops that make it honest and closed: send-back when evidence is thin, and re-open when a fix recurs.</p>
+  <figure>
+    <div class="figlab">Figure 2 — End-to-end workflow (state graph with gates)</div>
+    <svg id="d2" viewBox="0 0 820 500" role="img" aria-label="End-to-end workflow state graph"></svg>
+    <figcaption><b>The investigation as a graph.</b> Diamonds are human gates (G1–G4). The long dashed edge on the left is the closed loop — continuous monitoring re-opens the case on recurrence. A shorter loop (confirmation → hypotheses) fires when the evidence does not survive the four-gate test, sending the team back for a better explanation.</figcaption>
+  </figure>
+  <p>Walk the weld-resistance case through it. <strong>Triage</strong>: modules fail the resistance spec. <strong>Hypotheses</strong>: lot, electrode wear, station, energy, line speed (G1 approved). <strong>Statistics</strong>: lot and station correlate. <strong>Causal</strong>: holding electrode wear constant collapses both — they were proxies. <strong>Physics</strong>: foil resistivity is in spec, so the lot has no mechanism (veto). <strong>Confirmation</strong>: the SPC sawtooth appears, the fingerprint of tool wear. <strong>Synthesis</strong>: root cause is the dressing interval (G2 signed off). <strong>Mitigation</strong>: tighten the interval, add an end-of-line screen (G3 approved). <strong>Prognosis</strong>: escape-vs-interval curve sets the maintenance set-point (G4 approved). <strong>Deploy &amp; monitor</strong>: Cpk rises from 0.5 to 3.6; the case is stored. The same graph would have walked any of the other four.</p>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <span class="snum">6 — Two views that build intuition</span>
+  <h2>It is a control loop, run by a team</h2>
+  <p>Strip away the detail and the framework is an ordinary feedback controller: sense, decide, act, measure, repeat — with a person holding the decision lever.</p>
+  <figure>
+    <div class="figlab">Figure 3 — The closed loop, as control</div>
+    <svg id="d3" viewBox="0 0 820 290" role="img" aria-label="Closed-loop control view"></svg>
+    <figcaption><b>Sense → diagnose → prognose → decide → act → monitor → learn,</b> then back to sense. The only unusual node is <em>decide</em>, which is a human gate rather than a pure controller — that is the whole point of "human-gated."</figcaption>
+  </figure>
+  <p>And the team that runs it is an orchestrator with specialists and a critic, all sharing one memory and one toolbox.</p>
+  <figure>
+    <div class="figlab">Figure 4 — Agent topology (orchestrator · workers · critic)</div>
+    <svg id="d4" viewBox="0 0 820 400" role="img" aria-label="Agent topology diagram"></svg>
+    <figcaption><b>Supervisor-and-workers.</b> The orchestrator delegates to specialist agents and reports to the human; a critic challenges every conclusion; all agents read and write one shared memory and call the same deterministic tools. This topology (rather than a single monolithic agent) is what keeps each piece testable.</figcaption>
+  </figure>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <span class="snum">7 — How much to automate</span>
+  <h2>The autonomy ladder</h2>
+  <p>Do not start at full self-driving. Climb the ladder one rung per case-type as the evaluation harness proves the system reliable. Safety-critical actions stay human-approved indefinitely.</p>
+  <table class="tbl">
+    <thead><tr><th>Level</th><th>What the agents do</th><th>What the human does</th></tr></thead>
+    <tbody>
+      <tr><td><b>L0</b></td><td>Fetch &amp; visualize data</td><td>Everything else (the five reports were here, by hand)</td></tr>
+      <tr><td><b>L1</b></td><td>Draft hypotheses &amp; run the screen</td><td>Approves every step</td></tr>
+      <tr><td><b>L2</b></td><td>Full RCA draft with evidence</td><td>Signs off root cause &amp; fix (G2–G4)</td></tr>
+      <tr><td><b>L3</b></td><td>RCA + prognosis + mitigation proposal</td><td>Approves fleet action only (G4)</td></tr>
+      <tr><td><b>L4</b></td><td>Auto-resolve known recurring cases</td><td>Audits samples; safety stays gated</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="lab">Practical default</span>
+    Run different case-types at different levels at the same time. A well-understood manufacturing escape can sit at L3; a novel safety-relevant fault stays at L1. The gate configuration is data, not code — tune it per failure family.
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <span class="snum">8 — How it fails, and the guardrail for each</span>
+  <h2>Design against the predictable mistakes</h2>
+  <table class="tbl">
+    <thead><tr><th>Failure mode</th><th>What it looks like</th><th>Built-in guard</th></tr></thead>
+    <tbody>
+      <tr><td><b>Confirmation bias</b></td><td>Agent locks onto its first guess</td><td>Critic agent argues the opposite; mandatory confounder search</td></tr>
+      <tr><td><b>Hallucinated mechanism</b></td><td>A plausible-sounding but unreal physical story</td><td>Physics gate must simulate/cite a real pathway</td></tr>
+      <tr><td><b>Confounder blindness</b></td><td>Blaming a proxy (the supplier-lot trap)</td><td>Partial-correlation step is non-optional</td></tr>
+      <tr><td><b>Data leakage / overfit</b></td><td>Looks great in-sample, wrong in field</td><td>Held-out validation; report uncertainty</td></tr>
+      <tr><td><b>Number hallucination</b></td><td>Model invents a statistic</td><td>All numbers come from tools, never prose</td></tr>
+      <tr><td><b>Automation complacency</b></td><td>Humans rubber-stamp the gate</td><td>Gate shows dissent/confidence; critic's objection surfaced</td></tr>
+      <tr><td><b>Silent drift</b></td><td>World changes; old model still trusted</td><td>Drift detection re-opens the case</td></tr>
+      <tr><td><b>Runaway cost/looping</b></td><td>Agents loop forever</td><td>Step budgets, timeouts, escalation to human</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <span class="snum">9 — Practical implementation notes</span>
+  <h2>Building it without tears</h2>
+  <ul>
+    <li><strong>State graph over free-for-all.</strong> Use an explicit graph/state-machine orchestrator (e.g. LangGraph) so the workflow, gates, and loops are first-class and inspectable — not buried in prompts.</li>
+    <li><strong>Right model for the job.</strong> A small, cheap model routes and formats; a strong model reasons about causality and writes the synthesis. Most steps are cheap.</li>
+    <li><strong>Tools are contracts.</strong> Give each tool a typed, validated interface and let it fail loudly. The causal step should be a real library (e.g. DoWhy / EconML), the prognosis a real survival package (e.g. lifelines / Weibull fits), not bespoke prompt math.</li>
+    <li><strong>Sandbox the code executor.</strong> Agents will write and run Python; isolate it, cap resources, and capture every artifact for the trace.</li>
+    <li><strong>Case memory in a vector store.</strong> Embed resolved cases; retrieve by symptom similarity so a new investigation starts warm. Store the <em>signature</em> (sawtooth, diurnal) as a searchable feature.</li>
+    <li><strong>Ingest the unstructured record carefully.</strong> Parse and OCR cleanly, chunk sensibly, de-duplicate near-identical notes, decode DTCs against the catalog, and stamp provenance and dates — so a stale bulletin never outvotes current data, and every extracted fact keeps a link back to its source document for the human at the gate.</li>
+    <li><strong>Async human gates.</strong> Approvals go to a queue with full context; the loop parks, not blocks. Capture the human's edits as preference data to improve the agents.</li>
+    <li><strong>Golden-set evaluation.</strong> Use known, solved cases (the five reports) as regression tests: the system must rediscover each ground-truth cause and reject each confounder. Re-run on every change.</li>
+    <li><strong>Observe everything.</strong> Trace agent steps, tool calls, tokens, latency, and gate decisions. You cannot relax a gate you cannot measure.</li>
+    <li><strong>Deploy behind a flag.</strong> Mitigations roll out staged and reversible; the monitor step is the proof the fix worked, and the trigger to roll back if not.</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <span class="snum">10 — Standards &amp; references</span>
+  <h2>Further reading</h2>
+  <div class="refs">
+    <h3>Agent patterns &amp; reasoning</h3>
+    <ul>
+      <li>Yao et al., <em>ReAct: Synergizing Reasoning and Acting in Language Models</em> (2022) — interleaving reasoning with tool use.</li>
+      <li>Shinn et al., <em>Reflexion: Language Agents with Verbal Reinforcement Learning</em> (2023) — self-critique and retry.</li>
+      <li>Lewis et al., <em>Retrieval-Augmented Generation</em> (2020) — grounding answers in retrieved evidence.</li>
+      <li>Anthropic, <em>Building Effective Agents</em> (engineering guidance on orchestrator–worker and evaluator patterns).</li>
+    </ul>
+    <h3>Agent frameworks &amp; protocols</h3>
+    <ul>
+      <li>LangGraph — graph/state-machine orchestration for multi-agent workflows.</li>
+      <li>Microsoft AutoGen; CrewAI; OpenAI Agents SDK — multi-agent runtimes.</li>
+      <li>Anthropic Model Context Protocol (MCP) — standard for connecting models to tools/data; agent-to-agent (A2A) messaging for inter-agent hand-off.</li>
+    </ul>
+    <h3>Causal inference</h3>
+    <ul>
+      <li>Pearl, <em>Causality</em> (2009); Pearl &amp; Mackenzie, <em>The Book of Why</em> (2018) — confounding, mediation, do-calculus.</li>
+      <li>DoWhy and EconML — practical causal-effect estimation libraries.</li>
+    </ul>
+    <h3>Prognostics &amp; condition monitoring</h3>
+    <ul>
+      <li>ISO 13374 — condition monitoring &amp; diagnostics of machines (data processing &amp; presentation).</li>
+      <li>ISO 13381 — prognostics for condition monitoring.</li>
+      <li>Saxena et al., <em>Metrics for Evaluating Performance of Prognostic Techniques</em> (NASA, 2008) — RUL accuracy metrics.</li>
+      <li>Survival/reliability analysis: Weibull and Cox proportional-hazards models (e.g. the <code class="inl">lifelines</code> library).</li>
+    </ul>
+    <h3>Functional safety &amp; quality (for the gates)</h3>
+    <ul>
+      <li>ISO 26262 — road-vehicle functional safety (why fleet actions need a human gate).</li>
+      <li>Automotive SPICE; IATF 16949 — process &amp; quality-management discipline.</li>
+      <li>AIAG-VDA <em>FMEA Handbook</em> — the failure-mode taxonomy the Hypothesis agent draws on.</li>
+    </ul>
+  </div>
+  <p style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft)">References are pointers for further reading; titles and editions are given at a stable, conceptual level rather than as live links.</p>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0">
+    <span class="ic">▸</span> Worked examples:
+    <a href="root-cause-analysis-battery-case-study.html">Battery</a>
+    <a href="nvh-preconditioning-rca-report.html">NVH</a>
+    <a href="manufacturing-rca-report.html">Manufacturing</a>
+    <a href="environmental-rca-report.html">Environmental</a>
+    <a href="usage-rca-report.html">Usage</a>
+    <a href="framework-battery-walkthrough.html" style="color:var(--signal)">▶ See it run (battery)</a>
+  </div>
+  <div class="rule" style="margin-top:24px"></div>
+  <p><b>NOTE-2026-ARCH-01 — Human-Gated Agentic RCA &amp; Prognostics</b></p>
+  <p>By Majid Mazouchi</p>
+  <p>An architecture monograph · diagrams are schematic, not to scale.</p>
+  <p>Rev. B — data layer revised to treat unstructured inputs &amp; the knowledge graph as first-class, after the battery walkthrough.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const C={ink:"#1A1A1C",inkSoft:"#4C4C54",ruleSoft:"#E3DDCE",navy:"#2A4A7C",
+    signal:"#BD5E26",good:"#2E7D52",warn:"#B7791F",bad:"#B0413A",slate:"#5A6472",paper:"#F8F6EE",kg:"#7A4E9E"};
+  const MONO="'IBM Plex Mono',monospace";
+  const RM = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function E(p,t,a){const e=document.createElementNS(NS,t);for(const k in (a||{}))e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+  function ml_(p,x,y,arr,o){o=o||{};const lh=o.lh||13;const t=E(p,"text",{x:x,y:y,"font-family":MONO,fill:o.fill||C.ink,"text-anchor":o.anchor||"middle","font-size":o.fs||11,"font-weight":o.weight||500,"pointer-events":"none"});arr.forEach((s,i)=>{const ts=E(t,"tspan",{x:x,dy:i===0?0:lh});ts.textContent=s;});return t;}
+  function lab(p,x,y,s,o){o=o||{};const e=E(p,"text",{x:x,y:y,"font-family":MONO,"font-size":o.fs||10,fill:o.fill||C.inkSoft,"text-anchor":o.anchor||"middle","font-weight":o.weight||400,"pointer-events":"none"});e.textContent=s;return e;}
+  function head(p,x2,y2,ang,col){const s=7;E(p,"polygon",{points:x2+","+y2+" "+(x2-s*Math.cos(ang-0.42))+","+(y2-s*Math.sin(ang-0.42))+" "+(x2-s*Math.cos(ang+0.42))+","+(y2-s*Math.sin(ang+0.42)),fill:col,"pointer-events":"none"});}
+  function band(svg,x,y,w,h,title,col){E(svg,"rect",{x:x,y:y,width:w,height:h,rx:8,fill:col,opacity:.45});lab(svg,x+12,y+16,title,{fs:10,anchor:"start",fill:C.ink,weight:600});}
+
+  // tooltip
+  let tip;
+  function showTip(title,desc,x,y){if(!tip){tip=document.createElement('div');tip.id='dgm-tip';document.body.appendChild(tip);}
+    tip.innerHTML='<b>'+title+'</b>'+(desc?'<br>'+desc:'');tip.style.opacity='1';
+    let lx=x+15,ly=y+15; if(lx>window.innerWidth-260)lx=x-255; tip.style.left=lx+'px';tip.style.top=ly+'px';}
+  function hideTip(){if(tip)tip.style.opacity='0';}
+
+  function newReg(svg){svg.classList.add('dgm');return {svg,nodes:{},edges:[]};}
+  function register(reg,id,el,box,title,desc){reg.nodes[id]={el,cx:box.x+box.w/2,cy:box.y+box.h/2,x:box.x,y:box.y,w:box.w,h:box.h,title:title||id,desc:desc||"",neighbors:new Set()};return reg.nodes[id];}
+
+  function nodeRect(reg,id,x,y,w,h,label,o){o=o||{};
+    const g=E(reg.svg,"g",{class:"node","data-id":id});
+    const rc=E(g,"rect",{x:x,y:y,width:w,height:h,rx:o.rx||6,fill:o.fill||C.paper,stroke:o.stroke||C.ink,"stroke-width":o.sw||1.5,"data-chip":"1"});
+    if(o.bus)rc.setAttribute("class","busflow");
+    const arr=Array.isArray(label)?label:[label],lh=o.lh||12,fs=o.fs||10.5;
+    ml_(g,x+w/2,y+h/2-(arr.length-1)*lh/2+fs*0.34,arr,{fs:fs,fill:o.tcolor||C.ink,weight:o.weight||500,lh:lh});
+    return register(reg,id,g,{x,y,w,h},o.title||(Array.isArray(label)?label.join(" "):label),o.desc);
+  }
+  function nodeDiamond(reg,id,cx,cy,w,h,label,o){o=o||{};
+    const g=E(reg.svg,"g",{class:"node","data-id":id});
+    E(g,"polygon",{points:[[cx,cy-h/2],[cx+w/2,cy],[cx,cy+h/2],[cx-w/2,cy]].map(p=>p.join(",")).join(" "),fill:o.fill||"#F1E2CE",stroke:o.stroke||C.signal,"stroke-width":1.8,"data-chip":"1"});
+    lab(g,cx,cy+3.5,label,{fs:o.fs||11,fill:o.tcolor||C.signal,weight:600});
+    return register(reg,id,g,{x:cx-w/2,y:cy-h/2,w,h},o.title||label,o.desc);
+  }
+  function bpt(n,tx,ty){const dx=tx-n.cx,dy=ty-n.cy;if(!dx&&!dy)return{x:n.cx,y:n.cy};
+    const s=Math.min((n.w/2)/Math.abs(dx||1e-6),(n.h/2)/Math.abs(dy||1e-6));return{x:n.cx+dx*s,y:n.cy+dy*s};}
+  function edge(reg,a,b,o){o=o||{};const A=reg.nodes[a],B=reg.nodes[b];if(!A||!B)return;
+    const p1=bpt(A,B.cx,B.cy),p2=bpt(B,A.cx,A.cy),col=o.color||C.slate;
+    const g=E(reg.svg,"g",{class:"edge","data-from":a,"data-to":b});
+    const ln=E(g,"line",{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:col,"stroke-width":o.w||1.5,"stroke-linecap":"round","pointer-events":"none"});
+    if(o.dash)ln.setAttribute("stroke-dasharray",o.dash); else if(o.flow&&!RM)ln.setAttribute("class","flowline");
+    if(!o.nohead)head(g,p2.x,p2.y,Math.atan2(p2.y-p1.y,p2.x-p1.x),col);
+    if(o.label)lab(g,(p1.x+p2.x)/2,(p1.y+p2.y)/2-4,o.label,{fs:8.5,fill:col});
+    A.neighbors.add(b);B.neighbors.add(a);reg.edges.push({from:a,to:b,el:g});}
+  function edgeP(reg,a,b,pts,o){o=o||{};const col=o.color||C.slate;
+    const g=E(reg.svg,"g",{class:"edge","data-from":a,"data-to":b});
+    const d=pts.map((p,i)=>(i?"L":"M")+p[0]+" "+p[1]).join(" ");
+    const pa=E(g,"path",{d:d,fill:"none",stroke:col,"stroke-width":o.w||1.5,"stroke-linecap":"round","pointer-events":"none"});
+    if(o.dash)pa.setAttribute("stroke-dasharray",o.dash); else if(o.flow&&!RM)pa.setAttribute("class","flowline");
+    const L=pts.length;head(g,pts[L-1][0],pts[L-1][1],Math.atan2(pts[L-1][1]-pts[L-2][1],pts[L-1][0]-pts[L-2][0]),col);
+    if(o.label)lab(g,o.labelAt?o.labelAt[0]:pts[0][0],o.labelAt?o.labelAt[1]:pts[0][1],o.label,{fs:8.5,fill:col,anchor:o.anchor||"middle"});
+    if(reg.nodes[a]&&reg.nodes[b]){reg.nodes[a].neighbors.add(b);reg.nodes[b].neighbors.add(a);}
+    reg.edges.push({from:a,to:b,el:g});}
+
+  function wire(reg){const svg=reg.svg;let pin=null;
+    function setActive(id){svg.classList.add("has-sel");
+      Object.values(reg.nodes).forEach(n=>n.el.classList.remove("hl"));reg.edges.forEach(e=>e.el.classList.remove("hl"));
+      const n=reg.nodes[id];if(!n)return;n.el.classList.add("hl");
+      reg.edges.forEach(e=>{if(e.from===id||e.to===id){e.el.classList.add("hl");const o=e.from===id?e.to:e.from;reg.nodes[o]&&reg.nodes[o].el.classList.add("hl");}});}
+    function clear(){svg.classList.remove("has-sel");Object.values(reg.nodes).forEach(n=>n.el.classList.remove("hl"));reg.edges.forEach(e=>e.el.classList.remove("hl"));}
+    reg.setActive=setActive;reg.clear=clear;
+    Object.entries(reg.nodes).forEach(([id,n])=>{
+      n.el.addEventListener("mouseenter",ev=>{if(!pin)setActive(id);showTip(n.title,n.desc,ev.clientX,ev.clientY);});
+      n.el.addEventListener("mousemove",ev=>showTip(n.title,n.desc,ev.clientX,ev.clientY));
+      n.el.addEventListener("mouseleave",()=>{if(!pin)clear();hideTip();});
+      n.el.addEventListener("click",ev=>{ev.stopPropagation();if(pin===id){pin=null;clear();hideTip();}else{pin=id;setActive(id);showTip(n.title,n.desc,ev.clientX,ev.clientY);}});
+    });
+    svg.addEventListener("click",()=>{if(pin){pin=null;clear();hideTip();}});}
+
+  function ctrlBar(svg){const fig=svg.closest("figure");const d=document.createElement("div");d.className="dgm-ctrl";fig.appendChild(d);return d;}
+  function btn(bar,txt,fn){const b=document.createElement("button");b.textContent=txt;b.addEventListener("click",fn);bar.appendChild(b);return b;}
+  function hint(bar,txt){const s=document.createElement("span");s.className="hint";s.textContent=txt;bar.appendChild(s);}
+
+  // ---------- D1 layered architecture ----------
+  (function(){const svg=document.getElementById("d1");if(!svg)return;const reg=newReg(svg);const X=14,Wd=792;
+    band(svg,X,16,Wd,66,"HUMAN GATES — approvals & accountability","#E7D9C4");
+    band(svg,X,90,Wd,66,"ORCHESTRATION & MEMORY","#D6DEEA");
+    band(svg,X,164,Wd,120,"AGENT TEAM — one specialist per stage","#DCE4DC");
+    band(svg,X,292,Wd,66,"VERIFICATION & GUARDRAILS","#E7D9C4");
+    band(svg,X,366,Wd,78,"TOOLS — deterministic compute (incl. ingestion)","#D6DEEA");
+    band(svg,X,452,Wd,122,"DATA & KNOWLEDGE — structured + unstructured + graph","#E3DDCE");
+    function rowN(items,y,h,cw){const gap=12,tot=items.length*cw+(items.length-1)*gap,sx=X+(Wd-tot)/2;
+      items.forEach((it,i)=>nodeRect(reg,it.id,sx+i*(cw+gap),y,cw,h,it.t,{fs:10,stroke:it.c||C.slate,tcolor:it.c||C.ink,desc:it.d,title:Array.isArray(it.t)?it.t.join(" "):it.t}));}
+    rowN([{id:"g1",t:"G1 · Scope?",d:"Human approves the problem scope and the candidate hypotheses before any analysis runs."},
+      {id:"g2",t:"G2 · Root-cause",d:"Engineer signs off the declared root cause — the key accountability gate."},
+      {id:"g3",t:"G3 · Mitigation",d:"Human chooses and approves the fix before it is committed."},
+      {id:"g4",t:"G4 · Field action",d:"Approval before acting on the fleet (e.g. an OTA rollout)."}],30,30,180);
+    rowN([{id:"sup",t:"Supervisor / planner",d:"Turns a symptom into a plan and walks it through the workflow graph; delegates to specialists."},
+      {id:"sg",t:"State graph",d:"The explicit workflow (stages, loops, gates) — see the next figure."},
+      {id:"mem",t:"Working + case memory",d:"Current case file plus long-term memory of past resolved cases."},
+      {id:"rag",t:"Retrieval (RAG)",d:"Pulls relevant documents and prior cases into the reasoning."}],104,30,180);
+    rowN([{id:"a1",t:"Triage",d:"Defines the symptom, scope, and success criterion."},
+      {id:"a2",t:"Hypothesis",d:"Lists candidate causes across the seven failure-mode families."},
+      {id:"a3",t:"Statistics",d:"Runs the correlation screen and the four-gate test."},
+      {id:"a4",t:"Causal",d:"Holds variables constant to reject confounders."},
+      {id:"a5",t:"Physics",d:"Checks whether a physical mechanism exists; can veto a cause."}],196,38,140);
+    rowN([{id:"a6",t:"Confirmation",d:"Designs the signature test (sawtooth, diurnal, version split)."},
+      {id:"a7",t:"Synthesis",d:"States the root cause with its evidence and confidence."},
+      {id:"a8",t:"Mitigation",d:"Proposes containment, corrective, and robustness actions."},
+      {id:"a9",t:"Prognostics",d:"Forecasts remaining life and probability of failure."},
+      {id:"a10",t:"Reporter",d:"Generates the human-readable report."}],238,38,140);
+    rowN([{id:"v1",t:"Four-gate checker",d:"Association, significance, materiality, mechanism — as machine checks."},
+      {id:"v2",t:"Grounding / cite",d:"Rejects any claim not backed by a data row or a source document."},
+      {id:"v3",t:"Uncertainty (UQ)",d:"Attaches a confidence score to every output."},
+      {id:"v4",t:"Critic / reflection",d:"A second agent argues the opposite case to fight confirmation bias."}],306,30,180);
+    rowN([{id:"t1",t:"Code sandbox",d:"Isolated Python execution (pandas, SciPy, scikit-learn)."},
+      {id:"t2",t:"Stats / ML",d:"Statistical and machine-learning routines."},
+      {id:"t3",t:"Causal inference",d:"Partial correlation, mediation, DAGs (e.g. DoWhy/EconML)."},
+      {id:"t4",t:"Physics sim",d:"Thermal / electromagnetic / electrochemical simulators or surrogates."},
+      {id:"t5",t:"Parse·embed·extract",c:C.signal,d:"Document parsing/OCR, embedding, and entity-relation extraction that build the vector index and knowledge graph."},
+      {id:"t6",t:"Retrieval / DTC decode",c:C.signal,d:"RAG over the vector index and decoding of DTC codes to subsystems."}],388,34,120);
+    rowN([{id:"d1a",t:"Telematics / signals",d:"Structured time-series signals and measurements."},
+      {id:"d2a",t:"Build genealogy",d:"Which part, lot, station, and software version went into which vehicle."},
+      {id:"d3a",t:"Service notes / TSBs",c:C.signal,d:"Unstructured technician notes, bulletins, and engineering memos."},
+      {id:"d4a",t:"DTC catalog",c:C.signal,d:"Definitions of diagnostic trouble codes — what each code means."},
+      {id:"d5a",t:"Manuals / datasheets",c:C.signal,d:"OEM manuals and component datasheets where the physical limits live."}],484,32,140);
+    rowN([{id:"e1",t:"Feature store",d:"The joined numeric data the statistics agent queries."},
+      {id:"e2",t:"Vector index (RAG)",c:C.signal,d:"Embedded documents, retrievable by semantic similarity."},
+      {id:"e3",t:"Knowledge graph",c:C.kg,d:"Entities and relationships fusing genealogy with facts extracted from documents — the map agents traverse."},
+      {id:"e4",t:"Physics models",d:"Models or surrogates the mechanism check relies on."},
+      {id:"e5",t:"Provenance / audit",d:"Every conclusion traceable to its data and source document."}],522,32,140);
+    nodeRect(reg,"loop",X,580,Wd,38,"\u21BA  CLOSED LOOP  ·  deploy \u2192 monitor \u2192 drift detection \u2192 learn \u2192 update graph & case memory",
+      {fs:11,stroke:C.good,tcolor:C.good,fill:"#E0EBE3",bus:true,title:"Closed loop",
+       desc:"After action: deploy, monitor the outcome, detect drift, learn, and write the resolved case back into the graph and case memory."});
+    wire(reg);
+    const bar=ctrlBar(svg);hint(bar,"Hover or tap any block for what it does.");
+  })();
+
+  // ---------- D2 workflow state graph (interactive + Play) ----------
+  (function(){const svg=document.getElementById("d2");if(!svg)return;const reg=newReg(svg);
+    const cx=[108,304,500,696],colX=[20,216,412,608],W=176,H=56,ry=[60,170,280,390],mid=r=>ry[r]+H/2;
+    function nd(id,c,r,label,o){o=o||{};return nodeRect(reg,id,colX[c],ry[r],W,H,label,Object.assign({stroke:C.navy,fs:10.5},o));}
+    function gt(id,c,r,g,o){o=o||{};return nodeDiamond(reg,id,cx[c],mid(r),86,56,g,Object.assign({},o));}
+    nd("sym",0,0,["Symptom /","trigger"],{desc:"Monitoring flags an anomaly and opens a case."});
+    nd("triage",1,0,["Triage &","scope"],{desc:"Define the symptom, scope, and success criterion."});
+    gt("g1",2,0,"G1",{desc:"Human gate: approve scope and hypotheses."});
+    nd("hyp",3,0,["Hypotheses","(7 families)"],{desc:"Candidate causes across the seven families, pre-ranked by retrieved priors."});
+    nd("stat",3,1,["Statistical","screen"],{desc:"Correlation screen and the four-gate test."});
+    nd("causal",2,1,["Confounder /","causal test"],{desc:"Hold variables constant to expose proxies."});
+    nd("mech",1,1,["Mechanism /","physics check"],{desc:"Does a physical pathway exist? Can veto a cause."});
+    nd("abd",0,1,["Abduction —","best cause"],{desc:"Infer the best explanation from the surviving evidence."});
+    nd("conf",0,2,["Confirmation","experiment"],{desc:"Find the signature unique to the cause."});
+    gt("g2",1,2,"G2",{desc:"Human gate: sign off the root cause."});
+    nd("root",2,2,["Root cause","confirmed"],{stroke:C.signal,sw:2,desc:"The verdict, with converged evidence."});
+    nd("mit",3,2,["Mitigation","design"],{desc:"Containment + corrective + robustness."});
+    gt("g3",3,3,"G3",{desc:"Human gate: approve the mitigation."});
+    nd("prog",2,3,["Prognosis","RUL / MC"],{desc:"Forecast remaining life and probability of failure."});
+    gt("g4",1,3,"G4",{desc:"Human gate: approve the fleet action."});
+    nd("deploy",0,3,["Deploy ·","monitor · learn"],{stroke:C.good,tcolor:C.good,desc:"Act, watch the outcome, and learn."});
+    const order=["sym","triage","g1","hyp","stat","causal","mech","abd","conf","g2","root","mit","g3","prog","g4","deploy"];
+    for(let i=0;i<order.length-1;i++)edge(reg,order[i],order[i+1],{flow:true,color:C.slate});
+    edgeP(reg,"deploy","sym",[[20,mid(3)],[8,mid(3)],[8,mid(0)],[20,mid(0)]],{color:C.bad,dash:"5 4",label:"recurrence",labelAt:[40,(mid(0)+mid(3))/2],anchor:"start"});
+    edgeP(reg,"conf","abd",[[108,280],[164,253],[108,226]],{color:C.warn,dash:"4 4",label:"send back",labelAt:[178,253],anchor:"start"});
+    wire(reg);
+    // Play the run
+    const bar=ctrlBar(svg);let timer=null,i=0;
+    function stop(){if(timer){clearInterval(timer);timer=null;}}
+    const play=btn(bar,"\u25B6 Play the run",function(){stop();i=0;reg.clear();
+      timer=setInterval(()=>{reg.setActive(order[i]);i++;if(i>=order.length){stop();}},650);});
+    btn(bar,"Reset",function(){stop();reg.clear();});
+    hint(bar,"…or hover any stage. Arrows animate in flow direction.");
+  })();
+
+  // ---------- D3 closed loop (interactive + traveling token) ----------
+  (function(){const svg=document.getElementById("d3");if(!svg)return;const reg=newReg(svg);
+    const data=[["sense","Sense",["Sense"],"Ingest fleet signals and documents."],
+      ["diag","Diagnose",["Diagnose","(RCA)"],"Run the root-cause pipeline."],
+      ["prog","Prognose",["Prognose"],"Forecast remaining life and risk."],
+      ["dec","Decide",["Decide","\u25C7 human"],"The human gate — approve before acting."],
+      ["act","Act",["Act"],"Deploy the chosen mitigation."],
+      ["mon","Monitor",["Monitor"],"Watch whether the action worked."],
+      ["learn","Learn",["Learn"],"Update the graph and case memory."]];
+    const w=96,h=60,gap=10,n=data.length,tot=n*w+(n-1)*gap,sx=(820-tot)/2,y=104,cxs=[];
+    data.forEach((t,i)=>{const x=sx+i*(w+gap);cxs.push(x+w/2);const isH=i===3;
+      nodeRect(reg,t[0],x,y,w,h,t[2],{fs:10.5,stroke:isH?C.signal:C.navy,tcolor:isH?C.signal:C.ink,sw:isH?2:1.5,title:t[1],desc:t[3]});});
+    for(let i=0;i<n-1;i++)edge(reg,data[i][0],data[i+1][0],{flow:true,color:C.slate});
+    edgeP(reg,"learn","sense",[[cxs[n-1],y+h],[cxs[n-1],y+h+50],[cxs[0],y+h+50],[cxs[0],y+h]],{color:C.good,flow:true});
+    lab(svg,410,y+h+44,"continuous · closed loop",{fs:10,fill:C.good});
+    wire(reg);
+    // traveling token along the ring
+    if(!RM){const pts=cxs.map(c=>[c,y+h/2]);const motion="M"+pts.map(p=>p[0]+" "+p[1]).join(" L ")+
+      " L "+cxs[n-1]+" "+(y+h+50)+" L "+cxs[0]+" "+(y+h+50)+" L "+cxs[0]+" "+(y+h/2)+" Z";
+      const tok=E(svg,"circle",{r:6,fill:C.signal,"pointer-events":"none"});
+      const am=E(tok,"animateMotion",{dur:"9s",repeatCount:"indefinite",path:motion,rotate:"0"});}
+  })();
+
+  // ---------- D4 agent topology (interactive) ----------
+  (function(){const svg=document.getElementById("d4");if(!svg)return;const reg=newReg(svg);
+    nodeRect(reg,"sup",320,20,180,54,["Supervisor /","orchestrator"],{fs:11.5,stroke:C.navy,sw:2,title:"Supervisor",desc:"Plans the case and delegates to every specialist; reports to the human."});
+    nodeRect(reg,"hum",30,24,130,46,["Human","gates"],{fs:11,stroke:C.signal,tcolor:C.signal,title:"Human gates",desc:"Approvals at the four checkpoints."});
+    nodeRect(reg,"crit",650,24,140,46,["Critic /","verifier"],{fs:11,stroke:C.bad,tcolor:C.bad,title:"Critic / verifier",desc:"Challenges every conclusion — proposes confounders, demands the mechanism."});
+    const ag=[["ag1","Hypothesis","Lists candidate causes."],["ag2","Statistics","Correlation screen + four-gate test."],
+      ["ag3","Causal","Rejects confounders."],["ag4","Physics","Checks the mechanism."],
+      ["ag5","Confirmation","Finds the signature."],["ag6","Mitigation","Designs the fix."],["ag7","Prognostics","Forecasts life."]];
+    const w=100,h=52,gap=8,n=ag.length,tot=n*w+(n-1)*gap,sx=(820-tot)/2,yy=150;
+    ag.forEach((a,i)=>nodeRect(reg,a[0],sx+i*(w+gap),yy,w,h,[a[1]],{fs:9.5,stroke:C.slate,desc:a[2]}));
+    nodeRect(reg,"sub",sx,300,tot,70,["Shared memory   ·   Tools: code / stats / causal / physics-sim   ·   Data & knowledge base"],
+      {fs:10.5,stroke:C.good,fill:"#E0EBE3",tcolor:C.good,title:"Shared substrate",desc:"One memory and one toolbox that every agent reads and writes."});
+    edge(reg,"hum","sup",{color:C.signal});
+    edge(reg,"crit","sup",{color:C.bad});
+    ag.forEach(a=>edge(reg,"sup",a[0],{color:C.navy,w:1.2,flow:true}));
+    ag.forEach(a=>edge(reg,a[0],"sub",{color:C.slate,w:1.1}));
+    edge(reg,"crit","ag5",{color:C.bad,w:1.1,dash:"4 4"});
+    wire(reg);
+    const bar=ctrlBar(svg);hint(bar,"Hover the supervisor to see every delegation; hover an agent for its links.");
+  })();
+})();
+</script>
+</body>
+</html>
