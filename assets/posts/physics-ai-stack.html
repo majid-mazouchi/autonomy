@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Physics-AI Stack: Surrogates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F6EFE0;--cream-2:#FBF7EC;--panel:#FCF9F1;
+    --ink:#221C15;--ink-soft:#4C4239;--ink-faint:#7A6E60;
+    --rule:#DCD0B8;--rule-soft:#E8DFCB;
+    --green:#4C8A2B;--green-deep:#356018;
+    --blue:#2C5A86;--blue-deep:#1E3F5E;
+    --rust:#B0532A;--gold:#9C7411;
+    --shadow:0 1px 0 rgba(34,28,21,.04), 0 18px 40px -28px rgba(34,28,21,.45);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(120% 80% at 80% -10%, #FBF6EA 0%, rgba(251,246,234,0) 60%),var(--cream);color:var(--ink);font-family:"Spectral",Georgia,"Times New Roman",serif;font-size:19px;line-height:1.62;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:860px;margin:0 auto;padding:0 26px}
+
+  header.mast{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--green-deep);margin:0 0 22px}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(34px,6.2vw,58px);line-height:1.04;letter-spacing:-.012em;margin:0 0 18px}
+  h1 .thin{color:var(--ink-soft);font-weight:400;font-style:italic}
+  .standfirst{font-size:21px;color:var(--ink-soft);max-width:46ch;margin:0 0 26px}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.04em;color:var(--ink-faint);display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+  .byline .dot{color:var(--rule)}
+
+  section{padding:46px 0;border-bottom:1px solid var(--rule-soft)}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;color:var(--green-deep);text-transform:uppercase;display:block;margin-bottom:12px}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(25px,4vw,34px);line-height:1.12;letter-spacing:-.01em;margin:0 0 18px}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:21px;margin:30px 0 8px}
+  p{margin:0 0 17px}
+  a{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(44,90,134,.3)}
+  a:hover{border-bottom-color:var(--blue)}
+  strong{font-weight:600}
+  em.term{font-style:normal;font-weight:600;color:var(--green-deep)}
+  .lead{font-size:21px;color:var(--ink-soft)}
+  .analogy{font-style:italic;color:var(--ink-soft)}
+
+  .abstract{background:var(--cream-2);border:1px solid var(--rule);border-radius:3px;padding:24px 26px;margin:24px 0 6px;box-shadow:var(--shadow)}
+  .abstract h4{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px;font-weight:500}
+  .abstract p{font-size:18px;margin:0 0 12px}
+  .abstract p:last-child{margin:0}
+  nav.toc{margin-top:24px}
+  nav.toc ol{list-style:none;counter-reset:t;margin:0;padding:0;columns:2;column-gap:34px}
+  nav.toc li{counter-increment:t;margin:0 0 9px;font-size:16px;break-inside:avoid}
+  nav.toc li::before{content:counter(t,decimal-leading-zero);font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--green-deep);margin-right:10px;letter-spacing:.08em}
+  nav.toc a{border:none;color:var(--ink-soft)}
+  nav.toc a:hover{color:var(--ink)}
+
+  figure{margin:30px 0;padding:0}
+  .fig{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:22px 22px 18px;box-shadow:var(--shadow)}
+  .fig-label{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px}
+  .fig-title{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin-bottom:14px}
+  figcaption{font-size:14.5px;color:var(--ink-faint);margin-top:12px;line-height:1.5}
+  .hint{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.04em;color:var(--green-deep)}
+
+  .stack,.lic,.ladder{display:flex;flex-direction:column;gap:8px}
+  .layer{border:1px solid var(--rule);border-left:5px solid var(--c,var(--ink));background:var(--cream-2);border-radius:3px;padding:13px 16px;cursor:pointer;display:flex;align-items:baseline;gap:12px;transition:transform .15s ease,background .15s ease,box-shadow .15s ease;text-align:left;font-family:inherit;width:100%}
+  .layer:hover{transform:translateX(3px);background:var(--panel)}
+  .layer[aria-pressed="true"]{background:#fff;box-shadow:var(--shadow)}
+  .layer .lno{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);letter-spacing:.1em;min-width:34px}
+  .layer .lname{font-family:"Fraunces",serif;font-weight:600;font-size:17px;color:var(--c,var(--ink))}
+  .layer .lrole{font-size:14px;color:var(--ink-faint);margin-left:auto;text-align:right}
+  .layer-detail{margin-top:14px;border-top:1px dashed var(--rule);padding-top:16px;min-height:96px}
+  .layer-detail .dt{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin-bottom:4px}
+  .layer-detail .dmeta{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:10px}
+  .layer-detail p{font-size:16px;margin:0 0 8px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.03em;background:var(--cream);border:1px solid var(--rule);border-radius:20px;padding:3px 10px;color:var(--ink-soft)}
+
+  .switch{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .switch button{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.05em;border:1px solid var(--rule);background:var(--cream-2);color:var(--ink-soft);padding:9px 15px;border-radius:3px;cursor:pointer;transition:.15s}
+  .switch button[aria-pressed="true"]{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .kind-body{display:grid;grid-template-columns:1fr;gap:14px}
+  .kind-flow{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+  .kbox{border:1px solid var(--rule);background:var(--cream-2);border-radius:3px;padding:7px 12px}
+  .kbox.hl{border-color:var(--k,var(--green));color:var(--k,var(--green));font-weight:600}
+  .karrow{color:var(--ink-faint)}
+  .kind-note{font-size:16px;color:var(--ink-soft);margin:0}
+  .verdict-tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;padding:2px 9px;border-radius:3px;color:#fff;margin-right:8px}
+
+  .svgwrap{width:100%;overflow:hidden}
+  svg{width:100%;height:auto;display:block;font-family:"IBM Plex Mono",monospace}
+  .node rect,.node circle{transition:fill .25s ease,stroke .25s ease}
+  .node text{font-size:11px;fill:var(--ink)}
+  .node .sub{font-size:9px;fill:var(--ink-faint)}
+
+  .steprow{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .stepbtn{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--ink);background:var(--ink);color:var(--cream);padding:8px 16px;border-radius:3px;cursor:pointer}
+  .stepbtn.ghost{background:transparent;color:var(--ink)}
+  .stepbtn:disabled{opacity:.35;cursor:default}
+  .dots{display:flex;gap:6px;margin-left:auto}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--rule);display:inline-block}
+  .dots i.on{background:var(--green)}
+  .stepcap{font-size:16px;color:var(--ink-soft);margin:14px 0 0;min-height:48px}
+
+  .slider-row{display:flex;align-items:center;gap:14px;margin:6px 0 4px;flex-wrap:wrap}
+  .slider-row label{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.03em;min-width:128px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--green) 0%,var(--rust) 100%);flex:1;min-width:150px}
+  input[type=range].plain{background:var(--rule)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--ink);border:3px solid var(--cream);cursor:pointer;box-shadow:0 0 0 1px var(--ink)}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--ink);border:3px solid var(--cream);cursor:pointer}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:12px;min-width:64px;text-align:right;color:var(--ink)}
+  .verdict{margin-top:14px;font-size:16px;color:var(--ink-soft);min-height:46px}
+
+  .picker{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .picker button{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--rule);background:var(--cream-2);color:var(--ink-soft);padding:7px 12px;border-radius:20px;cursor:pointer}
+  .picker button[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+  .pickout{border:1px dashed var(--rule);border-radius:3px;padding:14px 16px;background:var(--cream-2)}
+  .pickout .po-name{font-family:"Fraunces",serif;font-weight:600;font-size:18px;color:var(--green-deep)}
+  .pickout p{font-size:16px;margin:6px 0 0}
+
+  .lic-row{display:flex;align-items:center;gap:12px;border:1px solid var(--rule);background:var(--cream-2);border-radius:3px;padding:11px 14px;cursor:pointer;width:100%;font-family:inherit;text-align:left;transition:.15s}
+  .lic-row:hover{background:var(--panel)}
+  .lic-row[aria-pressed="true"]{background:#fff;box-shadow:var(--shadow)}
+  .lic-row .lc-name{font-family:"Fraunces",serif;font-weight:600;font-size:16px}
+  .lic-row .lc-tag{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.04em;padding:3px 9px;border-radius:20px;color:#fff;white-space:nowrap}
+  .lic-detail{margin-top:12px;border-top:1px dashed var(--rule);padding-top:12px;min-height:54px;font-size:16px;color:var(--ink-soft)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0 4px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .rung{display:flex;align-items:baseline;gap:14px;border:1px solid var(--rule);border-left:5px solid var(--blue);background:var(--cream-2);border-radius:3px;padding:12px 16px;cursor:pointer;width:100%;text-align:left;font-family:inherit;transition:.15s}
+  .rung:hover{transform:translateX(3px);background:var(--panel)}
+  .rung[aria-pressed="true"]{background:#fff;box-shadow:var(--shadow)}
+  .rung .rg-no{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);min-width:26px}
+  .rung .rg-name{font-family:"Fraunces",serif;font-weight:600;font-size:16px}
+  .rung .rg-spec{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);text-align:right}
+  .rung-detail{margin-top:12px;border-top:1px dashed var(--rule);padding-top:12px;min-height:54px;font-size:16px;color:var(--ink-soft)}
+
+  /* cost estimator */
+  .cost-out{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+  .cost-card{flex:1;min-width:150px;border:1px solid var(--rule);border-radius:4px;padding:14px 16px;background:var(--cream-2)}
+  .cost-card .cc-l{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px}
+  .cost-card .cc-v{font-family:"Fraunces",serif;font-weight:600;font-size:26px}
+  .cost-card.win{border-color:var(--green);background:#EFF4EA}
+  .cost-card.win .cc-v{color:var(--green-deep)}
+  .cost-note{margin-top:12px;font-size:15px;color:var(--ink-soft)}
+
+  /* glossary */
+  .gloss-terms{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .gloss-terms button{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--rule);background:var(--cream-2);color:var(--ink-soft);padding:6px 11px;border-radius:20px;cursor:pointer;transition:.15s}
+  .gloss-terms button:hover{background:var(--panel)}
+  .gloss-terms button[aria-pressed="true"]{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .gloss-detail{border:1px dashed var(--rule);border-radius:4px;padding:16px 18px;background:var(--cream-2);min-height:70px}
+  .gloss-detail .gd-term{font-family:"Fraunces",serif;font-weight:600;font-size:19px;color:var(--green-deep);margin-bottom:4px}
+  .gloss-detail p{font-size:16px;margin:0;color:var(--ink-soft)}
+
+  .note{border-left:3px solid var(--rust);background:#FBF1E9;border-radius:0 3px 3px 0;padding:14px 18px;margin:24px 0;font-size:16px;color:var(--ink-soft)}
+  .note b{color:var(--rust);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:5px}
+  .keytake{border-left:3px solid var(--green);background:#EFF4EA;border-radius:0 3px 3px 0;padding:14px 18px;margin:24px 0;font-size:16px;color:var(--ink-soft)}
+  .keytake b{color:var(--green-deep);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:5px}
+
+  .refs{font-size:15px;color:var(--ink-soft)}
+  .refs ol{padding-left:22px;margin:0}
+  .refs li{margin:0 0 11px;line-height:1.45}
+  .refs .src{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-faint)}
+  sup.fn{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green-deep);font-weight:600}
+  .endnotes{font-size:15px;color:var(--ink-soft)}
+  .endnotes div{margin:0 0 12px;display:flex;gap:10px}
+  .endnotes .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--green-deep);min-width:26px}
+
+  footer{padding:40px 0 70px;color:var(--ink-faint);font-size:14px}
+  footer .rule{height:1px;background:var(--rule);margin-bottom:22px}
+  .colophon{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.04em;line-height:1.7}
+
+  @media (max-width:640px){
+    body{font-size:18px}
+    nav.toc ol{columns:1}
+    .layer .lrole,.rung .rg-spec{display:none}
+    .standfirst{font-size:19px}
+    .slider-row label{min-width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--green-deep);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+    <p class="eyebrow">Engineering monograph · Physics &amp; machine learning</p>
+    <h1>The Physics-AI Stack<br><span class="thin">surrogates</span></h1>
+    <p class="standfirst">A plain-words, comprehensive guide to the physics-AI tools: what they are, how they learn, how to put them inside an agent that catches faults and predicts failures, what each one costs, the hardware you need, and a glossary for every term.</p>
+    <div class="byline">
+      <span>By Majid Mazouchi</span>
+      <span class="dot">/</span><span id="today"></span>
+      <span class="dot">/</span><span>~35 min read</span>
+    </div>
+  </header>
+
+  <section id="abstract" style="border-bottom:none;padding-bottom:8px">
+    <div class="abstract">
+      <h4>The whole story, briefly</h4>
+      <p>Some AI does not chat. It learns to imitate a physics simulator so closely that it answers in milliseconds what used to take a supercomputer hours. NVIDIA has built a full ladder of these tools, from a fast engine at the bottom to ready-made models at the top.</p>
+      <p>This guide explains every rung in everyday language, shows how a software agent can lean on them to watch a machine and predict when it will fail, and lays out plainly what is free, what is paid, and the hardware you need. Read it top to bottom, or jump to any section. A glossary at the end defines every piece of jargon the moment you need it.</p>
+    </div>
+    <nav class="toc" aria-label="Contents">
+      <ol>
+        <li><a href="#two-kinds">Two ways AI can do physics</a></li>
+        <li><a href="#stack">The stack, rung by rung</a></li>
+        <li><a href="#surrogate">How a surrogate is trained</a></li>
+        <li><a href="#tradeoff">Fast versus trustworthy</a></li>
+        <li><a href="#products">The four named products</a></li>
+        <li><a href="#agent">A health-monitoring agent</a></li>
+        <li><a href="#cost">What is free, what it costs</a></li>
+        <li><a href="#hardware">The hardware ladder</a></li>
+        <li><a href="#glossary">Glossary of terms</a></li>
+        <li><a href="#refs">References &amp; notes</a></li>
+      </ol>
+    </nav>
+  </section>
+
+  <!-- 1 -->
+  <section id="two-kinds">
+    <span class="sec-no">Section 01</span>
+    <h2>Two ways AI can do physics</h2>
+    <p class="lead">When people say "AI that understands physics," they usually mean one of two very different things. Keeping them apart is the whole game, because they fail and succeed in opposite ways.</p>
+
+    <p>The first kind is a <em class="term">reasoner</em>. A large language model reads your problem in plain English, recognizes that it is, say, a spring-mass-damper or a second-order system, writes down the right equations, and explains the method step by step. It is excellent at framing a problem and choosing an approach, because it has read millions of worked examples. It is poor at being the calculator. Ask it for an exact settling time or a specific eigenvalue and it will hand you a confident, often wrong, number, because underneath it is predicting plausible text, not running arithmetic.<sup class="fn">N1</sup></p>
+
+    <p>The second kind is a <em class="term">surrogate</em>. This is not a language model at all, and it does not use words. It is a network trained to copy the input-to-output behavior of a real physics solver. You feed it the same kind of inputs the slow solver would take, a shape, a set of conditions, a load, and it returns a close answer almost instantly. It does not reason about the problem. It has simply seen so many already-solved cases that it can fill in a new one by interpolation, the way you can guess a person's weight from their height without a formula if you have seen enough people. Everything NVIDIA ships under the "physics-AI" banner is this second kind.</p>
+
+    <h3>A quick side-by-side</h3>
+    <p>Imagine asking both about a motor: "what temperature will this winding reach after ten minutes at full load?" The reasoner will correctly tell you it is a heat-balance problem, name the equation, and explain that the answer depends on losses and cooling, then guess a number you should not trust. The surrogate, if it was trained on thermal simulations of motors like this one, will return an actual temperature field in milliseconds that is usually close to what the slow solver would have produced. Neither is "smarter." They are different machines for different jobs.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 1 · interactive</div>
+        <div class="fig-title">Reasoner or surrogate? Flip the switch.</div>
+        <div class="switch" id="kindSwitch" role="group" aria-label="Choose a kind of physics AI">
+          <button data-k="0" aria-pressed="true">Reasoner (LLM)</button>
+          <button data-k="1" aria-pressed="false">Surrogate (Physics-ML)</button>
+        </div>
+        <div class="kind-body">
+          <div class="kind-flow" id="kindFlow"></div>
+          <p class="kind-note" id="kindNote"></p>
+        </div>
+        <figcaption><span class="hint">Tap each option.</span> The reasoner thinks in language and should call a tool to compute. The surrogate is that tool's fast stand-in. The best systems use both: the reasoner decides what to compute, the surrogate or the real solver computes it.</figcaption>
+      </div>
+    </figure>
+
+    <p>There is also a third, newer idea worth naming: a <em class="term">world model</em>, an AI trained to predict how a whole scene changes over time, used mostly to generate practice data for robots. It sits closer to the surrogate family than the reasoner, and NVIDIA's version is called Cosmos. We will meet it briefly in the products section, but the two-way split above is the one to keep in your head.</p>
+
+    <div class="note">
+      <b>Plain definition</b>
+      A <strong>surrogate model</strong> is a stand-in. You run the slow, accurate simulation many times to make training data, then train a network to predict the simulation's answer directly. After that you mostly call the cheap stand-in, and only run the real simulation now and then to check it is still right.
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="stack">
+    <span class="sec-no">Section 02</span>
+    <h2>The stack, rung by rung</h2>
+    <p class="lead">The physics-AI offerings are not one product. They are four layers that build on each other, from raw physics math at the bottom to ready-to-use models at the top. Each layer hides the messiness of the one below it.</p>
+
+    <p class="analogy">A kitchen analogy: the engine is the stove and knives that do the actual cooking, the simulation world is the kitchen with its lighting and layout, the framework is the set of recipes and techniques for inventing new dishes, and the model shelf is the freezer of ready-made meals you just heat up. You can cook from scratch or grab a finished dish; most people do some of both.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 2 · interactive</div>
+        <div class="fig-title">The four layers (top is most ready-to-use)</div>
+        <div class="stack" id="stack"></div>
+        <div class="layer-detail" id="layerDetail" aria-live="polite"></div>
+        <figcaption><span class="hint">Click any layer.</span> Read bottom-up: a fast engine computes forces, a world wraps it in graphics and digital twins, a framework trains imitators of slow solvers, and a model shelf hands you pre-trained imitators.</figcaption>
+      </div>
+    </figure>
+
+    <h3>The split that actually matters</h3>
+    <p>The useful mental line runs through the middle of the stack. The bottom two rungs <strong>compute physics directly</strong>: they are engines and simulators that solve the equations, step by step, the honest slow way (just very fast, on a GPU). The top two rungs <strong>imitate physics</strong>: they are machine-learning models, and the toolkit that trains them, that learned to skip the step-by-step work and jump to the answer. Marketing blurs this line. The engineering does not, and confusing the two is how people end up trusting a guess where they needed a calculation.</p>
+
+    <h3>Two words you will keep seeing</h3>
+    <p>A <em class="term">digital twin</em> is a living simulation of a specific real thing, a particular motor, factory, or river, kept in sync with sensor data so you can test changes on the copy before touching the real one. <em class="term">OpenUSD</em> is the shared file format that lets all these tools describe the same 3D scene and pass it around without translation, the way PDF lets any program open the same document. Both show up across the top three rungs.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="surrogate">
+    <span class="sec-no">Section 03</span>
+    <h2>How a surrogate is trained</h2>
+    <p class="lead">Two ingredients go in, a fast predictor comes out. The clever part is forcing the network to respect physics, not just memorize examples, so it stays sensible in situations it has not seen exactly.</p>
+
+    <p>Step one is gathering examples. You run the slow, trustworthy solver (or collect real sensor readings) for many different inputs, and you save each input together with the answer it produced. This is the training data: thousands of solved cases. Step two is showing those cases to a network over and over until it can predict the answer for an input on its own. Step three, the one that makes this physics-AI rather than plain curve-fitting, is the <em class="term">physics penalty</em>: during training the network is also scored on whether its predictions obey the governing equations, not just whether they match the saved answers. That extra pressure keeps it honest in the gaps between the examples it saw.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 3 · interactive flowchart</div>
+        <div class="fig-title">From governing equations to millisecond answers</div>
+        <div class="svgwrap">
+          <svg id="trainSvg" viewBox="0 0 720 250" role="img" aria-label="Training pipeline flowchart">
+            <g stroke="#C9BC9E" stroke-width="1.6" fill="none">
+              <path d="M150 70 L300 110" id="c1"></path>
+              <path d="M150 170 L300 130" id="c2"></path>
+              <path d="M420 120 L470 120" id="c3"></path>
+              <path d="M360 150 L360 188" id="c4" stroke-dasharray="4 4"></path>
+              <path d="M590 120 L640 120" id="c5"></path>
+            </g>
+            <g class="node" id="n_eq"><rect x="20" y="44" width="130" height="52" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="85" y="68" text-anchor="middle" font-weight="600">Physics laws</text><text x="85" y="83" text-anchor="middle" class="sub">PDEs, ODEs</text></g>
+            <g class="node" id="n_data"><rect x="20" y="144" width="130" height="52" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="85" y="168" text-anchor="middle" font-weight="600">Solver data</text><text x="85" y="183" text-anchor="middle" class="sub">sims + sensors</text></g>
+            <g class="node" id="n_net"><rect x="300" y="92" width="120" height="56" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="360" y="116" text-anchor="middle" font-weight="600">Train network</text><text x="360" y="131" text-anchor="middle" class="sub">operator / PINN</text></g>
+            <g class="node" id="n_loss"><rect x="280" y="190" width="160" height="46" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="360" y="210" text-anchor="middle" font-weight="600">Physics penalty</text><text x="360" y="225" text-anchor="middle" class="sub">punish law-breaking</text></g>
+            <g class="node" id="n_infer"><rect x="470" y="92" width="120" height="56" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="530" y="116" text-anchor="middle" font-weight="600">Fast predict</text><text x="530" y="131" text-anchor="middle" class="sub">~milliseconds</text></g>
+            <g class="node" id="n_out"><rect x="640" y="98" width="62" height="44" rx="6" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="671" y="124" text-anchor="middle" font-weight="600">answer</text></g>
+          </svg>
+        </div>
+        <p class="stepcap" id="trainCap"></p>
+        <div class="steprow">
+          <button class="stepbtn ghost" id="prevStep" disabled>Back</button>
+          <button class="stepbtn" id="nextStep">Next step</button>
+          <span class="dots" id="trainDots" aria-hidden="true"></span>
+        </div>
+        <figcaption>The physics penalty (dashed) is what separates this from ordinary curve-fitting. The network is scored both on matching examples and on obeying the equations, so it stays sensible between the data points it saw.</figcaption>
+      </div>
+    </figure>
+
+    <h3>The three kinds of surrogate network</h3>
+    <p>Not all surrogates are built the same way. Three designs do most of the work, and they suit different problems. Tap through them below.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 4 · interactive</div>
+        <div class="fig-title">Pick a network family</div>
+        <div class="switch" id="nfSwitch" role="group" aria-label="Surrogate network families">
+          <button data-n="0" aria-pressed="true">PINN</button>
+          <button data-n="1" aria-pressed="false">Neural operator</button>
+          <button data-n="2" aria-pressed="false">Graph network</button>
+        </div>
+        <div class="layer-detail" id="nfBody" style="border-top:none;padding-top:0" aria-live="polite"></div>
+        <figcaption>A rough rule of thumb: PINNs for clean equations with little data, neural operators when you want one model to cover many conditions, graph networks when the thing lives on a mesh of connected parts.</figcaption>
+      </div>
+    </figure>
+
+    <p>Whichever family you use, the trained surrogate carries a quiet risk: it is only as good as the range of examples it saw. If you ask it about something far from its training cases, it will still answer, confidently, and it may be wrong. Good practice is to train an <em class="term">ensemble</em>, several surrogates instead of one, and watch how much they disagree. Wide disagreement is the model's way of admitting it does not know, which gives you an honest uncertainty band instead of false precision. The next section is about exactly this edge.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="tradeoff">
+    <span class="sec-no">Section 04</span>
+    <h2>Fast versus trustworthy</h2>
+    <p class="lead">A surrogate is a brilliant deal right up to the edge of what it was trained on. Past that edge, you go back to the real solver. This single trade-off decides how you use the whole stack.</p>
+
+    <p>Why does a surrogate fail outside its training range? Because it never learned physics in the way a textbook teaches it. It learned the <em>shape</em> of the answers across the examples it saw. Inside that range, filling in a new case is interpolation, which networks are very good at. Outside it, the network is extrapolating, guessing beyond the edge of its experience, and there is nothing holding it to reality. The physics penalty helps, but it does not fully rescue a model asked about conditions it has never encountered.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 5 · interactive</div>
+        <div class="fig-title">Drag toward conditions the surrogate never saw</div>
+        <div class="svgwrap">
+          <svg id="tradeSvg" viewBox="0 0 720 220" role="img" aria-label="Accuracy versus distance from training data">
+            <line x1="60" y1="180" x2="690" y2="180" stroke="#C9BC9E" stroke-width="1.5"></line>
+            <line x1="60" y1="30" x2="60" y2="180" stroke="#C9BC9E" stroke-width="1.5"></line>
+            <text x="60" y="200" class="sub" fill="#7A6E60">in training data</text>
+            <text x="690" y="200" text-anchor="end" class="sub" fill="#7A6E60">far outside</text>
+            <text x="34" y="34" class="sub" fill="#7A6E60" transform="rotate(-90 34 34)" text-anchor="end">error</text>
+            <line id="solverLine" x1="60" y1="158" x2="690" y2="158" stroke="#2C5A86" stroke-width="2.5"></line>
+            <text id="solverTag" x="500" y="150" fill="#2C5A86" font-weight="600" font-size="11">solver: steady, slow</text>
+            <path id="surCurve" d="M60 158 Q 400 150 690 158" stroke="#4C8A2B" stroke-width="2.5" fill="none"></path>
+            <circle id="surDot" cx="60" cy="158" r="6" fill="#4C8A2B"></circle>
+            <text id="surTag" x="120" y="150" fill="#4C8A2B" font-weight="600" font-size="11">surrogate: fast</text>
+          </svg>
+        </div>
+        <div class="slider-row">
+          <label for="dist">operating point</label>
+          <input type="range" id="dist" min="0" max="100" value="12">
+          <span class="readout" id="distOut">12%</span>
+        </div>
+        <p class="verdict" id="verdict"></p>
+        <figcaption>Time to a result is not on this chart because it would not fit: a solver run is measured in hours, a surrogate call in milliseconds. Partners report speed-ups from tens to a few hundred times on specific workloads, best read as vendor figures on favorable cases, not guarantees.<sup class="fn">N3</sup></figcaption>
+      </div>
+    </figure>
+
+    <h3>How to use this safely</h3>
+    <p>The discipline is simple to state. First, before trusting a surrogate, check that the question sits inside its training range; if it does not, fall back to the real solver. Second, use the surrogate for the wide, cheap search, screening thousands of candidates, then confirm only the handful of survivors with the slow, exact solver. Third, prefer surrogates that respect <em class="term">conservation laws</em> (energy in equals energy out, mass is not created or destroyed), because a model that can quietly break those will mislead you in ways that are hard to spot. The agent that drives all of this sits outside the simulation and calls it as a tool; it never lives inside the thing it is supposed to check.</p>
+
+    <div class="note">
+      <b>The rule that follows from this</b>
+      Never let the surrogate be the final word on a safety-critical number. Treat it as a brilliant scout, not a judge. It tells you where to look fast; the real solver confirms what you found.
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="products">
+    <span class="sec-no">Section 05</span>
+    <h2>The four named products</h2>
+    <p class="lead">The names map cleanly onto the stack. Here they are in order, with what each one actually is, who uses it, and where it fits.</p>
+
+    <h3>PhysicsNeMo — the workshop</h3>
+    <p>This is the foundation tool for <strong>building and training your own surrogates</strong>. It is open-source and built on PyTorch, the most common framework for machine learning, so it slots into work people already do. It does not hand you finished answers; it hands you the parts: ready-made versions of the three network families, the physics-penalty machinery, and the plumbing to train across many GPUs at once. Its name has changed twice, from SimNet to Modulus to PhysicsNeMo, which is why you will see all three in older articles.<sup class="fn">N4</sup> Think of it as the bench where surrogates are made. Outside groups already use it in production; one example is a chip-design company speeding up heat simulation of processors.</p>
+
+    <h3>Apollo — the shelf of finished tools</h3>
+    <p>Announced in November 2025, Apollo is a family of <strong>pre-trained</strong> physics models you can pick up and use straight away, or fine-tune on your own data so they fit your exact problem. It spans six areas: chips and semiconductors, structural mechanics (how things bend and break), weather and climate, fluid dynamics (air and liquid flow), electromagnetics (antennas, interference), and multiphysics, where several effects interact at once, such as plasma and fusion. Under the hood the models mix the best current designs: neural operators, transformers, and diffusion models. If PhysicsNeMo is the workshop, Apollo is the shelf of ready-made imitators, and several large engineering and chip companies have started building on them.</p>
+
+    <h3>Earth-2 — one giant digital twin</h3>
+    <p>Earth-2 is a planet-scale weather and climate twin. Its two stars are <strong>FourCastNet</strong>, a global forecaster built on a Fourier-style neural operator that predicts the whole atmosphere fast, and <strong>CorrDiff</strong>, a generative model that takes a coarse, blurry forecast and sharpens it into fine local detail, the way an editor turns a rough sketch into a clean drawing. In early 2026 the Earth-2 model family was opened up further and folded in outside models from groups like Europe's ECMWF, Microsoft, and Google. Insurance and energy-risk firms use it to simulate thousands of storm scenarios cheaply, which is too expensive with traditional forecasting alone.</p>
+
+    <h3>Omniverse, PhysX, and Newton — the world and its engine</h3>
+    <p>Omniverse is the photorealistic, real-time <strong>simulation world</strong> where digital twins live, and Isaac Sim is its robotics edition, a virtual lab where robots can be tried and trained safely before touching real hardware. Underneath, the physics is computed by PhysX, and increasingly by <strong>Newton</strong>, a newer open engine built by NVIDIA together with Google DeepMind and Disney Research and handed to the Linux Foundation in 2025. Newton matters to anyone building a simulation sandbox because it is <em class="term">differentiable</em>: you can ask it not only "what happens?" but "how would the outcome change if I nudged this input?", which lets you optimize a design or tune a controller by following that gradient, instead of trying options blindly.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 6 · interactive</div>
+        <div class="fig-title">Which tool for which job?</div>
+        <div class="picker" id="picker" role="group" aria-label="Pick a task">
+          <button data-p="0" aria-pressed="true">Aerodynamics</button>
+          <button data-p="1">Stress / structures</button>
+          <button data-p="2">Antenna / EMC</button>
+          <button data-p="3">Weather risk</button>
+          <button data-p="4">Robot in a cell</button>
+          <button data-p="5">Build my own</button>
+        </div>
+        <div class="pickout" id="pickout" aria-live="polite"></div>
+        <figcaption>Most real projects use more than one rung: a finished model to start, the workshop to fine-tune it, and the world to test the result in context.</figcaption>
+      </div>
+    </figure>
+
+    <p class="analogy">One more name you may hear: Cosmos, NVIDIA's world model, generates realistic practice footage so robots can learn from far more situations than you could film in real life. It feeds the simulation world rather than replacing the surrogates, so it sits alongside this layer rather than on the shelf above.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="agent">
+    <span class="sec-no">Section 06</span>
+    <h2>A health-monitoring agent</h2>
+    <p class="lead">Now put the stack to work. In Prognostics and Health Management (PHM), the job is to watch a machine, catch faults early, and predict how long it has left. A surrogate makes two slow loops fast enough for a software agent to run them continuously.</p>
+
+    <p>The core move is to treat a trained surrogate as a <em class="term">fast forward model</em>, a tool the agent can call whenever it needs to know "what should be happening right now?" A surrogate that predicts a machine's temperatures or magnetic fields in milliseconds turns diagnosis and life-prediction from overnight jobs into something the agent can run thousands of times before it commits to a single decision. The agent itself is the language model: it decides what to check, calls the surrogate as a tool, reads the result, and explains it. It does not do the physics; it orchestrates it.</p>
+
+    <h3>Diagnosis: spotting and naming a fault</h3>
+    <p>Start with a healthy-baseline surrogate, a model trained on the machine when it was working correctly. Run it alongside the real machine, feeding it the same conditions. The <em class="term">residual</em>, the gap between what the sensors measure and what the healthy model predicts, is the anomaly signal. When the machine is healthy the residual is small noise. When something changes, the residual grows and develops a telltale pattern.</p>
+    <p>Detecting that something is wrong is the easy half. Naming <em>what</em> is wrong is fault isolation, and this is where the cheap surrogate earns its keep. The agent forms a short list of suspects, a worn bearing, a shorted winding turn, a failing power switch, a blocked coolant path, and simulates each one on the surrogate to see which produces a residual pattern that matches reality. The closest match is the likely cause. Because each simulation is nearly free, the agent can test many faults at many severities instead of guessing once. When two suspects fit equally well, that genuine ambiguity becomes a human-in-the-loop checkpoint or a request for one more specific measurement, rather than a coin flip.</p>
+
+    <h3>Prognosis: predicting time left</h3>
+    <p>Prognosis is forecasting how much useful life remains, often called <em class="term">remaining useful life</em>, or RUL. First the agent tunes the surrogate to match the machine's present, slightly degraded state, a step called <em class="term">data assimilation</em>. Then it rolls that tuned model forward in time under the loads the machine is expected to see, watching the damage grow. Run this once and you get a single guess. Run it across a spread of plausible future workloads, which the speed of the surrogate makes affordable, and you get a <strong>distribution</strong>: not "it will fail in 40 days," but "it will most likely fail in 35 to 50 days, and here is the chance it goes sooner." That honest confidence band is far more useful for planning maintenance than a lone number.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 7 · interactive loop</div>
+        <div class="fig-title">The diagnosis-and-prognosis cycle</div>
+        <div class="svgwrap">
+          <svg id="loopSvg" viewBox="0 0 720 280" role="img" aria-label="Health monitoring loop">
+            <g fill="none" stroke="#C9BC9E" stroke-width="1.6">
+              <path id="a_mp" d="M170 65 L283 65" marker-end="url(#arrG)"></path>
+              <path id="a_pr" d="M435 65 L543 65" marker-end="url(#arrG)"></path>
+              <path id="a_ri" d="M625 92 L625 188" marker-end="url(#arrG)"></path>
+              <path id="a_if" d="M543 215 L437 215" marker-end="url(#arrG)"></path>
+              <path id="a_fg" d="M285 215 L182 215" marker-end="url(#arrG)"></path>
+              <path id="a_gm" d="M95 188 L95 92" marker-end="url(#arrG)"></path>
+            </g>
+            <g class="node" id="l_m"><rect x="20" y="40" width="150" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="95" y="62" text-anchor="middle" font-weight="600">1 · Measure</text><text x="95" y="77" text-anchor="middle" class="sub">live signals</text></g>
+            <g class="node" id="l_p"><rect x="285" y="40" width="150" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="360" y="62" text-anchor="middle" font-weight="600">2 · Predict</text><text x="360" y="77" text-anchor="middle" class="sub">baseline surrogate</text></g>
+            <g class="node" id="l_r"><rect x="545" y="40" width="160" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="625" y="62" text-anchor="middle" font-weight="600">3 · Residual</text><text x="625" y="77" text-anchor="middle" class="sub">measured − predicted</text></g>
+            <g class="node" id="l_i"><rect x="545" y="190" width="160" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="625" y="212" text-anchor="middle" font-weight="600">4 · Isolate</text><text x="625" y="227" text-anchor="middle" class="sub">test fault hypotheses</text></g>
+            <g class="node" id="l_f"><rect x="285" y="190" width="150" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="360" y="212" text-anchor="middle" font-weight="600">5 · Forecast</text><text x="360" y="227" text-anchor="middle" class="sub">roll forward → life</text></g>
+            <g class="node" id="l_g"><rect x="20" y="190" width="150" height="50" rx="7" fill="#FBF7EC" stroke="#C9BC9E" stroke-width="1.5"></rect><text x="95" y="212" text-anchor="middle" font-weight="600">6 · Decide</text><text x="95" y="227" text-anchor="middle" class="sub">act or ask a human</text></g>
+            <defs><marker id="arrG" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#C9BC9E"></path></marker></defs>
+          </svg>
+        </div>
+        <p class="stepcap" id="loopCap"></p>
+        <div class="steprow">
+          <button class="stepbtn ghost" id="loopPrev">Back</button>
+          <button class="stepbtn" id="loopNext">Next step</button>
+          <span class="dots" id="loopDots" aria-hidden="true"></span>
+        </div>
+        <figcaption>The same surrogate serves both halves: as a baseline in step two, as a what-if engine in step four, and as a roll-forward model in step five. Step six closes the loop back to step one.</figcaption>
+      </div>
+    </figure>
+
+    <h3>The guardrail, again</h3>
+    <p>Everything from Section 04 applies here. Before the agent trusts the surrogate, it checks that the machine's current operating point sits inside the surrogate's training range. Outside it, the agent falls back to the real solver or flags the case for a human. Pairing the surrogate with an ensemble gives the life estimate an honest uncertainty band rather than false precision. These checks are not optional polish; they are what separates a useful health monitor from a confident liar.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 8 · block diagram</div>
+        <div class="fig-title">An agent that calls physics, instead of guessing it</div>
+        <div class="svgwrap">
+          <svg id="agentSvg" viewBox="0 0 720 300" role="img" aria-label="Agent orchestration block diagram">
+            <rect x="250" y="20" width="450" height="260" rx="10" fill="none" stroke="#C9BC9E" stroke-width="1.4" stroke-dasharray="6 6"></rect>
+            <text x="690" y="40" text-anchor="end" class="sub" fill="#7A6E60">tool sandbox</text>
+            <g class="node"><rect x="20" y="118" width="170" height="64" rx="8" fill="#EAF1F6" stroke="#2C5A86" stroke-width="1.8"></rect><text x="105" y="146" text-anchor="middle" font-weight="600" fill="#1E3F5E">LLM agent</text><text x="105" y="162" text-anchor="middle" class="sub" fill="#2C5A86">decides &amp; explains</text></g>
+            <path d="M190 150 L250 150" stroke="#2C5A86" stroke-width="1.8" fill="none" marker-end="url(#arr)"></path>
+            <path d="M250 168 L190 168" stroke="#7A6E60" stroke-width="1.4" fill="none" stroke-dasharray="4 4" marker-end="url(#arrg)"></path>
+            <text x="220" y="140" text-anchor="middle" class="sub" fill="#2C5A86">call</text>
+            <text x="220" y="186" text-anchor="middle" class="sub" fill="#7A6E60">result</text>
+            <g class="node"><rect x="290" y="46" width="170" height="52" rx="7" fill="#EFF4EA" stroke="#4C8A2B" stroke-width="1.6"></rect><text x="375" y="68" text-anchor="middle" font-weight="600" fill="#356018">python-control</text><text x="375" y="84" text-anchor="middle" class="sub" fill="#4C8A2B">exact transient / steady state</text></g>
+            <g class="node"><rect x="290" y="124" width="170" height="52" rx="7" fill="#EFF4EA" stroke="#4C8A2B" stroke-width="1.6"></rect><text x="375" y="146" text-anchor="middle" font-weight="600" fill="#356018">trained surrogate</text><text x="375" y="162" text-anchor="middle" class="sub" fill="#4C8A2B">fast thermal / EM fields</text></g>
+            <g class="node"><rect x="290" y="202" width="170" height="52" rx="7" fill="#EFF4EA" stroke="#4C8A2B" stroke-width="1.6"></rect><text x="375" y="224" text-anchor="middle" font-weight="600" fill="#356018">Newton / Warp</text><text x="375" y="240" text-anchor="middle" class="sub" fill="#4C8A2B">differentiable sandbox</text></g>
+            <g class="node"><rect x="520" y="124" width="160" height="52" rx="7" fill="#FBF7EC" stroke="#9C7411" stroke-width="1.6"></rect><text x="600" y="146" text-anchor="middle" font-weight="600" fill="#9C7411">FEA / CFD solver</text><text x="600" y="162" text-anchor="middle" class="sub" fill="#9C7411">ground-truth check</text></g>
+            <path d="M460 150 L520 150" stroke="#9C7411" stroke-width="1.5" fill="none" marker-end="url(#arrgold)"></path>
+            <text x="490" y="142" text-anchor="middle" class="sub" fill="#9C7411">verify</text>
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#2C5A86"></path></marker>
+              <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#7A6E60"></path></marker>
+              <marker id="arrgold" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#9C7411"></path></marker>
+            </defs>
+          </svg>
+        </div>
+        <figcaption>The agent stays outside the sandbox and picks the right tool. For a clean linear system it calls a control library and gets an exact answer. For a heavy field problem it calls a surrogate for speed, then verifies the promising cases against the real solver.</figcaption>
+      </div>
+    </figure>
+
+    <p>The toolkit mapping: build the field surrogates in PhysicsNeMo, warm-start from an Apollo structural or electromagnetics family, serve the surrogate behind an inference endpoint the agent calls, and use Newton or Warp as the differentiable substrate. Plain control questions, the transient and steady state of a given system, still go to a real control solver, because that is exact and cheap. The surrogates earn their place only where the honest alternative is an overnight run.</p>
+
+    <div class="keytake">
+      <b>Takeaway</b>
+      The surrogate does not replace your physics. It makes the slow simulations around the machine fast enough that an agent can use them in a loop, while the agent stays a step removed, deciding and checking rather than computing.
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="cost">
+    <span class="sec-no">Section 07</span>
+    <h2>What is free, what it costs</h2>
+    <p class="lead">The pattern across the whole stack is the same: the software and the model weights are mostly free, and you pay only when you use the optimized production-serving layer or redistribute the closed runtime.</p>
+
+    <p>A few terms make the pricing readable. <em class="term">Inference</em> means running a trained model to get answers (as opposed to training it in the first place). <em class="term">NIM</em> is NVIDIA's pre-packaged way of running a model for production, a container with the model and a fast engine already wired together behind a standard interface. The <em class="term">Open Model License</em> is the permissive license most of NVIDIA's downloadable model weights ship under, which allows commercial use. And <em class="term">NVIDIA AI Enterprise</em> is the paid support-and-license subscription you need to run NIM in production. With those in hand, the table below reads cleanly.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 9 · interactive</div>
+        <div class="fig-title">Click a component to see its terms</div>
+        <div class="lic" id="lic"></div>
+        <div class="lic-detail" id="licDetail" aria-live="polite"></div>
+        <div class="legend">
+          <span><i style="background:#4C8A2B"></i> open / free</span>
+          <span><i style="background:#9C7411"></i> free to run, paid to serve or ship</span>
+          <span><i style="background:#B0532A"></i> the one recurring cost</span>
+        </div>
+        <figcaption>Everything you need to prototype an agent (the framework, the open model weights, the simulator, the engines, the free developer inference tier) costs nothing but the GPUs. The paid line item appears only at production scale.</figcaption>
+      </div>
+    </figure>
+
+    <h3>So what would it actually cost?</h3>
+    <p>The one recurring price is the production license, which is charged per GPU. There are two ways to pay it: a yearly license per GPU, or an hourly rate per GPU when you rent cloud GPUs. Which is cheaper depends entirely on how many hours a day you actually run. The estimator below does the arithmetic; slide it to your situation.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 10 · interactive estimator</div>
+        <div class="fig-title">Rough yearly serving cost</div>
+        <div class="slider-row">
+          <label for="cGpus">Number of GPUs</label>
+          <input type="range" class="plain" id="cGpus" min="1" max="32" value="4">
+          <span class="readout" id="cGpusOut">4</span>
+        </div>
+        <div class="slider-row">
+          <label for="cHours">Hours used per day</label>
+          <input type="range" class="plain" id="cHours" min="1" max="24" value="8">
+          <span class="readout" id="cHoursOut">8 h</span>
+        </div>
+        <div class="cost-out">
+          <div class="cost-card" id="cardYear"><div class="cc-l">Annual license</div><div class="cc-v" id="costYear">$0</div></div>
+          <div class="cost-card" id="cardHour"><div class="cc-l">Hourly at this use</div><div class="cc-v" id="costHour">$0</div></div>
+        </div>
+        <p class="cost-note" id="costNote"></p>
+        <figcaption>Illustrative only, using $2 per GPU per hour (NVIDIA AI Enterprise Essentials on-demand, mid-2026) and an illustrative $4,500 per GPU per year for the flat subscription. Licensing was restructured in 2026 and the annual figure is not publicly posted, so confirm with a partner; development on up to sixteen GPUs is free, so light or intermittent use may cost nothing.</figcaption>
+      </div>
+    </figure>
+
+    <div class="note">
+      <b>The one recurring price</b>
+      Production inference through a packaged microservice needs an NVIDIA AI Enterprise license (now the "Essentials" tier). As of mid-2026 the on-demand cloud-marketplace rate is about $2 per GPU per hour; a flat per-GPU annual or multi-year subscription is also sold through partners by quote. It is priced per GPU, not per model or per token. Development and evaluation are free on up to sixteen GPUs. NVIDIA restructured this licensing in 2026 and prices change, so confirm a current quote before you budget.
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section id="hardware">
+    <span class="sec-no">Section 08</span>
+    <h2>The hardware ladder</h2>
+    <p class="lead">All of it runs on NVIDIA GPUs. That dependency, not the licensing, is the real lock-in. Two terms first, then what each tool needs, then a ladder from a laptop to a server.</p>
+
+    <p><em class="term">CUDA</em> is NVIDIA's software layer that lets programs run on its GPUs; "CUDA-capable" simply means an NVIDIA graphics card. <em class="term">VRAM</em> is the memory on that card, and it is usually the limit that bites first: a model or a scene either fits in VRAM or it does not. Bigger jobs need more VRAM, which is the main reason data-center cards cost what they do. It also helps to know that <strong>training</strong> a model is far heavier than <strong>running</strong> a finished one, so you can serve a trained surrogate on modest hardware even if training it took a cluster.</p>
+
+    <h3>What each tool needs</h3>
+    <p>For building and training surrogates, PhysicsNeMo needs a CUDA-capable NVIDIA GPU on Linux and scales from a single GPU to multi-node clusters; serious training wants data-center cards. For serving pre-trained models such as Apollo or the Earth-2 models, the packaged inference layer supports data-center GPUs including H100, H200, A100, and L40S, with post-GTC-2026 profiles for the newer Rubin generation, and also runs on RTX workstations and PCs.</p>
+    <p>For the simulation world, Isaac Sim and Omniverse require an RTX GPU because of the ray-traced rendering, with 8 GB of VRAM as a floor and much more for complex scenes, on Windows or Linux. Newton and Warp need an NVIDIA GPU and run from Python.</p>
+
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 11 · interactive</div>
+        <div class="fig-title">How far each rung gets you</div>
+        <div class="ladder" id="ladder"></div>
+        <div class="rung-detail" id="rungDetail" aria-live="polite"></div>
+        <figcaption>A workstation card is enough to develop surrogates, run the simulator, and serve small endpoints. A data-center node is where real training and high-throughput serving live.</figcaption>
+      </div>
+    </figure>
+
+    <p>The practical takeaway: you can go a long way on a single good workstation. You only need the expensive hardware when you move from building and testing to training at scale and serving many requests at once. Renting that hardware by the hour in the cloud is a common middle path, so you are not forced to buy a server before you know you need one.</p>
+  </section>
+
+  <!-- 9 : GLOSSARY -->
+  <section id="glossary">
+    <span class="sec-no">Section 09</span>
+    <h2>Glossary of terms</h2>
+    <p class="lead">Every piece of jargon in this guide, in one sentence each. Tap a term.</p>
+    <figure>
+      <div class="fig">
+        <div class="fig-label">Figure 12 · interactive</div>
+        <div class="fig-title">Plain-words dictionary</div>
+        <div class="gloss-terms" id="glossTerms" role="group" aria-label="Glossary terms"></div>
+        <div class="gloss-detail" id="glossDetail" aria-live="polite"></div>
+        <figcaption><span class="hint">Tap any term.</span> These are working definitions meant for clarity, not formal precision.</figcaption>
+      </div>
+    </figure>
+  </section>
+
+  <!-- 10 : REFS -->
+  <section id="refs">
+    <span class="sec-no">Section 10</span>
+    <h2>References &amp; notes</h2>
+    <h3>Endnotes</h3>
+    <div class="endnotes">
+      <div><span class="n">N1</span><span>A language model predicts the next word; it has no built-in arithmetic or convergence guarantee. It is reliable for choosing a method and unreliable for being the calculator. Pair it with a real solver and the weakness disappears.</span></div>
+      <div><span class="n">N2</span><span>A neural operator learns a map between whole functions rather than between single numbers, so one trained model generalizes across many conditions. The Fourier Neural Operator and DeepONet are the two best-known designs.</span></div>
+      <div><span class="n">N3</span><span>Reported speed-ups (tens of times for some modules, a few hundred times for fluid initialization) come from the vendors and their partners on chosen workloads. Treat them as plausible upper bounds, not typical results, and benchmark on your own case.</span></div>
+      <div><span class="n">N4</span><span>If you install it, the import path moved from <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">modulus</span> to <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">physicsnemo</span>, and the graph backend is migrating from DGL to PyTorch Geometric.</span></div>
+    </div>
+    <h3>Sources</h3>
+    <div class="refs">
+      <ol>
+        <li>NVIDIA, <em>PhysicsNeMo developer page</em> and project repository. <span class="src">developer.nvidia.com/physicsnemo · github.com/NVIDIA/physicsnemo</span></li>
+        <li>NVIDIA, "NVIDIA Apollo Unveiled as Open Model Family" (SC25, Nov 2025). <span class="src">blogs.nvidia.com/blog/apollo-open-models</span></li>
+        <li>NVIDIA Technical Blog, "Using AI Physics for TCAD Simulations" (Jan 2026). <span class="src">developer.nvidia.com/blog</span></li>
+        <li>NVIDIA Newsroom and Meteorological Technology International on Earth-2 and the open Earth-2 model family (2024–2026). <span class="src">nvidianews.nvidia.com · meteorologicaltechnologyinternational.com</span></li>
+        <li>NVIDIA, <em>Omniverse</em> and <em>Isaac Sim</em> documentation and repository. <span class="src">nvidia.com/en-us/omniverse · github.com/isaac-sim/IsaacSim</span></li>
+        <li>Linux Foundation, "Contribution of Newton by Disney Research, Google DeepMind and NVIDIA" (Sep 2025). <span class="src">linuxfoundation.org/press</span></li>
+        <li>NVIDIA, <em>NIM for Developers</em> and AI Enterprise licensing; per-GPU pricing and the developer free tier (2026 documentation and deployment guides). <span class="src">developer.nvidia.com/nim</span></li>
+        <li>NVIDIA, <em>Isaac Sim License FAQ</em> (Apache 2.0 source; AI Enterprise required for redistribution). <span class="src">docs.isaacsim.omniverse.nvidia.com</span></li>
+        <li>NVIDIA Open Model License (governs Apollo and other open weights; confirm on each model card). <span class="src">nvidia.com · huggingface.co</span></li>
+        <li>Raissi, Perdikaris, Karniadakis, "Physics-Informed Neural Networks," <em>J. Computational Physics</em> (2019). Foundational PINN paper.</li>
+        <li>Li et al., "Fourier Neural Operator" (2020); Lu et al., "DeepONet," <em>Nature Machine Intelligence</em> (2021); Kurth et al., "FourCastNet" (2023); Mardani et al., "CorrDiff" (2024).</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="rule"></div>
+    <p class="colophon">
+      THE PHYSICS-AI STACK · SURROGATES<br>
+      By Majid Mazouchi<br>
+      Single file · vanilla JavaScript · no external dependencies · figures are illustrative · prices may change
+    </p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  try{ document.getElementById('today').textContent = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}); }
+  catch(e){ document.getElementById('today').textContent='2026'; }
+
+  function press(container,i){Array.prototype.forEach.call(container.children,function(b,idx){if(b.tagName==='BUTTON')b.setAttribute('aria-pressed',idx===i?'true':'false');});}
+
+  /* Fig 1 */
+  var kinds=[
+    {flow:[['Read problem',0],['Set up equations',0],['Call a tool',0],['Explain answer',0]],color:'#2C5A86',
+     note:'The reasoner is great at framing: it names the system type, writes the equations, and picks a method. It should hand the actual number-crunching to a solver, because as a calculator it is unreliable.'},
+    {flow:[['Same inputs as the solver',1],['Trained network',1],['Answer in milliseconds',1]],color:'#4C8A2B',
+     note:'The surrogate skips reasoning entirely. Having seen many solved cases, it predicts the solver\u2019s output directly, fast, as long as the new case looks like the cases it was trained on.'}
+  ];
+  var kSwitch=document.getElementById('kindSwitch'),kFlow=document.getElementById('kindFlow'),kNote=document.getElementById('kindNote');
+  function renderKind(i){var k=kinds[i];kFlow.innerHTML='';k.flow.forEach(function(s,idx){var b=document.createElement('span');b.className='kbox hl';b.style.setProperty('--k',k.color);b.textContent=s[0];kFlow.appendChild(b);if(idx<k.flow.length-1){var a=document.createElement('span');a.className='karrow';a.textContent='\u2192';kFlow.appendChild(a);}});kNote.textContent=k.note;press(kSwitch,i);}
+  Array.prototype.forEach.call(kSwitch.children,function(btn){btn.addEventListener('click',function(){renderKind(+btn.getAttribute('data-k'));});});
+  renderKind(0);
+
+  /* Fig 2 */
+  var layers=[
+    {name:'Apollo + Earth-2',role:'finished models',color:'#4C8A2B',dt:'Ready-made imitators',meta:'LAYER 4 · PRE-TRAINED MODELS',body:'Pick up a model and use it, or fine-tune it on your data. Apollo covers engineering domains; Earth-2 is a planet-scale weather twin. This is the freezer of ready meals.',chips:['pre-trained','fine-tunable','six domains']},
+    {name:'PhysicsNeMo',role:'training framework',color:'#356018',dt:'The workshop',meta:'LAYER 3 · FRAMEWORK',body:'Open-source PyTorch toolkit for building your own surrogates from the three network families, with physics penalties built in. This is the recipe book and techniques.',chips:['PyTorch','operators / PINNs','Apache-2.0']},
+    {name:'Omniverse + PhysX',role:'simulation world',color:'#2C5A86',dt:'The world',meta:'LAYER 2 · REAL-TIME SIMULATION',body:'A photorealistic, real-time environment where digital twins and robots are tested. Isaac Sim is its robotics edition. This is the kitchen itself.',chips:['digital twins','OpenUSD','Isaac Sim']},
+    {name:'Newton + Warp',role:'physics engine',color:'#1E3F5E',dt:'The engine',meta:'LAYER 1 · DIFFERENTIABLE PHYSICS',body:'The fast, GPU-based engine that computes forces and motion. Newton is differentiable, so you can optimize through the simulation. These are the stove and knives.',chips:['differentiable','GPU','open source']}
+  ];
+  var stackEl=document.getElementById('stack'),detailEl=document.getElementById('layerDetail');
+  layers.forEach(function(L,i){var b=document.createElement('button');b.className='layer';b.style.setProperty('--c',L.color);b.setAttribute('aria-pressed','false');b.innerHTML='<span class="lno">L'+(4-i)+'</span><span class="lname">'+L.name+'</span><span class="lrole">'+L.role+'</span>';b.addEventListener('click',function(){selectLayer(i);});stackEl.appendChild(b);});
+  function selectLayer(i){var L=layers[i];press(stackEl,i);var chips=L.chips.map(function(c){return '<span class="chip">'+c+'</span>';}).join('');detailEl.innerHTML='<div class="dt" style="color:'+L.color+'">'+L.dt+'</div><div class="dmeta">'+L.meta+'</div><p>'+L.body+'</p><div class="chips">'+chips+'</div>';}
+  selectLayer(0);
+
+  /* Fig 3 */
+  var steps=[
+    {on:['n_eq','n_data'],lit:['c1','c2'],cap:'Start with two ingredients: the governing equations, and data from slow solver runs or real sensors.'},
+    {on:['n_net'],lit:['c1','c2'],cap:'Feed both into a network. It can be a PINN, a neural operator, or a graph network depending on the problem.'},
+    {on:['n_loss'],lit:['c4'],cap:'Score it twice: match the examples, and obey the physics. The physics penalty keeps it honest between data points.'},
+    {on:['n_infer','n_out'],lit:['c3','c5'],cap:'Once trained, predictions take milliseconds instead of hours. This fast stand-in is the surrogate.'}
+  ];
+  var stepIdx=0,trainCap=document.getElementById('trainCap'),prevBtn=document.getElementById('prevStep'),nextBtn=document.getElementById('nextStep'),dotsEl=document.getElementById('trainDots');
+  steps.forEach(function(){var i=document.createElement('i');dotsEl.appendChild(i);});
+  function paintStep(){
+    ['n_eq','n_data','n_net','n_loss','n_infer','n_out'].forEach(function(id){var g=document.getElementById(id);if(!g)return;var s=g.querySelector('rect');s.setAttribute('fill','#FBF7EC');s.setAttribute('stroke','#C9BC9E');s.setAttribute('stroke-width','1.5');});
+    ['c1','c2','c3','c4','c5'].forEach(function(id){var c=document.getElementById(id);if(c)c.setAttribute('stroke','#C9BC9E');});
+    var cum={};for(var s=0;s<=stepIdx;s++){steps[s].on.forEach(function(id){cum[id]=true;});}
+    Object.keys(cum).forEach(function(id){var g=document.getElementById(id);if(!g)return;var r=g.querySelector('rect');r.setAttribute('fill','#EFF4EA');r.setAttribute('stroke','#4C8A2B');r.setAttribute('stroke-width','2');});
+    steps[stepIdx].lit.forEach(function(id){var c=document.getElementById(id);if(c)c.setAttribute('stroke','#4C8A2B');});
+    trainCap.textContent=steps[stepIdx].cap;
+    Array.prototype.forEach.call(dotsEl.children,function(d,idx){d.className=idx<=stepIdx?'on':'';});
+    prevBtn.disabled=stepIdx===0;nextBtn.disabled=stepIdx===steps.length-1;
+  }
+  nextBtn.addEventListener('click',function(){if(stepIdx<steps.length-1){stepIdx++;paintStep();}});
+  prevBtn.addEventListener('click',function(){if(stepIdx>0){stepIdx--;paintStep();}});
+  paintStep();
+
+  /* Fig 4 : network families */
+  var nf=[
+    {t:'PINN · physics-informed neural network',c:'#356018',b:'Bakes the equations straight into the training score. Best when you know the physics well but have little or no data. You are essentially teaching the network to solve the equation itself. Can struggle with stiff, fast-changing, or turbulent problems.'},
+    {t:'Neural operator',c:'#4C8A2B',b:'Learns a mapping between whole input and output fields, so one trained model handles a whole family of conditions instead of a single case. Best when you want a reusable surrogate that generalizes. The Fourier Neural Operator and DeepONet are the famous examples, and weather models use this family.'},
+    {t:'Graph network',c:'#2C5A86',b:'Treats a mesh as a web of connected points and predicts how each point nudges its neighbors, step by step. Best when the thing naturally lives on a mesh or a set of interacting parts: fluids, deformable solids, contact between bodies.'}
+  ];
+  var nfSwitch=document.getElementById('nfSwitch'),nfBody=document.getElementById('nfBody');
+  function renderNf(i){press(nfSwitch,i);nfBody.innerHTML='<div class="dt" style="color:'+nf[i].c+'">'+nf[i].t+'</div><p style="font-size:16px;margin:0">'+nf[i].b+'</p>';}
+  Array.prototype.forEach.call(nfSwitch.children,function(btn){btn.addEventListener('click',function(){renderNf(+btn.getAttribute('data-n'));});});
+  renderNf(0);
+
+  /* Fig 5 : tradeoff */
+  var dist=document.getElementById('dist'),distOut=document.getElementById('distOut'),curve=document.getElementById('surCurve'),dot=document.getElementById('surDot'),verdict=document.getElementById('verdict');
+  function paintTrade(){
+    var d=+dist.value;distOut.textContent=d+'%';
+    var endY=158-Math.pow(d/100,1.8)*112,midY=158-Math.pow(d/100,1.8)*70;
+    curve.setAttribute('d','M60 158 Q 400 '+midY.toFixed(1)+' 690 '+endY.toFixed(1));
+    var dotX=60+(d/100)*630,t=(dotX-60)/630,dotY=(1-t)*(1-t)*158+2*(1-t)*t*midY+t*t*endY;
+    dot.setAttribute('cx',dotX.toFixed(1));dot.setAttribute('cy',dotY.toFixed(1));
+    if(d<25){verdict.innerHTML='<span class="verdict-tag" style="background:#4C8A2B">SAFE</span>Inside its training data the surrogate is fast and accurate. Use it freely to sweep cases.';}
+    else if(d<60){verdict.innerHTML='<span class="verdict-tag" style="background:#9C7411">CHECK</span>Drifting to the edge. Still useful for screening, but confirm anything that matters against the solver.';}
+    else{verdict.innerHTML='<span class="verdict-tag" style="background:#B0532A">USE SOLVER</span>Far outside what it saw. The surrogate is guessing now. Fall back to the real solver for the answer.';}
+  }
+  dist.addEventListener('input',paintTrade);paintTrade();
+
+  /* Fig 6 : picker */
+  var picks=[
+    {n:'Apollo (CFD) + a solver to verify',p:'Start fluid runs from an Apollo computational-fluid-dynamics model, then confirm the final design in your usual CFD solver.'},
+    {n:'Apollo (structural mechanics)',p:'Use the structural family for stiffness and stress screening across many variants before a full finite-element run.'},
+    {n:'Apollo (electromagnetics)',p:'Use the electromagnetics models for antenna and interference sweeps, then verify the chosen layout.'},
+    {n:'Earth-2 (FourCastNet + CorrDiff)',p:'Generate large, cheap weather ensembles for risk, then downscale to local detail with CorrDiff.'},
+    {n:'Omniverse / Isaac Sim on Newton',p:'Drop the robot and work cell into the simulation world, train and test policies, then deploy to hardware.'},
+    {n:'PhysicsNeMo',p:'No finished model fits? Build your own surrogate in the framework from operators or PINNs, on your own data.'}
+  ];
+  var picker=document.getElementById('picker'),pickout=document.getElementById('pickout');
+  function paintPick(i){press(picker,i);pickout.innerHTML='<div class="po-name">'+picks[i].n+'</div><p>'+picks[i].p+'</p>';}
+  Array.prototype.forEach.call(picker.children,function(btn){btn.addEventListener('click',function(){paintPick(+btn.getAttribute('data-p'));});});
+  paintPick(0);
+
+  /* Fig 7 : loop */
+  var loop=[
+    {id:'l_m',arr:'a_gm',cap:'Step 1 · Read live signals from the machine: temperatures, currents, vibration.'},
+    {id:'l_p',arr:'a_mp',cap:'Step 2 · A healthy-baseline surrogate predicts what those signals should be right now.'},
+    {id:'l_r',arr:'a_pr',cap:'Step 3 · Subtract. A residual past a threshold means something has changed.'},
+    {id:'l_i',arr:'a_ri',cap:'Step 4 · Try each fault hypothesis on the surrogate; keep the one that reproduces the residual.'},
+    {id:'l_f',arr:'a_if',cap:'Step 5 · Roll the surrogate forward under the expected load to estimate remaining life, with a confidence band.'},
+    {id:'l_g',arr:'a_fg',cap:'Step 6 · Act, or hand an ambiguous case to a person. Then the loop returns to step one.'}
+  ];
+  var loopIdx=0,loopCap=document.getElementById('loopCap'),loopDots=document.getElementById('loopDots');
+  loop.forEach(function(){var i=document.createElement('i');loopDots.appendChild(i);});
+  function paintLoop(){
+    loop.forEach(function(s){var g=document.getElementById(s.id);var r=g.querySelector('rect');r.setAttribute('fill','#FBF7EC');r.setAttribute('stroke','#C9BC9E');r.setAttribute('stroke-width','1.5');});
+    ['a_mp','a_pr','a_ri','a_if','a_fg','a_gm'].forEach(function(id){var a=document.getElementById(id);if(a)a.setAttribute('stroke','#C9BC9E');});
+    var cur=loop[loopIdx],g=document.getElementById(cur.id),r=g.querySelector('rect');
+    r.setAttribute('fill','#EFF4EA');r.setAttribute('stroke','#4C8A2B');r.setAttribute('stroke-width','2.2');
+    var a=document.getElementById(cur.arr);if(a)a.setAttribute('stroke','#4C8A2B');
+    loopCap.textContent=cur.cap;
+    Array.prototype.forEach.call(loopDots.children,function(d,idx){d.className=idx===loopIdx?'on':'';});
+  }
+  document.getElementById('loopNext').addEventListener('click',function(){loopIdx=(loopIdx+1)%loop.length;paintLoop();});
+  document.getElementById('loopPrev').addEventListener('click',function(){loopIdx=(loopIdx-1+loop.length)%loop.length;paintLoop();});
+  paintLoop();
+
+  /* Fig 9 : licensing */
+  var lic=[
+    {name:'PhysicsNeMo',tag:'open / free',col:'#4C8A2B',detail:'Apache 2.0. Build and train your own surrogates at no cost. You only need an NVIDIA CUDA GPU.'},
+    {name:'Apollo models',tag:'free to run · paid to serve',col:'#9C7411',detail:'Weights are free to download and run under the NVIDIA Open Model License (confirm on each model card). Production serving through a packaged inference microservice needs an NVIDIA AI Enterprise license.'},
+    {name:'Earth-2 + Earth2Studio',tag:'open / free',col:'#4C8A2B',detail:'The models and the Earth2Studio toolkit are open and free to run yourself. The hosted Earth-2 cloud APIs on DGX Cloud are paid.'},
+    {name:'Isaac Sim',tag:'free for R&D',col:'#4C8A2B',detail:'Apache 2.0 source, free for internal research and development. A license is needed only if you redistribute it with Omniverse Kit as a product, or deliver it as a turn-key service. Selling only the outputs needs no license.'},
+    {name:'Omniverse Kit',tag:'paid to ship',col:'#9C7411',detail:'Free for individuals. Redistributing the runtime inside your own product needs an Omniverse Enterprise subscription.'},
+    {name:'Newton · Warp · PhysX',tag:'open / free',col:'#4C8A2B',detail:'Open source. Newton is governed by the Linux Foundation. Free to use, modify, and ship.'},
+    {name:'NIM (production serving)',tag:'recurring cost',col:'#B0532A',detail:'Free for development on up to sixteen GPUs. Production needs NVIDIA AI Enterprise (now the "Essentials" tier): as of mid-2026, about $2 per GPU per hour on demand in cloud marketplaces, or a flat per-GPU annual subscription sold through partners by quote. Priced per GPU, not per token, and restructured in 2026, so confirm before budgeting.'}
+  ];
+  var licEl=document.getElementById('lic'),licDetail=document.getElementById('licDetail');
+  lic.forEach(function(L,i){var b=document.createElement('button');b.className='lic-row';b.setAttribute('aria-pressed','false');b.innerHTML='<span class="lc-name">'+L.name+'</span><span class="lc-tag" style="background:'+L.col+'">'+L.tag+'</span>';b.addEventListener('click',function(){selectLic(i);});licEl.appendChild(b);});
+  function selectLic(i){press(licEl,i);licDetail.innerHTML='<strong style="color:'+lic[i].col+'">'+lic[i].name+'.</strong> '+lic[i].detail;}
+  selectLic(0);
+
+  /* Fig 10 : cost estimator */
+  var cGpus=document.getElementById('cGpus'),cHours=document.getElementById('cHours'),cGpusOut=document.getElementById('cGpusOut'),cHoursOut=document.getElementById('cHoursOut'),costYear=document.getElementById('costYear'),costHour=document.getElementById('costHour'),cardYear=document.getElementById('cardYear'),cardHour=document.getElementById('cardHour'),costNote=document.getElementById('costNote');
+  function money(n){return '$'+Math.round(n).toLocaleString('en-US');}
+  function paintCost(){
+    var g=+cGpus.value,h=+cHours.value;
+    cGpusOut.textContent=g;cHoursOut.textContent=h+' h';
+    var yearly=g*4500, hourly=g*2*h*365;
+    costYear.textContent=money(yearly);costHour.textContent=money(hourly);
+    cardYear.classList.toggle('win',yearly<=hourly);
+    cardHour.classList.toggle('win',hourly<yearly);
+    var msg='';
+    if(g<=16){msg='At '+g+' GPU'+(g>1?'s':'')+', development and evaluation are free. The figures above apply once you cross into production.';}
+    else{msg='Above sixteen GPUs you are past the free development tier, so production licensing applies.';}
+    msg+=' At '+h+' hours a day, the '+(hourly<yearly?'hourly rate':'annual license')+' is the cheaper way to pay.';
+    costNote.textContent=msg;
+  }
+  cGpus.addEventListener('input',paintCost);cHours.addEventListener('input',paintCost);paintCost();
+
+  /* Fig 11 : hardware ladder */
+  var rungs=[
+    {name:'RTX laptop or desktop',spec:'RTX 4070–4080 class · 8–16 GB',detail:'Learn the tools, run small surrogates, open light simulation scenes, and call the free hosted inference endpoints. Enough to prototype the agent logic end to end.'},
+    {name:'RTX workstation',spec:'RTX 6000 Ada / 5090 class · 24–48 GB',detail:'Develop surrogates in PhysicsNeMo, run the full simulator, serve small inference containers locally, and build differentiable sims in Warp and Newton.'},
+    {name:'Data-center node',spec:'A100 / H100 / H200 · 40–141 GB · multi-GPU',detail:'Train surrogates for real, serve high-throughput inference, and run large multiphysics. This is where production training and serving live.'}
+  ];
+  var ladder=document.getElementById('ladder'),rungDetail=document.getElementById('rungDetail');
+  rungs.forEach(function(R,i){var b=document.createElement('button');b.className='rung';b.setAttribute('aria-pressed','false');b.innerHTML='<span class="rg-no">0'+(i+1)+'</span><span class="rg-name">'+R.name+'</span><span class="rg-spec">'+R.spec+'</span>';b.addEventListener('click',function(){selectRung(i);});ladder.appendChild(b);});
+  function selectRung(i){press(ladder,i);rungDetail.innerHTML='<strong>'+rungs[i].name+'.</strong> '+rungs[i].detail;}
+  selectRung(0);
+
+  /* Fig 12 : glossary */
+  var gloss=[
+    ['Surrogate model','A fast network trained to copy a slow physics solver, returning a close answer in milliseconds instead of hours.'],
+    ['Solver','A program that computes physics the honest, step-by-step way by solving the governing equations. Accurate but slow.'],
+    ['PINN','Physics-Informed Neural Network. A surrogate that is scored during training on obeying the equations, useful when you know the physics but have little data.'],
+    ['Neural operator','A surrogate that learns a mapping between whole fields, so one model covers many conditions. FourCastNet is one.'],
+    ['Graph network','A surrogate that treats a mesh as connected points and predicts how each affects its neighbors. Good for fluids and contact.'],
+    ['Digital twin','A live simulation of a specific real thing, kept in sync with sensor data so you can test changes safely on the copy.'],
+    ['OpenUSD','A shared 3D scene file format that lets these tools describe and exchange the same scene, like PDF for documents.'],
+    ['Differentiable physics','A simulation you can ask "how would the result change if I nudged this input?", which lets you optimize by following the gradient.'],
+    ['CUDA','NVIDIA\u2019s software layer for running programs on its GPUs. "CUDA-capable" just means an NVIDIA card.'],
+    ['VRAM','The memory on a GPU. A model or scene must fit in it; running out of VRAM is the most common hardware limit.'],
+    ['Inference','Running a trained model to get answers, as opposed to training it. Much lighter than training.'],
+    ['Training','Teaching a network from examples. The heavy, one-time compute cost; afterwards you mostly do inference.'],
+    ['Fine-tuning','Taking a pre-trained model and training it a little more on your own data so it fits your exact problem.'],
+    ['NIM','NVIDIA\u2019s pre-packaged container for serving a model in production, with the model and a fast engine wired together behind a standard interface.'],
+    ['NVIDIA AI Enterprise','The paid license and support subscription needed to run NIM in production, now sold as the "Essentials" tier. As of mid-2026, about $2 per GPU per hour on demand, or a per-GPU annual subscription by quote.'],
+    ['Open Model License','The permissive license most of NVIDIA\u2019s downloadable model weights ship under; it allows commercial use.'],
+    ['In / out of distribution','Whether a question is inside the range of cases a model was trained on. Inside is safe; outside, the model is guessing.'],
+    ['Residual','The gap between what sensors measure and what a healthy-baseline model predicts. The core anomaly signal in diagnosis.'],
+    ['RUL','Remaining Useful Life. How much working time a machine has left before it should be serviced or replaced.'],
+    ['Data assimilation','Tuning a model so it matches the current real state of a machine before forecasting forward from there.'],
+    ['Ensemble','Several models instead of one. How much they disagree gives an honest measure of uncertainty.'],
+    ['Agent','A language model that decides what to do, calls tools to do it, reads the results, and explains them.'],
+    ['FEA / CFD','Finite-Element Analysis and Computational Fluid Dynamics: the classic slow solvers for stress and for flow.'],
+    ['Field','A quantity spread over space, like temperature across a part or pressure across a wing. Surrogates often predict whole fields at once.']
+  ];
+  var glossTerms=document.getElementById('glossTerms'),glossDetail=document.getElementById('glossDetail');
+  gloss.forEach(function(G,i){var b=document.createElement('button');b.setAttribute('aria-pressed','false');b.textContent=G[0];b.addEventListener('click',function(){selectGloss(i);});glossTerms.appendChild(b);});
+  function selectGloss(i){press(glossTerms,i);glossDetail.innerHTML='<div class="gd-term">'+gloss[i][0]+'</div><p>'+gloss[i][1]+'</p>';}
+  selectGloss(0);
+})();
+</script>
+</body>
+</html>
