@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic and Reasoning, Part III: A Multi-Agent Problem-Solver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7F0;
+    --cream:#F1ECE0;
+    --cream-deep:#E7DFCE;
+    --ink:#231E18;
+    --ink-soft:#544B3F;
+    --ink-faint:#8A7E6C;
+    --rust:#B5462B;
+    --teal:#1B6F69;
+    --ochre:#C2891B;
+    --line:#D8CFBC;
+    --line-strong:#C4B79C;
+    --rust-wash:rgba(181,70,43,0.08);
+    --teal-wash:rgba(27,111,105,0.08);
+    --ochre-wash:rgba(194,137,27,0.10);
+    --shadow:0 1px 0 rgba(35,30,24,0.04), 0 8px 30px rgba(35,30,24,0.06);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Fraunces',Georgia,serif;
+    font-optical-sizing:auto;
+    font-weight:400;
+    font-size:18px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px;}
+  section{padding:56px 0;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+
+  /* ---------- hero ---------- */
+  header.hero{padding:84px 0 64px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:0.22em;text-transform:uppercase;
+    color:var(--rust);font-weight:500;margin:0 0 22px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;font-size:clamp(38px,7vw,68px);
+    line-height:1.04;letter-spacing:-0.015em;margin:0 0 18px;
+  }
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:60ch;margin:0 0 30px;font-weight:300;}
+  .byline{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-faint);
+    border-top:1px solid var(--line);padding-top:18px;letter-spacing:0.02em;
+  }
+
+  /* ---------- type ---------- */
+  h2{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(27px,4vw,38px);line-height:1.1;letter-spacing:-0.01em;
+    margin:0 0 8px;
+  }
+  .sec-no{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.2em;
+    text-transform:uppercase;color:var(--teal);font-weight:500;display:block;margin-bottom:14px;
+  }
+  h3{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:34px 0 6px;letter-spacing:-0.005em;}
+  p{margin:0 0 18px;}
+  a{color:var(--rust);text-decoration:none;border-bottom:1px solid rgba(181,70,43,0.3);}
+  a:hover{border-bottom-color:var(--rust);}
+  strong{font-weight:600;}
+  .key{color:var(--rust);font-weight:600;}
+  .lead-in{font-size:20px;color:var(--ink-soft);font-weight:300;margin-bottom:26px;}
+
+  /* ---------- callout ---------- */
+  .note{
+    background:var(--cream);border:1px solid var(--line);border-left:3px solid var(--ochre);
+    padding:18px 22px;border-radius:4px;margin:26px 0;font-size:17px;
+  }
+  .note .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--ochre);display:block;margin-bottom:8px;font-weight:600;}
+
+  /* ---------- interactive shell ---------- */
+  .demo{
+    background:var(--paper);border:1px solid var(--line-strong);border-radius:10px;
+    padding:26px;margin:30px 0;box-shadow:var(--shadow);
+  }
+  .demo-label{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:18px;
+  }
+  .demo-label::before{content:"";width:8px;height:8px;background:var(--teal);border-radius:2px;display:inline-block;}
+
+  button{font-family:'IBM Plex Mono',monospace;cursor:pointer;}
+  .btn{
+    background:var(--ink);color:var(--paper);border:none;border-radius:6px;
+    padding:10px 16px;font-size:13px;letter-spacing:0.03em;font-weight:500;transition:transform .08s ease,background .15s ease;
+  }
+  .btn:hover{background:var(--rust);}
+  .btn:active{transform:translateY(1px);}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong);}
+  .btn.ghost:hover{background:var(--cream);color:var(--ink);}
+
+  /* ---------- form-vs-content demo ---------- */
+  .syllogism{font-family:'IBM Plex Mono',monospace;font-size:15px;line-height:2.1;}
+  .syllogism .slot{background:var(--rust-wash);color:var(--rust);padding:1px 7px;border-radius:4px;font-weight:600;transition:background .3s,color .3s;}
+  .syllogism .frame{color:var(--ink-soft);}
+  .syllogism .bar{border-top:1.5px solid var(--ink);margin:6px 0 6px;width:60%;}
+  .verdict{margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--teal);font-weight:600;letter-spacing:0.04em;}
+
+  /* ---------- inference svg ---------- */
+  .fig{margin:30px 0;}
+  .fig svg{width:100%;height:auto;display:block;}
+  .caption{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.5;letter-spacing:0.01em;}
+  .caption b{color:var(--ink-soft);font-weight:600;}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;}
+  .tab{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;
+    padding:9px 14px;border-radius:6px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);
+  }
+  .tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .panel{display:none;animation:fade .25s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .panel h4{font-family:'Fraunces',serif;font-size:19px;font-weight:600;margin:0 0 6px;}
+  .panel .role{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:10px;}
+  .deductive .role{color:var(--teal);} .inductive .role{color:var(--ochre);} .abductive .role{color:var(--rust);}
+  .scenario-box{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:16px 18px;font-size:15px;margin:14px 0;}
+  .scenario-box .line{margin:4px 0;}
+  .scenario-box .premise{color:var(--ink-soft);}
+  .scenario-box .concl{font-weight:600;}
+  .deductive .concl{color:var(--teal);} .inductive .concl{color:var(--ochre);} .abductive .concl{color:var(--rust);}
+
+  /* certainty meter */
+  .meter{margin-top:14px;}
+  .meter .meter-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);display:flex;justify-content:space-between;margin-bottom:6px;}
+  .meter .track{height:8px;background:var(--cream-deep);border-radius:5px;overflow:hidden;}
+  .meter .fill{height:100%;border-radius:5px;transition:width .5s ease;}
+  .deductive .fill{background:var(--teal);} .inductive .fill{background:var(--ochre);} .abductive .fill{background:var(--rust);}
+
+  /* ---------- CRT / dual process ---------- */
+  .crt-q{font-size:18px;background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px;}
+  .sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+  .sys{border-radius:8px;padding:16px;border:1px solid var(--line);}
+  .sys.one{background:var(--rust-wash);} .sys.two{background:var(--teal-wash);}
+  .sys .h{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
+  .sys.one .h{color:var(--rust);} .sys.two .h{color:var(--teal);}
+  .sys .ans{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;margin:6px 0;}
+  .sys .small{font-size:14px;color:var(--ink-soft);}
+  .hidden{display:none;}
+
+  /* ---------- wason ---------- */
+  .cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:22px 0;}
+  .card{
+    width:78px;height:104px;border-radius:10px;border:2px solid var(--line-strong);background:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:38px;font-weight:600;
+    cursor:pointer;transition:transform .1s,border-color .15s,background .15s;position:relative;user-select:none;
+  }
+  .card:hover{transform:translateY(-3px);}
+  .card.picked{border-color:var(--rust);background:var(--rust-wash);}
+  .card .pick-tag{position:absolute;bottom:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--rust);opacity:0;}
+  .card.picked .pick-tag{opacity:1;}
+  .wason-rule{font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;background:var(--cream);border:1px dashed var(--line-strong);border-radius:8px;padding:12px;margin-bottom:8px;}
+  .wason-result{margin-top:18px;font-size:16px;padding:16px;border-radius:8px;display:none;}
+  .wason-result.show{display:block;}
+  .wason-result.right{background:var(--teal-wash);border:1px solid rgba(27,111,105,0.3);}
+  .wason-result.wrong{background:var(--rust-wash);border:1px solid rgba(181,70,43,0.3);}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+
+  /* ---------- types overview grid ---------- */
+  .typegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:24px 0;}
+  .tcard{border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--cream);}
+  .tcard .n{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;color:var(--teal);}
+  .tcard h4{font-family:'Fraunces',serif;font-size:18px;margin:6px 0;}
+  .tcard p{font-size:14.5px;color:var(--ink-soft);margin:0;line-height:1.5;}
+
+  /* ---------- toc ---------- */
+  .toc{font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:22px 24px;margin:36px 0 0;}
+  .toc .t{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;font-weight:600;}
+  .toc ol{margin:0;padding-left:20px;}
+  .toc li{margin:7px 0;}
+  .toc a{color:var(--ink);border-bottom:none;}
+  .toc a:hover{color:var(--rust);}
+
+  /* ---------- references ---------- */
+  .refs{font-size:15px;}
+  .refs ol{padding-left:22px;}
+  .refs li{margin:12px 0;color:var(--ink-soft);line-height:1.5;}
+  .refs li b{color:var(--ink);font-weight:600;}
+
+  footer{padding:50px 0 70px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);text-align:center;letter-spacing:0.02em;}
+
+  @media (max-width:620px){
+    body{font-size:17px;}
+    .sys-grid{grid-template-columns:1fr;}
+    .typegrid{grid-template-columns:1fr;}
+    .card{width:64px;height:88px;font-size:30px;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px;}
+
+  /* ---------- scroll progress + back to top ---------- */
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--rust);z-index:50;transition:width .08s linear;}
+  .totop{position:fixed;bottom:22px;right:22px;z-index:49;width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:16px;cursor:pointer;box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .2s;}
+  .totop.show{opacity:1;pointer-events:auto;}
+  .totop:hover{background:var(--ink);color:var(--paper);}
+
+  /* ---------- scroll reveal ---------- */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+
+  /* ---------- truth table ---------- */
+  .op-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .op{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;padding:8px 13px;border-radius:6px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);}
+  .op[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  table.tt{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:15px;margin-top:4px;}
+  table.tt th,table.tt td{border:1px solid var(--line);padding:10px;text-align:center;}
+  table.tt th{background:var(--cream);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;}
+  table.tt td.res{font-weight:600;}
+  table.tt td.T{color:var(--teal);} table.tt td.F{color:var(--rust);}
+  table.tt tr.hot td{background:var(--ochre-wash);}
+  .tt-expl{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin-top:12px;line-height:1.6;}
+
+  /* ---------- venn ---------- */
+  .venn-wrap{display:flex;flex-direction:column;align-items:center;}
+  .venn-args{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
+  .venn-args button{font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:8px 12px;border-radius:6px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);}
+  .venn-args button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .venn-premises{font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;margin:6px 0 4px;color:var(--ink-soft);line-height:1.8;}
+  .venn-verdict{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:0.04em;margin-top:10px;text-align:center;}
+  .venn-verdict.valid{color:var(--teal);} .venn-verdict.invalid{color:var(--rust);}
+
+  /* ---------- bayes ---------- */
+  .bayes label{display:block;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin:14px 0 4px;letter-spacing:0.02em;}
+  .bayes label .v{float:right;color:var(--rust);font-weight:600;}
+  .bayes input[type=range]{width:100%;accent-color:var(--teal);height:4px;}
+  .bayes .bars{margin-top:22px;}
+  .bayes .barline{margin:12px 0;}
+  .bayes .barline .bl-label{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-bottom:5px;}
+  .bayes .barline .bl-label .pct{font-weight:600;}
+  .bayes .track2{height:22px;background:var(--cream-deep);border-radius:5px;overflow:hidden;}
+  .bayes .f-prior{height:100%;background:var(--ink-faint);transition:width .3s;}
+  .bayes .f-post{height:100%;background:var(--teal);transition:width .3s;}
+  .bayes .insight{font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;margin-top:18px;padding:12px 14px;border-radius:8px;background:var(--ochre-wash);color:var(--ink-soft);}
+  .bayes .insight b{color:var(--ochre);}
+
+  /* ---------- defeasible ---------- */
+  .def .belief{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:10px 0;font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  .def .fact{color:var(--ink-soft);margin:3px 0;}
+  .def .fact.added{color:var(--rust);font-weight:600;}
+  .def .concl{margin-top:8px;font-weight:600;color:var(--teal);transition:color .3s;}
+  .def .concl.retracted{color:var(--ink-faint);text-decoration:line-through;}
+  .def .concl.new{color:var(--rust);}
+  .def .note-line{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin-top:12px;min-height:18px;}
+
+  /* ---------- fallacy gallery ---------- */
+  .fgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:24px 0;}
+  .fcard{border:1px solid var(--line);border-radius:8px;background:var(--cream);overflow:hidden;}
+  .fcard .fhead{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .fcard .fhead h4{font-family:'Fraunces',serif;font-size:17px;margin:0;}
+  .fcard .fhead .plus{font-family:'IBM Plex Mono',monospace;color:var(--rust);font-size:18px;transition:transform .2s;}
+  .fcard.open .fhead .plus{transform:rotate(45deg);}
+  .fcard .fbody{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 16px;}
+  .fcard.open .fbody{max-height:280px;padding:0 16px 16px;}
+  .fcard .fbody .ex{font-size:14.5px;color:var(--ink-soft);margin:0 0 8px;}
+  .fcard .fbody .why{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);line-height:1.5;}
+  .fcard .fbody .why b{color:var(--ochre);}
+
+  /* ---------- AI/VHM mapping table ---------- */
+  .maptable{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;}
+  .maptable th,.maptable td{border:1px solid var(--line);padding:12px 13px;text-align:left;vertical-align:top;}
+  .maptable th{background:var(--ink);color:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;}
+  .maptable td:first-child{font-weight:600;color:var(--rust);font-family:'IBM Plex Mono',monospace;font-size:13px;white-space:nowrap;}
+  .maptable tr:nth-child(even) td{background:var(--cream);}
+  .maptable .vhm{color:var(--teal);font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+
+  /* ---------- quiz ---------- */
+  .quiz .q{border:1px solid var(--line);border-radius:8px;padding:18px;margin:14px 0;background:var(--paper);}
+  .quiz .q .qtext{font-size:16px;margin-bottom:14px;}
+  .quiz .q .qtext .qn{font-family:'IBM Plex Mono',monospace;color:var(--teal);font-size:12px;letter-spacing:0.1em;display:block;margin-bottom:6px;}
+  .quiz .qopt{display:block;width:100%;text-align:left;font-family:'Fraunces',serif;font-size:15.5px;padding:11px 14px;margin:7px 0;border-radius:7px;border:1px solid var(--line-strong);background:transparent;color:var(--ink);cursor:pointer;transition:background .15s,border-color .15s;}
+  .quiz .qopt:hover{background:var(--cream);}
+  .quiz .qopt.correct{background:var(--teal-wash);border-color:var(--teal);color:var(--teal);font-weight:600;}
+  .quiz .qopt.wrong{background:var(--rust-wash);border-color:var(--rust);color:var(--rust);}
+  .quiz .qexpl{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.6;display:none;}
+  .quiz .qexpl.show{display:block;}
+  .quiz .score{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--ink);margin-top:18px;text-align:center;padding:14px;background:var(--cream);border-radius:8px;border:1px solid var(--line);}
+
+  @media (max-width:620px){
+    .fgrid{grid-template-columns:1fr;}
+    .maptable{font-size:13px;}
+    .maptable th,.maptable td{padding:9px;}
+  }
+
+  /* ---------- propose-verify demo ---------- */
+  .pv-goal{font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--ink);color:var(--paper);border-radius:8px;padding:13px 16px;margin-bottom:16px;}
+  .pv-goal b{color:var(--ochre);}
+  .pv-round{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;}
+  .pv-box{border-radius:8px;padding:13px 15px;border:1px solid var(--line);min-height:96px;}
+  .pv-box .bh{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:8px;}
+  .pv-neural{background:var(--rust-wash);} .pv-neural .bh{color:var(--rust);}
+  .pv-formal{background:var(--teal-wash);} .pv-formal .bh{color:var(--teal);}
+  .pv-box .body{font-size:14px;color:var(--ink-soft);line-height:1.45;}
+  .pv-conf{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);margin-top:8px;}
+  .pv-verdict{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;margin-top:6px;}
+  .pv-verdict.ok{color:var(--teal);} .pv-verdict.no{color:var(--rust);}
+  .pv-proof{margin-top:16px;border:1px dashed var(--line-strong);border-radius:8px;padding:12px 16px;background:var(--cream);min-height:40px;}
+  .pv-proof .ph{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:8px;}
+  .pv-proof ol{margin:0;padding-left:20px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--teal);}
+  .pv-proof li{margin:4px 0;}
+  .pv-stats{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin-top:12px;display:flex;gap:18px;flex-wrap:wrap;}
+  .pv-stats b{color:var(--ink);}
+  .pv-done{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--teal-wash);border:1px solid rgba(27,111,105,0.3);font-size:14px;color:var(--ink-soft);display:none;}
+  .pv-done.show{display:block;}
+
+  /* ---------- sota stat strip ---------- */
+  .statstrip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0;}
+  .stat{border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--paper);text-align:center;}
+  .stat .num{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--rust);line-height:1;}
+  .stat .lab{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:8px;line-height:1.4;letter-spacing:0.02em;}
+  @media (max-width:620px){ .pv-round{grid-template-columns:1fr;} .statstrip{grid-template-columns:1fr;} }
+
+  /* ---------- problem-space search grid ---------- */
+  .ps-grid{display:grid;grid-template-columns:repeat(11,1fr);gap:3px;max-width:430px;margin:8px auto 0;}
+  .ps-cell{aspect-ratio:1/1;border-radius:3px;background:var(--cream-deep);transition:background .12s;}
+  .ps-cell.wall{background:var(--ink);}
+  .ps-cell.start{background:var(--ochre);}
+  .ps-cell.goal{background:var(--teal);}
+  .ps-cell.explored{background:rgba(27,111,105,0.32);}
+  .ps-cell.path{background:var(--rust);}
+  .ps-legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .ps-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .ps-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  .ps-stats{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:16px;color:var(--ink-faint);}
+  .ps-stats b{color:var(--ink);}
+  .ps-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);text-align:center;margin-top:10px;line-height:1.5;min-height:18px;}
+
+  /* ---------- mutilated checkerboard ---------- */
+  .checker{display:grid;grid-template-columns:repeat(8,1fr);max-width:288px;margin:14px auto 0;border:2px solid var(--ink);border-radius:4px;overflow:hidden;}
+  .checker div{aspect-ratio:1/1;}
+  .checker div.lt{background:#E8E0CF;}
+  .checker div.dk{background:#7C6E58;}
+  .checker div.gone{background:var(--paper);box-shadow:inset 0 0 0 2px var(--rust);}
+  .checker.reveal div.dk{box-shadow:inset 0 0 0 2px var(--ochre);}
+
+  /* ---------- tower of hanoi ---------- */
+  .hanoi-board{display:flex;justify-content:space-around;align-items:flex-end;height:172px;margin:14px 0 4px;gap:10px;}
+  .peg{position:relative;flex:1;height:100%;display:flex;flex-direction:column-reverse;align-items:center;cursor:pointer;border-radius:8px;padding-bottom:8px;transition:background .12s;}
+  .peg::after{content:"";position:absolute;bottom:0;left:6%;width:88%;height:8px;background:var(--line-strong);border-radius:4px;}
+  .peg .rod{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:6px;height:142px;background:var(--line-strong);border-radius:3px;z-index:0;}
+  .peg.sel{background:var(--ochre-wash);}
+  .peg.sel::after{background:var(--ochre);}
+  .disk{height:21px;border-radius:5px;margin-bottom:3px;z-index:1;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(35,30,24,0.2);}
+  .hanoi-win{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--teal);text-align:center;min-height:18px;margin-top:4px;}
+
+  /* ---------- bandit ---------- */
+  .bandit-arms{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;}
+  .arm{border:1px solid var(--line-strong);border-radius:10px;padding:16px 10px;text-align:center;cursor:pointer;background:var(--paper);transition:transform .08s,background .15s;}
+  .arm:hover{transform:translateY(-2px);background:var(--cream);}
+  .arm:active{transform:translateY(0);}
+  .arm .an{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--ink);}
+  .arm .avg{font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--teal);margin:6px 0 2px;line-height:1;}
+  .arm .pulls{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-faint);}
+  .arm .lastpull{font-family:'IBM Plex Mono',monospace;font-size:11px;min-height:15px;margin-top:5px;color:var(--rust);}
+  .bandit-stats{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-faint);margin-top:4px;}
+  .bandit-stats b{color:var(--ink);}
+
+  /* ---------- walkthrough ---------- */
+  .walk{margin:18px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .walk .ws{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line);align-items:start;}
+  .walk .ws:last-child{border-bottom:none;}
+  .walk .ws:nth-child(even){background:var(--cream);}
+  .walk .wnum{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--paper);background:var(--ink);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:2px;}
+  .walk .wbody h5{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--rust);margin:0 0 5px;font-weight:600;}
+  .walk .wbody p{margin:0;font-size:15px;color:var(--ink-soft);line-height:1.5;}
+  @media (max-width:620px){ .bandit-arms{grid-template-columns:1fr;} }
+
+  .subtitle{font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:0.03em;color:var(--teal);margin:0 0 20px;font-weight:500;}
+  .backlink{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--rust);text-decoration:none;border-bottom:1px solid rgba(181,70,43,0.3);display:inline-block;}
+  .backlink:hover{border-bottom-color:var(--rust);}
+  a.jump{display:block;border:1px solid var(--line-strong);border-radius:12px;padding:22px 24px;margin:18px 0 0;background:var(--cream);text-decoration:none;box-shadow:var(--shadow);transition:background .15s,transform .08s;}
+  a.jump:hover{background:var(--cream-deep);transform:translateY(-2px);}
+  a.jump.back{background:var(--paper);}
+  a.jump .jk{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--rust);font-weight:600;display:block;}
+  a.jump .jt{font-family:'Fraunces',serif;font-size:23px;font-weight:600;color:var(--ink);display:block;margin-top:7px;letter-spacing:-0.01em;}
+  a.jump .jd{font-size:14px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;display:block;margin-top:6px;line-height:1.5;}
+  .toc .t.cont{margin-top:20px;color:var(--rust);}
+  .toc-appendix{font-family:'IBM Plex Mono',monospace;font-size:12.5px;margin-top:8px;}
+  .toc-appendix a{color:var(--ink);border-bottom:none;} .toc-appendix a:hover{color:var(--rust);}
+
+  /* ---------- part III: blackboard + loop stepper ---------- */
+  .note.practical{border-left-color:var(--teal);}
+  .note.practical .tag{color:var(--teal);}
+  .bb{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:14px 0;min-height:56px;}
+  .bb .bb-head{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px;}
+  .bb-entry{display:flex;gap:10px;align-items:flex-start;margin:7px 0;font-size:14px;color:var(--ink-soft);line-height:1.45;animation:fade .25s ease;}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:1px;}
+  .stage-now{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;margin:2px 0 8px;color:var(--ink);min-height:18px;}
+  .prop{border:1px solid var(--line-strong);border-radius:7px;padding:10px 13px;margin:8px 0;font-size:14px;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .prop .pv-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-faint);white-space:nowrap;}
+  .prop.ok{background:var(--teal-wash);border-color:var(--teal);} .prop.ok .pv-tag{color:var(--teal);}
+  .prop.reject{background:var(--rust-wash);border-color:var(--rust);opacity:.8;} .prop.reject .pv-tag{color:var(--rust);}
+  .hitl-banner{margin-top:14px;padding:13px 16px;border-radius:8px;background:var(--ochre-wash);border:1px solid rgba(194,137,27,.4);font-size:14px;color:var(--ink-soft);display:none;line-height:1.5;}
+  .hitl-banner.show{display:block;} .hitl-banner b{color:var(--ochre);}
+  .toggle-row{display:flex;align-items:center;gap:12px;margin:8px 0 4px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink-soft);}
+  .switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .sl{position:absolute;inset:0;background:var(--line-strong);border-radius:14px;transition:.2s;cursor:pointer;}
+  .switch .sl::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .sl{background:var(--teal);}
+  .switch input:checked + .sl::before{transform:translateX(20px);}
+  .outcome{margin-top:14px;padding:14px 16px;border-radius:8px;font-size:14.5px;display:none;line-height:1.55;}
+  .outcome.show{display:block;}
+  .outcome.good{background:var(--teal-wash);border:1px solid rgba(27,111,105,.3);color:var(--ink-soft);}
+  .outcome.bad{background:var(--rust-wash);border:1px solid rgba(181,70,43,.3);color:var(--ink-soft);}
+  .outcome b{color:var(--ink);}
+
+  /* ---------- animated workflow ---------- */
+  .wf-wrap{margin:10px 0 4px;}
+  #wfSvg{width:100%;height:auto;display:block;}
+  .wf-node rect{transition:fill-opacity .25s;}
+  .wf-node.active rect{animation:wfpulse 1.1s ease-in-out infinite;}
+  @keyframes wfpulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+  .wf-status{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--ink);text-align:center;min-height:18px;margin:6px 0 4px;}
+  .wf-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0 4px;min-height:10px;}
+  .wf-pill{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 11px;border-radius:14px;border:1px solid var(--line-strong);color:var(--ink-soft);background:var(--paper);transition:all .2s;}
+  .wf-pill.ok{background:var(--teal-wash);border-color:var(--teal);color:var(--teal);font-weight:600;}
+  .wf-pill.reject{background:var(--rust-wash);border-color:var(--rust);color:var(--rust);text-decoration:line-through;opacity:.8;}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<button class="totop" id="totop" aria-label="Back to top">&uarr;</button>
+
+<header class="hero"><div class="wrap"><a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">&larr; Back to Autonomy</a><p class="eyebrow">A Plain-Language Field Guide &middot; Part 3 of 7</p><a class="backlink" href="logic-and-reasoning-part-2.html">&larr; Part II &middot; Limits, Machines, and Problem-Solving</a><h1 style="margin-top:20px;">Logic and Reasoning</h1><p class="subtitle">Part III &middot; A Multi-Agent Problem-Solver</p><p class="lede">If the human mind solves problems with a loop of cooperating mental acts, what does an AI framework that copies that loop look like? Part three turns the reasoning of the series into a working design, animated as it solves a real problem.</p><div class="byline mono">By Majid Mazouchi</div><div class="toc"><div class="t">Part III</div><ol><li value="19"><a href="#society">Why a society, not a single genius</a></li><li value="20"><a href="#cast">The cast of agents</a></li><li value="21"><a href="#controlloop">How one turn works: the control loop</a></li><li value="22"><a href="#walkthrough">Watch it solve a problem</a></li><li value="23"><a href="#strategies">How an agent actually thinks</a></li><li value="24"><a href="#memory">Memory and knowledge</a></li><li value="25"><a href="#stores">Where knowledge actually lives</a></li><li value="26"><a href="#learning">How the system learns</a></li><li value="27"><a href="#learnedtools">Learned tools: data into callable knowledge</a></li><li value="28"><a href="#forgetting">What it must forget</a></li><li value="29"><a href="#supervisor">The supervisor and the bias-catchers</a></li><li value="30"><a href="#guardrails">Guardrails and sandboxes</a></li><li value="31"><a href="#leaks">Where the analogy leaks</a></li></ol><div class="toc-appendix"><a href="#refs">Appendix &middot; References and further reading</a></div></div></div></header>
+<section id="society">
+  <div class="wrap">
+    <span class="sec-no">Section 19</span>
+    <h2>Why a society, not a single genius</h2>
+    <p class="lead-in">To build software that solves problems the way people do, the worst move is to build one all-knowing agent. The better move is to build a small team where the idea-makers are kept separate from the fact-checkers.</p>
+
+    <p>Part II ended on a picture: the human mind solves problems by being both a fast, careless idea generator and a slow, careful checker, with something in the middle deciding what to trust. A good agent framework copies that shape directly. It does not try to make one model brilliant. It splits the work into roles and, above all, keeps the part that <em>proposes</em> answers apart from the part that <em>verifies</em> them. That separation is where almost all of the reliability comes from, for the same reason it helps in people: a mind grading its own homework tends to pass itself.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 720 200" role="img" aria-label="A single self-checking agent on the left versus a team of proposers feeding a separate verifier on the right.">
+        <text x="170" y="22" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#B5462B">ONE AGENT, ALONE</text>
+        <rect x="80" y="44" width="180" height="86" rx="10" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.5"/>
+        <text x="170" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#544B3F">proposes an answer</text>
+        <text x="170" y="98" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#544B3F">and checks itself</text>
+        <text x="170" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#B5462B" font-style="italic">confident, often wrong</text>
+        <line x1="360" y1="100" x2="360" y2="40" stroke="none"/>
+        <text x="545" y="22" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1B6F69">A SMALL TEAM</text>
+        <rect x="430" y="44" width="80" height="34" rx="7" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="470" y="65" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B5462B">proposer</text>
+        <rect x="430" y="90" width="80" height="34" rx="7" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="470" y="111" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B5462B">proposer</text>
+        <rect x="560" y="67" width="92" height="44" rx="8" fill="#1B6F69"/>
+        <text x="606" y="86" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#FAF7F0">VERIFIER</text>
+        <text x="606" y="101" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#cfe6e3">checks, separately</text>
+        <line x1="510" y1="61" x2="558" y2="84" stroke="#544B3F" stroke-width="1.3"/>
+        <line x1="510" y1="107" x2="558" y2="92" stroke="#544B3F" stroke-width="1.3"/>
+        <text x="545" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#1B6F69" font-style="italic">guesses are cheap, the check is trusted</text>
+      </svg>
+      <div class="caption"><b>Figure 16.</b> The core design choice. One agent that proposes and checks itself inherits the failure it cannot see. A team that routes every proposal through a separate verifier catches what any single member would miss.</div>
+    </div>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Start with three roles, not twelve: a proposer, a verifier, and a coordinator. Every role you add costs latency, tokens, and a new way for the agents to talk past each other. Grow the cast only when a specific weakness demands it.
+    </div>
+  </div>
+</section>
+<section id="cast">
+  <div class="wrap">
+    <span class="sec-no">Section 20</span>
+    <h2>The cast of agents</h2>
+    <p class="lead-in">Each mental act from the human loop becomes a role on the team. Here is the full cast, with its job in plain terms and the human faculty it stands in for.</p>
+
+    <p>None of these has to be a separate model. A role is a job with clear inputs and outputs, and several can share one underlying model with different instructions. What matters is that the jobs stay distinct. Tap each to see what it does.</p>
+
+    <div class="fgrid" id="castGrid">
+      <div class="fcard">
+        <div class="fhead"><h4>Orchestrator</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">The team lead. Holds the goal, decides who acts next, spends a fixed budget of steps wisely, and notices when the team is stuck.</p>
+          <p class="why"><b>Human counterpart:</b> metacognition, the part of you that watches your own thinking and steers it. It reasons about the work, not the problem.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Framer</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">Turns a vague request into a sharp one. Clarifies the goal, decides what kind of problem it is, picks how to represent it, and splits it into smaller pieces.</p>
+          <p class="why"><b>Human counterpart:</b> representation. As Part II showed, choosing how to see a problem is often half the solution.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Retriever</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">Looks things up. Fetches relevant facts and past solved cases from the team's long-term memory, including ones that only match by deep structure.</p>
+          <p class="why"><b>Human counterpart:</b> recall and analogy. It is how the team brings expertise to bear instead of starting from zero.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Proposers</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">The idea machines. Several run at once with different angles, throwing out candidate answers, plans, or guesses. They are meant to be fast and often wrong.</p>
+          <p class="why"><b>Human counterpart:</b> abduction, the creative leap. Nothing they say is trusted until it is checked, so boldness is safe here.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Reasoner</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">Works out consequences. Takes a candidate and turns it into a concrete, testable prediction, often by calling a tool like a calculator, simulator, or code runner.</p>
+          <p class="why"><b>Human counterpart:</b> deduction. It converts "maybe X" into "if X, then we should see Y."</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Verifier and critic</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">The fact-checker, deliberately a different agent from the proposers. Runs the test, scores the evidence, and actively tries to break the candidate rather than wave it through.</p>
+          <p class="why"><b>Human counterpart:</b> critical thinking. This is the slow, exact check that gives the whole system its trustworthiness.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Experimenter</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">Acts on the world when thinking is not enough. Runs a probe, queries data, or tries something in a safe sandbox, and decides when to keep exploring versus commit.</p>
+          <p class="why"><b>Human counterpart:</b> experiment and the explore-exploit tradeoff from Part II.</p>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fhead"><h4>Learner</h4><span class="plus">+</span></div>
+        <div class="fbody">
+          <p class="ex">Files away what worked. After a solve, it writes the pattern back into long-term memory, indexed by structure, and records lessons from failures.</p>
+          <p class="why"><b>Human counterpart:</b> deliberate practice. It is how the team's expertise grows over time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="controlloop">
+  <div class="wrap">
+    <span class="sec-no">Section 21</span>
+    <h2>How one turn works: the control loop</h2>
+    <p class="lead-in">The agents do not run in a fixed line. They share one workspace, and a coordinator decides who goes next. The shape is exactly the human problem-solving loop from Part II.</p>
+
+    <p>Everyone reads and writes to a shared notepad called the <strong>blackboard</strong>. It holds the current goal, the live guesses, and the evidence gathered so far. It is the team's working memory, and like human working memory it is deliberately small and temporary. The orchestrator looks at the blackboard, picks the next agent to act, and that agent posts its result back. Round and round, each pass narrowing things down. A finding from one turn becomes a starting fact for the next.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 760 470" role="img" aria-label="Architecture diagram: an orchestrator and a shared blackboard at the centre, a row of agents that read and write the blackboard, and supporting memory, sandbox, and a human gate.">
+        <defs>
+          <marker id="a3" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker>
+        </defs>
+        <rect x="280" y="22" width="200" height="50" rx="9" fill="#231E18"/>
+        <text x="380" y="44" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FAF7F0">ORCHESTRATOR</text>
+        <text x="380" y="61" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#cbb8a0">picks next agent, spends the budget</text>
+        <line x1="380" y1="72" x2="380" y2="104" stroke="#544B3F" stroke-width="1.5" marker-end="url(#a3)"/>
+        <line x1="380" y1="150" x2="380" y2="120" stroke="#544B3F" stroke-width="1.5" marker-end="url(#a3)"/>
+        <rect x="70" y="104" width="620" height="46" rx="9" fill="#F1ECE0" stroke="#C4B79C" stroke-width="1.5"/>
+        <text x="380" y="125" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#231E18">BLACKBOARD</text>
+        <text x="380" y="141" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A7E6C">shared workspace: goal, guesses, evidence (the working memory)</text>
+        <g font-family="IBM Plex Mono, monospace" font-size="9.5">
+          <rect x="40" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.3"/>
+          <text x="92" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1B6F69">FRAMER</text>
+          <text x="92" y="231" text-anchor="middle" fill="#8A7E6C">represent</text>
+          <rect x="156" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+          <text x="208" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#C2891B">RETRIEVER</text>
+          <text x="208" y="231" text-anchor="middle" fill="#8A7E6C">recall</text>
+          <rect x="272" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+          <text x="324" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#B5462B">PROPOSERS</text>
+          <text x="324" y="231" text-anchor="middle" fill="#8A7E6C">abduction</text>
+          <rect x="388" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.3"/>
+          <text x="440" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1B6F69">REASONER</text>
+          <text x="440" y="231" text-anchor="middle" fill="#8A7E6C">deduction</text>
+          <rect x="504" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#231E18" stroke-width="1.3"/>
+          <text x="556" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#231E18">VERIFIER</text>
+          <text x="556" y="231" text-anchor="middle" fill="#8A7E6C">critical check</text>
+          <rect x="620" y="196" width="104" height="48" rx="7" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+          <text x="672" y="216" text-anchor="middle" font-size="10.5" font-weight="600" fill="#C2891B">EXPERIMENTER</text>
+          <text x="672" y="231" text-anchor="middle" fill="#8A7E6C">explore</text>
+        </g>
+        <g stroke="#C4B79C" stroke-width="1.1" stroke-dasharray="4,4">
+          <line x1="92" y1="196" x2="92" y2="150"/><line x1="208" y1="196" x2="208" y2="150"/>
+          <line x1="324" y1="196" x2="324" y2="150"/><line x1="440" y1="196" x2="440" y2="150"/>
+          <line x1="556" y1="196" x2="556" y2="150"/><line x1="672" y1="196" x2="672" y2="150"/>
+        </g>
+        <rect x="156" y="300" width="104" height="44" rx="7" fill="#F1ECE0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="208" y="320" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#C2891B">MEMORY STORE</text>
+        <text x="208" y="334" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">long-term</text>
+        <line x1="208" y1="244" x2="208" y2="300" stroke="#544B3F" stroke-width="1.2" marker-end="url(#a3)"/>
+        <rect x="620" y="300" width="104" height="44" rx="7" fill="#F1ECE0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="672" y="320" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#C2891B">SANDBOX</text>
+        <text x="672" y="334" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">isolated</text>
+        <line x1="672" y1="244" x2="672" y2="300" stroke="#544B3F" stroke-width="1.2" marker-end="url(#a3)"/>
+        <line x1="380" y1="150" x2="380" y2="392" stroke="#C4B79C" stroke-width="1.1" stroke-dasharray="4,4"/>
+        <rect x="300" y="392" width="160" height="40" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.5"/>
+        <text x="380" y="411" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#B5462B">HUMAN-IN-THE-LOOP GATE</text>
+        <text x="380" y="425" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">approves high-stakes actions</text>
+        <line x1="380" y1="392" x2="380" y2="150" stroke="none"/>
+        <rect x="300" y="448" width="160" height="14" rx="0" fill="none"/>
+      </svg>
+      <div class="caption"><b>Figure 17.</b> The framework, all at once. The orchestrator and the blackboard sit at the centre; every agent reads and writes the blackboard rather than messaging each other directly. Memory and the sandbox support specific agents, and a human gate stands between the team and any consequential action.</div>
+    </div>
+
+    <p>One more detail makes it behave like a real problem-solver: the blackboard holds beliefs <em>loosely</em>. If a later finding contradicts an earlier guess, that guess is simply withdrawn, with no crisis. This is the defeasible, non-monotonic reasoning from Part I, and it is what lets an agent change its mind gracefully when fresh evidence arrives. Step through a full turn below on a real-feeling problem.</p>
+
+    <div class="demo">
+      <div class="demo-label">Interactive &middot; step the orchestrated loop</div>
+      <div class="stage-now" id="lpStage">Press the button to start. Problem: the nightly data pipeline failed.</div>
+      <div class="bb">
+        <div class="bb-head">Blackboard &middot; shared workspace</div>
+        <div id="lpBB"></div>
+      </div>
+      <div id="lpProps"></div>
+      <div class="hitl-banner" id="lpHitl"></div>
+      <div class="controls" style="justify-content:flex-start;margin-top:14px;">
+        <button class="btn" id="lpAdvance">Advance the loop</button>
+        <button class="btn ghost" id="lpReset">Reset</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="walkthrough">
+  <div class="wrap">
+    <span class="sec-no">Section 22</span>
+    <h2>Watch it solve a problem</h2>
+    <p class="lead-in">Diagrams are clearer when they move. Below, the framework actually runs. Press play and watch control and data flow between the agents and the shared blackboard as the team solves one real problem from start to finish.</p>
+
+    <p>The problem is the same one from the last section: the nightly data pipeline failed. Each agent lights up when it acts. A pulse travels from the blackboard out to the agent when the orchestrator hands it control, and another travels back when the agent posts its result. Hypotheses appear, then turn green or red as the evidence comes in. The whole thing ends where it should, at a human gate.</p>
+
+    <div class="demo">
+      <div class="demo-label">Interactive &middot; the agentic loop, animated</div>
+      <div class="wf-wrap">
+        <svg id="wfSvg" viewBox="0 0 760 440" role="img" aria-label="Animated flowchart: six agents arranged in a loop around a central blackboard, lighting up in turn as they solve a problem.">
+          <ellipse cx="380" cy="215" rx="236" ry="176" fill="none" stroke="#D8CFBC" stroke-width="1.2" stroke-dasharray="6,6"/>
+          <g stroke="#C4B79C" stroke-width="1" stroke-dasharray="3,4" opacity="0.55">
+            <line x1="380" y1="55" x2="380" y2="220"/>
+            <line x1="570" y1="135" x2="380" y2="220"/>
+            <line x1="570" y1="295" x2="380" y2="220"/>
+            <line x1="380" y1="375" x2="380" y2="220"/>
+            <line x1="190" y1="295" x2="380" y2="220"/>
+            <line x1="190" y1="135" x2="380" y2="220"/>
+          </g>
+          <rect x="300" y="186" width="160" height="68" rx="9" fill="#231E18"/>
+          <text x="380" y="214" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FAF7F0">BLACKBOARD</text>
+          <text x="380" y="230" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#cbb8a0">+ orchestrator</text>
+          <text x="380" y="244" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#cbb8a0">shared workspace</text>
+          <g class="wf-node" id="wf-framer"><rect x="318" y="33" width="124" height="44" rx="8" fill="#1B6F69" fill-opacity="0.06" stroke="#1B6F69" stroke-width="1.6"/><text x="380" y="54" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#1B6F69">FRAMER</text><text x="380" y="69" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">represent</text></g><circle cx="318" cy="33" r="11" fill="#1B6F69"/><text x="318" y="37" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">1</text><g class="wf-node" id="wf-retriever"><rect x="508" y="113" width="124" height="44" rx="8" fill="#C2891B" fill-opacity="0.06" stroke="#C2891B" stroke-width="1.6"/><text x="570" y="134" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#C2891B">RETRIEVER</text><text x="570" y="149" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">recall</text></g><circle cx="508" cy="113" r="11" fill="#C2891B"/><text x="508" y="117" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">2</text><g class="wf-node" id="wf-proposers"><rect x="508" y="273" width="124" height="44" rx="8" fill="#B5462B" fill-opacity="0.06" stroke="#B5462B" stroke-width="1.6"/><text x="570" y="294" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#B5462B">PROPOSERS</text><text x="570" y="309" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">abduction</text></g><circle cx="508" cy="273" r="11" fill="#B5462B"/><text x="508" y="277" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">3</text><g class="wf-node" id="wf-reasoner"><rect x="318" y="353" width="124" height="44" rx="8" fill="#1B6F69" fill-opacity="0.06" stroke="#1B6F69" stroke-width="1.6"/><text x="380" y="374" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#1B6F69">REASONER</text><text x="380" y="389" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">deduction</text></g><circle cx="318" cy="353" r="11" fill="#1B6F69"/><text x="318" y="357" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">4</text><g class="wf-node" id="wf-experimenter"><rect x="128" y="273" width="124" height="44" rx="8" fill="#C2891B" fill-opacity="0.06" stroke="#C2891B" stroke-width="1.6"/><text x="190" y="294" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#C2891B">EXPERIMENTER</text><text x="190" y="309" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">explore</text></g><circle cx="128" cy="273" r="11" fill="#C2891B"/><text x="128" y="277" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">5</text><g class="wf-node" id="wf-verifier"><rect x="128" y="113" width="124" height="44" rx="8" fill="#231E18" fill-opacity="0.06" stroke="#231E18" stroke-width="1.6"/><text x="190" y="134" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#231E18">VERIFIER</text><text x="190" y="149" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">critical check</text></g><circle cx="128" cy="113" r="11" fill="#231E18"/><text x="128" y="117" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">6</text>
+        </svg>
+      </div>
+      <div class="wf-status" id="wfStatus">Press play to watch the team solve the nightly-pipeline failure.</div>
+      <div class="wf-pills" id="wfPills"></div>
+      <div class="bb"><div class="bb-head">Blackboard &middot; shared workspace</div><div id="wfBB"></div></div>
+      <div class="hitl-banner" id="wfHitl"></div>
+      <div class="controls" style="justify-content:center;margin-top:12px;">
+        <button class="btn" id="wfPlay">Play</button>
+        <button class="btn ghost" id="wfStep">Step</button>
+        <button class="btn ghost" id="wfReset">Reset</button>
+      </div>
+      <div class="caption" style="text-align:center;"><b>Figure 18.</b> The loop in motion. Control and results flow through the central blackboard, the agents act in turn, and the dashed ring is the path the team would travel again if the evidence had not settled the question.</div>
+    </div>
+
+    <p>Notice three things as it plays. Everything passes through the blackboard rather than agent-to-agent, which keeps the team's shared picture in one place. The proposers throw out a weak guess (the clock-drift one) that costs nothing because the verifier simply drops it. And the loop solves it in a single pass only because one cheap test split the hypotheses cleanly. When a test is not decisive, the team rounds the ring again, which is what the dashed loop is there to show.</p>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      A view like this is not just for explaining. Logging each pulse and blackboard write gives you a replayable trace of exactly what the system believed and when, which is the single most useful thing to have when an agent run goes wrong and you need to find out why.
+    </div>
+  </div>
+</section>
+<section id="strategies"><div class="wrap">
+  <span class="sec-no">Section 23</span>
+  <h2>How an agent actually thinks: reasoning strategies</h2>
+  <p class="lead-in">The control loop says when the proposer thinks. It does not say how. A model that blurts its first answer reasons badly; a handful of strategies separate a guess from a worked solution.</p>
+  <p>They form a ladder of their own, from cheap and shallow to expensive and thorough. Pick one to see how it works and what it costs.</p>
+  <div class="demo">
+    <div class="demo-label">Interactive &middot; reasoning strategies</div>
+    <div class="tabs" id="stratTabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="false" data-strat="cot">Chain-of-thought</button>
+      <button class="tab" role="tab" aria-selected="false" data-strat="sc">Self-consistency</button>
+      <button class="tab" role="tab" aria-selected="false" data-strat="tot">Tree-of-thought</button>
+      <button class="tab" role="tab" aria-selected="false" data-strat="mcts">Search with value</button>
+      <button class="tab" role="tab" aria-selected="false" data-strat="react">ReAct</button>
+      <button class="tab" role="tab" aria-selected="false" data-strat="reflexion">Reflexion</button>
+    </div>
+    <div class="outcome" id="stratOut"></div>
+  </div>
+  <div class="fig">
+    <svg viewBox="0 0 720 210" role="img" aria-label="A progression of reasoning strategies from a single chain to sampling, to a search tree, to a value-guided search.">
+      <g stroke="#544B3F" stroke-width="1.3" fill="#231E18">
+        <line x1="100" y1="56" x2="100" y2="138"/><circle cx="100" cy="56" r="6"/><circle cx="100" cy="97" r="6"/><circle cx="100" cy="138" r="6"/>
+      </g>
+      <text x="100" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#544B3F">chain</text>
+      <g stroke="#C4B79C" stroke-width="1.1" fill="#8A7E6C">
+        <line x1="245" y1="56" x2="245" y2="120"/><line x1="270" y1="56" x2="270" y2="120"/><line x1="295" y1="56" x2="295" y2="120"/>
+        <circle cx="245" cy="56" r="5"/><circle cx="270" cy="56" r="5"/><circle cx="295" cy="56" r="5"/>
+        <line x1="245" y1="120" x2="270" y2="138"/><line x1="295" y1="120" x2="270" y2="138"/>
+      </g>
+      <circle cx="270" cy="142" r="6" fill="#231E18"/>
+      <text x="270" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#544B3F">sample + vote</text>
+      <g stroke="#C4B79C" stroke-width="1.1" fill="#8A7E6C">
+        <circle cx="440" cy="50" r="5"/><line x1="440" y1="50" x2="415" y2="92"/><line x1="440" y1="50" x2="465" y2="92"/>
+        <circle cx="415" cy="92" r="5"/><circle cx="465" cy="92" r="5"/>
+        <line x1="415" y1="92" x2="402" y2="134"/><line x1="415" y1="92" x2="428" y2="134"/><line x1="465" y1="92" x2="452" y2="134"/><line x1="465" y1="92" x2="478" y2="134"/>
+        <circle cx="402" cy="134" r="5"/><circle cx="428" cy="134" r="5"/><circle cx="452" cy="134" r="5"/><circle cx="478" cy="134" r="5"/>
+      </g>
+      <text x="440" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#544B3F">branch + prune</text>
+      <g fill="#8A7E6C" stroke="#C4B79C" stroke-width="1.1">
+        <circle cx="610" cy="50" r="5"/><line x1="610" y1="50" x2="585" y2="92" stroke="#C4B79C"/>
+        <line x1="610" y1="50" x2="635" y2="92" stroke="#B5462B" stroke-width="2"/>
+        <circle cx="585" cy="92" r="5"/><circle cx="635" cy="92" r="5" fill="#B5462B"/>
+        <line x1="635" y1="92" x2="648" y2="134" stroke="#B5462B" stroke-width="2"/><line x1="635" y1="92" x2="622" y2="134" stroke="#C4B79C"/>
+        <circle cx="648" cy="134" r="5" fill="#B5462B"/><circle cx="622" cy="134" r="5"/>
+      </g>
+      <text x="610" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#544B3F">value-guided</text>
+      <line x1="60" y1="192" x2="688" y2="192" stroke="#C4B79C" stroke-width="1.2"/>
+      <polygon points="688,192 678,187 678,197" fill="#C4B79C"/>
+      <text x="60" y="186" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">more compute, more thorough</text>
+    </svg>
+    <div class="caption"><b>Figure 19.</b> Four ways to spend more thinking on a harder problem, from one chain to a value-guided search. ReAct and Reflexion are a separate family that loops this reasoning together with action and feedback from the world.</div>
+  </div>
+  <p>The through-line: every strategy is a different way to spend more computation when a problem earns it, by writing the steps down, by sampling more of them, by searching among them, or by looping with feedback from the world. They all rest on the same Part II insight, a fast fallible proposer made reliable by structure and checking. Match the strategy to the stakes: a one-line lookup does not need a tree search, and a safety-critical isolation does not deserve a single guess.</p>
+  <div class="note practical"><span class="tag">Practical note</span>
+    Spend reasoning like money. Default to the cheapest strategy that clears the bar, and escalate to sampling or search only for the problems where a wrong answer is costly. The orchestrator deciding how hard to think is itself a value-of-information call.</div>
+</div></section>
+<section id="memory">
+  <div class="wrap">
+    <span class="sec-no">Section 24</span>
+    <h2>Memory: the notebook and the library</h2>
+    <p class="lead-in">The team needs two kinds of memory, for the same reason you do: a small scratchpad for the problem in front of you, and a deep library of everything you have learned before.</p>
+
+    <p>The blackboard is the scratchpad. It is small on purpose, holding only what is relevant right now, and it is wiped when the job is done. Behind it sits the library: a large, lasting store of facts, skills, and past solved cases. When a new problem arrives, the retriever searches the library for anything that fits.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 720 210" role="img" aria-label="Working memory blackboard on the left and a long-term store on the right, with retrieve and write-back arrows between them.">
+        <defs><marker id="m3" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker></defs>
+        <rect x="40" y="58" width="200" height="94" rx="10" fill="#F1ECE0" stroke="#C4B79C" stroke-width="1.5"/>
+        <text x="140" y="40" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#231E18">BLACKBOARD</text>
+        <text x="140" y="98" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#544B3F">small, temporary</text>
+        <text x="140" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#544B3F">"what we think now"</text>
+        <rect x="480" y="40" width="200" height="130" rx="10" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.6"/>
+        <text x="580" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1B6F69">LONG-TERM STORE</text>
+        <text x="580" y="92" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#544B3F">knowledge graph +</text>
+        <text x="580" y="108" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#544B3F">past solved cases</text>
+        <text x="580" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A7E6C">indexed by deep structure</text>
+        <line x1="478" y1="86" x2="242" y2="92" stroke="#544B3F" stroke-width="1.4" marker-end="url(#m3)"/>
+        <text x="360" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1B6F69">retrieve a matching case</text>
+        <line x1="242" y1="128" x2="478" y2="140" stroke="#B5462B" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#m3)"/>
+        <text x="360" y="160" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B5462B">write back what worked (the learner)</text>
+      </svg>
+      <div class="caption"><b>Figure 20.</b> Two-tier memory. The blackboard is working memory; the long-term store is the team's growing expertise. The arrow back is what turns experience into skill.</div>
+    </div>
+
+    <p>The most important design choice here is how the library is organised. Part II noted that experts file problems by their deep structure, not their surface look. The store should do the same, so that a new billing bug can pull up an old inventory bug because both are really the same kind of race condition. Indexing only by surface words means the useful past case sits right there and is never found.</p>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      A knowledge graph plus vector search works well for this: the graph captures structured relationships between cases and concepts, and the vectors catch fuzzy similarity. Have the learner store each solve with a short summary of its structure, not just its raw text, and exposing the store through a tool interface keeps it cleanly separated from the agents that query it.
+    </div>
+  
+    <h3>Not one memory, but several</h3>
+    <p>Splitting memory into a scratchpad and a library is only the start. Cognitive science finds that people keep several distinct kinds of long-term memory, and a capable framework wants the same kinds, because they answer different questions. Tap each to see it.</p>
+    <div class="fgrid" id="memTypes">
+      <div class="fcard"><div class="fhead"><h4>Working memory</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">The blackboard. Small, fast, and wiped when the job ends. Holds only what the team is thinking about right now.</p>
+        <p class="why"><b>In the framework:</b> the shared workspace, kept inside the model's context window.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Episodic memory</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Specific past experiences. "Last Tuesday's run failed this way and here is what fixed it." Memories of particular events, with their context.</p>
+        <p class="why"><b>In the framework:</b> the case library of past solved problems and full run traces.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Semantic memory</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">General facts and concepts, stripped of when you learned them. "Pipelines have an extract, transform, and load stage."</p>
+        <p class="why"><b>In the framework:</b> the knowledge graph and domain references the retriever queries.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Procedural memory</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Skills and how-to, the things you do without spelling them out. Riding a bike, or running a standard diagnostic.</p>
+        <p class="why"><b>In the framework:</b> learned tools, reusable routines, and cached plans the agents can just call.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Parametric vs external knowledge</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Knowledge baked into the model's weights (parametric) versus knowledge looked up from a store at the moment it is needed (external).</p>
+        <p class="why"><b>The design choice:</b> bake in what is stable and universal, retrieve what is fresh, private, or specific. Retrieval is easier to update and to audit.</p></div></div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 720 232" role="img" aria-label="Memory tree: memory splits into short-term and long-term, and long-term into episodic, semantic, and procedural.">
+        <rect x="300" y="14" width="120" height="34" rx="7" fill="#231E18"/>
+        <text x="360" y="36" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FAF7F0">MEMORY</text>
+        <line x1="360" y1="48" x2="150" y2="86" stroke="#C4B79C" stroke-width="1.3"/>
+        <line x1="360" y1="48" x2="540" y2="86" stroke="#C4B79C" stroke-width="1.3"/>
+        <rect x="62" y="86" width="176" height="44" rx="8" fill="#F1ECE0" stroke="#C4B79C" stroke-width="1.4"/>
+        <text x="150" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#231E18">SHORT-TERM</text>
+        <text x="150" y="121" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">the blackboard</text>
+        <rect x="452" y="86" width="176" height="44" rx="8" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.5"/>
+        <text x="540" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#1B6F69">LONG-TERM</text>
+        <text x="540" y="121" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">the library</text>
+        <line x1="540" y1="130" x2="360" y2="168" stroke="#C4B79C" stroke-width="1.2"/>
+        <line x1="540" y1="130" x2="540" y2="168" stroke="#C4B79C" stroke-width="1.2"/>
+        <line x1="540" y1="130" x2="660" y2="168" stroke="#C4B79C" stroke-width="1.2"/>
+        <rect x="300" y="168" width="120" height="42" rx="7" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="360" y="187" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#B5462B">EPISODIC</text>
+        <text x="360" y="201" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">past runs</text>
+        <rect x="430" y="168" width="120" height="42" rx="7" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="490" y="187" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#C2891B">SEMANTIC</text>
+        <text x="490" y="201" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">facts, graph</text>
+        <rect x="560" y="168" width="120" height="42" rx="7" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.3"/>
+        <text x="620" y="187" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#1B6F69">PROCEDURAL</text>
+        <text x="620" y="201" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">skills, tools</text>
+        <text x="60" y="180" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">stored in weights</text>
+        <text x="60" y="194" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">(parametric) or</text>
+        <text x="60" y="208" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">looked up (external)</text>
+      </svg>
+      <div class="caption"><b>Figure 21.</b> The kinds of memory. The blackboard is short-term; the long-term library holds episodic, semantic, and procedural memory, each stored either in the model's weights or in an external store.</div>
+    </div>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Keep these in separate stores with separate update rules. Episodic memories are append-only logs you rarely edit. Semantic facts get corrected and versioned. Procedural skills are tested before they are trusted. Mixing them into one undifferentiated "memory" blob is the fastest way to make retrieval noisy and updates dangerous.
+    </div>
+  </div>
+</section>
+<section id="stores"><div class="wrap">
+    <span class="sec-no">Section 25</span>
+    <h2>Where knowledge actually lives</h2>
+    <p class="lead-in">Once a model is deployed, its weights are frozen. That single fact decides the whole memory design: any knowledge that is new, changing, private, or specific to the task at hand has to live somewhere other than the weights.</p>
+    <p>In practice there are four stores, and what separates them most is how often each one can be written. The frozen weights are the fixed foundation. The other three are where all the live, updatable knowledge sits.</p>
+    <div class="fig">
+      <svg viewBox="0 0 760 372" role="img" aria-label="Four knowledge stores around a frozen model: short-term memory feeds it each step, the RAG store and the skills library feed in on demand, and results loop back.">
+        <defs><marker id="st" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker>
+        <marker id="stB" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#B5462B"/></marker></defs>
+        <rect x="250" y="22" width="260" height="56" rx="9" fill="#F1ECE0" stroke="#C4B79C" stroke-width="1.5"/>
+        <text x="380" y="44" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#231E18">SHORT-TERM MEMORY</text>
+        <text x="380" y="60" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">context window / blackboard &middot; update: every step</text>
+        <rect x="282" y="150" width="196" height="86" rx="10" fill="#231E18"/>
+        <text x="380" y="182" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FAF7F0">FROZEN WEIGHTS</text>
+        <text x="380" y="199" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#cbb8a0">the pretrained model</text>
+        <text x="380" y="216" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9a8f7d">update: never (offline only)</text>
+        <rect x="24" y="150" width="220" height="86" rx="10" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.5"/>
+        <text x="134" y="182" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#C2891B">RAG STORE</text>
+        <text x="134" y="199" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">facts, docs, past cases</text>
+        <text x="134" y="216" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">update: continuous</text>
+        <rect x="516" y="150" width="220" height="86" rx="10" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.5"/>
+        <text x="626" y="182" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1B6F69">SKILLS &amp; WORKFLOWS</text>
+        <text x="626" y="199" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">reusable tools, routines</text>
+        <text x="626" y="216" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">update: as learned</text>
+        <line x1="380" y1="78" x2="380" y2="148" stroke="#544B3F" stroke-width="1.5" marker-end="url(#st)"/>
+        <line x1="244" y1="193" x2="280" y2="193" stroke="#544B3F" stroke-width="1.5" marker-end="url(#st)"/>
+        <text x="262" y="185" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#8A7E6C">retrieve</text>
+        <line x1="516" y1="193" x2="480" y2="193" stroke="#544B3F" stroke-width="1.5" marker-end="url(#st)"/>
+        <text x="498" y="185" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#8A7E6C">call</text>
+        <rect x="290" y="288" width="180" height="42" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.5"/>
+        <text x="380" y="314" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#B5462B">ANSWER / ACTION</text>
+        <line x1="380" y1="236" x2="380" y2="286" stroke="#544B3F" stroke-width="1.5" marker-end="url(#st)"/>
+        <path d="M470,309 C690,305 700,51 512,51" fill="none" stroke="#B5462B" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#stB)"/>
+        <text x="648" y="180" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#B5462B" font-style="italic">loop back</text>
+        <path d="M300,300 C170,290 134,250 134,238" fill="none" stroke="#C2891B" stroke-width="1.1" stroke-dasharray="4,4"/>
+        <text x="180" y="270" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#C2891B">learner writes</text>
+        <path d="M460,300 C600,290 626,250 626,238" fill="none" stroke="#1B6F69" stroke-width="1.1" stroke-dasharray="4,4"/>
+        <text x="582" y="270" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#1B6F69">adds skills</text>
+      </svg>
+      <div class="caption"><b>Figure 22.</b> The four stores. The frozen model never changes at runtime. Short-term memory feeds it the task every step, the RAG store and the skills library feed in on demand, and results loop back into short-term memory while the learner writes lasting lessons out to the other two.</div>
+    </div>
+    <table class="maptable">
+      <thead><tr><th>Store</th><th>What it holds</th><th>Written</th><th>Read</th><th>Editable live?</th></tr></thead>
+      <tbody>
+        <tr><td>Frozen weights</td><td>General language, broad world knowledge, baseline skill</td><td>Only in offline training</td><td>Every token</td><td class="vhm">No</td></tr>
+        <tr><td>Short-term memory</td><td>The current task: goal, dialogue so far, intermediate results</td><td>Constantly, during the task</td><td>Constantly</td><td class="vhm">Yes, but volatile</td></tr>
+        <tr><td>RAG store</td><td>Facts, documents, past cases (semantic and episodic)</td><td>Anytime, freely</td><td>When relevant to the query</td><td class="vhm">Yes</td></tr>
+        <tr><td>Skills &amp; workflows</td><td>Reusable tools and multi-step routines (procedural)</td><td>As new procedures are learned</td><td>When a task needs them</td><td class="vhm">Yes</td></tr>
+      </tbody>
+    </table>
+    <h3>Short-term memory is the one under the most pressure</h3>
+    <p>Of the four, short-term memory is the easiest to overlook and the easiest to break. It is the running context the model sees on this step: the goal, what has happened so far, the latest retrieved facts, the partial answer. Everything the model "knows" in the moment that is not baked into its weights has to be loaded into this window. And the window is finite. So short-term memory is a budget, not a free space. When it fills, the system has to summarize and drop older detail to make room, which is exactly the forgetting work in the next section, applied first and most often right here. Manage it badly and the agent loses the thread mid-task; manage it well and a small window can carry a long, coherent piece of work.</p>
+    <p>Notice that these four are simply the concrete build of the memory types from two sections ago. Parametric knowledge is the frozen weights. Working memory is short-term memory. Semantic and episodic memory are the RAG store. Procedural memory is the skills-and-workflows library. The cognitive picture says what kinds of memory you need; this picture says where each one actually sits in a running system.</p>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Because the weights are frozen, never rely on them for anything fresh, private, or fast-changing. Route changing facts to the RAG store, reusable procedures to the skills library, and the task itself to short-term memory. Each can be updated and inspected without retraining, which is most of why this split exists.
+    </div>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Treat the context window as a managed resource with its own policy: what gets loaded, in what order, and what gets summarized or evicted when space runs low. A retrieval step that dumps ten documents into short-term memory can crowd out the very task state the model needs to stay coherent.
+    </div>
+  </div></section>
+<section id="learning"><div class="wrap">
+    <span class="sec-no">Section 26</span>
+    <h2>How the system learns</h2>
+    <p class="lead-in">The learner does more than file notes. A framework can get better in several different ways, and they run on two very different clocks.</p>
+    <p>The fast clock turns during a single task: the system writes to its memory and reuses what it finds, without ever changing the model's weights. The slow clock turns across many tasks, offline, by actually retraining the model on what it has collected. Most of what people call "learning" in a live agent is the fast kind, and that is usually the right default because it is cheap, reversible, and easy to inspect. The slow kind is more powerful and more permanent, and more dangerous to get wrong.</p>
+    <p>Underneath, the classic learning regimes all have a place, distinguished by what signal they learn from.</p>
+    <table class="maptable">
+      <thead><tr><th>Kind of learning</th><th>Signal it uses</th><th>What changes</th><th>Where it lives</th></tr></thead>
+      <tbody>
+        <tr><td>In-context</td><td>Whatever is on the blackboard and in retrieved memory</td><td>Nothing permanent; only the prompt and the stored cases</td><td class="vhm">Runtime, every task (the cheap default)</td></tr>
+        <tr><td>Supervised</td><td>Labeled examples, or its own past successful traces</td><td>Model weights, toward imitating good answers</td><td class="vhm">Offline, on collected data</td></tr>
+        <tr><td>Reinforcement</td><td>A reward for the outcome, often from the verifier</td><td>Model weights, toward higher-reward behaviour</td><td class="vhm">Offline, using the verifier as the reward source</td></tr>
+        <tr><td>Unsupervised / self-supervised</td><td>Structure in unlabeled data, no answers given</td><td>Representations; discovered skills and groupings</td><td class="vhm">Offline; also builds the structure-index for retrieval</td></tr>
+      </tbody>
+    </table>
+    <div class="fig">
+      <svg viewBox="0 0 720 250" role="img" aria-label="Two clocks of learning: fast in-context learning at runtime, and slow offline weight updates by supervised, reinforcement, and unsupervised learning.">
+        <rect x="28" y="70" width="250" height="110" rx="10" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.6"/>
+        <text x="153" y="58" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1B6F69">FAST CLOCK</text>
+        <text x="153" y="112" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#544B3F">in-context, at runtime</text>
+        <text x="153" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A7E6C">store and reuse,</text>
+        <text x="153" y="147" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A7E6C">no weights change</text>
+        <text x="555" y="40" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#B5462B">SLOW CLOCK &middot; offline weight updates</text>
+        <rect x="430" y="58" width="262" height="36" rx="7" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.3"/>
+        <text x="561" y="81" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#231E18">SUPERVISED &middot; imitate good answers</text>
+        <rect x="430" y="102" width="262" height="36" rx="7" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="561" y="125" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#231E18">REINFORCEMENT &middot; reward from verifier</text>
+        <rect x="430" y="146" width="262" height="36" rx="7" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="561" y="169" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#231E18">UNSUPERVISED &middot; find structure</text>
+        <line x1="278" y1="125" x2="426" y2="120" stroke="#C4B79C" stroke-width="1.3" stroke-dasharray="5,4"/>
+        <text x="352" y="115" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">traces feed training</text>
+        <text x="360" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C" font-style="italic">runtime learning is cheap and reversible; weight updates are powerful and permanent</text>
+      </svg>
+      <div class="caption"><b>Figure 23.</b> Two clocks of learning. The fast clock changes only memory and the prompt during a task. The slow clock changes the model itself, offline, and the verifier from Part II is what supplies the reinforcement reward.</div>
+    </div>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Reach for the cheapest learning that works. Try in-context and memory first, since it is reversible and you can read exactly what changed. Only bake a pattern into the weights once it is stable and common enough to be worth the cost. And remember the recurring rule: reinforcement learning is only as trustworthy as the verifier giving the reward.
+    </div>
+  </div></section>
+<section id="learnedtools"><div class="wrap">
+    <span class="sec-no">Section 27</span>
+    <h2>Learned tools: turning data into callable knowledge</h2>
+    <p class="lead-in">A tool or skill does not have to be a script. It can be a trained network that holds knowledge no one could write down by hand, and the learning method you choose decides what form that knowledge takes and what the tool is good for.</p>
+    <p>The skills store from earlier is more varied than a folder of code. Some entries are symbolic scripts, exact and verifiable, for procedures that are fully known. The rest are learned networks, for everything that is only known from data. The useful way to see it is that each learning method from the last section crystallizes one of the reasoning modes from Part II into a frozen, callable artifact.</p>
+    <p>Supervised learning makes <strong>predictive tools</strong>: it captures an input-to-output mapping, so the artifact answers "what will happen." In a vehicle-health setting these are forward dynamics models learned from logged trajectories, fast surrogates that stand in for an expensive physics simulation, remaining-useful-life regressors, and fault classifiers. Unsupervised and self-supervised learning make <strong>structural tools</strong>: with no labels, they capture the shape of the data, giving you the embeddings behind the retrieval index, anomaly and out-of-distribution detectors, and latent dynamics in the Koopman spirit, where a learned change of coordinates makes the dynamics nearly linear and hands you back something a controller can use. Reinforcement learning makes <strong>strategic tools</strong>, and that is the interesting case.</p>
+    <table class="maptable">
+      <thead><tr><th>Method</th><th>Form of knowledge</th><th>Tool it makes</th><th>Example</th><th>Used by</th></tr></thead>
+      <tbody>
+        <tr><td>Supervised</td><td>Predictive (induction)</td><td>Dynamics model, surrogate, RUL regressor, classifier</td><td>Forecast winding temperature from logs</td><td class="vhm">The reasoner, for model-based rollouts</td></tr>
+        <tr><td>Unsupervised</td><td>Structural (abstraction)</td><td>Embeddings, anomaly / OOD detector, latent dynamics</td><td>Flag an operating point as novel</td><td class="vhm">The gate, and the retrieval index</td></tr>
+        <tr><td>Reinforcement</td><td>Strategic (experimentation)</td><td>Policy, value function, reward model, model-based controller</td><td>Learn which test isolates a fault fastest</td><td class="vhm">The actor; value guides the search</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Why reinforcement learning is the one to dwell on</h3>
+    <p>Supervised learning needs someone to have known the right answer and labeled it. Reinforcement learning needs only a reward, so it can acquire competence that nobody can demonstrate: a control law that exploits the dynamics in a way hand-tuned gains never find, or a behavior in a regime where the best action is not available in closed form. The form of knowledge it captures is neither declarative nor merely predictive. It is procedural and goal-relative, closed-loop know-how with credit assigned across a horizon. And it does not yield one artifact but several, each a different tool.</p>
+    <p>A <strong>policy</strong> is a learned skill, the network acting as a controller, for maneuvers too high-dimensional or nonlinear to script. A <strong>value function</strong> is a learned evaluator, an amortized answer to "how promising is this option," and it is quietly the most useful artifact for the agent itself, because it is a trainable version of the search heuristic from Part II and can rank hypotheses or steer a search the way a value network steers tree search. A <strong>reward model</strong> is a learned critic of quality where correctness is fuzzy. And <strong>model-based</strong> reinforcement learning ties the stack together: learn the dynamics, then plan or train a policy by rolling out through that model.</p>
+    <p>The cleanest example for this framework: deciding which cheap test to run next to isolate a fault fastest is a sequential decision under uncertainty with an obvious reward, information gained per cost. That is exactly the experimenter's job from the animated walkthrough, and it can be learned as an RL policy. The agent's exploration stops being a hand-written rule and becomes a trained skill. Reinforcement learning is, in effect, the explore step of the problem-solving loop compiled into a callable.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 760 300" role="img" aria-label="A pipeline that turns raw logs into a representation, a dynamics model, and a policy, all dropping into the skills store as callable tools.">
+        <defs><marker id="lt" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker>
+        <marker id="ltd" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="#8A7E6C"/></marker></defs>
+        <rect x="16" y="40" width="120" height="54" rx="9" fill="#F1ECE0" stroke="#C4B79C" stroke-width="1.4"/>
+        <text x="76" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#231E18">RAW LOGS</text>
+        <text x="76" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">trajectories</text>
+        <rect x="196" y="40" width="150" height="54" rx="9" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.5"/>
+        <text x="271" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#C2891B">REPRESENTATION</text>
+        <text x="271" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">latent state</text>
+        <rect x="406" y="40" width="150" height="54" rx="9" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.5"/>
+        <text x="481" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#1B6F69">DYNAMICS MODEL</text>
+        <text x="481" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">a predictor</text>
+        <rect x="606" y="40" width="138" height="54" rx="9" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.5"/>
+        <text x="675" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#B5462B">POLICY + VALUE</text>
+        <text x="675" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">a controller</text>
+        <line x1="136" y1="67" x2="194" y2="67" stroke="#544B3F" stroke-width="1.4" marker-end="url(#lt)"/>
+        <text x="165" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#C2891B">self-supervised</text>
+        <line x1="346" y1="67" x2="404" y2="67" stroke="#544B3F" stroke-width="1.4" marker-end="url(#lt)"/>
+        <text x="376" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#1B6F69">supervised</text>
+        <line x1="556" y1="67" x2="604" y2="67" stroke="#544B3F" stroke-width="1.4" marker-end="url(#lt)"/>
+        <text x="580" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#B5462B">RL in sandbox</text>
+        <rect x="196" y="150" width="150" height="46" rx="9" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="271" y="170" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#C2891B">ANOMALY DETECTOR</text>
+        <text x="271" y="185" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">normal vs novel</text>
+        <line x1="271" y1="94" x2="271" y2="148" stroke="#C4B79C" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#ltd)"/>
+        <text x="675" y="110" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#B5462B" font-style="italic">reward checked by verifier</text>
+        <rect x="16" y="238" width="728" height="48" rx="9" fill="#231E18"/>
+        <text x="380" y="261" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FAF7F0">SKILLS &amp; WORKFLOWS STORE</text>
+        <text x="380" y="277" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#cbb8a0">every learned artifact becomes a callable tool, beside the scripts</text>
+        <g stroke="#8A7E6C" stroke-width="1.2" stroke-dasharray="4,4">
+          <line x1="271" y1="196" x2="271" y2="236" marker-end="url(#ltd)"/>
+          <line x1="481" y1="94" x2="481" y2="236" marker-end="url(#ltd)"/>
+          <line x1="675" y1="94" x2="675" y2="236" marker-end="url(#ltd)"/>
+        </g>
+      </svg>
+      <div class="caption"><b>Figure 24.</b> Manufacturing tools from data. Self-supervised learning yields a representation and a normality detector, supervised learning fits the dynamics, and reinforcement learning trains a policy and value by planning through that model inside the sandbox. All of them land in the skills store as callable tools, next to the scripts.</div>
+    </div>
+
+    <h3>Picking the right tool</h3>
+    <p>The reasoner does not need a learned network for everything. It routes by the nature of the subproblem. Try it: pick what you are facing, and see which kind of tool fits.</p>
+    <div class="demo">
+      <div class="demo-label">Interactive &middot; the tool router</div>
+      <div class="tabs" id="toolRouter" role="tablist">
+        <button class="tab" role="tab" aria-selected="false" data-key="script">The procedure is known and exact</button>
+        <button class="tab" role="tab" aria-selected="false" data-key="predict">Predict an outcome known only from data</button>
+        <button class="tab" role="tab" aria-selected="false" data-key="policy">Choose the best action over time</button>
+        <button class="tab" role="tab" aria-selected="false" data-key="anomaly">Decide if this situation is normal</button>
+      </div>
+      <div class="outcome" id="routerOut"></div>
+    </div>
+
+    <h3>A learned tool is a fallible proposer, not an oracle</h3>
+    <p>This is the rule that keeps learned tools safe inside the framework. A trained network is exactly the fast, confident, sometimes-wrong proposer the whole series has warned about, so it is treated the same way. Every learned tool ships with calibrated uncertainty, from an ensemble or a Bayesian head, and an out-of-distribution check. When the anomaly detector says the situation has left the region the tool was trained on, the agent retracts its trust in that tool and falls back to deliberate reasoning or a human. That is the defeasible behavior from Part I applied to a learned component. Its output still passes the verifier like any other proposal. And reinforcement learning carries its own version of confirmation bias, called reward hacking, where the policy games a flawed reward, which is caught the same way the bias-monitors catch the others: by trying to break the reward, not just satisfy it.</p>
+
+    <div class="note">
+      <span class="tag">The unifying thought</span>
+      Supervised, unsupervised, and reinforcement learning are the offline crystallizations of the reasoning modes from Part II: induction frozen into a predictor, abstraction frozen into a representation, and experimentation frozen into a policy. A learned tool is a reasoning mode compiled into weights and frozen into something the agent can call. Underneath, the split is simple: a tool captures models and dynamics to inform deliberation, while a skill executes an action. Reinforcement learning is the one method that makes both, because a value function is a tool and a policy is a skill, learned from the same experience.
+    </div>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Where you can, prefer a learned dynamics model paired with a classical controller over an end-to-end policy. It is far more verifiable, since you can inspect and test the predictor separately from the decision rule. Train reinforcement learning in the simulation sandbox, never on the live system, and remember the recurring rule: the policy is only as good as the reward the verifier can vouch for.
+    </div>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Treat every learned tool like a dependency with a version, a confidence estimate, and a monitor. Log its predictions against what actually happened, watch for drift as the operating distribution shifts, and feed that back into the forgetting-and-relearning loop so a stale model is retired or retrained before it quietly starts being wrong.
+    </div>
+  </div></section>
+<section id="forgetting"><div class="wrap">
+    <span class="sec-no">Section 28</span>
+    <h2>What it must forget</h2>
+    <p class="lead-in">A memory that only ever grows becomes slow, stale, and unsafe. Forgetting is not a bug to be fixed. It is a feature that keeps memory useful, and people rely on it just as much.</p>
+    <p>Left unchecked, a store fills with duplicates, outdated facts, dead ends, and things that should never have been kept. Retrieval gets noisier, costs climb, and the system starts acting on beliefs that are no longer true. So a real framework needs deliberate ways to let go. Tap each.</p>
+    <div class="fgrid" id="forgetTypes">
+      <div class="fcard"><div class="fhead"><h4>Evict and summarize</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">When the blackboard overflows the context window, old detail is compressed into a short summary and the raw text is dropped.</p>
+        <p class="why"><b>Why:</b> working memory is bounded, exactly like ours. Summarizing keeps the gist while freeing room.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Decay by age and use</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Entries that are old and rarely retrieved lose priority and eventually drop out of easy reach.</p>
+        <p class="why"><b>Why:</b> what you have not needed in a long time is usually safe to let fade, which is how human forgetting works too.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Invalidate on contradiction</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">When new evidence contradicts a stored fact, the old fact is retracted rather than kept alongside the new one.</p>
+        <p class="why"><b>Why:</b> this is the defeasible belief revision from Part I. Holding both makes the system incoherent.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Consolidate and dedupe</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Many near-identical cases are merged into one cleaner, more general pattern.</p>
+        <p class="why"><b>Why:</b> it mirrors how sleep is thought to compress memories, and it keeps the library sharp instead of bloated.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Prune low value</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Cases that never help on later problems are scored down and removed.</p>
+        <p class="why"><b>Why:</b> a store should keep what earns its place, not everything that ever happened.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Deliberate deletion</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Some things must be removed on purpose: private data, a right-to-be-forgotten request, or a poisoned or wrong memory.</p>
+        <p class="why"><b>Why:</b> this is easy in an external store and genuinely hard once knowledge is baked into weights, where it becomes machine unlearning.</p></div></div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 720 160" role="img" aria-label="A pipeline that filters growing memory through summarize, decay, invalidate, and prune steps to keep it useful.">
+        <defs><marker id="fg" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker></defs>
+        <rect x="14" y="58" width="96" height="44" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="62" y="78" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#B5462B">MEMORY</text>
+        <text x="62" y="92" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">keeps growing</text>
+        <g font-family="IBM Plex Mono, monospace" font-size="9">
+          <rect x="142" y="60" width="96" height="40" rx="7" fill="#F1ECE0" stroke="#C4B79C"/><text x="190" y="84" text-anchor="middle" fill="#231E18">summarize</text>
+          <rect x="262" y="60" width="96" height="40" rx="7" fill="#F1ECE0" stroke="#C4B79C"/><text x="310" y="84" text-anchor="middle" fill="#231E18">decay</text>
+          <rect x="382" y="60" width="96" height="40" rx="7" fill="#F1ECE0" stroke="#C4B79C"/><text x="430" y="84" text-anchor="middle" fill="#231E18">invalidate</text>
+          <rect x="502" y="60" width="96" height="40" rx="7" fill="#F1ECE0" stroke="#C4B79C"/><text x="550" y="84" text-anchor="middle" fill="#231E18">prune</text>
+        </g>
+        <rect x="618" y="58" width="92" height="44" rx="8" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.5"/>
+        <text x="664" y="78" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#1B6F69">USEFUL</text>
+        <text x="664" y="92" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">stays sharp</text>
+        <g stroke="#544B3F" stroke-width="1.3">
+          <line x1="110" y1="80" x2="138" y2="80" marker-end="url(#fg)"/>
+          <line x1="238" y1="80" x2="258" y2="80" marker-end="url(#fg)"/>
+          <line x1="358" y1="80" x2="378" y2="80" marker-end="url(#fg)"/>
+          <line x1="478" y1="80" x2="498" y2="80" marker-end="url(#fg)"/>
+          <line x1="598" y1="80" x2="614" y2="80" marker-end="url(#fg)"/>
+        </g>
+        <text x="360" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C" font-style="italic">forgetting is what keeps the rest worth remembering</text>
+      </svg>
+      <div class="caption"><b>Figure 25.</b> The forgetting pipeline. Growing memory is continuously filtered so that what remains stays small, current, and trustworthy.</div>
+    </div>
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Give every long-term entry a source, a timestamp, and a usefulness score, and make forgetting a logged, reviewable action rather than a silent one. Beware catastrophic forgetting in the slow clock: fine-tuning on new tasks can quietly erase old skills, so test for what the model used to be able to do, not only for the new thing.
+    </div>
+  </div></section>
+<section id="supervisor">
+  <div class="wrap">
+    <span class="sec-no">Section 29</span>
+    <h2>The supervisor and the bias-catchers</h2>
+    <p class="lead-in">What makes the framework feel human is not the agents but the supervisor over them, and a set of small watchdogs whose only job is to catch the classic ways problem-solving goes wrong.</p>
+
+    <p>The orchestrator does two human things. First, it spends a budget. Just as you decide where to put your limited attention, it decides how many tool calls and how much compute each part of the problem deserves, and stops chasing a dead end. Second, it watches for trouble. The failure modes from Part II are predictable, which means they can be detected, so the best move is to build a small monitor for each one.</p>
+
+    <p>A fixation monitor notices the same failing approach being retried and forces a switch. A premature-closure monitor refuses to let the team commit until at least one rival idea has been weighed. A confirmation monitor makes the experimenter run a test that could <em>disprove</em> the favourite, not just confirm it. A local-optimum monitor spots the team polishing a mediocre answer and triggers a fresh start from a new angle. These watchdogs are cheap and they prevent the most common and most expensive mistakes. Try switching one on and off below.</p>
+
+    <div class="demo">
+      <div class="demo-label">Interactive &middot; the value of a bias-catcher</div>
+      <p style="font-size:15px;color:var(--ink-soft);margin-bottom:6px;">The team has a favourite explanation that fits the evidence. Should it ship the fix, or first try to prove itself wrong? Toggle the monitor, then run.</p>
+      <div class="toggle-row">
+        <label class="switch"><input type="checkbox" id="biasSwitch" checked><span class="sl"></span></label>
+        <span id="biasLabel">Falsification monitor: ON</span>
+      </div>
+      <div class="controls" style="justify-content:flex-start;margin-top:8px;">
+        <button class="btn" id="biasRun">Run the loop</button>
+      </div>
+      <div class="outcome" id="biasOut"></div>
+    </div>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Treat the monitors as first-class parts of the system, not afterthoughts. The cheapest large gain in reliability is usually a rule that says "before committing, generate one rival hypothesis and one test that would kill the current one." It directly counters the bias that costs teams the most.
+    </div>
+  </div>
+</section>
+<section id="guardrails">
+  <div class="wrap">
+    <span class="sec-no">Section 30</span>
+    <h2>Guardrails: a human and a sandbox</h2>
+    <p class="lead-in">A system that can act in the world needs two safety pieces that have nothing to do with intelligence and everything to do with not causing harm: a person at the important door, and a safe room for experiments.</p>
+
+    <p>The first guardrail is a human-in-the-loop gate. Before the team does anything costly or hard to undo, and before the final answer ships, a person approves it. This is the same idea as the trusted checker from Part II, now with a human as the last verifier: let the agents propose freely, but put a gate in front of consequences. Reversible, low-stakes steps can flow without it; the gate is reserved for the moves that matter.</p>
+
+    <p>The second guardrail is the sandbox. When the experimenter runs code or probes a system, it does so in an isolated environment that cannot touch anything important. The key rule is that the thing controlling the sandbox sits <em>outside</em> it. An agent must never be able to reach out and modify the cage it is running in, or the cage is not a cage.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 720 200" role="img" aria-label="Agents pass through a verifier and a human gate before acting, and the experimenter runs inside a sandbox controlled from outside.">
+        <defs><marker id="g3" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#544B3F"/></marker></defs>
+        <rect x="30" y="76" width="110" height="46" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="85" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#B5462B">agents</text>
+        <line x1="140" y1="99" x2="196" y2="99" stroke="#544B3F" stroke-width="1.3" marker-end="url(#g3)"/>
+        <rect x="200" y="76" width="110" height="46" rx="8" fill="#1B6F69"/>
+        <text x="255" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#FAF7F0">VERIFIER</text>
+        <line x1="310" y1="99" x2="366" y2="99" stroke="#544B3F" stroke-width="1.3" marker-end="url(#g3)"/>
+        <rect x="370" y="70" width="120" height="58" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.6"/>
+        <text x="430" y="94" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#B5462B">HUMAN GATE</text>
+        <text x="430" y="110" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#8A7E6C">approve / reject</text>
+        <line x1="490" y1="99" x2="546" y2="99" stroke="#544B3F" stroke-width="1.3" marker-end="url(#g3)"/>
+        <rect x="550" y="76" width="140" height="46" rx="8" fill="#231E18"/>
+        <text x="620" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#FAF7F0">REAL ACTION</text>
+        <rect x="196" y="150" width="170" height="40" rx="8" fill="none" stroke="#C2891B" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <text x="281" y="166" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#C2891B">SANDBOX (isolated)</text>
+        <rect x="214" y="172" width="60" height="12" rx="3" fill="#F1ECE0" stroke="#C2891B" stroke-width="1"/>
+        <text x="244" y="181" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#8A7E6C">experiment</text>
+        <text x="430" y="176" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C">control sits OUTSIDE the sandbox</text>
+      </svg>
+      <div class="caption"><b>Figure 26.</b> Two guardrails. A human approves consequential actions after the verifier, and experiments run inside an isolated sandbox whose controls live outside it.</div>
+    </div>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Decide in advance which actions are irreversible (sending money, writing to production, emailing a customer) and gate exactly those. Log every blackboard state so a failed run can be replayed and understood. And never let the agent hold the keys to its own sandbox.
+    </div>
+  
+    <h3>Sandboxes come in strengths</h3>
+    <p>There is no single sandbox, but a spectrum. Stronger isolation costs speed, so you match the level to how much you trust the code being run. A trusted snippet you wrote needs far less caging than code an agent generated on the fly.</p>
+    <div class="fgrid" id="sandboxTypes">
+      <div class="fcard"><div class="fhead"><h4>RestrictedPython (in-process)</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Runs a cut-down, safe subset of the language inside your own process. Lightest and fastest, weakest isolation.</p>
+        <p class="why"><b>Use when:</b> the code is largely trusted and you only need to block a few dangerous operations.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Pyodide / WebAssembly</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">Runs code inside a WebAssembly box with no direct access to the host. Moderate isolation, still quite fast.</p>
+        <p class="why"><b>Use when:</b> you want a clean, portable boundary without standing up a full machine.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Container with gVisor</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">An operating-system-level container hardened with a syscall filter that sits between the code and the real kernel. Strong, and the common choice.</p>
+        <p class="why"><b>Use when:</b> running untrusted, agent-generated code at scale.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>microVM (Firecracker)</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">A tiny, fast-booting virtual machine giving near-hardware isolation. Strongest, heaviest.</p>
+        <p class="why"><b>Use when:</b> the code is fully untrusted or possibly hostile, and a breakout would be serious.</p></div></div>
+      <div class="fcard"><div class="fhead"><h4>Simulation sandbox</h4><span class="plus">+</span></div><div class="fbody">
+        <p class="ex">A different idea: instead of isolating code, give the experimenter a model of the world (a physics simulator, or a staging copy of the system) to act in.</p>
+        <p class="why"><b>Use when:</b> real-world experiments are slow, costly, or irreversible. Test on the copy, not the original.</p></div></div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 720 168" role="img" aria-label="A spectrum of sandbox strengths from light and fast to heavy and strongly isolated.">
+        <rect x="20" y="44" width="160" height="46" rx="8" fill="#FAF7F0" stroke="#1B6F69" stroke-width="1.3"/>
+        <text x="100" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#1B6F69">RestrictedPython</text>
+        <text x="100" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#8A7E6C">in-process</text>
+        <rect x="194" y="44" width="160" height="46" rx="8" fill="#FAF7F0" stroke="#C2891B" stroke-width="1.3"/>
+        <text x="274" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#C2891B">Pyodide / WASM</text>
+        <text x="274" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#8A7E6C">sandboxed runtime</text>
+        <rect x="368" y="44" width="160" height="46" rx="8" fill="#FAF7F0" stroke="#B5462B" stroke-width="1.3"/>
+        <text x="448" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#B5462B">Container + gVisor</text>
+        <text x="448" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#8A7E6C">OS-level</text>
+        <rect x="542" y="44" width="158" height="46" rx="8" fill="#231E18"/>
+        <text x="621" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="#FAF7F0">microVM</text>
+        <text x="621" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#cbb8a0">Firecracker</text>
+        <text x="20" y="118" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1B6F69">faster, lighter</text>
+        <text x="700" y="118" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B5462B">stronger isolation</text>
+        <line x1="20" y1="130" x2="700" y2="130" stroke="#C4B79C" stroke-width="1.4"/>
+        <polygon points="700,130 690,125 690,135" fill="#C4B79C"/>
+        <text x="360" y="152" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#8A7E6C" font-style="italic">match the strength to how little you trust the code</text>
+      </svg>
+      <div class="caption"><b>Figure 27.</b> The isolation spectrum. Lighter sandboxes are faster but weaker; heavier ones are slower but safer. The harness that controls any of them must sit outside it.</div>
+    </div>
+  </div>
+</section>
+<section id="leaks">
+  <div class="wrap">
+    <span class="sec-no">Section 31</span>
+    <h2>Where the analogy leaks</h2>
+    <p class="lead-in">The human comparison is a guide, not a law. Three places where it breaks down matter a great deal when you actually build one of these.</p>
+
+    <p>First, the "fast" agents are not fast. In a person, the quick intuitive guess is nearly free. In this framework, every agent is a slow, expensive model call, so a design with many roles can be far slower and costlier than a single well-instructed agent. The mind's cheap-proposal, expensive-check asymmetry is something you have to engineer toward, not something you get for free.</p>
+
+    <p>Second, more agents is not more intelligence. Each new role adds coordination overhead and new ways for the team to misunderstand each other. A tight team of three often beats a sprawling team of twelve. Add a role only when you can name the specific failure it fixes.</p>
+
+    <p>Third, and most important, the whole thing is only as good as its verifier. The reliability story rests entirely on having a way to check answers against ground truth: a test suite, a simulator, a formal checker, the real environment. Where that exists, this architecture is genuinely powerful. Where checking is itself fuzzy and subjective, the propose-and-verify backbone weakens, and you are back to trusting fluent text, which is the exact trap the whole series has warned about.</p>
+
+    <div class="note">
+      <span class="tag">The closing thought</span>
+      A multi-agent problem-solver is the human loop, built on purpose and in the open. Logic sets the standard, the reasoning modes supply the moves, memory supplies the shortcuts, the verifier supplies the trust, and a supervisor with a human at its side decides what to believe and what to do. Build the separations deliberately, respect the limits honestly, and you get a system that solves problems much the way we do, including, when you are not careful, the ways we get them wrong.</p>
+    </div>
+
+    <div class="note practical">
+      <span class="tag">Practical note</span>
+      Before committing to a multi-agent design, measure it against one strong single agent on your real task. Keep the extra structure only where it earns its cost in accuracy, safety, or transparency. Comprehension and reliability, not agent count, are the goal.
+    </div>
+  </div>
+</section>
+<section id="refs">
+  <div class="wrap">
+    <span class="sec-no">Appendix</span>
+    <h2>References and further reading</h2>
+    <p style="font-size:15px;color:var(--ink-soft);">This part builds on the foundations in Parts I and II. The works below cover the agent and cognitive architectures behind the design.</p>
+    <div class="refs">
+      <ol>
+        <li><b>Minsky, M.</b> (1986). <i>The Society of Mind.</i> Simon &amp; Schuster. The conceptual ancestor of mind-as-many-agents.</li>
+        <li><b>Erman, L. D. et al.</b> (1980). The Hearsay-II speech-understanding system. <i>ACM Computing Surveys</i>, 12(2). The original blackboard architecture.</li>
+        <li><b>Newell, A.</b> (1990). <i>Unified Theories of Cognition.</i> Harvard University Press. The Soar cognitive architecture.</li>
+        <li><b>Anderson, J. R. et al.</b> (2004). An integrated theory of the mind. <i>Psychological Review</i>, 111(4). The ACT-R architecture.</li>
+        <li><b>Wooldridge, M.</b> (2009). <i>An Introduction to MultiAgent Systems</i> (2nd ed.). Wiley.</li>
+        <li><b>Yao, S. et al.</b> (2023). ReAct: synergizing reasoning and acting in language models. <i>ICLR.</i></li>
+        <li><b>Shinn, N. et al.</b> (2023). Reflexion: language agents with verbal reinforcement learning. <i>NeurIPS.</i></li>
+        <li><b>Yao, S. et al.</b> (2023). Tree of Thoughts: deliberate problem solving with large language models. <i>NeurIPS.</i></li>
+        <li><b>Wang, G. et al.</b> (2023). Voyager: an open-ended embodied agent with large language models. arXiv:2305.16291.</li>
+        <li><b>Park, J. S. et al.</b> (2023). Generative agents: interactive simulacra of human behavior. <i>UIST.</i></li>
+        <li><b>Wu, Q. et al.</b> (2023). AutoGen: enabling next-gen LLM applications via multi-agent conversation. arXiv:2308.08155.</li>
+        <li><b>Hong, S. et al.</b> (2023). MetaGPT: meta programming for a multi-agent collaborative framework. arXiv:2308.00352.</li>
+        <li><b>Schick, T. et al.</b> (2023). Toolformer: language models can teach themselves to use tools. <i>NeurIPS.</i></li>
+        <li><b>Karpas, E. et al.</b> (2022). MRKL systems: a modular, neuro-symbolic architecture. arXiv:2205.00445.</li>
+      <li><b>Atkinson, R. C. &amp; Shiffrin, R. M.</b> (1968). Human memory: a proposed system and its control processes. The short-term and long-term store model.</li><li><b>Tulving, E.</b> (1972). Episodic and semantic memory. In <i>Organization of Memory.</i> The classic distinction.</li><li><b>Squire, L. R.</b> (2004). Memory systems of the brain. <i>Neurobiology of Learning and Memory</i>, 82(3). Declarative versus procedural memory.</li><li><b>McCloskey, M. &amp; Cohen, N. J.</b> (1989). Catastrophic interference in connectionist networks. <i>Psychology of Learning and Motivation</i>, 24.</li><li><b>Lewis, P. et al.</b> (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. <i>NeurIPS.</i> Parametric versus non-parametric memory.</li><li><b>Christiano, P. et al.</b> (2017). Deep reinforcement learning from human preferences. <i>NeurIPS.</i></li><li><b>Ouyang, L. et al.</b> (2022). Training language models to follow instructions with human feedback. <i>NeurIPS.</i> Supervised fine-tuning and RLHF.</li><li><b>Sutton, R. S. &amp; Barto, A. G.</b> (2018). <i>Reinforcement Learning: An Introduction</i> (2nd ed.). MIT Press.</li><li><b>Bourtoule, L. et al.</b> (2021). Machine unlearning. <i>IEEE S&amp;P.</i> Deliberately removing learned data.</li><li><b>Sumers, T. et al.</b> (2023). Cognitive architectures for language agents (CoALA). arXiv:2309.02427. A framework for working, episodic, semantic, and procedural agent memory.</li><li><b>Packer, C. et al.</b> (2023). MemGPT: towards LLMs as operating systems. arXiv:2310.08560. Managing a finite context window against external long-term memory.</li><li><b>Silver, D. et al.</b> (2017). Mastering the game of Go without human knowledge. <i>Nature</i>, 550. A value network guiding search.</li><li><b>Schrittwieser, J. et al.</b> (2020). Mastering Atari, Go, chess and shogi by planning with a learned model (MuZero). <i>Nature</i>, 588.</li><li><b>Ha, D. &amp; Schmidhuber, J.</b> (2018). World models. arXiv:1803.10122. Learning a dynamics model to train a controller inside it.</li><li><b>Brunton, S. L. &amp; Kutz, J. N.</b> (2019). <i>Data-Driven Science and Engineering.</i> Cambridge University Press. Data-driven dynamics, Koopman, and SINDy.</li><li><b>Chua, K. et al.</b> (2018). Deep reinforcement learning in a handful of trials using probabilistic dynamics models. <i>NeurIPS.</i> Uncertainty-aware model-based RL.</li><li><b>Amodei, D. et al.</b> (2016). Concrete problems in AI safety. arXiv:1606.06565. Reward hacking and related failure modes.</li></ol>
+    </div>
+  </div>
+</section>
+<div class="wrap"><a class="jump" href="logic-and-reasoning-part-4.html"><span class="jk">Continue &middot; Part 4 of 7</span><span class="jt">From a Mind to a Society of Minds &rarr;</span><span class="jd">Coordination, debate, markets, and the failures that only a group of agents can have.</span></a><a class="jump back" href="logic-and-reasoning-part-2.html"><span class="jk">&larr; Back to Part 2</span><span class="jt">Limits, Machines, and Problem-Solving</span><span class="jd">Part II of the series.</span></a></div>
+<footer><div class="wrap">Logic and Reasoning &middot; Part III of VII &middot; By Majid Mazouchi<br><a href="logic-and-reasoning-part-1.html">Part I</a> &middot; <a href="logic-and-reasoning-part-2.html">Part II</a> &middot; <a href="logic-and-reasoning-part-4.html">Part IV</a> &middot; <a href="logic-and-reasoning-part-5.html">Part V</a> &middot; <a href="logic-and-reasoning-part-6.html">Part VI</a> &middot; <a href="logic-and-reasoning-part-7.html">Part VII</a>.</div></footer>
+<script>
+(function(){
+  "use strict";
+  /* progress + back to top + reveal */
+  var prog=document.getElementById('progress'), totop=document.getElementById('totop');
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    var top=h.scrollTop||document.body.scrollTop;
+    if(prog) prog.style.width=(max>0?top/max*100:0)+'%';
+    if(totop){ if(top>600) totop.classList.add('show'); else totop.classList.remove('show'); }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+  if(totop) totop.addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); },{threshold:0.08});
+    document.querySelectorAll('section').forEach(function(s){ s.classList.add('reveal'); io.observe(s); });
+  }
+
+  /* cast accordion */
+  document.querySelectorAll('#castGrid .fhead').forEach(function(h){
+    h.addEventListener('click', function(){ h.parentNode.classList.toggle('open'); });
+  });
+
+  /* loop stepper */
+  (function(){
+    var adv=document.getElementById('lpAdvance'); if(!adv) return;
+    var bb=document.getElementById('lpBB'), propsEl=document.getElementById('lpProps');
+    var stageEl=document.getElementById('lpStage'), hitl=document.getElementById('lpHitl');
+    var propEls=[];
+    function chip(name,color){ return '<span class="chip" style="background:'+color+'">'+name+'</span>'; }
+    function addBB(name,color,text){
+      var d=document.createElement('div'); d.className='bb-entry';
+      d.innerHTML=chip(name,color)+'<span>'+text+'</span>'; bb.appendChild(d);
+    }
+    var INK='#231E18',TEAL='#1B6F69',OCHRE='#C2891B',RUST='#B5462B';
+    var steps=[
+      function(){ stageEl.textContent='Now acting: FRAMER (represent the problem)';
+        addBB('FRAMER',TEAL,'Goal: get the nightly pipeline running again.');
+        addBB('FRAMER',TEAL,'Scope: it failed at the TRANSFORM step. Extract and load were fine.'); },
+      function(){ stageEl.textContent='Now acting: RETRIEVER (recall similar cases)';
+        addBB('RETRIEVER',OCHRE,'Past cases: transform failures are usually (a) a changed input schema or (b) running out of memory on a big batch.'); },
+      function(){ stageEl.textContent='Now acting: PROPOSERS (generate hypotheses)';
+        addBB('PROPOSER',RUST,'Three hypotheses posted to the board.');
+        var data=[['H1: the upstream schema changed','pending'],['H2: data volume spiked and it ran out of memory','pending'],['H3: the server clock drifted','weak guess']];
+        propsEl.innerHTML='';
+        data.forEach(function(d){
+          var el=document.createElement('div'); el.className='prop';
+          el.innerHTML='<span>'+d[0]+'</span><span class="pv-tag">'+d[1]+'</span>'; propsEl.appendChild(el); propEls.push(el);
+        }); },
+      function(){ stageEl.textContent='Now acting: REASONER (turn guesses into tests)';
+        addBB('REASONER',TEAL,'Predictions: if H1, the schema-check log shows a mismatch; if H2, memory usage shows a spike; H3 makes no clear prediction.'); },
+      function(){ stageEl.textContent='Now acting: EXPERIMENTER (run the cheap discriminating test)';
+        addBB('EXPERIMENTER',OCHRE,'Pulled the logs: schema check PASSED, memory hit 100% at the failure.');
+        var verd=[['ruled out','reject'],['supported','ok'],['ruled out','reject']];
+        propEls.forEach(function(el,i){ el.className='prop '+verd[i][1]; el.querySelector('.pv-tag').textContent=verd[i][0]; }); },
+      function(){ stageEl.textContent='Now acting: VERIFIER (check, and try to disprove)';
+        addBB('VERIFIER',INK,'Bias monitor asks: did we try to DISPROVE H2? Yes. Schema and clock were checked and cleared.');
+        addBB('VERIFIER',INK,'H2 (out of memory) confirmed. H1 and H3 retracted from the board.'); },
+      function(){ stageEl.textContent='Now acting: ORCHESTRATOR (commit, with a gate)';
+        addBB('ORCHESTRATOR',INK,'Proposed fix: batch the transform and raise the memory limit.');
+        hitl.innerHTML='<b>Human-in-the-loop gate.</b> This change touches production, so it is routed to a person to approve before it is applied. The team solved it; the human authorises it.';
+        hitl.classList.add('show');
+        adv.disabled=true; adv.style.opacity=0.5; stageEl.textContent='Loop complete. One pass, one confirmed cause, gated for approval.'; }
+    ];
+    var i=0;
+    adv.addEventListener('click', function(){ if(i<steps.length){ steps[i](); i++; } });
+    document.getElementById('lpReset').addEventListener('click', function(){
+      i=0; propEls=[]; bb.innerHTML=''; propsEl.innerHTML=''; hitl.classList.remove('show'); hitl.innerHTML='';
+      adv.disabled=false; adv.style.opacity=1; stageEl.textContent='Press the button to start. Problem: the nightly data pipeline failed.';
+    });
+  })();
+
+  /* bias toggle */
+  (function(){
+    var sw=document.getElementById('biasSwitch'); if(!sw) return;
+    var run=document.getElementById('biasRun'), out=document.getElementById('biasOut'), lab=document.getElementById('biasLabel');
+    sw.addEventListener('change', function(){ lab.textContent='Falsification monitor: '+(sw.checked?'ON':'OFF'); out.classList.remove('show'); });
+    run.addEventListener('click', function(){
+      if(sw.checked){
+        out.className='outcome show good';
+        out.innerHTML='<b>Monitor ON.</b> Before shipping, the team is forced to run a test that could break its favourite explanation. The test uncovers a SECOND contributing cause it would otherwise have missed, and the team ships a complete fix. The problem stays fixed.';
+      } else {
+        out.className='outcome show bad';
+        out.innerHTML='<b>Monitor OFF.</b> The team stops at the first explanation that fits the evidence and ships a partial fix. It looks solved. Next week the problem returns, because a second cause was never checked. This is premature closure.';
+      }
+    });
+  })();
+
+  /* ---------- animated workflow simulator ---------- */
+  (function(){
+    var svg=document.getElementById('wfSvg'); if(!svg) return;
+    var NS='http://www.w3.org/2000/svg';
+    var BB={x:380,y:220};
+    var N={framer:{x:380,y:55,c:'#1B6F69'},retriever:{x:570,y:135,c:'#C2891B'},proposers:{x:570,y:295,c:'#B5462B'},
+           reasoner:{x:380,y:375,c:'#1B6F69'},experimenter:{x:190,y:295,c:'#C2891B'},verifier:{x:190,y:135,c:'#231E18'}};
+    var statusEl=document.getElementById('wfStatus'), bbEl=document.getElementById('wfBB'),
+        pillsEl=document.getElementById('wfPills'), hitl=document.getElementById('wfHitl'),
+        playBtn=document.getElementById('wfPlay'), stepBtn=document.getElementById('wfStep'), resetBtn=document.getElementById('wfReset');
+    function setState(id,st){
+      var g=document.getElementById('wf-'+id); if(!g) return;
+      var r=g.querySelector('rect'), txt=g.querySelectorAll('text');
+      g.classList.toggle('active', st==='active');
+      if(st==='active'){ r.setAttribute('fill-opacity','1'); txt[0].setAttribute('fill','#FAF7F0'); txt[1].setAttribute('fill','#FAF7F0'); }
+      else if(st==='done'){ r.setAttribute('fill-opacity','0.18'); txt[0].setAttribute('fill',N[id].c); txt[1].setAttribute('fill','#8A7E6C'); }
+      else { r.setAttribute('fill-opacity','0.06'); txt[0].setAttribute('fill',N[id].c); txt[1].setAttribute('fill','#8A7E6C'); }
+    }
+    function pulse(a,b,color,dur,cb){
+      var c=document.createElementNS(NS,'circle'); c.setAttribute('r','5'); c.setAttribute('fill',color); svg.appendChild(c);
+      var t0=null;
+      function fr(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/dur); var e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+        c.setAttribute('cx',a.x+(b.x-a.x)*e); c.setAttribute('cy',a.y+(b.y-a.y)*e);
+        if(p<1) requestAnimationFrame(fr); else { svg.removeChild(c); if(cb) cb(); } }
+      requestAnimationFrame(fr);
+    }
+    var T={t:'#1B6F69',o:'#C2891B',r:'#B5462B',k:'#231E18'};
+    var steps=[
+      {id:'framer',status:'Framer: turn the vague report into a precise problem.',
+       bb:[['FRAMER',T.t,'Goal: restore the nightly pipeline.'],['FRAMER',T.t,'Scope: it broke at the TRANSFORM step. Extract and load were fine.']]},
+      {id:'retriever',status:'Retriever: pull up similar past cases.',
+       bb:[['RETRIEVER',T.o,'Usual causes of transform failures: a changed input schema, or running out of memory on a big batch.']]},
+      {id:'proposers',status:'Proposers: float several hypotheses at once.',
+       bb:[['PROPOSER',T.r,'Three hypotheses posted to the board.']], pills:'render'},
+      {id:'reasoner',status:'Reasoner: turn each hypothesis into a test.',
+       bb:[['REASONER',T.t,'Predictions: H1 means the schema-check log shows a mismatch; H2 means memory usage spikes; H3 makes no clear prediction.']]},
+      {id:'experimenter',status:'Experimenter: run the one cheap test that splits them.',
+       bb:[['EXPERIMENTER',T.o,'Pulled the logs. Schema check PASSED. Memory hit 100% at the failure.']], verdict:['reject','ok','reject']},
+      {id:'verifier',status:'Verifier: try to disprove the favourite before trusting it.',
+       bb:[['VERIFIER',T.k,'Checked schema and clock too: both clean. H2 confirmed. H1 and H3 retracted.']]},
+      {id:'commit',status:'Solved in one pass, then handed to a person.',
+       bb:[['ORCHESTRATOR',T.k,'Fix: batch the transform and raise the memory limit.']], hitl:true}
+    ];
+    var pillData=[{t:'H1: schema changed'},{t:'H2: out of memory'},{t:'H3: clock drift (weak)'}];
+    var pillEls=[];
+    function renderPills(){ pillsEl.innerHTML=''; pillEls=[]; pillData.forEach(function(p){ var s=document.createElement('span'); s.className='wf-pill'; s.textContent=p.t; pillsEl.appendChild(s); pillEls.push(s); }); }
+    function verdictPills(v){ pillEls.forEach(function(el,i){ el.className='wf-pill '+v[i]; }); }
+    function addBB(name,color,text){ var d=document.createElement('div'); d.className='bb-entry';
+      d.innerHTML='<span class="chip" style="background:'+color+'">'+name+'</span><span>'+text+'</span>'; bbEl.appendChild(d); }
+    function apply(s){
+      s.bb.forEach(function(e){ addBB(e[0],e[1],e[2]); });
+      if(s.pills==='render') renderPills();
+      if(s.verdict) verdictPills(s.verdict);
+      if(s.hitl){ hitl.innerHTML='<b>Human-in-the-loop gate.</b> The fix touches production, so the team stops and a person approves it before anything changes. Solved by the agents, authorised by a human.'; hitl.classList.add('show'); }
+    }
+    var i=0, prev=null, busy=false, playing=false;
+    function runStep(done){
+      if(busy || i>=steps.length) return;
+      busy=true; var s=steps[i]; statusEl.textContent=s.status;
+      if(prev) setState(prev,'done');
+      var node=N[s.id]||BB, col=(N[s.id]?N[s.id].c:'#231E18');
+      pulse(BB,node,col,460,function(){
+        if(N[s.id]) setState(s.id,'active');
+        setTimeout(function(){
+          pulse(node,BB,col,460,function(){
+            apply(s); prev=s.id; i++; busy=false; if(done) done();
+          });
+        },200);
+      });
+    }
+    function setBtn(){ playBtn.textContent = playing ? 'Pause' : (i>=steps.length ? 'Replay' : (i>0?'Resume':'Play')); }
+    function auto(){ if(!playing) return; if(i>=steps.length){ playing=false; setBtn(); return; } runStep(function(){ if(playing) setTimeout(auto,560); else setBtn(); }); }
+    function reset(){ i=0; prev=null; busy=false; playing=false; bbEl.innerHTML=''; pillsEl.innerHTML=''; pillEls=[];
+      hitl.classList.remove('show'); hitl.innerHTML=''; Object.keys(N).forEach(function(k){ setState(k,'idle'); });
+      statusEl.textContent='Press play to watch the team solve the nightly-pipeline failure.'; setBtn(); }
+    playBtn.addEventListener('click', function(){ if(i>=steps.length){ reset(); } playing=!playing; setBtn(); if(playing) auto(); });
+    stepBtn.addEventListener('click', function(){ if(playing){ playing=false; setBtn(); } runStep(setBtn); });
+    resetBtn.addEventListener('click', reset);
+    reset();
+  })();
+
+
+  document.querySelectorAll('#memTypes .fhead, #sandboxTypes .fhead, #forgetTypes .fhead').forEach(function(h){ h.addEventListener('click', function(){ h.parentNode.classList.toggle('open'); }); });
+
+  (function(){
+    var sel=document.querySelectorAll('#toolRouter .tab'); if(!sel.length) return;
+    var out=document.getElementById('routerOut');
+    var rec={
+      script:'<b>Use a script (a symbolic skill).</b> The procedure is fully known, so write it as code. It is exact, deterministic, and completely verifiable. <span class="mono" style="font-size:13px;">Used by the reasoner or experimenter. No learning needed, no uncertainty to manage.</span>',
+      predict:'<b>Use a learned predictor (supervised).</b> The relationship is real but no one can write it down, so fit it from data, for example a dynamics model that forecasts winding temperature. <span class="mono" style="font-size:13px;">Used by the reasoner for model-based rollouts. Ship it with calibrated uncertainty and an out-of-distribution check.</span>',
+      policy:'<b>Use a reinforcement-learning policy (and its value function).</b> The right action must be optimized over a horizon under uncertainty, like energy-optimal control or which test to run next. <span class="mono" style="font-size:13px;">The policy acts; the value function helps the orchestrator rank options. Train it in the sandbox and watch for reward hacking.</span>',
+      anomaly:'<b>Use an anomaly or out-of-distribution detector (unsupervised).</b> The question is whether the current situation is normal or novel. <span class="mono" style="font-size:13px;">This is the gate. When it fires, the agent stops trusting its learned tools and falls back to reasoning or a human.</span>'
+    };
+    sel.forEach(function(b){ b.addEventListener('click', function(){
+      sel.forEach(function(x){ x.setAttribute('aria-selected','false'); });
+      b.setAttribute('aria-selected','true');
+      out.className='outcome good show'; out.innerHTML=rec[b.getAttribute('data-key')];
+    }); });
+  })();
+
+  (function(){
+    var btns=document.querySelectorAll('#stratTabs .tab'); if(!btns.length) return;
+    var out=document.getElementById('stratOut');
+    var S={
+      cot:'<b>Chain-of-thought.</b> Think step by step before answering, writing each step out so it is small and checkable. Cheap, and the baseline for any hard question. Weakness: one chain, one shot, so an early wrong step dooms the rest.',
+      sc:'<b>Self-consistency.</b> Sample many independent chains and take the majority answer. Random slips cancel out. Costs several times the compute of one chain. Weakness: errors shared across the samples survive the vote.',
+      tot:'<b>Tree-of-thought.</b> Branch at each step, explore several partial solutions, prune the dead ends, and keep the promising ones. Reasoning becomes a search, which suits puzzles that need backtracking. Costs more and needs a way to judge partial progress.',
+      mcts:'<b>Search with a value guide.</b> Use a learned value function to steer the branching toward the most promising lines, the way a game engine searches. The most powerful and the most expensive, and only as good as its evaluator.',
+      react:'<b>ReAct: reason and act.</b> Interleave thinking with tool calls, observe the result, then think again. This grounds the reasoning in the world instead of imagining it, and is the core loop of a tool-using agent.',
+      reflexion:'<b>Reflexion: try, critique, retry.</b> Attempt the task, reflect on what went wrong, store the lesson, and try again. Learning within a single session, the fast clock from the learning section put to work.'
+    };
+    btns.forEach(function(b){b.addEventListener('click',function(){
+      btns.forEach(function(x){x.setAttribute('aria-selected','false');});
+      b.setAttribute('aria-selected','true');
+      out.className='outcome good show'; out.innerHTML=S[b.getAttribute('data-strat')];
+    });});
+  })();
+})();
+</script>
+</body>
+</html>
