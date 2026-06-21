@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proving Cause with Experiments: Causal Inference and Staged Rollouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044;
+  --rule:#DAD1BF; --rule-soft:#E7DFD0;
+  --rust:#C2410C; --rust-deep:#9A3412;
+  --teal:#0F766E; --amber:#B45309; --slate:#475569;
+  --good:#0F766E; --bad:#B91C1C; --hold:#B45309;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:"Spectral",Georgia,serif;
+  font-size:18px; line-height:1.66; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px); line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px); color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em; color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em; color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px); line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic} strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+ul,ol{margin:16px 0; padding-left:24px} li{margin:0 0 9px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; padding:2px 8px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.tag.hi{background:#DCEFEC; color:var(--teal)} .tag.lo{background:#F6DED7; color:var(--bad)} .tag.md{background:#F7E9CF; color:var(--hold)}
+.verdict{display:grid; grid-template-columns:1fr; gap:14px; margin:26px 0}
+.vcard{border:1px solid var(--rule); background:var(--paper); padding:18px 20px; border-left:4px solid var(--slate)}
+.vcard.keep{border-left-color:var(--teal)} .vcard.drop{border-left-color:var(--bad)} .vcard.hold{border-left-color:var(--hold)}
+.vcard h4{font-family:"Fraunces",serif; font-size:18px; margin:0 0 4px; font-weight:600}
+.vcard .meta{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:0 0 9px}
+.vcard p{margin:0; font-size:15.5px}
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+.ladder{margin:28px 0}
+.rung{display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--rule-soft)}
+.rung:first-child{border-top:none}
+.rung .num{flex:0 0 auto; width:34px; height:34px; border-radius:50%; background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center}
+.rung .body h4{margin:2px 0 4px; font-family:"Fraunces",serif; font-size:17px; font-weight:600}
+.rung .body p{margin:0; font-size:15.5px}
+.rung .body .move{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--rust)}
+.algo{margin:26px 0; border:1px solid var(--ink); background:var(--paper)}
+.algo .hd{background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; padding:9px 16px; text-transform:uppercase; display:flex; justify-content:space-between}
+.algo .hd .nm{color:#E0A07A}
+.algo .bd{padding:14px 18px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.72}
+.algo .ln{white-space:pre-wrap; margin:0}
+.algo .io{color:var(--teal); font-weight:600} .algo .kw{color:var(--rust); font-weight:600} .algo .cm{color:var(--ink-soft)}
+.algo .i1{padding-left:22px} .algo .i2{padding-left:44px}
+.refs{font-family:"Spectral",serif; font-size:16px}
+.refs p{margin:0 0 14px; padding-left:22px; text-indent:-22px}
+.refs b{font-weight:600}
+.partlead{max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic}
+footer{padding:48px 0 80px; text-align:center}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+@media (max-width:560px){ body{font-size:17px} .wrap{padding:0 18px} header.masthead{padding:48px 0 32px} .tbl{font-size:12.5px} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Diagnostics · Causal Inference · Method</p>
+  <h1>Proving Cause with Experiments</h1>
+  <p class="subtitle">Observation suggests a cause; intervention proves it. How a staged software rollout becomes a randomized experiment — and how to settle causation when you can&rsquo;t randomize.</p>
+  <div class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Vehicle Health Monitoring Notes</div>
+</header>
+
+<div class="abstract">
+  <span class="lab">Abstract</span>
+  <p>The diagnosis series found a cause by watching: a charging code (<code class="inl">P0AE0</code>) concentrated in cars on firmware &ge; v5.1, pointing to a cold-throttle bug, and a v5.2 patch was proposed. But &ldquo;the curve bent after we shipped&rdquo; is not proof — coincidence, seasonality, regression to the mean, and other concurrent changes can all bend a curve. This post climbs the ladder of evidence from observation to <em>intervention</em>. We show why adjust-and-watch is limited by the confounders you never measured; draw the causal graph that says what to adjust for and what <em>not</em> to (the collider trap); then make the rollout interventional. A staged rollout, when the order is <em>randomized</em>, is a clean randomized experiment — treatment versus control, the difference a real causal effect. When you cannot randomize, two workhorses recover causation from luck: difference-in-differences across not-yet-updated cohorts, and instrumental variables / natural experiments where assignment is as-good-as-random. We close with how to run it well — power, a safe ramp, guardrails, a stopping rule — and a worked proof that v5.2 fixes the firmware cluster.</p>
+</div>
+<div class="reslinks" style="justify-content:flex-start">
+  <span class="ic">▸</span>
+  <a href="fleet-rca-made-rigorous.html">Prequel: Fleet RCA, Made Rigorous</a>
+  <a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a>
+  <a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="intro">
+  <span class="snum">§ 01 — The Ladder of Evidence</span>
+  <h2>Observation suggests; intervention proves</h2>
+  <p class="lead">The whole diagnosis series, until now, has been about <em>watching</em> — reading evidence the fleet handed us and inferring a cause. Watching is powerful, but it has a ceiling. To <em>prove</em> a cause you eventually have to push on the world and see what moves.</p>
+  <p>The <a href="fleet-rca-made-rigorous.html">previous post</a> left us with a strong observational story: the code <code class="inl">P0AE0</code> concentrated in cars running firmware &ge; v5.1, a cold-throttle bug was the suspect, and a v5.2 patch was proposed. The natural next move is to ship v5.2, watch the curve, and declare victory when it bends. That move is a trap. There is a ladder of evidence, and shipping-and-watching sits only on the bottom rung:</p>
+  <ul>
+    <li><strong>Observation (adjust-and-watch).</strong> Measure outcomes, stratify and adjust for the confounders you can see. Cheap, fast, and limited by what you measured.</li>
+    <li><strong>Quasi-experiment.</strong> Exploit a near-random quirk of the world — rollout order, regional scheduling — to mimic an experiment you never ran.</li>
+    <li><strong>Randomized experiment.</strong> <em>You</em> decide, by coin flip, which cars get the change. The cleanest causal evidence there is.</li>
+  </ul>
+  <p>Why isn&rsquo;t &ldquo;the curve bent after we shipped&rdquo; proof? Because at least four other things can bend a curve at the same time:</p>
+  <ul>
+    <li><strong>Coincidence.</strong> The cluster was already cresting; the fix arrived as it would have fallen anyway.</li>
+    <li><strong>Seasonality.</strong> The code is a <em>cold</em>-charge fault; spring arrives the same week as v5.2, and warmer weather alone cuts the rate.</li>
+    <li><strong>Regression to the mean.</strong> You shipped <em>because</em> the rate spiked; an unusually high reading is followed by a lower one with or without a fix.</li>
+    <li><strong>Other concurrent changes.</strong> A charger-network firmware update, a new tire spec, a different battery supplier — anything else that shifted in the same window.</li>
+  </ul>
+  <p>None of these is exotic. Each has, in real programs, masqueraded as a successful fix. The cure is to stop relying on a single before/after line and instead build a <em>comparison</em> — a group that did not get the change but lived through the same week. This post is about constructing that comparison, cleanly when you can randomize and cleverly when you cannot.</p>
+</section>
+
+<!-- =================================================================== -->
+<section id="partA" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part A — Why Observation Isn&rsquo;t Proof</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">The ceiling of adjust-and-watch</h2>
+  <p class="partlead">You can only adjust for what you measured. The causal graph shows where the danger hides — and which variables you must <em>not</em> touch.</p>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="confounders">
+  <span class="snum">§ 02 — The Limits of Adjust-and-Watch</span>
+  <h2>The confounders you never measured</h2>
+  <p class="lead">Observation&rsquo;s honest defense is adjustment: if the firmware-&ge;-v5.1 cars also tend to be newer, or driven harder, or in colder regions, you control for those and compare like with like. It works — but only for the variables you actually recorded.</p>
+  <p>A <strong>confounder</strong> is a common cause of both the suspected cause and the outcome. It creates a correlation that is not a causal effect. Suppose newer cars both received firmware v5.1 <em>and</em> are garaged in colder northern dealerships. Cold weather raises the charge-throttle rate directly. Now firmware and the code are correlated — but partly because cold is driving both the firmware rollout schedule and the fault. Adjust for cold and the firmware effect might shrink, hold, or vanish.</p>
+  <p>The unbeatable problem is the confounder you did <em>not</em> measure. You can stratify by region, mileage, and build week because those are in the data. You cannot stratify by &ldquo;owner charges on a faulty third-party home charger,&rdquo; or &ldquo;cars from a sub-lot with marginal connectors,&rdquo; if you never logged it. Adjustment is blind to unrecorded common causes, and there is no statistical test that reveals one — it is, by definition, invisible to the data you have.</p>
+  <figure>
+    <div class="figlab">Figure 1 — A confounder fakes a cause</div>
+    <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A confounder is a common cause of both firmware and the code; adjusting only for measured variables leaves the unmeasured path open">
+      <defs>
+        <marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#211C15"/>
+        </marker>
+      </defs>
+      <!-- nodes -->
+      <rect x="80" y="150" width="150" height="48" rx="5" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="155" y="179" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="700" fill="#211C15">firmware &ge; v5.1</text>
+      <rect x="530" y="150" width="150" height="48" rx="5" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="605" y="179" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="700" fill="#211C15">charge code</text>
+      <rect x="305" y="44" width="150" height="48" rx="5" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.6"/>
+      <text x="380" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="700" fill="#B91C1C">cold region</text>
+      <text x="380" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">(unmeasured)</text>
+      <!-- confounder arrows -->
+      <line x1="330" y1="92" x2="175" y2="148" stroke="#B91C1C" stroke-width="1.8" marker-end="url(#ah1)"/>
+      <line x1="430" y1="92" x2="585" y2="148" stroke="#B91C1C" stroke-width="1.8" marker-end="url(#ah1)"/>
+      <!-- suspected causal arrow (dashed, uncertain) -->
+      <line x1="230" y1="174" x2="528" y2="174" stroke="#0F766E" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ah1)"/>
+      <text x="380" y="166" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#0F766E">real effect? (what we want)</text>
+      <text x="232" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">drives schedule</text>
+      <text x="530" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">drives faults</text>
+      <text x="380" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044">the red path makes firmware look guilty even if the green effect is zero</text>
+    </svg>
+    <figcaption><b>Correlation borrowed from a common cause.</b> If a cold region drives both <em>which cars got v5.1</em> and <em>the fault rate</em>, firmware and the code move together with no direct effect between them. Adjusting for cold closes the red path — but only if you measured cold. An unrecorded common cause leaves the path open and no amount of careful statistics can detect it.</figcaption>
+  </figure>
+  <p>This is the ceiling. Observation can make a cause <em>plausible</em> and rule out the confounders you thought of, but it can never close the door on the one you didn&rsquo;t. To shut that door you stop letting the world assign firmware and assign it yourself — which is what the rest of this post builds toward.</p>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="dags">
+  <span class="snum">§ 03 — Draw the Causal Graph</span>
+  <h2>DAGs, simply: what to adjust for, and what not to</h2>
+  <p class="lead">A causal graph is a picture of who causes whom: a node for each variable, an arrow from cause to effect. Drawn honestly, it tells you exactly which variables to control for — and, just as important, which ones you must leave alone.</p>
+  <p>The graph is a <strong>DAG</strong> — directed (arrows point from cause to effect) and acyclic (no loops; nothing causes itself round a cycle). You do not need equations to use one. You need two ideas: the <em>back-door path</em> and the <em>collider</em>.</p>
+  <p>A <strong>back-door path</strong> is a sneaky route from your suspected cause to the outcome that runs <em>backwards</em> through a common cause. In Figure 1, firmware &larr; cold &rarr; code is a back-door path: it carries correlation that is not the firmware effect. The rule is simple: <strong>adjust for the variable on a back-door path</strong> (here, cold) and the path is blocked, leaving only the honest front-door effect you care about.</p>
+  <p>A <strong>collider</strong> is the opposite trap. A collider is a variable that two arrows point <em>into</em> — a common <em>effect</em>, not a common cause. The dangerous rule is: <strong>do not adjust for a collider.</strong> Controlling for a common effect <em>opens</em> a spurious path that was closed, manufacturing a correlation out of thin air. This is the mistake that catches careful analysts: more controls are not always better.</p>
+  <figure>
+    <div class="figlab">Figure 2 — Confounder (adjust) vs. collider (don&rsquo;t)</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Left: a confounder you should adjust for; right: a collider you must not adjust for">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#211C15"/>
+        </marker>
+      </defs>
+      <!-- divider -->
+      <line x1="380" y1="30" x2="380" y2="270" stroke="#DAD1BF" stroke-width="1"/>
+      <!-- LEFT: confounder -->
+      <text x="190" y="28" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#0F766E">confounder C — ADJUST for it</text>
+      <circle cx="190" cy="80" r="26" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.5"/>
+      <text x="190" y="84" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#B91C1C">C</text>
+      <circle cx="100" cy="200" r="26" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="100" y="204" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#211C15">X</text>
+      <circle cx="280" cy="200" r="26" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="280" y="204" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#211C15">Y</text>
+      <line x1="172" y1="100" x2="116" y2="180" stroke="#B91C1C" stroke-width="1.7" marker-end="url(#ah2)"/>
+      <line x1="208" y1="100" x2="264" y2="180" stroke="#B91C1C" stroke-width="1.7" marker-end="url(#ah2)"/>
+      <line x1="126" y1="200" x2="254" y2="200" stroke="#0F766E" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#ah2)"/>
+      <text x="190" y="248" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">back-door X&larr;C&rarr;Y is open;</text>
+      <text x="190" y="262" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">adjusting for C blocks it</text>
+      <!-- RIGHT: collider -->
+      <text x="570" y="28" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#B45309">collider K — do NOT adjust</text>
+      <circle cx="480" cy="80" r="26" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="480" y="84" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#211C15">X</text>
+      <circle cx="660" cy="80" r="26" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="660" y="84" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#211C15">Y</text>
+      <circle cx="570" cy="200" r="26" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="570" y="204" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#B45309">K</text>
+      <line x1="498" y1="100" x2="554" y2="180" stroke="#B45309" stroke-width="1.7" marker-end="url(#ah2)"/>
+      <line x1="642" y1="100" x2="586" y2="180" stroke="#B45309" stroke-width="1.7" marker-end="url(#ah2)"/>
+      <text x="570" y="248" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">X&rarr;K&larr;Y is closed;</text>
+      <text x="570" y="262" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">adjusting for K OPENS a fake link</text>
+    </svg>
+    <figcaption><b>Arrows in vs. arrows out.</b> Left: C is a common <em>cause</em> of X and Y — a confounder; adjusting for it removes the spurious correlation. Right: K is a common <em>effect</em> of X and Y — a collider; it sits on a path that is already closed, and conditioning on it creates a correlation between X and Y that isn&rsquo;t real. The graph, not instinct, tells you which is which.</figcaption>
+  </figure>
+  <p>A concrete collider for our fleet: imagine cars enter the warranty database (<code class="inl">K</code>) if they have <em>either</em> a firmware quirk <em>or</em> a hardware complaint. Among cars in that database, the two start to look negatively related — knowing a car got in <em>without</em> firmware trouble makes a hardware cause more likely. Restrict your analysis to flagged cars and you have conditioned on a collider, and invented a relationship that does not exist in the fleet. Draw the graph first; let it choose your controls.</p>
+</section>
+
+<!-- =================================================================== -->
+<section id="partB" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part B — Make It Interventional</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">Stop watching; start intervening</h2>
+  <p class="partlead">Randomize the rollout and you get a clean causal effect for free. Can&rsquo;t randomize? Difference-in-differences and instrumental variables recover causation from luck.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="rollout">
+  <span class="snum">§ 04 — The Staged Rollout as a Randomized Experiment</span>
+  <h2>A coin flip closes every back door at once</h2>
+  <p class="lead">Here is the quiet power of a software fleet: you control who gets the update, and when. If you assign v5.2 by a coin flip instead of by schedule, the staged rollout <em>is</em> a randomized controlled experiment — the gold standard — and you barely had to do anything extra.</p>
+  <p>Randomization does something no amount of adjustment can. By deciding treatment with a coin flip, you guarantee that the treated and control groups are, on average, identical on <em>everything</em> — region, mileage, charger habits, the marginal-connector sub-lot, and every confounder you never measured. The unmeasured cold-region problem from §02 evaporates: cold cars are equally likely to be in treatment or control. The difference in their outcomes can then only be the firmware.</p>
+  <p>That &ldquo;assign it yourself&rdquo; move is what causal inference calls the <strong>do-operator</strong>. There is a difference between <em>seeing</em> a car on v5.2 (which is tangled with why it got v5.2) and <em>setting</em> a car to v5.2 by force. Plain-words version: instead of asking &ldquo;what&rsquo;s the fault rate among cars that happen to run v5.2?&rdquo; you ask &ldquo;what&rsquo;s the fault rate when <em>we make</em> a random half of the fleet run v5.2?&rdquo; The second question has a clean answer; the first is contaminated by every back-door path.</p>
+  <figure>
+    <div class="figlab">Figure 3 — Randomize the rollout: treatment vs. control</div>
+    <svg viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An eligible cohort split by coin flip into a treated v5.2 group and a control group, with outcome rates compared">
+      <defs>
+        <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#211C15"/>
+        </marker>
+      </defs>
+      <!-- pool -->
+      <rect x="50" y="100" width="150" height="64" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="125" y="128" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="700" fill="#211C15">eligible cohort</text>
+      <text x="125" y="146" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">fw &ge; v5.1</text>
+      <!-- coin -->
+      <circle cx="290" cy="132" r="30" fill="#F7E9CF" stroke="#B45309" stroke-width="1.6"/>
+      <text x="290" y="129" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#B45309">coin</text>
+      <text x="290" y="142" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#B45309">flip</text>
+      <line x1="200" y1="132" x2="256" y2="132" stroke="#211C15" stroke-width="1.5" marker-end="url(#ah3)"/>
+      <!-- treatment -->
+      <line x1="320" y1="116" x2="408" y2="78" stroke="#0F766E" stroke-width="1.6" marker-end="url(#ah3)"/>
+      <rect x="410" y="52" width="180" height="56" rx="6" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="500" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="700" fill="#0F766E">TREATMENT · v5.2</text>
+      <text x="500" y="94" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#0F766E">code rate = 1.2%</text>
+      <!-- control -->
+      <line x1="320" y1="148" x2="408" y2="186" stroke="#B91C1C" stroke-width="1.6" marker-end="url(#ah3)"/>
+      <rect x="410" y="160" width="180" height="56" rx="6" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.5"/>
+      <text x="500" y="184" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="700" fill="#B91C1C">CONTROL · stay v5.1</text>
+      <text x="500" y="202" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B91C1C">code rate = 9.0%</text>
+      <!-- difference -->
+      <line x1="600" y1="80" x2="660" y2="120" stroke="#211C15" stroke-width="1.1" stroke-dasharray="3 3"/>
+      <line x1="600" y1="188" x2="660" y2="148" stroke="#211C15" stroke-width="1.1" stroke-dasharray="3 3"/>
+      <rect x="612" y="110" width="132" height="48" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="678" y="130" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#211C15">causal effect</text>
+      <text x="678" y="146" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#9A3412">&minus;7.8 pts</text>
+      <text x="380" y="252" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044">groups identical on average &rarr; the gap can only be the firmware</text>
+    </svg>
+    <figcaption><b>The coin flip does the work.</b> Both arms are drawn from the same eligible cohort, so they match on every variable — measured and unmeasured. Treatment gets v5.2, control stays on v5.1 for now. The difference in code rates, 7.8 points, is a clean causal effect of the patch, not a correlation borrowed from a confounder.</figcaption>
+  </figure>
+  <p>One ethical and practical note: control cars are not abandoned — they are simply <em>not yet</em> updated, and they get v5.2 the moment the experiment reads out. The randomized phase is short (days to a couple of weeks) and small (often 5&ndash;10% of the fleet), which is enough to measure the effect while exposing very few cars to the delay.</p>
+  <div class="algo">
+    <div class="hd"><span>Algorithm 1</span><span class="nm">staged_rollout_experiment()</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  eligible VINs · effect to detect &delta; · guardrail metrics G</p>
+<p class="ln">n <span class="kw">←</span> power_sample_size(&delta;, baseline_rate, &alpha;=0.05, power=0.8)</p>
+<p class="ln"><span class="kw">for</span> each VIN <span class="kw">in</span> sample(eligible, 2&times;n):</p>
+<p class="ln i1">arm[VIN] <span class="kw">←</span> <span class="kw">random</span>(treatment, control)     <span class="cm"># the coin flip — closes every back door</span></p>
+<p class="ln">push v5.2 <span class="kw">to</span> treatment arm only</p>
+<p class="ln"><span class="kw">for</span> each ramp step <span class="kw">in</span> [canary, 10%, 50%, 100%]:</p>
+<p class="ln i1">observe code_rate[treatment], code_rate[control]</p>
+<p class="ln i1"><span class="kw">if</span> any g <span class="kw">in</span> G breaches limit:  <span class="kw">halt</span> &amp; roll back   <span class="cm"># guardrail</span></p>
+<p class="ln i1"><span class="kw">if</span> SPRT_decision(treatment, control) = ACCEPT:  <span class="kw">break</span></p>
+<p class="ln">effect <span class="kw">←</span> rate[control] &minus; rate[treatment]       <span class="cm"># with 95% CI</span></p>
+<p class="ln"><span class="kw">return</span> effect, CI                            <span class="cm"># then ship v5.2 to everyone</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="did">
+  <span class="snum">§ 05 — Difference-in-Differences</span>
+  <h2>When you can&rsquo;t randomize: difference out the shared trend</h2>
+  <p class="lead">Sometimes you cannot randomize — the rollout already went out by region, or safety forbids withholding a fix, or the change is all-or-nothing. You can still recover a causal effect if some cars got the update and others did not yet, and you watched both before and after.</p>
+  <p><strong>Difference-in-differences</strong> (DiD) is the trick. Take a treated cohort (got v5.2) and a comparison cohort (not-yet-updated, still v5.1). Measure each one&rsquo;s code rate <em>before</em> and <em>after</em> the rollout. Then take two differences: the change in the treated group, minus the change in the comparison group. The second subtraction cancels out whatever shared trend hit both groups — spring warming, a charger-network change, the general seasonal dip. What survives is the part unique to having received the fix.</p>
+  <p>The whole method rests on one assumption you must defend: <strong>parallel trends</strong>. Absent the treatment, the two cohorts would have moved in parallel. You check it by looking <em>backwards</em> — if the two lines tracked each other for months before the rollout, parallel trends is credible; if they were already diverging, DiD is not trustworthy and the estimate is suspect.</p>
+  <figure>
+    <div class="figlab">Figure 4 — Difference-in-differences</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two cohorts tracking in parallel before rollout; after, the treated line drops while the comparison continues, and the gap from the counterfactual is the effect">
+      <line x1="80" y1="250" x2="720" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <line x1="80" y1="40" x2="80" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <text x="34" y="145" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5A5044" transform="rotate(-90 34 145)" text-anchor="middle">code rate</text>
+      <text x="400" y="282" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5A5044" text-anchor="middle">time →</text>
+      <!-- rollout marker -->
+      <line x1="400" y1="40" x2="400" y2="250" stroke="#475569" stroke-width="1.1" stroke-dasharray="3 3"/>
+      <text x="400" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#475569">v5.2 to treated cohort</text>
+      <!-- comparison (not yet updated): parallel before, keeps rising after -->
+      <polyline points="100,150 200,140 300,128 400,116 500,104 600,92 700,80" fill="none" stroke="#B91C1C" stroke-width="2.4"/>
+      <text x="600" y="74" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="700" fill="#B91C1C">comparison (still v5.1)</text>
+      <!-- treated: parallel before, drops after -->
+      <polyline points="100,176 200,166 300,154 400,142" fill="none" stroke="#0F766E" stroke-width="2.4"/>
+      <polyline points="400,142 500,168 600,188 700,200" fill="none" stroke="#0F766E" stroke-width="2.4"/>
+      <text x="600" y="214" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="700" fill="#0F766E">treated (got v5.2)</text>
+      <!-- counterfactual: what treated would have done (parallel to comparison) -->
+      <polyline points="400,142 500,130 600,118 700,106" fill="none" stroke="#5A5044" stroke-width="1.8" stroke-dasharray="5 4"/>
+      <text x="540" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">counterfactual (parallel)</text>
+      <!-- effect bracket -->
+      <line x1="700" y1="106" x2="700" y2="200" stroke="#9A3412" stroke-width="1.3"/>
+      <line x1="694" y1="106" x2="706" y2="106" stroke="#9A3412" stroke-width="1.3"/>
+      <line x1="694" y1="200" x2="706" y2="200" stroke="#9A3412" stroke-width="1.3"/>
+      <text x="712" y="158" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="700" fill="#9A3412" transform="rotate(-90 712 158)" text-anchor="middle">effect</text>
+      <text x="240" y="200" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">parallel before &rarr; assumption credible</text>
+    </svg>
+    <figcaption><b>Two differences cancel the shared trend.</b> Before the rollout the cohorts track in parallel. After, the comparison keeps drifting up (seasonal, charger-network, etc.), while the treated cohort drops. The effect is the gap between where the treated line actually went and the dashed counterfactual — where it <em>would</em> have gone had it just followed the comparison. The pre-period parallelism is the evidence the assumption holds.</figcaption>
+  </figure>
+  <div class="algo">
+    <div class="hd"><span>Algorithm 2</span><span class="nm">did_estimate(treated, comparison, t0)</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  treated &amp; comparison cohorts · rollout time t0</p>
+<p class="ln"><span class="cm"># check the assumption first — refuse to proceed if it fails</span></p>
+<p class="ln"><span class="kw">assert</span> parallel_pretrend(treated, comparison, before=t0)</p>
+<p class="ln"></p>
+<p class="ln">&Delta;_treated     <span class="kw">←</span> rate(treated,    after=t0) &minus; rate(treated,    before=t0)</p>
+<p class="ln">&Delta;_comparison  <span class="kw">←</span> rate(comparison, after=t0) &minus; rate(comparison, before=t0)</p>
+<p class="ln"></p>
+<p class="ln">effect <span class="kw">←</span> &Delta;_treated &minus; &Delta;_comparison       <span class="cm"># the difference of differences</span></p>
+<p class="ln"><span class="kw">return</span> effect, CI(cluster=cohort)            <span class="cm"># cluster SEs by cohort</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="iv">
+  <span class="snum">§ 06 — Instrumental Variables &amp; Natural Experiments</span>
+  <h2>When luck assigns the treatment for you</h2>
+  <p class="lead">There is a third way, for when neither a clean randomization nor a parallel comparison is available, but the world happened to assign the update in a way that is as-good-as-random. You borrow that lucky randomness as an <em>instrument</em>.</p>
+  <p>An <strong>instrument</strong> is a variable that nudges who gets the treatment but has no other path to the outcome. The classic fleet instrument is <strong>rollout order or regional scheduling</strong>. Suppose the OTA server pushes v5.2 to cars in alphabetical order of VIN, or by which regional data center has spare bandwidth this week. Those things plausibly affect <em>whether a car has v5.2 yet</em>, but have no direct effect on the charge-throttle fault. That makes them an instrument: the variation in v5.2 exposure they create is as-good-as-random, and you can use it to estimate the firmware effect free of confounding.</p>
+  <p>The logic in plain words: the instrument only touches the outcome <em>through</em> the treatment. So if cars that got v5.2 early (for an unrelated scheduling reason) show fewer faults than cars scheduled late, and the only thing the schedule changed was v5.2 timing, the fault difference must trace to v5.2. Two conditions must hold — the instrument really does move treatment (<em>relevance</em>), and it touches the outcome <em>only</em> through treatment (the <em>exclusion restriction</em>). The second is an assumption you argue, not test; a scheduling order that also correlates with climate or car age would violate it.</p>
+  <figure>
+    <div class="figlab">Figure 5 — An instrument: as-good-as-random assignment</div>
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An instrument affects treatment, which affects the outcome; the instrument must not touch the outcome directly, and must be independent of confounders">
+      <defs>
+        <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#211C15"/>
+        </marker>
+      </defs>
+      <!-- instrument -->
+      <rect x="40" y="92" width="150" height="50" rx="6" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="115" y="113" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#0F766E">instrument Z</text>
+      <text x="115" y="129" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#0F766E">rollout order</text>
+      <!-- treatment -->
+      <rect x="300" y="92" width="150" height="50" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="375" y="113" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#211C15">treatment X</text>
+      <text x="375" y="129" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">has v5.2 yet?</text>
+      <!-- outcome -->
+      <rect x="560" y="92" width="150" height="50" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.4"/>
+      <text x="635" y="113" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#211C15">outcome Y</text>
+      <text x="635" y="129" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">charge code</text>
+      <!-- relevance arrow -->
+      <line x1="190" y1="117" x2="298" y2="117" stroke="#0F766E" stroke-width="1.8" marker-end="url(#ah5)"/>
+      <text x="244" y="108" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#0F766E">relevance</text>
+      <!-- causal arrow -->
+      <line x1="450" y1="117" x2="558" y2="117" stroke="#211C15" stroke-width="1.8" marker-end="url(#ah5)"/>
+      <text x="504" y="108" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">effect we want</text>
+      <!-- confounder on X-Y only -->
+      <circle cx="505" cy="40" r="22" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.4"/>
+      <text x="505" y="44" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#B91C1C">U</text>
+      <line x1="489" y1="56" x2="395" y2="90" stroke="#B91C1C" stroke-width="1.4" marker-end="url(#ah5)"/>
+      <line x1="521" y1="56" x2="615" y2="90" stroke="#B91C1C" stroke-width="1.4" marker-end="url(#ah5)"/>
+      <!-- forbidden direct path -->
+      <path d="M150,142 C260,210 520,210 700,144" fill="none" stroke="#B91C1C" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <text x="410" y="206" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="700" fill="#B91C1C">✗ exclusion: Z must NOT reach Y any other way</text>
+    </svg>
+    <figcaption><b>Borrow the world&rsquo;s randomness.</b> The rollout order Z shifts who has v5.2 (relevance) but, by argument, touches the fault only through the firmware — never directly and never via the confounder U. When that holds, the slice of fault variation explained by scheduling is a clean estimate of the v5.2 effect, even though no one ran a formal experiment. The dashed red path is the assumption you must defend.</figcaption>
+  </figure>
+  <p>Natural experiments are the same idea found in the wild: a policy, a deadline, a supply hiccup, or an administrative cutoff that split otherwise-similar cars into treated and untreated by accident. When you cannot run the experiment, the best you can do is find the one the world already ran for you.</p>
+</section>
+
+<!-- =================================================================== -->
+<section id="partC" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part C — Run It Well</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">Design the experiment, then read it honestly</h2>
+  <p class="partlead">Power, a safe ramp, guardrails, and a stopping rule turn a good idea into a trustworthy result — and a worked proof that v5.2 is the cause.</p>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="design">
+  <span class="snum">§ 07 — Designing the Experiment</span>
+  <h2>Power, a safe ramp, guardrails, and a stopping rule</h2>
+  <p class="lead">A randomized rollout is only as good as its design. Four decisions separate a clean read from a fleet incident: how many cars, how fast to ramp, what to watch besides the target, and when to stop.</p>
+  <p><strong>Sample size and power.</strong> Before you start, ask: how big an effect do I need to detect, and how many cars give me a fair chance of seeing it? <em>Power</em> is the probability the experiment catches a real effect of the size you care about. Bigger effects need fewer cars; subtle ones need many. For a drop from a 9% baseline that you would act on at, say, 2 points, a few thousand cars per arm is ample; to detect a fraction of a point you would need far more. Compute this <em>first</em> — an underpowered experiment that reads &ldquo;no effect&rdquo; tells you nothing.</p>
+  <p><strong>A safe ramp.</strong> Do not flip the whole fleet at once. Ramp: a tiny <em>canary</em> (a few hundred cars) to catch catastrophes, then <strong>10%</strong>, then <strong>50%</strong>, then <strong>100%</strong>, pausing at each step to read guardrails. The randomized comparison rides along inside the early steps, so you measure the causal effect at 10% before committing the fleet.</p>
+  <p><strong>Guardrail metrics.</strong> The patch might fix the charge code and break something else. Guardrails are the metrics you refuse to harm — battery thermal events, range, other DTCs, OTA failure rate. If any guardrail breaches its limit at any ramp step, halt and roll back, no matter how good the target metric looks.</p>
+  <p><strong>A stopping rule.</strong> Decide in advance when you have enough evidence to stop — do not peek repeatedly and stop the moment it looks good (that manufactures false positives, exactly the multiplicity trap from the rigorous post). A sequential rule like the SPRT, covered in <a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a>, lets you stop as soon as the evidence crosses a pre-set bar while controlling the error rate.</p>
+  <figure>
+    <div class="figlab">Figure 6 — The ramp, with guardrails at every step</div>
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A staged ramp from canary to ten, fifty, and a hundred percent, with guardrail checks and a halt-and-rollback path at each step">
+      <line x1="70" y1="200" x2="720" y2="200" stroke="#211C15" stroke-width="1.3"/>
+      <text x="400" y="246" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5A5044" text-anchor="middle">ramp →</text>
+      <!-- steps as rising bars -->
+      <g font-family="IBM Plex Mono, monospace">
+        <rect x="100" y="184" width="90" height="16" rx="3" fill="#475569"/>
+        <text x="145" y="178" text-anchor="middle" font-size="10" font-weight="700" fill="#475569">canary</text>
+        <rect x="250" y="160" width="90" height="40" rx="3" fill="#0F766E"/>
+        <text x="295" y="152" text-anchor="middle" font-size="10" font-weight="700" fill="#0F766E">10%</text>
+        <rect x="400" y="108" width="90" height="92" rx="3" fill="#0F766E"/>
+        <text x="445" y="100" text-anchor="middle" font-size="10" font-weight="700" fill="#0F766E">50%</text>
+        <rect x="550" y="58" width="90" height="142" rx="3" fill="#0F766E"/>
+        <text x="595" y="50" text-anchor="middle" font-size="10" font-weight="700" fill="#0F766E">100%</text>
+      </g>
+      <!-- guardrail checks between steps -->
+      <g font-family="IBM Plex Mono, monospace" font-size="14" font-weight="700" fill="#B45309">
+        <text x="220" y="130" text-anchor="middle">✓</text>
+        <text x="370" y="130" text-anchor="middle">✓</text>
+        <text x="520" y="130" text-anchor="middle">✓</text>
+      </g>
+      <text x="370" y="40" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B45309">guardrail check at every step — breach &rarr; halt</text>
+      <!-- rollback path -->
+      <path d="M295,160 C295,224 200,224 150,210" fill="none" stroke="#B91C1C" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ahramp)"/>
+      <defs>
+        <marker id="ahramp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#B91C1C"/>
+        </marker>
+      </defs>
+      <text x="225" y="240" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#B91C1C">halt &amp; roll back if a guardrail breaches</text>
+    </svg>
+    <figcaption><b>Crawl, then walk, then run.</b> Each step exposes more of the fleet only after the last one passed its guardrails. The randomized treatment/control comparison lives inside the early steps, so the causal effect is read at 10% — long before the fleet is committed — and any guardrail breach sends you back down the dashed red path instead of forward.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="worked">
+  <span class="snum">§ 08 — Worked Example</span>
+  <h2>Proving v5.2 fixes the firmware cluster</h2>
+  <p class="lead">Put it together on the running fleet. We will prove v5.2 is the cause of the improvement two independent ways — a randomized canary and a difference-in-differences cross-check — and they should agree.</p>
+  <p><strong>The randomized canary.</strong> From the eligible cohort (firmware &ge; v5.1), we randomly assign a 10% slice: roughly 5,000 cars split into 2,500 treatment (pushed v5.2) and 2,500 control (held on v5.1 for two weeks). Over the window, treatment throws the charge code at <strong>1.2%</strong> (30 cars), control at <strong>9.0%</strong> (225 cars). The randomized causal effect is the difference of rates, with a confidence interval on the difference:</p>
+  <div class="algo">
+    <div class="hd"><span>Worked computation</span><span class="nm">randomized canary effect</span></div>
+    <div class="bd">
+<p class="ln"><span class="cm"># treatment (v5.2) vs control (v5.1), n = 2500 each</span></p>
+<p class="ln">treatment :   30/2500 = <span class="io">1.2%</span>   95% CI [0.77 , 1.63]</p>
+<p class="ln">control   :  225/2500 = <span class="io">9.0%</span>   95% CI [7.88 , 10.12]</p>
+<p class="ln"></p>
+<p class="ln">causal effect = 9.0 &minus; 1.2 = <span class="io">&minus;7.8 points</span>   95% CI [&minus;9.0 , &minus;6.6]</p>
+<p class="ln i1"><span class="cm">CI excludes 0 by a mile &rarr; the patch causes the drop</span></p>
+<p class="ln">relative reduction &asymp; <span class="io">87%</span>   <span class="cm"># 1.2 / 9.0</span></p>
+<p class="ln"></p>
+<p class="ln"><span class="cm"># residual 1.2% is the non-firmware tail (connector cluster, noise)</span></p>
+    </div>
+  </div>
+  <figure>
+    <div class="figlab">Figure 7 — Treatment vs. control, with confidence intervals</div>
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Treatment and control code rates with non-overlapping confidence intervals, and the causal effect as the gap between them">
+      <line x1="90" y1="160" x2="710" y2="160" stroke="#211C15" stroke-width="1.3"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">
+        <text x="90" y="178" text-anchor="middle">0</text><text x="297" y="178" text-anchor="middle">4</text>
+        <text x="503" y="178" text-anchor="middle">8</text><text x="710" y="178" text-anchor="middle">12</text>
+        <text x="400" y="195" text-anchor="middle" font-size="10.5">code rate (%)</text>
+      </g>
+      <!-- control 9.0% [7.88,10.12] at y=64 -->
+      <line x1="497" y1="64" x2="612" y2="64" stroke="#B91C1C" stroke-width="2"/>
+      <line x1="497" y1="56" x2="497" y2="72" stroke="#B91C1C" stroke-width="2"/><line x1="612" y1="56" x2="612" y2="72" stroke="#B91C1C" stroke-width="2"/>
+      <circle cx="555" cy="64" r="5" fill="#B91C1C"/>
+      <text x="622" y="68" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#B91C1C">control · 9.0%</text>
+      <!-- treatment 1.2% [0.77,1.63] at y=110 -->
+      <line x1="130" y1="110" x2="174" y2="110" stroke="#0F766E" stroke-width="2"/>
+      <line x1="130" y1="102" x2="130" y2="118" stroke="#0F766E" stroke-width="2"/><line x1="174" y1="102" x2="174" y2="118" stroke="#0F766E" stroke-width="2"/>
+      <circle cx="152" cy="110" r="5" fill="#0F766E"/>
+      <text x="184" y="114" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#0F766E">v5.2 · 1.2%</text>
+      <!-- effect bracket -->
+      <line x1="152" y1="130" x2="555" y2="130" stroke="#9A3412" stroke-width="1.1" stroke-dasharray="4 3"/>
+      <text x="354" y="124" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#9A3412">causal effect = &minus;7.8 pts [&minus;9.0, &minus;6.6]</text>
+      <text x="400" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#9A3412">whiskers don&rsquo;t touch &rarr; the drop is real, and it is caused by v5.2</text>
+    </svg>
+    <figcaption><b>The gap is the proof.</b> Because the arms were randomized, the only systematic difference between them is v5.2. The intervals are narrow and far apart, so the 7.8-point drop is neither noise nor a borrowed confounder — it is the causal effect of the patch, read directly off the randomized comparison.</figcaption>
+  </figure>
+  <p><strong>The DiD cross-check.</strong> Independently, compare the treated cohort against a not-yet-updated cohort (a region still on v5.1), before and after the push. This guards against the small chance that the randomization window coincided with something else. The two estimates should land in the same place:</p>
+  <table class="tbl">
+    <thead>
+      <tr><th>Cohort</th><th>Before</th><th>After</th><th>Change (&Delta;)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Treated (got v5.2)</td><td>9.0%</td><td>1.4%</td><td><span class="tag hi">&minus;7.6 pts</span></td></tr>
+      <tr><td>Comparison (still v5.1)</td><td>8.6%</td><td>8.2%</td><td><span class="tag md">&minus;0.4 pts</span></td></tr>
+      <tr><td><b>DiD effect</b></td><td colspan="2">&Delta;_treated &minus; &Delta;_comparison</td><td><span class="tag lo">&minus;7.2 pts</span></td></tr>
+    </tbody>
+  </table>
+  <p>The comparison cohort drifted down just 0.4 points over the window (a little seasonal warming), so the raw before/after of the treated group would have <em>over</em>-credited the fix by that much. Differencing it out gives a DiD effect of <strong>&minus;7.2 points</strong> — within the confidence interval of the randomized estimate. Two methods, built on different assumptions, agree.</p>
+  <div class="verdict">
+    <div class="vcard keep">
+      <h4>Verdict — v5.2 is the cause</h4>
+      <p class="meta">randomized: &minus;7.8 pts [&minus;9.0, &minus;6.6] · DiD cross-check: &minus;7.2 pts</p>
+      <p>The patch causes an ~7&ndash;8 point absolute drop in the charge code (about an 87% relative reduction), confirmed by a randomized comparison and reproduced by a difference-in-differences cross-check that nets out the seasonal trend. This is intervention-grade proof, not a post-hoc story — ship v5.2 fleet-wide and continue the ramp.</p>
+    </div>
+  </div>
+  <div class="note">
+    <span class="lab">What the proof does not cover</span>
+    <p style="margin:0">The residual 1.2% in the treated arm is real and is <em>not</em> firmware — it is the separate connector cluster and noise from the earlier posts. Proving v5.2 fixes the firmware cause says nothing about that tail; it gets its own diagnosis and, if warranted, its own experiment. Proving one cause never closes the others.</p>
+  </div>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="practical">
+  <span class="snum">§ 09 — Practical Notes</span>
+  <h2>Field rules for proving cause</h2>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><span class="move">climb the ladder</span><h4>Observation suggests; intervention proves</h4><p>Treat &ldquo;the curve bent after we shipped&rdquo; as a hypothesis, not a conclusion. Move up to a quasi-experiment or a randomized rollout before you claim a cause.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><span class="move">name the rivals</span><h4>List what else could bend the curve</h4><p>Coincidence, seasonality, regression to the mean, and concurrent changes each mimic a fix. A comparison group is the only thing that rules them out at once.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><span class="move">measure isn&rsquo;t enough</span><h4>You can only adjust for what you recorded</h4><p>Adjustment defeats the confounders you measured and is blind to the ones you didn&rsquo;t. No test reveals an unmeasured common cause — only randomization defeats it.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><span class="move">draw it first</span><h4>Let the causal graph choose your controls</h4><p>Adjust for confounders on a back-door path; never adjust for a collider. More controls are not always better — conditioning on a common effect invents correlations.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><span class="move">flip the coin</span><h4>A randomized rollout is a free experiment</h4><p>Assign the update by coin flip and the arms match on everything, measured or not. The difference in outcomes is then a clean causal effect.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><span class="move">defend parallel trends</span><h4>DiD only works if the lines tracked before</h4><p>When you can&rsquo;t randomize, difference out the shared trend across a not-yet-updated cohort — but check the pre-period parallelism first, or the estimate is suspect.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><span class="move">borrow luck</span><h4>Use a natural experiment when one exists</h4><p>Rollout order or regional scheduling can be an instrument if it moves treatment but touches the outcome only through it. The exclusion restriction is argued, not tested.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><span class="move">power then peek</span><h4>Size the experiment, then stop by rule</h4><p>Compute power up front; ramp canary &rarr; 10% &rarr; 50% &rarr; 100% behind guardrails; and use a pre-set stopping rule instead of peeking until it looks good.</p></div></div>
+    <div class="rung"><div class="num">9</div><div class="body"><span class="move">cross-check</span><h4>Agree from two angles, and bound the scope</h4><p>A randomized estimate confirmed by a DiD cross-check is far stronger than either alone. And proving one cause never closes the others — the residual tail gets its own proof.</p></div></div>
+  </div>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="references">
+  <span class="snum">§ 10 — References &amp; Further Reading</span>
+  <h2>Where these ideas come from</h2>
+  <p class="lead">This post draws on causal inference, econometrics, and the practice of online controlled experiments. Entry points, grouped by the question they answer.</p>
+
+  <h3>Causal graphs &amp; the do-operator</h3>
+  <div class="refs">
+    <p><b>J. Pearl &amp; D. Mackenzie, <i>The Book of Why</i> (2018).</b> The accessible introduction to causal graphs, confounders, colliders, and the ladder from seeing to doing.</p>
+    <p><b>J. Pearl, <i>Causality</i> (2nd ed., 2009).</b> The formal treatment — DAGs, the back-door criterion, and the do-operator that defines intervention.</p>
+  </div>
+
+  <h3>Potential outcomes &amp; experiments</h3>
+  <div class="refs">
+    <p><b>G. Imbens &amp; D. Rubin, <i>Causal Inference for Statistics, Social, and Biomedical Sciences</i> (2015).</b> The potential-outcomes framework, randomization, and instrumental variables in one place.</p>
+    <p><b>R. A. Fisher, <i>The Design of Experiments</i> (1935).</b> The founding text of randomization as the basis of causal inference.</p>
+  </div>
+
+  <h3>Quasi-experiments &amp; econometrics</h3>
+  <div class="refs">
+    <p><b>J. Angrist &amp; J.-S. Pischke, <i>Mostly Harmless Econometrics</i> (2009).</b> Difference-in-differences, instrumental variables, and natural experiments, explained for practitioners.</p>
+    <p><b>D. Card &amp; A. Krueger, &ldquo;Minimum Wages and Employment&rdquo; (<i>American Economic Review</i>, 1994).</b> The canonical difference-in-differences study and a model of the parallel-trends argument.</p>
+  </div>
+
+  <h3>Running it well</h3>
+  <div class="refs">
+    <p><b>R. Kohavi, D. Tang &amp; Y. Xu, <i>Trustworthy Online Controlled Experiments</i> (2020).</b> Staged rollouts, guardrail metrics, power, ramps, and stopping rules from large-scale practice.</p>
+  </div>
+  <div class="note">
+    <span class="lab">A note on these references</span>
+    <p style="margin:0">These are orientation points into large literatures, cited to show the lineage of the method rather than as the source of any single claim here. Titles and years are given so you can find them.</p>
+  </div>
+</section>
+
+<!-- ===================== the series ===================== -->
+<section id="series-nav">
+  <span class="snum">&sect; &mdash; The Series</span>
+  <h2>The Diagnosis Series</h2>
+  <p class="lead">Nine connected parts, from one car&rsquo;s evidence to a fleet campaign and back to prevention. <a href="diagnosis-series-index.html">See the full map &amp; reading guide &rarr;</a></p>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><h4><a href="rca-under-uncertain-heterogeneous-evidence.html">Root-Cause Analysis Under Uncertain, Heterogeneous Evidence</a></h4><p>Grade, anchor, and fuse messy, unequal-trust clues into one cause.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><h4><a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a></h4><p>The sufficiency gate, value of information, and handling conflict.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><h4><a href="harder-cases-in-diagnosis.html">Harder Cases in Diagnosis</a></h4><p>Multiple faults, intermittency, and lying sensors.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><h4><a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a></h4><p>One code across a population: de-mix, stratify, remediate.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><h4><a href="fleet-rca-made-rigorous.html">Fleet RCA, Made Rigorous</a></h4><p>Significance, surveillance, forecasting, closing the loop.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><h4>Proving Cause with Experiments &nbsp;<span class="tag md" style="font-size:10px;vertical-align:middle">you are here</span></h4><p>Turn observation into proof with staged rollouts.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><h4><a href="diagnosis-on-the-vehicle.html">Diagnosis on the Vehicle</a></h4><p>Real-time fault detection at the edge, feeding the fleet.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><h4><a href="data-plumbing-fleet-diagnosis.html">The Data Plumbing Behind Fleet Diagnosis</a></h4><p>Joining, aligning, and cleaning the data that makes it work.</p></div></div>
+    <div class="rung"><div class="num">9</div><div class="body"><h4><a href="prevention-and-corrective-action.html">From Root Cause to No Cause</a></h4><p>Prevention and the corrective-action loop &mdash; engineer it out.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0; border-top:none">
+    <span class="ic">▸</span>
+    <a href="fleet-rca-made-rigorous.html">Prequel: Fleet RCA, Made Rigorous</a>
+    <a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a>
+    <a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a>
+    <a href="harder-cases-in-diagnosis.html">Harder Cases in Diagnosis</a>
+    <a href="rca-under-uncertain-heterogeneous-evidence.html">RCA Under Uncertain Evidence</a>
+  </div>
+  <div class="rule"></div>
+  <p><b>Proving Cause with Experiments: Causal Inference and Staged Rollouts</b></p>
+  <p>By Majid Mazouchi · Vehicle Health Monitoring Notes</p>
+  <p>Companion to Fleet RCA, Made Rigorous.</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Data Plumbing Behind Fleet Diagnosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044;
+  --rule:#DAD1BF; --rule-soft:#E7DFD0;
+  --rust:#C2410C; --rust-deep:#9A3412;
+  --teal:#0F766E; --amber:#B45309; --slate:#475569;
+  --good:#0F766E; --bad:#B91C1C; --hold:#B45309;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:"Spectral",Georgia,serif;
+  font-size:18px; line-height:1.66; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px); line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px); color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em; color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em; color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px); line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic} strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+ul,ol{margin:16px 0; padding-left:24px} li{margin:0 0 9px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; padding:2px 8px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.tag.hi{background:#DCEFEC; color:var(--teal)} .tag.lo{background:#F6DED7; color:var(--bad)} .tag.md{background:#F7E9CF; color:var(--hold)}
+.verdict{display:grid; grid-template-columns:1fr; gap:14px; margin:26px 0}
+.vcard{border:1px solid var(--rule); background:var(--paper); padding:18px 20px; border-left:4px solid var(--slate)}
+.vcard.keep{border-left-color:var(--teal)} .vcard.drop{border-left-color:var(--bad)} .vcard.hold{border-left-color:var(--hold)}
+.vcard h4{font-family:"Fraunces",serif; font-size:18px; margin:0 0 4px; font-weight:600}
+.vcard .meta{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); margin:0 0 9px}
+.vcard p{margin:0; font-size:15.5px}
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+.ladder{margin:28px 0}
+.rung{display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--rule-soft)}
+.rung:first-child{border-top:none}
+.rung .num{flex:0 0 auto; width:34px; height:34px; border-radius:50%; background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center}
+.rung .body h4{margin:2px 0 4px; font-family:"Fraunces",serif; font-size:17px; font-weight:600}
+.rung .body p{margin:0; font-size:15.5px}
+.rung .body .move{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--rust)}
+.algo{margin:26px 0; border:1px solid var(--ink); background:var(--paper)}
+.algo .hd{background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; padding:9px 16px; text-transform:uppercase; display:flex; justify-content:space-between}
+.algo .hd .nm{color:#E0A07A}
+.algo .bd{padding:14px 18px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.72}
+.algo .ln{white-space:pre-wrap; margin:0}
+.algo .io{color:var(--teal); font-weight:600} .algo .kw{color:var(--rust); font-weight:600} .algo .cm{color:var(--ink-soft)}
+.algo .i1{padding-left:22px} .algo .i2{padding-left:44px}
+.refs{font-family:"Spectral",serif; font-size:16px}
+.refs p{margin:0 0 14px; padding-left:22px; text-indent:-22px}
+.refs b{font-weight:600}
+.partlead{max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic}
+footer{padding:48px 0 80px; text-align:center}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+@media (max-width:560px){ body{font-size:17px} .wrap{padding:0 18px} header.masthead{padding:48px 0 32px} .tbl{font-size:12.5px} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Diagnostics · Data · Foundations</p>
+  <h1>The Data Plumbing Behind Fleet Diagnosis</h1>
+  <p class="subtitle">Every fleet method assumes a clean, joined, trustworthy table. Here is how that table is actually built — joining records by VIN, aligning clocks, and surviving missing data.</p>
+  <div class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Vehicle Health Monitoring Notes</div>
+</header>
+
+<div class="abstract">
+  <span class="lab">Abstract</span>
+  <p>The fleet posts assumed a tidy table: one row per car, with build attributes, a telemetry summary, and a warranty outcome. That table does not arrive by post — it is <em>assembled</em> from messy raw sources that disagree about identity, time, and meaning. This piece is the unglamorous foundation under the fleet method. We join build records, telemetry, warranty claims, service notes, and DTC logs by VIN into one row per car; survive the record-linkage pitfalls that corrupt the join (typos, duplicate claims, many-to-one rows, remanufactured parts); align events that live on four different clocks to a common time-in-service reference so onset curves and survival models are valid; map and respect missingness instead of imputing over it; harmonize units and drifting DTC dictionaries into one shared data model; and wire it all into an ingestion → canonical store → per-vehicle summary → analysis pipeline with lineage, so any diagnosis can be re-run. The running example is the 6,000-car EV fleet with the P0AE0 charging code — assembled, this time, from the raw.</p>
+</div>
+<div class="reslinks" style="justify-content:flex-start">
+  <span class="ic">▸</span>
+  <a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a>
+  <a href="fleet-rca-made-rigorous.html">Fleet RCA, Made Rigorous</a>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="intro">
+  <span class="snum">§ 01 — Why the Foundation Matters</span>
+  <h2>Garbage in, confident-garbage out</h2>
+  <p class="lead">Every method in the fleet series — de-mixing the mixture, drawing the cohort boundary, fitting the Weibull, running the CUSUM — opens with the same silent assumption: that you already have a clean, joined, trustworthy table, one row per car.</p>
+  <p>You almost never do. That table is the output of a long, dull pipeline that nobody writes blog posts about, and when the pipeline is wrong the analysis on top of it is wrong in a particularly dangerous way: <strong>confidently</strong> wrong. A bad join inflates a failure rate; a clock misalignment bends an onset curve that was actually flat; a silently dropped cohort hides the very cluster you are hunting. The math downstream cannot tell the difference between a real signal and a plumbing artifact — it just computes.</p>
+  <p>This is the post that sits <em>under</em> posts four through six. The fleet method told you what to do with the table. This one tells you how the table gets built from the raw — and how each step can quietly poison everything above it. We keep the same 6,000-car EV fleet throwing the <code class="inl">P0AE0</code> charging code, with its two real causes: a firmware regression and a bad connector lot.</p>
+  <div class="note">
+    <span class="lab">The unglamorous contract</span>
+    <p style="margin:0">A diagnosis is only as trustworthy as the table it ran on. Every figure in the fleet posts inherits the assumptions made here — so a mistake in the plumbing is not a small mistake. It is a mistake that wears the costume of a finding.</p>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<section id="partA" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part A — Joining the Sources</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">From five disagreeing systems to one row per car</h2>
+  <p class="partlead">The car&rsquo;s story is scattered across systems that were never meant to be read together. The first job is to pull them onto a single spine — and to survive the ways that join goes wrong.</p>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="entities">
+  <span class="snum">§ 02 — The Entities and the Spine</span>
+  <h2>VIN is the join key; the goal is one row per car</h2>
+  <p class="lead">A car&rsquo;s life is recorded in five places that rarely talk to each other. Each holds a piece of the truth; none holds it all. The spine that pulls them together is the one identifier they share: the <strong>VIN</strong>.</p>
+  <p>The sources for our fleet, and what each one knows:</p>
+  <ul>
+    <li><strong>Build / manufacturing records.</strong> One row per car at birth: plant, build week, firmware version installed, connector supplier lot, trim, battery pack ID. The closest thing to ground truth about <em>what the car is</em>.</li>
+    <li><strong>Telemetry.</strong> Millions of rows per car over its life: charge sessions, temperatures, voltages, fault flags, timestamped. The truth about <em>how the car behaves</em> — but raw, high-volume, and noisy.</li>
+    <li><strong>Warranty claims.</strong> One row per repair paid: part replaced, labor code, cost, dealer, date. The truth about <em>what failed and what it cost</em> — but only for cars that came in.</li>
+    <li><strong>Service / dealer notes.</strong> Free-text technician observations, often the richest description of a symptom and the least structured. The truth about <em>what a human saw</em>.</li>
+    <li><strong>DTC logs.</strong> Diagnostic trouble codes thrown by the car — our <code class="inl">P0AE0</code> lives here, with a timestamp and the conditions around it.</li>
+  </ul>
+  <p>The goal is a single table where every car is exactly one row, carrying its build attributes, a <em>summary</em> of its telemetry, its warranty and service outcome, and its DTC history flattened into features. The VIN is what makes the join possible — and, as the next section shows, the VIN is also where the join breaks.</p>
+  <figure>
+    <div class="figlab">Figure 1 — Five sources, one spine</div>
+    <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five source systems joined by VIN into a single one-row-per-car table">
+      <!-- center VIN hub -->
+      <circle cx="380" cy="165" r="52" fill="#211C15"/>
+      <text x="380" y="160" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" fill="#F4F0E6">VIN</text>
+      <text x="380" y="178" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#E0A07A">join key</text>
+      <!-- source boxes -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <rect x="40" y="30" width="150" height="46" rx="4" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.4"/>
+        <text x="115" y="50" text-anchor="middle" font-weight="700" fill="#0F766E">build records</text>
+        <text x="115" y="65" text-anchor="middle" font-size="8.5" fill="#5A5044">plant · fw · lot · trim</text>
+
+        <rect x="40" y="142" width="150" height="46" rx="4" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.4"/>
+        <text x="115" y="162" text-anchor="middle" font-weight="700" fill="#C2410C">telemetry</text>
+        <text x="115" y="177" text-anchor="middle" font-size="8.5" fill="#5A5044">charge · temp · volts</text>
+
+        <rect x="40" y="254" width="150" height="46" rx="4" fill="#FBF8F1" stroke="#B45309" stroke-width="1.4"/>
+        <text x="115" y="274" text-anchor="middle" font-weight="700" fill="#B45309">warranty claims</text>
+        <text x="115" y="289" text-anchor="middle" font-size="8.5" fill="#5A5044">part · cost · date</text>
+
+        <rect x="570" y="86" width="150" height="46" rx="4" fill="#FBF8F1" stroke="#475569" stroke-width="1.4"/>
+        <text x="645" y="106" text-anchor="middle" font-weight="700" fill="#475569">service notes</text>
+        <text x="645" y="121" text-anchor="middle" font-size="8.5" fill="#5A5044">free text</text>
+
+        <rect x="570" y="198" width="150" height="46" rx="4" fill="#FBF8F1" stroke="#9A3412" stroke-width="1.4"/>
+        <text x="645" y="218" text-anchor="middle" font-weight="700" fill="#9A3412">DTC logs</text>
+        <text x="645" y="233" text-anchor="middle" font-size="8.5" fill="#5A5044">P0AE0 · timestamp</text>
+      </g>
+      <!-- connectors to hub -->
+      <g stroke="#DAD1BF" stroke-width="1.4" fill="none">
+        <line x1="190" y1="53" x2="333" y2="140"/>
+        <line x1="190" y1="165" x2="328" y2="165"/>
+        <line x1="190" y1="277" x2="333" y2="190"/>
+        <line x1="570" y1="109" x2="430" y2="150"/>
+        <line x1="570" y1="221" x2="430" y2="185"/>
+      </g>
+      <!-- output table -->
+      <text x="380" y="262" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044">⇩ reduce to</text>
+      <rect x="278" y="278" width="204" height="40" rx="4" fill="#211C15"/>
+      <text x="380" y="298" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="700" fill="#F4F0E6">one row per car</text>
+      <text x="380" y="312" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#E0A07A">the table the fleet method assumes</text>
+    </svg>
+    <figcaption><b>The VIN is the spine.</b> Five systems each know part of a car&rsquo;s story; only the VIN lets you stitch them into a single row. Build records are one-per-car already; telemetry and DTC logs are many-per-car and must be <em>summarized</em> down; warranty and service are sparse and present only for cars that came in. The join&rsquo;s output is the very table every later post quietly assumed it was handed.</figcaption>
+  </figure>
+  <div class="algo">
+    <div class="hd"><span>Algorithm 1</span><span class="nm">build_vehicle_summary(sources)</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  build · telemetry · warranty · service · dtc   <span class="cm"># keyed, dirtily, by VIN</span></p>
+<p class="ln">vins <span class="kw">←</span> canonical_vin_set(build)            <span class="cm"># build is the spine: one row per real car</span></p>
+<p class="ln">table <span class="kw">←</span> { }</p>
+<p class="ln"><span class="kw">for</span> v <span class="kw">in</span> vins:</p>
+<p class="ln i1">row <span class="kw">←</span> build[v]                         <span class="cm"># plant, build week, fw, connector lot, trim</span></p>
+<p class="ln i1">tel <span class="kw">←</span> telemetry.where(VIN = v)          <span class="cm"># many rows → reduce to features</span></p>
+<p class="ln i2">row.cold_charge_cycles <span class="kw">←</span> count(tel.cold_fast_charge)</p>
+<p class="ln i2">row.connector_temp_p95 <span class="kw">←</span> pctl(tel.conn_temp, 95)   <span class="cm"># may be MISSING</span></p>
+<p class="ln i1">row.dtc_P0AE0 <span class="kw">←</span> any(dtc.where(VIN = v).code = &quot;P0AE0&quot;)</p>
+<p class="ln i1">row.warranty <span class="kw">←</span> dedup(warranty.where(VIN = v))   <span class="cm"># collapse duplicate claims</span></p>
+<p class="ln i1">row.in_service_date <span class="kw">←</span> earliest(warranty, dtc, telemetry, sale)</p>
+<p class="ln i1">table[v] <span class="kw">←</span> row</p>
+<p class="ln"><span class="kw">return</span> table                              <span class="cm"># one row per car — the contract for §§4–6</span></p>
+<p class="ln"><span class="cm"># the reduce step is where bias enters: every summary throws information away.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="linkage">
+  <span class="snum">§ 03 — Record-Linkage Pitfalls</span>
+  <h2>When the join key lies</h2>
+  <p class="lead">The whole pipeline rests on one assumption: that a VIN means the same car everywhere it appears. In practice the key is dirty, and every kind of dirt has its own way of corrupting the table.</p>
+  <p>The failure modes, and what each one does to a rate:</p>
+  <ul>
+    <li><strong>VIN typos and OCR errors.</strong> A dealer hand-types a VIN; a scanned form misreads <code class="inl">O</code> for <code class="inl">0</code> or <code class="inl">I</code> for <code class="inl">1</code>. The warranty claim now fails to join — the car looks like it never failed, and your failure rate drops below the truth.</li>
+    <li><strong>Duplicate warranty claims.</strong> One repair gets entered twice, or a re-bill creates a second row. Join naively and one car&rsquo;s single failure counts as two — the rate inflates.</li>
+    <li><strong>Many-to-one rows.</strong> Telemetry and DTC logs have many rows per car. If you forget to reduce before joining, you multiply build rows by event rows and a single car&rsquo;s attributes get counted thousands of times.</li>
+    <li><strong>Remanufactured parts changing identity.</strong> A connector or pack is swapped under warranty; the new part carries a new lot ID but the same VIN. The car now belongs partly to two build cohorts, and a naive lot-level rate is wrong for both.</li>
+  </ul>
+  <p>When the key is too dirty to match exactly, you fall back to <strong>fuzzy matching</strong>: decide whether two records refer to the same car by scoring how well their fields agree. The classic framework, from <strong>Fellegi and Sunter</strong>, puts this on a footing — in plain words, each agreeing field (same plant, same build week, near-identical VIN) is evidence the records are the same car, and each disagreeing field is evidence against. You add up the weighted evidence and set two thresholds: above the upper one, declare a match; below the lower one, declare a non-match; in between, send it to a human. It is the same weigh-the-evidence logic as the diagnosis posts, applied to identity instead of fault.</p>
+  <figure>
+    <div class="figlab">Figure 2 — Four ways the join corrupts the table</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four record-linkage pitfalls and their effect on the measured failure rate">
+      <g font-family="IBM Plex Mono, monospace">
+        <!-- 1 typo: lost match -->
+        <text x="40" y="40" font-size="11" font-weight="700" fill="#B91C1C">1 · VIN typo / OCR</text>
+        <rect x="40" y="50" width="120" height="28" rx="3" fill="#FBF8F1" stroke="#475569" stroke-width="1.2"/>
+        <text x="100" y="68" text-anchor="middle" font-size="9.5" fill="#5A5044">5YJ...1O3</text>
+        <rect x="220" y="50" width="120" height="28" rx="3" fill="#FBF8F1" stroke="#475569" stroke-width="1.2"/>
+        <text x="280" y="68" text-anchor="middle" font-size="9.5" fill="#5A5044">5YJ...103</text>
+        <line x1="160" y1="64" x2="220" y2="64" stroke="#B91C1C" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <text x="190" y="58" text-anchor="middle" font-size="13" fill="#B91C1C">✗</text>
+        <text x="350" y="68" font-size="9" fill="#9A3412">→ failure lost · rate too LOW</text>
+
+        <!-- 2 duplicate -->
+        <text x="40" y="118" font-size="11" font-weight="700" fill="#B45309">2 · duplicate claim</text>
+        <rect x="40" y="128" width="120" height="22" rx="3" fill="#F7E9CF" stroke="#B45309" stroke-width="1.2"/>
+        <text x="100" y="143" text-anchor="middle" font-size="9" fill="#9A3412">claim #4471</text>
+        <rect x="40" y="154" width="120" height="22" rx="3" fill="#F7E9CF" stroke="#B45309" stroke-width="1.2"/>
+        <text x="100" y="169" text-anchor="middle" font-size="9" fill="#9A3412">claim #4471 (re-bill)</text>
+        <text x="200" y="155" font-size="9" fill="#9A3412">→ one fault counted twice · rate too HIGH</text>
+
+        <!-- 3 many-to-one -->
+        <text x="40" y="208" font-size="11" font-weight="700" fill="#C2410C">3 · many-to-one</text>
+        <rect x="40" y="218" width="60" height="22" rx="3" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.2"/>
+        <text x="70" y="233" text-anchor="middle" font-size="9" fill="#9A3412">1 build</text>
+        <text x="108" y="233" font-size="11" fill="#C2410C">×</text>
+        <rect x="122" y="218" width="92" height="22" rx="3" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.2"/>
+        <text x="168" y="233" text-anchor="middle" font-size="9" fill="#9A3412">9k telemetry</text>
+        <text x="232" y="233" font-size="9" fill="#9A3412">→ attributes counted 9,000× · rate garbage</text>
+
+        <!-- 4 reman -->
+        <text x="40" y="278" font-size="11" font-weight="700" fill="#0F766E">4 · remanufactured part</text>
+        <rect x="40" y="287" width="170" height="0" />
+        <text x="200" y="278" font-size="9" fill="#9A3412">same VIN, new lot ID → car spans two cohorts</text>
+      </g>
+      <line x1="40" y1="92" x2="720" y2="92" stroke="#E7DFD0" stroke-width="1"/>
+      <line x1="40" y1="186" x2="720" y2="186" stroke="#E7DFD0" stroke-width="1"/>
+      <line x1="40" y1="252" x2="720" y2="252" stroke="#E7DFD0" stroke-width="1"/>
+    </svg>
+    <figcaption><b>Every dirty key bends the rate a different way.</b> Lost matches deflate the failure rate; duplicates inflate it; un-reduced many-to-one rows make it meaningless; remanufactured parts smear a car across cohorts so neither lot rate is right. None of these announce themselves downstream — the de-mixing in §3 of the fleet post just runs on the corrupted counts. Fuzzy matching (Fellegi–Sunter) recovers the typo-broken matches that exact joins drop.</figcaption>
+  </figure>
+  <div class="note">
+    <span class="lab">Identity is a diagnosis too</span>
+    <p style="margin:0">Deciding &ldquo;are these two records the same car?&rdquo; is the same evidence-weighing problem as &ldquo;is this the root cause?&rdquo; — agreeing fields raise the odds, disagreeing fields lower them, and an uncertain middle band goes to a human. Get identity wrong and every downstream rate is built on sand.</p>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<section id="partB" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part B — Making It Analyzable</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">Clocks, gaps, and meaning</h2>
+  <p class="partlead">A joined table is not yet an analyzable one. Three more things have to be true: the events must share a clock, the gaps must be understood rather than filled, and the columns must mean what they say.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="time">
+  <span class="snum">§ 04 — Time Alignment</span>
+  <h2>Four clocks, one reference</h2>
+  <p class="lead">Onset curves and survival models all answer &ldquo;how long after <em>what</em>?&rdquo; If the events live on different clocks, the answer is meaningless no matter how careful the statistics on top.</p>
+  <p>A single fault event drags four different timestamps behind it, and they rarely agree:</p>
+  <ul>
+    <li><strong>Build date</strong> — when the car was made. Sets the cohort, but the car may sit on a lot for months before sale.</li>
+    <li><strong>In-service / sale date</strong> — when the car started being driven. This is the clock that matters for wear and exposure.</li>
+    <li><strong>Event timestamp</strong> — when the DTC was thrown, in the car&rsquo;s local time, possibly with a drifting onboard clock and a timezone.</li>
+    <li><strong>Report date</strong> — when the warranty claim or telemetry batch reached the back end, often days later.</li>
+  </ul>
+  <p>Mix these and you get nonsense. Measure failure age from <em>build date</em> and a car that sat unsold for six months looks like it failed late; measure from <em>report date</em> and a slow data pipeline makes the whole fleet look like it failed on the same day the batch landed. The fix is to pick one <strong>common reference</strong> — almost always <em>time-in-service</em> — and express every event as an offset from it. Only then are two cars comparable, and only then is the onset curve of the fleet post measuring the thing it claims to measure.</p>
+  <figure>
+    <div class="figlab">Figure 3 — Align every event to time-in-service</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three cars with raw calendar timestamps re-aligned so their in-service date sits at a common origin">
+      <!-- TOP: raw calendar -->
+      <text x="40" y="30" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#211C15">raw: different calendar dates → not comparable</text>
+      <line x1="60" y1="120" x2="720" y2="120" stroke="#211C15" stroke-width="1.2"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">
+        <text x="120" y="138" text-anchor="middle">Jan</text><text x="300" y="138" text-anchor="middle">May</text><text x="480" y="138" text-anchor="middle">Sep</text><text x="660" y="138" text-anchor="middle">Jan</text>
+      </g>
+      <!-- car A -->
+      <circle cx="120" cy="60" r="4" fill="#0F766E"/><text x="120" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0F766E">built</text>
+      <line x1="120" y1="60" x2="200" y2="60" stroke="#DAD1BF" stroke-width="1.4"/>
+      <rect x="200" y="55" width="9" height="9" fill="#475569"/><text x="205" y="49" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#475569">sale</text>
+      <line x1="209" y1="60" x2="340" y2="60" stroke="#DAD1BF" stroke-width="1.4"/>
+      <path d="M340,55 l5,5 l-5,5 l-5,-5 z" fill="#B91C1C"/><text x="340" y="49" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#B91C1C">P0AE0</text>
+      <text x="62" y="64" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">A</text>
+      <!-- car B -->
+      <circle cx="240" cy="92" r="4" fill="#0F766E"/>
+      <line x1="240" y1="92" x2="430" y2="92" stroke="#DAD1BF" stroke-width="1.4"/>
+      <rect x="430" y="87" width="9" height="9" fill="#475569"/>
+      <line x1="439" y1="92" x2="560" y2="92" stroke="#DAD1BF" stroke-width="1.4"/>
+      <path d="M560,87 l5,5 l-5,5 l-5,-5 z" fill="#B91C1C"/>
+      <text x="62" y="96" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">B</text>
+      <!-- BOTTOM: aligned -->
+      <text x="40" y="186" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#211C15">aligned to in-service (t=0) → onset curve is valid</text>
+      <line x1="200" y1="270" x2="720" y2="270" stroke="#211C15" stroke-width="1.2"/>
+      <line x1="200" y1="200" x2="200" y2="276" stroke="#C2410C" stroke-width="1.3" stroke-dasharray="3 3"/>
+      <text x="200" y="290" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">t = 0 · in service</text>
+      <g font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">
+        <text x="360" y="290" text-anchor="middle">+90d</text><text x="520" y="290" text-anchor="middle">+180d</text><text x="680" y="290" text-anchor="middle">+270d</text>
+      </g>
+      <!-- aligned A: fault at +X -->
+      <rect x="200" y="207" width="9" height="9" fill="#475569"/>
+      <line x1="209" y1="211" x2="430" y2="211" stroke="#DAD1BF" stroke-width="1.4"/>
+      <path d="M430,206 l5,5 l-5,5 l-5,-5 z" fill="#B91C1C"/>
+      <text x="180" y="215" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">A</text>
+      <!-- aligned B: fault at similar offset -->
+      <rect x="200" y="237" width="9" height="9" fill="#475569"/>
+      <line x1="209" y1="241" x2="455" y2="241" stroke="#DAD1BF" stroke-width="1.4"/>
+      <path d="M455,236 l5,5 l-5,5 l-5,-5 z" fill="#B91C1C"/>
+      <text x="180" y="245" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" fill="#5A5044">B</text>
+      <text x="540" y="225" font-family="IBM Plex Mono, monospace" font-size="9" fill="#9A3412">both fail ~7 months in service — the real pattern</text>
+    </svg>
+    <figcaption><b>Comparable only after alignment.</b> On the calendar, cars A and B fail months apart and look unrelated. Re-zeroed to each car&rsquo;s in-service date, they both fail about seven months in — the actual onset signal. Aligning to build date instead would have charged each car for the time it sat unsold; aligning to report date would have collapsed the fleet onto the pipeline&rsquo;s schedule. Pick time-in-service, and mind timezones and drifting onboard clocks on the event timestamp.</figcaption>
+  </figure>
+  <div class="algo">
+    <div class="hd"><span>Algorithm 2</span><span class="nm">align_to_in_service(row, events)</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  car row · its events (dtc · claims · charge sessions)</p>
+<p class="ln">t0 <span class="kw">←</span> row.in_service_date            <span class="cm"># common reference — NOT build, NOT report</span></p>
+<p class="ln"><span class="kw">for</span> e <span class="kw">in</span> events:</p>
+<p class="ln i1">ts <span class="kw">←</span> to_utc(e.timestamp, e.timezone)   <span class="cm"># normalize zone; correct onboard-clock drift</span></p>
+<p class="ln i1"><span class="kw">if</span> ts &lt; row.build_date:  <span class="kw">flag</span>(&quot;impossible time&quot;)   <span class="cm"># validation rule</span></p>
+<p class="ln i1">e.t_in_service <span class="kw">←</span> ts &minus; t0          <span class="cm"># offset from in-service, in days</span></p>
+<p class="ln"><span class="kw">return</span> events sorted by t_in_service   <span class="cm"># now two cars are comparable</span></p>
+<p class="ln"><span class="cm"># onset curves & Weibull fits are only valid on this aligned clock.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="missing">
+  <span class="snum">§ 05 — Missingness &amp; Data Quality</span>
+  <h2>The gaps are not random</h2>
+  <p class="lead">The most dangerous cells in the table are the empty ones — not because they are missing, but because <em>why</em> they are missing usually correlates with the very thing you are studying.</p>
+  <p>Missing data comes in kinds, and they are not interchangeable:</p>
+  <ul>
+    <li><strong>Firmware-dependent fields absent.</strong> A telemetry channel only exists on cars running firmware ≥ v5.1. The field is blank for older cars — and firmware is one of our two causes, so the missingness is perfectly entangled with the signal.</li>
+    <li><strong>Silent / decommissioned cars.</strong> A car that was scrapped, sold out of the connected fleet, or simply stopped reporting goes dark. Its absence is not &ldquo;no failure&rdquo; — it may be the failure.</li>
+    <li><strong>Optional sensors.</strong> A connector-temperature sensor is fitted on some trims, not others. Its absence is structural, not a fault of the pipeline.</li>
+  </ul>
+  <p>The trap is that missingness is almost never neutral. It ties straight to the <em>selection and survivorship</em> problems from the diagnosis series: the cars that stop reporting are disproportionately the ones in trouble, so dropping them quietly biases every rate downward. The discipline is threefold — <strong>classify</strong> each missing field by its mechanism, attach <strong>provenance</strong> to every value (which source, which version, how trusted), and run <strong>validation rules</strong> that flag the impossible (a charge temperature of 900&deg;C, an in-service date before the build date) rather than letting it flow into the model.</p>
+  <figure>
+    <div class="figlab">Figure 4 — A missingness map: cars × fields</div>
+    <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A grid of cars by fields showing structured, biased patterns of missing values rather than random scatter">
+      <!-- column headers -->
+      <g font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044">
+        <text x="150" y="36" text-anchor="middle">plant</text>
+        <text x="240" y="36" text-anchor="middle">fw</text>
+        <text x="330" y="36" text-anchor="middle">lot</text>
+        <text x="430" y="20" text-anchor="middle">conn-temp</text>
+        <text x="430" y="32" text-anchor="middle">(fw≥5.1)</text>
+        <text x="540" y="36" text-anchor="middle">warranty</text>
+        <text x="640" y="36" text-anchor="middle">telemetry</text>
+      </g>
+      <!-- row labels -->
+      <g font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#5A5044" text-anchor="end">
+        <text x="95" y="68">old-fw cars</text>
+        <text x="95" y="118">new-fw cars</text>
+        <text x="95" y="168">no-temp trim</text>
+        <text x="95" y="218">decommissioned</text>
+        <text x="95" y="262">healthy fleet</text>
+      </g>
+      <!-- grid: filled = data present (teal), hatched/empty = missing (red) -->
+      <!-- helper sizes: cells 44 wide centered at given x, 34 tall -->
+      <!-- row1 old-fw: conn-temp missing (firmware-dependent), warranty mostly empty -->
+      <g>
+        <rect x="128" y="50" width="44" height="34" fill="#0F766E"/>
+        <rect x="218" y="50" width="44" height="34" fill="#0F766E"/>
+        <rect x="308" y="50" width="44" height="34" fill="#0F766E"/>
+        <rect x="408" y="50" width="44" height="34" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/>
+        <rect x="518" y="50" width="44" height="34" fill="#0F766E"/>
+        <rect x="618" y="50" width="44" height="34" fill="#0F766E"/>
+      </g>
+      <!-- row2 new-fw: all present -->
+      <g>
+        <rect x="128" y="100" width="44" height="34" fill="#0F766E"/>
+        <rect x="218" y="100" width="44" height="34" fill="#0F766E"/>
+        <rect x="308" y="100" width="44" height="34" fill="#0F766E"/>
+        <rect x="408" y="100" width="44" height="34" fill="#0F766E"/>
+        <rect x="518" y="100" width="44" height="34" fill="#0F766E"/>
+        <rect x="618" y="100" width="44" height="34" fill="#0F766E"/>
+      </g>
+      <!-- row3 no-temp trim: conn-temp missing structurally -->
+      <g>
+        <rect x="128" y="150" width="44" height="34" fill="#0F766E"/>
+        <rect x="218" y="150" width="44" height="34" fill="#0F766E"/>
+        <rect x="308" y="150" width="44" height="34" fill="#0F766E"/>
+        <rect x="408" y="150" width="44" height="34" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/>
+        <rect x="518" y="150" width="44" height="34" fill="#0F766E"/>
+        <rect x="618" y="150" width="44" height="34" fill="#0F766E"/>
+      </g>
+      <!-- row4 decommissioned: telemetry + warranty dark (the biased gap) -->
+      <g>
+        <rect x="128" y="200" width="44" height="34" fill="#0F766E"/>
+        <rect x="218" y="200" width="44" height="34" fill="#0F766E"/>
+        <rect x="308" y="200" width="44" height="34" fill="#0F766E"/>
+        <rect x="408" y="200" width="44" height="34" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/>
+        <rect x="518" y="200" width="44" height="34" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/>
+        <rect x="618" y="200" width="44" height="34" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/>
+      </g>
+      <!-- row5 healthy: all present -->
+      <g>
+        <rect x="128" y="244" width="44" height="30" fill="#0F766E"/>
+        <rect x="218" y="244" width="44" height="30" fill="#0F766E"/>
+        <rect x="308" y="244" width="44" height="30" fill="#0F766E"/>
+        <rect x="408" y="244" width="44" height="30" fill="#0F766E"/>
+        <rect x="518" y="244" width="44" height="30" fill="#0F766E"/>
+        <rect x="618" y="244" width="44" height="30" fill="#0F766E"/>
+      </g>
+      <!-- legend -->
+      <rect x="690" y="120" width="14" height="14" fill="#0F766E"/><text x="688" y="131" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8" fill="#5A5044">present</text>
+      <rect x="690" y="150" width="14" height="14" fill="#F6DED7" stroke="#B91C1C" stroke-width="1"/><text x="688" y="161" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8" fill="#5A5044">missing</text>
+    </svg>
+    <figcaption><b>Missingness has a shape.</b> The empty cells are not scattered at random — connector-temperature is blank exactly where firmware is old or the trim has no sensor, and the decommissioned row goes dark precisely on the fields that would reveal a failure. Because the gaps line up with a cause, dropping incomplete rows would delete a biased slice of the fleet. Classify the mechanism, attach provenance, and flag rather than fill.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="schema">
+  <span class="snum">§ 06 — Schema &amp; Semantics</span>
+  <h2>The same field has to mean the same thing</h2>
+  <p class="lead">A joined, time-aligned, gap-aware table can still be quietly wrong if two columns that share a name don&rsquo;t share a meaning. Harmonizing semantics is the least visible and most violated step.</p>
+  <p>The fault lines:</p>
+  <ul>
+    <li><strong>Units.</strong> One plant logs temperature in Celsius, a supplier feed in Fahrenheit; one system reports mileage in kilometers, another in miles. Concatenate them blindly and the connector-temperature distribution grows a second, fictional peak.</li>
+    <li><strong>DTC dictionaries that drift.</strong> The meaning of a code is not eternal. <code class="inl">P0AE0</code> may denote a slightly different condition on a 2024 model year than on a 2026 one after a diagnostic revision. Treat the string as a constant and you merge two different faults — or split one.</li>
+    <li><strong>Supplier-lot encodings.</strong> Each supplier numbers its lots in its own scheme; the same printed code can mean different things across vendors. Without a translation layer, the connector cohort is mis-drawn.</li>
+  </ul>
+  <p>The remedy is a <strong>canonical data model</strong>: one definition per concept, written down, with every source mapped into it. A canonical <code class="inl">connector_temp_c</code> column with an explicit unit, a versioned DTC dictionary keyed by model year, a supplier-lot crosswalk. The payoff is exactly what the fleet method assumes without saying so — that when it reads a column, the column means one thing across all 6,000 cars.</p>
+  <table class="tbl">
+    <thead>
+      <tr><th>Concept</th><th>Raw sources disagree on</th><th>Canonical definition</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>connector temp</td><td>&deg;C vs &deg;F; sensor vs inferred</td><td><code class="inl">connector_temp_c</code> · &deg;C · measured only</td></tr>
+      <tr><td>distance</td><td>km vs miles</td><td><code class="inl">odometer_km</code> · kilometers</td></tr>
+      <tr><td>fault code</td><td>P0AE0 meaning drifts by MY</td><td><code class="inl">dtc</code> + <code class="inl">dtc_dict_version</code> keyed by model year</td></tr>
+      <tr><td>connector lot</td><td>per-supplier numbering</td><td><code class="inl">lot_id</code> via supplier crosswalk</td></tr>
+      <tr><td>in-service</td><td>build vs sale vs first-drive</td><td><code class="inl">in_service_date</code> · first telematics heartbeat</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- =================================================================== -->
+<section id="partC" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part C — The Platform</p>
+  <h2 style="font-size:clamp(26px,4vw,38px)">Wiring it so a diagnosis can be re-run</h2>
+  <p class="partlead">The steps so far are logic. A platform makes them repeatable: raw in, canonical store, per-vehicle summary, analysis — with lineage so any finding can be reproduced.</p>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="architecture">
+  <span class="snum">§ 07 — Architecture</span>
+  <h2>Ingestion → canonical store → summary → analysis</h2>
+  <p class="lead">The pipeline is four layers, each with one job, each insulating the next from the mess below it. The shape is conventional on purpose — boring infrastructure is reproducible infrastructure.</p>
+  <p>The layers:</p>
+  <ul>
+    <li><strong>Ingestion.</strong> Pull raw build, telemetry, warranty, service, and DTC feeds in, as-is, with their provenance and arrival time recorded. Touch nothing yet — just land it.</li>
+    <li><strong>Canonical store.</strong> Apply the §06 data model: harmonize units, version the DTC dictionary, resolve identity (§03), align clocks (§04). This is the single source of truth where every field means one thing.</li>
+    <li><strong>Per-vehicle summary (level-1 aggregation).</strong> Run <code class="inl">build_vehicle_summary</code>: reduce the many-row telemetry and DTC history into one row per car. This is the table the fleet method consumes.</li>
+    <li><strong>Analysis layer.</strong> De-mixing, cohort boundaries, Weibull fits, CUSUM — all of post four through six — run here, never against the raw.</li>
+  </ul>
+  <p>Two cross-cutting choices matter. <strong>Batch vs streaming</strong>: the per-vehicle summary can be rebuilt nightly in batch for the retrospective analyses, but the surveillance from the rigor post — the CUSUM that catches a forming cluster at fifty cars — needs a <em>streaming</em> path that updates as telemetry lands. And <strong>lineage</strong>: every value in the summary carries a pointer back to the raw records and the code version that produced it, so a diagnosis is not a one-time artifact but something a regulator or a future engineer can re-run and get the same answer.</p>
+  <figure>
+    <div class="figlab">Figure 5 — The pipeline, batch and streaming</div>
+    <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A four-layer data pipeline from ingestion to analysis with a streaming path feeding surveillance and a lineage backbone">
+      <defs>
+        <marker id="arrPipe" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#211C15"/></marker>
+        <marker id="arrStream" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#C2410C"/></marker>
+      </defs>
+      <!-- layer boxes -->
+      <g font-family="IBM Plex Mono, monospace">
+        <rect x="30" y="90" width="150" height="64" rx="5" fill="#FBF8F1" stroke="#475569" stroke-width="1.4"/>
+        <text x="105" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#475569">ingestion</text>
+        <text x="105" y="134" text-anchor="middle" font-size="8" fill="#5A5044">raw feeds, as-is</text>
+
+        <rect x="210" y="90" width="150" height="64" rx="5" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.4"/>
+        <text x="285" y="114" text-anchor="middle" font-size="11" font-weight="700" fill="#0F766E">canonical store</text>
+        <text x="285" y="130" text-anchor="middle" font-size="8" fill="#5A5044">units · ids · clocks</text>
+        <text x="285" y="142" text-anchor="middle" font-size="8" fill="#5A5044">one meaning/field</text>
+
+        <rect x="390" y="90" width="150" height="64" rx="5" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.4"/>
+        <text x="465" y="114" text-anchor="middle" font-size="11" font-weight="700" fill="#C2410C">per-vehicle</text>
+        <text x="465" y="128" text-anchor="middle" font-size="11" font-weight="700" fill="#C2410C">summary</text>
+        <text x="465" y="143" text-anchor="middle" font-size="8" fill="#5A5044">one row per car</text>
+
+        <rect x="570" y="90" width="160" height="64" rx="5" fill="#211C15"/>
+        <text x="650" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#F4F0E6">analysis</text>
+        <text x="650" y="134" text-anchor="middle" font-size="8" fill="#E0A07A">de-mix · Weibull · CUSUM</text>
+      </g>
+      <!-- batch arrows -->
+      <g stroke="#211C15" stroke-width="1.6" fill="none">
+        <line x1="180" y1="122" x2="206" y2="122" marker-end="url(#arrPipe)"/>
+        <line x1="360" y1="122" x2="386" y2="122" marker-end="url(#arrPipe)"/>
+        <line x1="540" y1="122" x2="566" y2="122" marker-end="url(#arrPipe)"/>
+      </g>
+      <text x="285" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#475569">nightly batch ──────────►</text>
+      <!-- streaming path -->
+      <path d="M105,90 C105,40 470,40 560,40 C620,40 640,52 648,84" fill="none" stroke="#C2410C" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrStream)"/>
+      <text x="360" y="32" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="700" fill="#9A3412">streaming path → feeds CUSUM surveillance (catch a cluster at 50 cars)</text>
+      <!-- lineage backbone -->
+      <rect x="30" y="206" width="700" height="34" rx="5" fill="#F3EEE0" stroke="#DAD1BF" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="380" y="227" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="700" fill="#9A3412">lineage &amp; reproducibility — every value points back to raw record + code version</text>
+      <g stroke="#DAD1BF" stroke-width="1" fill="none">
+        <line x1="105" y1="206" x2="105" y2="156"/>
+        <line x1="285" y1="206" x2="285" y2="156"/>
+        <line x1="465" y1="206" x2="465" y2="156"/>
+        <line x1="650" y1="206" x2="650" y2="156"/>
+      </g>
+    </svg>
+    <figcaption><b>One direction, four jobs, full traceability.</b> Raw lands untouched; the canonical store fixes meaning; the summary reduces to one row per car; analysis runs only on that. A streaming side-path keeps the per-cohort CUSUM of the rigor post fresh, while the lineage backbone lets any number be traced back to the records and code that made it — the difference between a diagnosis you can defend and one you merely assert.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="worked">
+  <span class="snum">§ 08 — Worked Example</span>
+  <h2>Assembling the 6,000-car table from the raw</h2>
+  <p class="lead">Put it together end to end. Five messy feeds go in; the one-row-per-car table the fleet de-mix consumes comes out. Here is each decision, in order.</p>
+  <div class="verdict">
+    <div class="vcard keep">
+      <h4>Join build + telemetry + warranty by VIN</h4>
+      <p class="meta">spine: 6,000 build rows · ~54M telemetry rows · 412 warranty claims</p>
+      <p>Build is the spine — exactly 6,000 cars, one row each. Telemetry and DTC logs are reduced to per-car features before joining (never joined raw, or §03&rsquo;s many-to-one explosion ruins the counts). Warranty and service attach where present.</p>
+    </div>
+    <div class="vcard hold">
+      <h4>Dedupe the claims</h4>
+      <p class="meta">412 raw claims → 389 distinct repairs</p>
+      <p>23 rows are re-bills or double entries on the same VIN, same part, same week. Collapse them or the P0AE0 failure rate inflates by ~6%. Fuzzy-match the 4 typo-broken VINs back to their cars so their failures are not silently lost.</p>
+    </div>
+    <div class="vcard keep">
+      <h4>Align to in-service date</h4>
+      <p class="meta">t = 0 at first telematics heartbeat</p>
+      <p>Re-zero every event — DTC, claim, charge session — to each car&rsquo;s in-service date, not build or report date. Now the onset curve measures months-in-service, and the firmware and connector clusters separate cleanly in time.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>Handle the 4% missing connector-temperature</h4>
+      <p class="meta">238 cars · field absent (old fw / no-temp trim)</p>
+      <p>The gap is biased — it lines up with old firmware and sensor-less trims (§05). Do <em>not</em> impute a plausible value; that would invent signal exactly where a cause lives. Flag the field as <code class="inl">missing</code> with its mechanism and let the model treat it as its own category.</p>
+    </div>
+    <div class="vcard keep">
+      <h4>Emit one row per car</h4>
+      <p class="meta">6,000 rows × ~40 canonical columns</p>
+      <p>Build attributes, telemetry summary features, dedup&rsquo;d warranty outcome, flattened DTC history, missingness flags, provenance. This is the table §3 of the fleet post calls &ldquo;the data&rdquo; — now actually built, and defensible.</p>
+    </div>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th>VIN</th><th>fw</th><th>lot</th><th>conn_temp_c</th><th>P0AE0</th><th>mo-in-svc</th><th>outcome</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>5YJ…0042</td><td>v5.1</td><td>L-220</td><td>91 (p95)</td><td><span class="tag lo">yes</span></td><td>7.2</td><td>warranty repair</td></tr>
+      <tr><td>5YJ…0317</td><td>v5.1</td><td>L-220</td><td><span class="tag md">missing</span></td><td><span class="tag lo">yes</span></td><td>6.8</td><td>warranty repair</td></tr>
+      <tr><td>5YJ…1185</td><td>v4.9</td><td>L-204</td><td><span class="tag md">missing</span></td><td><span class="tag hi">no</span></td><td>11.4</td><td>healthy</td></tr>
+      <tr><td>5YJ…2630</td><td>v5.1</td><td>L-204</td><td>58 (p95)</td><td><span class="tag hi">no</span></td><td>9.1</td><td>healthy</td></tr>
+    </tbody>
+  </table>
+  <p>That table — VIN-joined, deduped, clock-aligned, missingness-flagged, semantically harmonized — is what every figure in the fleet posts silently assumed it was handed. The difference now is that you could re-run it from the raw and get the same rows.</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="practical">
+  <span class="snum">§ 09 — Practical Notes</span>
+  <h2>Field rules for the data plumbing</h2>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><span class="move">spine first</span><h4>Let build records define the car set</h4><p>One row per car comes from the source that is one-per-car by nature. Everything else attaches to that spine; nothing else gets to invent or multiply cars.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><span class="move">reduce before join</span><h4>Summarize many-row sources first</h4><p>Telemetry and DTC logs are many-per-car. Reduce them to features <em>before</em> joining, or a single car&rsquo;s attributes get counted thousands of times and every rate goes to garbage.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><span class="move">dedupe claims</span><h4>One failure should count once</h4><p>Re-bills and double entries inflate failure rates. Collapse duplicate claims on VIN + part + window before you count anything.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><span class="move">match the dirty keys</span><h4>Fuzzy-match before you drop</h4><p>A typo&rsquo;d VIN is a lost failure, not a missing car. Use Fellegi–Sunter scoring to recover broken matches; send the uncertain middle to a human.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><span class="move">one clock</span><h4>Align everything to time-in-service</h4><p>Build, sale, event, and report dates disagree. Pick time-in-service as the origin so onset curves and survival models measure what they claim — and mind timezones.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><span class="move">flag, don&rsquo;t fill</span><h4>Respect biased missingness</h4><p>Gaps line up with causes. Classify each missing field by mechanism and flag it; never impute over a gap that sits exactly where a cause lives.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><span class="move">one meaning per field</span><h4>Harmonize units and drifting dictionaries</h4><p>Celsius and Fahrenheit in one column is a fake second peak; a drifting DTC dictionary merges two faults. Map every source into a versioned canonical model.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><span class="move">keep the lineage</span><h4>Make every diagnosis reproducible</h4><p>Every value should point back to its raw record and the code version that made it. A finding you cannot re-run is an assertion, not a result.</p></div></div>
+  </div>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="references">
+  <span class="snum">§ 10 — References &amp; Further Reading</span>
+  <h2>Where these ideas come from</h2>
+  <p class="lead">This post leans on databases, data warehousing, record linkage, and data quality. Entry points, grouped by the question they answer.</p>
+
+  <h3>Relational data &amp; warehousing</h3>
+  <div class="refs">
+    <p><b>E. F. Codd, &ldquo;A Relational Model of Data for Large Shared Data Banks&rdquo; (1970).</b> The foundation of the join itself — why a shared key like the VIN lets independent tables be combined.</p>
+    <p><b>R. Kimball &amp; M. Ross, <i>The Data Warehouse Toolkit</i> (3rd ed., 2013).</b> Dimensional modeling and conformed dimensions — the discipline behind &ldquo;one row per car&rdquo; and a shared canonical model.</p>
+  </div>
+
+  <h3>Data-intensive systems</h3>
+  <div class="refs">
+    <p><b>M. Kleppmann, <i>Designing Data-Intensive Applications</i> (2017).</b> Batch vs streaming, ingestion, and the architecture of pipelines that stay reproducible at scale.</p>
+  </div>
+
+  <h3>Record linkage</h3>
+  <div class="refs">
+    <p><b>I. Fellegi &amp; A. Sunter, &ldquo;A Theory for Record Linkage&rdquo; (1969).</b> The evidence-weighing framework for deciding whether two records are the same entity when the key is dirty.</p>
+  </div>
+
+  <h3>Data quality &amp; governance</h3>
+  <div class="refs">
+    <p><b>C. Batini &amp; M. Scannapieco, <i>Data Quality: Concepts, Methodologies and Techniques</i> (2006).</b> A systematic treatment of completeness, accuracy, and the dimensions of quality behind validation rules.</p>
+    <p><b>T. Redman, <i>Data Quality: The Field Guide</i> (2001).</b> The practical cost of bad data and how it propagates into confident-but-wrong conclusions.</p>
+    <p><b>DAMA International, <i>DAMA-DMBOK: Data Management Body of Knowledge</i>.</b> Provenance, lineage, master data, and the governance vocabulary for a trustworthy canonical store.</p>
+  </div>
+  <div class="note">
+    <span class="lab">A note on these references</span>
+    <p style="margin:0">These are orientation points into large literatures, cited to show the lineage of the method rather than as the source of any single claim here. Titles and years are given so you can find them.</p>
+  </div>
+</section>
+
+<!-- ===================== the series ===================== -->
+<section id="series-nav">
+  <span class="snum">&sect; &mdash; The Series</span>
+  <h2>The Diagnosis Series</h2>
+  <p class="lead">Nine connected parts, from one car&rsquo;s evidence to a fleet campaign and back to prevention. <a href="diagnosis-series-index.html">See the full map &amp; reading guide &rarr;</a></p>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><h4><a href="rca-under-uncertain-heterogeneous-evidence.html">Root-Cause Analysis Under Uncertain, Heterogeneous Evidence</a></h4><p>Grade, anchor, and fuse messy, unequal-trust clues into one cause.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><h4><a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a></h4><p>The sufficiency gate, value of information, and handling conflict.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><h4><a href="harder-cases-in-diagnosis.html">Harder Cases in Diagnosis</a></h4><p>Multiple faults, intermittency, and lying sensors.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><h4><a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a></h4><p>One code across a population: de-mix, stratify, remediate.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><h4><a href="fleet-rca-made-rigorous.html">Fleet RCA, Made Rigorous</a></h4><p>Significance, surveillance, forecasting, closing the loop.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><h4><a href="proving-cause-with-experiments.html">Proving Cause with Experiments</a></h4><p>Turn observation into proof with staged rollouts.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><h4><a href="diagnosis-on-the-vehicle.html">Diagnosis on the Vehicle</a></h4><p>Real-time fault detection at the edge, feeding the fleet.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><h4>The Data Plumbing Behind Fleet Diagnosis &nbsp;<span class="tag md" style="font-size:10px;vertical-align:middle">you are here</span></h4><p>Joining, aligning, and cleaning the data that makes it work.</p></div></div>
+    <div class="rung"><div class="num">9</div><div class="body"><h4><a href="prevention-and-corrective-action.html">From Root Cause to No Cause</a></h4><p>Prevention and the corrective-action loop &mdash; engineer it out.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0; border-top:none">
+    <span class="ic">▸</span>
+    <a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a>
+    <a href="fleet-rca-made-rigorous.html">Fleet RCA, Made Rigorous</a>
+    <a href="harder-cases-in-diagnosis.html">Harder Cases in Diagnosis</a>
+  </div>
+  <div class="rule"></div>
+  <p><b>The Data Plumbing Behind Fleet Diagnosis</b></p>
+  <p>By Majid Mazouchi · Vehicle Health Monitoring Notes</p>
+  <p>The foundation beneath Fleet-Scale Root-Cause Analysis.</p>
+</footer>
+
+</div>
+</body>
+</html>

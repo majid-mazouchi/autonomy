@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Root-Cause Analysis Under Uncertain, Heterogeneous Evidence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044;
+  --rule:#DAD1BF; --rule-soft:#E7DFD0;
+  --rust:#C2410C; --rust-deep:#9A3412;
+  --teal:#0F766E; --amber:#B45309; --slate:#475569;
+  --good:#0F766E; --bad:#B91C1C; --hold:#B45309;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+
+/* ---- header ---- */
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px);
+  line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px);
+  color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em;
+  color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+
+/* ---- abstract ---- */
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper);
+  border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+
+/* ---- section structure ---- */
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em;
+  color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px);
+  line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic}
+strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+ul,ol{margin:16px 0; padding-left:24px}
+li{margin:0 0 9px}
+.callout-name{font-variant-caps:small-caps; letter-spacing:.02em; font-weight:600}
+
+/* ---- figures ---- */
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper);
+  border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55;
+  color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+
+/* ---- code ---- */
+pre{background:#211C15; color:#EDE6D6; font-family:"IBM Plex Mono",monospace;
+  font-size:13px; line-height:1.6; padding:18px 20px; overflow-x:auto;
+  border-radius:2px; margin:22px 0}
+pre .c{color:#9A8F78} pre .k{color:#E0A07A} pre .s{color:#9DC08B} pre .n{color:#D8B26A}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft);
+  padding:1px 6px; border-radius:3px}
+
+/* ---- tables ---- */
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px;
+  font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink);
+  padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+  padding:2px 8px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.tag.hi{background:#DCEFEC; color:var(--teal)}
+.tag.lo{background:#F6DED7; color:var(--bad)}
+.tag.md{background:#F7E9CF; color:var(--hold)}
+
+/* ---- verdict / role cards ---- */
+.verdict{display:grid; grid-template-columns:1fr; gap:14px; margin:26px 0}
+.vcard{border:1px solid var(--rule); background:var(--paper); padding:18px 20px;
+  border-left:4px solid var(--slate)}
+.vcard.keep{border-left-color:var(--teal)}
+.vcard.drop{border-left-color:var(--bad)}
+.vcard.hold{border-left-color:var(--hold)}
+.vcard h4{font-family:"Fraunces",serif; font-size:18px; margin:0 0 4px; font-weight:600}
+.vcard .meta{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft);
+  margin:0 0 9px}
+.vcard p{margin:0; font-size:15.5px}
+
+/* ---- aside / note ---- */
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0;
+  border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+
+/* ---- procedure ladder ---- */
+.ladder{margin:28px 0; counter-reset:rung}
+.rung{display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--rule-soft)}
+.rung:first-child{border-top:none}
+.rung .num{flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+  background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace;
+  font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center}
+.rung .body h4{margin:2px 0 4px; font-family:"Fraunces",serif; font-size:17px; font-weight:600}
+.rung .body p{margin:0; font-size:15.5px}
+.rung .body .move{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--rust)}
+
+/* ---- algorithm boxes ---- */
+.algo{margin:26px 0; border:1px solid var(--ink); background:var(--paper)}
+.algo .hd{background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace;
+  font-size:12px; letter-spacing:.12em; padding:9px 16px; text-transform:uppercase;
+  display:flex; justify-content:space-between}
+.algo .hd .nm{color:#E0A07A}
+.algo .bd{padding:14px 18px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.72}
+.algo .ln{white-space:pre-wrap; margin:0}
+.algo .io{color:var(--teal); font-weight:600}
+.algo .kw{color:var(--rust); font-weight:600}
+.algo .cm{color:var(--ink-soft)}
+.algo .i1{padding-left:22px} .algo .i2{padding-left:44px} .algo .i3{padding-left:66px}
+
+/* ---- legend ---- */
+.legend{display:flex; gap:18px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace;
+  font-size:12px; color:var(--ink-soft); margin-top:4px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block}
+
+/* ---- decision tree ---- */
+.dtree{margin:26px 0; font-family:"IBM Plex Mono",monospace}
+.dnode{display:inline-block; background:#EFE7D6; border:1.6px solid var(--ink);
+  border-radius:7px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink)}
+.dbranch{margin:6px 0 6px 14px; padding-left:20px; border-left:2px solid var(--rule)}
+.dedge{font-size:12.5px; color:var(--rust); font-weight:600; margin:12px 0 5px}
+.dleaf{display:inline-block; padding:7px 13px; border-radius:7px; font-size:13px;
+  border:1.5px solid; line-height:1.4; max-width:52ch}
+.dleaf.root{background:#F7E7DF; border-color:var(--rust); color:var(--rust); font-weight:600}
+.dleaf.ok{background:#DCEFEC; border-color:var(--teal); color:var(--teal)}
+.dleaf.warn{background:#F7E9CF; border-color:var(--amber); color:var(--amber)}
+
+/* ---- part divider ---- */
+.partlead{max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic}
+
+/* ---- references ---- */
+.refs{font-family:"Spectral",serif; font-size:16px}
+.refs p{margin:0 0 14px; padding-left:22px; text-indent:-22px}
+.refs b{font-weight:600}
+
+/* ---- footer ---- */
+footer{padding:48px 0 80px; text-align:center}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px;
+  flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px;
+  border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+
+@media (max-width:560px){
+  body{font-size:17px}
+  .wrap{padding:0 18px}
+  header.masthead{padding:48px 0 32px}
+  .verdict{gap:12px}
+  .tbl{font-size:12.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Diagnostics · Evidence · Method</p>
+  <h1>Root-Cause Analysis Under Uncertain, Heterogeneous Evidence</h1>
+  <p class="subtitle">A trouble code, a pile of telemetry, a few thousand lines of C, and a folder of customer complaints — none fully trustworthy. How to weigh them into one defensible cause.</p>
+  <div class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Vehicle Health Monitoring Notes</div>
+</header>
+
+<div class="abstract">
+  <span class="lab">Abstract</span>
+  <p>The worked RCA cases assume clean data. Real investigations begin with a heap of evidence of unequal trust: a DTC and its boilerplate description, ECU source code, a measurement log of uncertain provenance, dealer and customer symptom reports in plain English, and a maintenance and repair history that is part signal and part red herring. This monograph is the procedure for turning that heap into a root cause <em>with a mechanism</em>. The organizing principle is <em>grade before you fuse</em>: know what each source can and cannot establish before you let it move your belief. Eight steps follow — provenance grading, temporal-and-cohort anchoring, abductive framing, the impostor test, the physics-and-code referee, reliability-weighted Bayesian fusion, acceptance on convergence, and reporting with residual uncertainty.</p>
+</div>
+<div class="reslinks" style="justify-content:flex-start">
+  <span class="ic">▸</span>
+  <a href="root-cause-analysis-battery-case-study.html">Case 1: the worked battery RCA</a>
+  <a href="agentic-rca-prognostics-framework.html">The agentic framework that automates this</a>
+  <a href="fault-detection-isolation.html">FDI: the detection layer</a>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="pile">
+  <span class="snum">§ 01 — The Pile</span>
+  <h2>An investigation is a heap, not a dataset</h2>
+  <p class="lead">The textbook diagram of fault diagnosis starts with a tidy matrix of measurements. The bay does not.</p>
+  <p>What actually lands on the analyst's desk is a heap of things that disagree. A <strong>diagnostic trouble code</strong> has fired — say a cell-imbalance code — with a one-line description copied from a standard catalog that was written before this vehicle program existed. There are <strong>measurement logs</strong>, but you are not sure which firmware they came from or whether the sensor that produced them was itself in spec. There are a few thousand lines of the responsible ECU's <strong>C source</strong>. There is a folder of <strong>dealer write-ups and customer complaints</strong> — "loses range in the cold," "clunk on startup," "dash light comes and goes" — vivid, human, and imprecise. And there is a <strong>maintenance and repair history</strong> showing which of the affected vehicles were touched, when, and for what.</p>
+  <p>Each of these is evidence. None of them is <em>true</em> in the way a physics equation is true. The DTC can fire for a cause it does not name. The customer can describe a symptom that has nothing to do with the failure. The repair record can show an intervention that <em>caused</em> the problem rather than addressing it. The measurement can be an artifact of the instrument. The code shows what the software <em>can</em> do, not what it <em>did</em>.</p>
+  <p>So the first thing to internalize is that the units of this investigation are not numbers — they are <strong>claims of varying reliability</strong>, and the job is to combine claims, not average numbers.</p>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="trap">
+  <span class="snum">§ 02 — The Trap</span>
+  <h2>Why the obvious moves fail</h2>
+  <p>There are three intuitive ways to handle a pile of mixed evidence, and all three are wrong in a way worth naming.</p>
+  <p><strong>Pour it all in and average.</strong> Treat every input as a vote of equal weight and go with the majority. This silently assumes the sources are equally reliable and mutually independent — and they are neither. It lets a hundred low-information complaints outvote one decisive measurement.</p>
+  <p><strong>Trust the loudest.</strong> Anchor on the most vivid or most recent input — usually the customer's words or the DTC's description — and reason outward from it. This is availability, not inference. The DTC's prose in particular is a magnet for this error: it <em>reads</em> like a diagnosis.</p>
+  <p><strong>Trust only the hard data.</strong> Discard the soft inputs entirely and reason from telemetry alone. Cleaner, but it throws away the testimony and history that carry most of the information about <em>when it started</em> and <em>who it happened to</em> — exactly the structure that later separates cause from coincidence.</p>
+  <div class="note">
+    <span class="lab">The principle</span>
+    <p style="margin:0">The fix is one rule applied early: <strong>grade before you fuse.</strong> Establish what each source can and cannot tell you — and how much to trust it — <em>before</em> you let any of it move your belief about the cause. Everything in this monograph is an elaboration of that sentence.</p>
+  </div>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="grading">
+  <span class="snum">§ 03 — Provenance Grading</span>
+  <h2>Grade every input before you use it</h2>
+  <p class="lead">Provenance grading is the step the case studies skip because their data is clean. In the field it is the most important step.</p>
+  <p>For each input family, settle three things in writing: <strong>what it can establish</strong> (the claim it is competent to support), <strong>what it cannot</strong> (the claim it is routinely mistaken for supporting), and a <strong>reliability weight</strong> — high, medium, or low — that will scale its influence in fusion. The point of writing it down is that it disciplines you against the §02 traps when the pressure to conclude rises.</p>
+
+  <figure>
+    <div class="figlab">Table 1 — Provenance grades for the six input families</div>
+    <table class="tbl">
+      <thead>
+        <tr><th>Source</th><th>Establishes</th><th>Does <em>not</em> establish</th><th>Trust</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>DTC — status bits, freeze-frame, set-conditions</b></td>
+          <td>That a monitored quantity crossed a calibrated threshold, and the conditions when it did</td>
+          <td>The cause. A code is the ECU's <em>hypothesis</em>, scoped to what it can sense</td>
+          <td><span class="tag hi">HIGH</span></td>
+        </tr>
+        <tr>
+          <td><b>DTC — text description</b></td>
+          <td>A rough family of fault, and a search term</td>
+          <td>Anything specific to this program; the prose is often generic catalog boilerplate</td>
+          <td><span class="tag lo">LOW</span></td>
+        </tr>
+        <tr>
+          <td><b>ECU C source</b></td>
+          <td>What the software <em>can</em> do — the reachable logic and its guards</td>
+          <td>That the suspect path <em>executed</em>; reachability is not occurrence</td>
+          <td><span class="tag md">MED·HI</span></td>
+        </tr>
+        <tr>
+          <td><b>Telemetry / measurements</b></td>
+          <td>Physical state over time — the signatures hypotheses must match</td>
+          <td>Truth in the presence of sensor drift, bias, or wrong-firmware provenance</td>
+          <td><span class="tag md">MED·HI</span></td>
+        </tr>
+        <tr>
+          <td><b>Dealer / customer testimony</b></td>
+          <td>That <em>something</em> was noticed, and roughly <em>when</em> — high recall</td>
+          <td>What the cause is — low precision; descriptions map to many faults</td>
+          <td><span class="tag lo">LOW</span></td>
+        </tr>
+        <tr>
+          <td><b>Maintenance / repair history</b></td>
+          <td>What was changed and when — a real intervention timeline</td>
+          <td>Direction of causation; a repair may be cause, fix, or coincidence</td>
+          <td><span class="tag md">MED</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <figcaption><b>Reading the trust column:</b> high-trust sources are competent to <em>confirm</em> a mechanism; low-trust sources are competent to <em>propose</em> one and to bound its timing. The single most common field error is reading the DTC's text row as if it were the DTC's status-bits row.</figcaption>
+  </figure>
+
+  <p>Two grades deserve emphasis because they are routinely misread. The <strong>DTC splits into two rows</strong>: its machine-set status bits and freeze-frame are high-trust, while its human-readable description is low-trust. And the <strong>C source is high-trust for capability but silent on occurrence</strong> — it tells you a balancing routine <em>can</em> mis-trigger, never that it <em>did</em> on these cars. Keeping those distinctions sharp is most of the discipline.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="anchor">
+  <span class="snum">§ 04 — Anchor</span>
+  <h2>One timeline, one cohort</h2>
+  <p class="lead">Most "clues" are not yet evidence. They become evidence when you place them in time and in a population.</p>
+  <p>Build a single timeline per affected vehicle and drop everything onto it: the moment the code set, the freeze-frame conditions, the onset date implied by each complaint, every maintenance and repair event, and the windows where measurements went out of band. Disagreements that looked like noise often resolve into structure here — a complaint that predates the code set by months means the code is a late symptom, not the origin.</p>
+  <p>Then define the <strong>cohort</strong> precisely: which vehicles are affected, which are not, and what distinguishes the two sets. This contrast is not a formality. It is the asset that later kills impostor explanations, because a true cause must explain not just that the failure happened but <em>why it selected exactly this subpopulation and spared the rest</em>. A hypothesis that cannot account for the boundary of the affected set is incomplete no matter how well it fits the failed cars.</p>
+  <div class="note">
+    <span class="lab">Why this comes before interpretation</span>
+    <p style="margin:0">Interpreting a single input in isolation — "the code means X" — invites the §02 traps. Interpreting it <em>against the timeline and cohort</em> constrains it. The same cell-imbalance code means very different things if it sets only on cars built in one plant, or only after a particular OTA update, than if it sets uniformly across the fleet.</p>
+  </div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="abduction">
+  <span class="snum">§ 05 — Abduction</span>
+  <h2>Frame hypotheses as causal chains</h2>
+  <p class="lead">Diagnosis is abduction — inference to the best explanation — not deduction from a code to a cause.</p>
+  <p>Enumerate candidate explanations honestly, and write each one not as a correlation but as a <strong>causal chain</strong> with three links:</p>
+  <div class="dtree">
+    <span class="dleaf root">root cause</span>
+    <span style="color:var(--rust);font-weight:600">&nbsp;→&nbsp;</span>
+    <span class="dleaf warn">mechanism</span>
+    <span style="color:var(--rust);font-weight:600">&nbsp;→&nbsp;</span>
+    <span class="dleaf ok">observable signature</span>
+  </div>
+  <p>The discipline this enforces is decisive: <strong>a hypothesis that predicts no distinguishing signature cannot be tested and does not belong on the list.</strong> "It's a firmware problem" is not a hypothesis. "A cell-balancing routine over-discharges the weakest cell during cold fast-charge (mechanism), which appears as elevated internal-resistance rise concentrated in cold-climate cars on firmware ≥ v4.2 (signature)" is — because it tells you exactly what to go measure and which cohort boundary it must reproduce.</p>
+  <p>Generate several such chains, including at least one boring one (normal wear, sensor artifact). The boring hypotheses are there to be the null the interesting ones must beat.</p>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="impostor">
+  <span class="snum">§ 06 — The Impostor</span>
+  <h2>Kill the convincing correlation first</h2>
+  <p class="lead">The most persuasive feature in the room is the prime suspect for being a fake.</p>
+  <p>This is the central hazard documented in the <a href="root-cause-analysis-battery-case-study.html">battery case</a>: a feature that correlates beautifully with the failure but causes nothing, because it and the failure are both downstream of the true cause. Left unchallenged it ends investigations early and wrong — everyone in the room believes it, so no one tests it.</p>
+  <p>The gate is <strong>partial correlation</strong>: condition on the candidate true cause and ask whether the seductive feature still predicts the failure. If the association collapses once you control for the upstream variable, the feature was a co-effect — an impostor — and it leaves the suspect list. Run this <em>before</em> the expensive confirmation work of §07, because it is cheap and it routinely deletes the hypothesis you were about to spend a week proving.</p>
+  <div class="verdict">
+    <div class="vcard drop">
+      <h4>Impostor — co-effect</h4>
+      <p class="meta">correlation survives marginally · collapses under partial correlation</p>
+      <p>Drops out once you condition on the upstream cause. Convincing precisely because it shares the cause's footprint.</p>
+    </div>
+    <div class="vcard keep">
+      <h4>Candidate cause — survives conditioning</h4>
+      <p class="meta">association persists after controlling for confounders</p>
+      <p>Earns the right to the physics-and-code referee in §07. Necessary, not yet sufficient.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="referee">
+  <span class="snum">§ 07 — The Referee</span>
+  <h2>Let physics and code confirm the mechanism</h2>
+  <p class="lead">A surviving hypothesis is a defendant, not a verdict. Confirmation comes from an independent referee, not from more of the same evidence.</p>
+  <p>Each surviving causal chain predicts a signature (§05). Confirmation means an <strong>independent model regenerates that signature</strong> from the proposed cause:</p>
+  <ul>
+    <li><strong>If the mechanism is physical</strong>, the simulator-of-record — the battery-aging model, the thermal model, the structural model — must reproduce the observed measurement signature when driven by the hypothesized cause. If it cannot, the chain is broken regardless of how good the correlation looked.</li>
+    <li><strong>If the mechanism is in software</strong>, the C source is the referee, and the standard is execution, not existence. Trace the suspect path and prove it is reachable <em>and</em> that its guards are satisfied under the recorded freeze-frame conditions. A balancing bug that can only fire below −10&nbsp;°C does not explain failures in a temperate-climate cohort, no matter how plausible the code reads.</li>
+  </ul>
+  <p>This is where the high-trust sources finally do their work, and why the grading of §03 mattered: low-trust testimony proposed the hypothesis and dated it; high-trust physics and code are what is allowed to confirm it. The referee is also adversarial by design — its job is to <em>falsify</em> the surviving chain, and a chain that survives a real attempt to break it is worth far more than one that merely fit the data it was built from.</p>
+  <div class="algo">
+    <div class="hd"><span>Procedure</span><span class="nm">confirm(chain)</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  chain = (cause → mechanism → signature), telemetry T, source S</p>
+<p class="ln"><span class="io">output</span> CONFIRMED · BROKEN · UNDETERMINED</p>
+<p class="ln"><span class="kw">predict</span> ŝ ← model(cause)            <span class="cm"># physics or code regenerates the signature</span></p>
+<p class="ln i1"><span class="kw">if</span> mechanism is physical:</p>
+<p class="ln i2">compare ŝ against signature in T under matched conditions</p>
+<p class="ln i1"><span class="kw">if</span> mechanism is software:</p>
+<p class="ln i2">trace path in S; check reachability AND guard(freeze-frame)</p>
+<p class="ln"><span class="kw">return</span> CONFIRMED <span class="cm">if ŝ matches and path executes; else BROKEN / UNDETERMINED</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="fusion">
+  <span class="snum">§ 08 — Fusion</span>
+  <h2>Combine by weight, not by vote</h2>
+  <p class="lead">Now — and only now — combine the evidence. The combination is reliability-weighted, and it counts independent corroboration only.</p>
+  <p>Maintain a belief — a posterior — over the competing causal chains. Each piece of evidence updates that posterior in proportion to two things: its <strong>likelihood ratio</strong> (how much more probable this evidence is if hypothesis H is true than if it is false) and its <strong>trust tier</strong> from §03 (a low-trust source is allowed only a small nudge; a high-trust confirmation is allowed a large one). In Bayesian terms each datum contributes a weighted log-likelihood-ratio to the running score for each hypothesis.</p>
+  <p>The rule that does the most work is <strong>independence</strong>. Ten customer complaints that all trace to the same root cause are <em>one</em> piece of evidence echoed ten times, not ten. Double-counting correlated evidence is how a pile of low-trust testimony stampedes an investigation. Before a datum updates the belief, ask what it is conditionally independent of — and if it shares a source with evidence already counted, discount it.</p>
+
+  <figure>
+    <div class="figlab">Figure 1 — Reliability-weighted fusion</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evidence sources of different trust feed weighted updates into a posterior over hypotheses">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#5A5044"/>
+        </marker>
+      </defs>
+      <!-- left: sources -->
+      <text x="20" y="26" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="2" fill="#C2410C">EVIDENCE · BY TRUST</text>
+      <!-- high trust -->
+      <rect x="20" y="44" width="232" height="34" rx="4" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.4"/>
+      <text x="34" y="60" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#0F766E">DTC status bits · freeze-frame</text>
+      <text x="34" y="73" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0F766E">high trust — large weight</text>
+
+      <rect x="20" y="86" width="232" height="34" rx="4" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.4"/>
+      <text x="34" y="102" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#0F766E">telemetry signature · code path</text>
+      <text x="34" y="115" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0F766E">high trust — confirmers</text>
+      <!-- med trust -->
+      <rect x="20" y="132" width="232" height="34" rx="4" fill="#F7E9CF" stroke="#B45309" stroke-width="1.4"/>
+      <text x="34" y="148" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#B45309">maintenance / repair history</text>
+      <text x="34" y="161" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#B45309">medium — watch confounds</text>
+      <!-- low trust -->
+      <rect x="20" y="178" width="232" height="34" rx="4" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.4"/>
+      <text x="34" y="194" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#B91C1C">DTC text · customer reports</text>
+      <text x="34" y="207" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#B91C1C">low — propose &amp; date only</text>
+
+      <!-- independence gate -->
+      <rect x="316" y="96" width="118" height="100" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.6"/>
+      <text x="375" y="130" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">independence</text>
+      <text x="375" y="146" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">gate</text>
+      <text x="375" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">de-duplicate</text>
+      <text x="375" y="180" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">correlated echoes</text>
+
+      <!-- arrows sources -> gate -->
+      <line x1="252" y1="61"  x2="314" y2="120" stroke="#5A5044" stroke-width="1.3" marker-end="url(#arr)"/>
+      <line x1="252" y1="103" x2="314" y2="130" stroke="#5A5044" stroke-width="1.3" marker-end="url(#arr)"/>
+      <line x1="252" y1="149" x2="314" y2="150" stroke="#5A5044" stroke-width="1.3" marker-end="url(#arr)"/>
+      <line x1="252" y1="195" x2="314" y2="170" stroke="#5A5044" stroke-width="1.3" marker-end="url(#arr)"/>
+
+      <!-- posterior -->
+      <rect x="500" y="84" width="240" height="124" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.6"/>
+      <text x="620" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.5" fill="#C2410C">POSTERIOR OVER CHAINS</text>
+      <!-- bars -->
+      <rect x="516" y="120" width="176" height="16" rx="2" fill="#0F766E"/>
+      <text x="700" y="133" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="#FBF8F1">H1</text>
+      <rect x="516" y="144" width="70" height="16" rx="2" fill="#B45309"/>
+      <rect x="586" y="144" width="106" height="16" rx="2" fill="#E7DFD0"/>
+      <text x="592" y="157" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044">H2</text>
+      <rect x="516" y="168" width="34" height="16" rx="2" fill="#B91C1C"/>
+      <rect x="550" y="168" width="142" height="16" rx="2" fill="#E7DFD0"/>
+      <text x="556" y="181" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044">H3 (impostor — fading)</text>
+
+      <line x1="434" y1="146" x2="498" y2="146" stroke="#5A5044" stroke-width="1.3" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption><b>The flow:</b> sources enter scaled by trust, pass an independence gate that collapses correlated echoes into single updates, and shift a posterior over causal chains. High-trust confirmers move it hardest; the impostor (H3) decays as conditioning removes its support.</figcaption>
+  </figure>
+  <p>You do not need a full probabilistic model to use this. The discipline is what matters: <em>weight by trust, update by likelihood ratio, never double-count</em>. A scored table of hypotheses × evidence, with each cell marked for-or-against and the row trust noted, captures ninety percent of the value on a whiteboard.</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="convergence">
+  <span class="snum">§ 09 — Convergence</span>
+  <h2>Accept on triangulation, not on a single gun</h2>
+  <p class="lead">The acceptance test is not "do I have a smoking gun?" It is "does one mechanism explain everything at once?"</p>
+  <p>A root cause is accepted when a <em>single</em> causal chain simultaneously satisfies every independent line of evidence:</p>
+  <div class="dtree">
+    <span class="dnode">Accept the chain only if it explains all four at once</span>
+    <div class="dbranch">
+      <div class="dedge">— the DTC pattern</div>
+      <span class="dleaf ok">the code sets when and where the mechanism predicts</span>
+      <div class="dedge">— the measurement signature</div>
+      <span class="dleaf ok">telemetry matches the model-regenerated signature</span>
+      <div class="dedge">— the executable path</div>
+      <span class="dleaf ok">the C path is reachable and its guards are met</span>
+      <div class="dedge">— the cohort boundary</div>
+      <span class="dleaf ok">it explains exactly who was affected and who was spared</span>
+      <div class="dedge">— and is not contradicted by</div>
+      <span class="dleaf warn">testimony &amp; repair history (consistency, not proof)</span>
+    </div>
+  </div>
+  <p>Convergence of <em>independent</em> evidence types is the standard because it is hard to fake. A story can be tuned to fit the telemetry it was built from; it is far harder for the same story to also predict the cohort boundary and survive the code trace and not contradict the complaint timeline. When one chain does all of that and its rivals do not, you have a root cause. When two chains both survive, you do not yet — and the honest output is two hypotheses plus the discriminating measurement that would separate them.</p>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="report">
+  <span class="snum">§ 10 — Report</span>
+  <h2>State the mechanism, its confidence, and its kill-switch</h2>
+  <p class="lead">The deliverable is not a label. It is a chain, a confidence, and the one test that would still overturn it.</p>
+  <p>Write the verdict as the full causal chain — root cause → mechanism → signature — not as "DTC P0ABC, replace pack." Attach a <strong>confidence</strong> that reflects the weakest link, not the strongest. And state explicitly the <strong>single disconfirming test</strong>: the observation that, if it came back the wrong way, would break the chain. A conclusion you cannot say how to falsify is a conclusion you have not finished testing.</p>
+  <div class="verdict">
+    <div class="vcard keep">
+      <h4>Root cause</h4>
+      <p class="meta">the confirmed chain</p>
+      <p>Cell-balancing routine over-discharges the weakest cell during cold fast-charge on firmware ≥ v4.2 → accelerated internal-resistance rise → the SOH divergence and the imbalance DTC, concentrated in cold-climate cars.</p>
+    </div>
+    <div class="vcard hold">
+      <h4>Confidence &amp; residual uncertainty</h4>
+      <p class="meta">honest about the weakest link</p>
+      <p>High on mechanism (code path traced, physics reproduces signature); medium on population bound (cold-climate proxy is coarse). Stated, not buried.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>Disconfirming test</h4>
+      <p class="meta">the kill-switch</p>
+      <p>If affected cars on v4.2 that never cold-fast-charged show the same resistance rise, the mechanism is wrong. Run it before committing the fix.</p>
+    </div>
+  </div>
+  <p>From here the handoff to <a href="prognostics-health-management.html">prognostics</a> is clean: a confirmed mechanism is exactly what a degradation model needs to forecast remaining useful life with and without the intervention. Diagnosis answers <em>why</em>; prognosis turns that <em>why</em> into a maintenance decision.</p>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="traps">
+  <span class="snum">§ 11 — Traps</span>
+  <h2>The failure modes that catch everyone</h2>
+  <p>Each of these is a specific way the procedure above gets short-circuited under deadline pressure.</p>
+  <h3>The testimony cascade</h3>
+  <p>A handful of vivid complaints set the team's hypothesis, and every later input is read in their light. Mitigation: testimony enters at low trust and only <em>proposes and dates</em> (§03); it never confirms.</p>
+  <h3>Double-counting correlated evidence</h3>
+  <p>Ten reports, one cause, counted as ten. The fleet "agrees" because it is echoing a single root cause. Mitigation: the independence gate (§08) collapses correlated echoes into one update.</p>
+  <h3>Reading the DTC's prose as a diagnosis</h3>
+  <p>The description is catalog boilerplate; the information is in the status bits and freeze-frame. Mitigation: the two-row split in Table 1 — trust the machine-set fields, discount the text.</p>
+  <h3>Confirming a path that cannot execute</h3>
+  <p>The suspect C code exists and looks guilty, but its guards are never satisfied in the recorded conditions. Mitigation: §07 demands reachability <em>and</em> guard-satisfaction under the freeze-frame, not mere existence.</p>
+  <h3>Confound from the repair history itself</h3>
+  <p>A prior service action is the actual cause, or masks the onset, yet is read as background. Mitigation: place repairs on the §04 timeline as events that can themselves be causes, and check causation direction before trusting them.</p>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="checklist">
+  <span class="snum">§ 12 — The Procedure</span>
+  <h2>The whole method on one page</h2>
+  <p class="lead">Run any investigation against this. Each rung is a step you can refuse to skip.</p>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><span class="move">grade</span><h4>Provenance-grade every input</h4><p>For each source, write what it can establish, what it cannot, and a trust tier. Split the DTC into status-bits (high) and text (low).</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><span class="move">anchor</span><h4>One timeline, one cohort</h4><p>Place every code-set, complaint, repair, and measurement excursion on a per-vehicle timeline. Define affected vs. spared precisely.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><span class="move">frame</span><h4>Hypotheses as causal chains</h4><p>Write each candidate as cause → mechanism → signature. Discard any that predicts no distinguishing signature. Include a boring null.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><span class="move">break</span><h4>Kill the impostor</h4><p>Partial-correlation gate: condition on the candidate cause; drop features whose association collapses. Do this before expensive confirmation.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><span class="move">referee</span><h4>Physics and code confirm</h4><p>The model must regenerate the signature; the code path must be reachable and guard-satisfied under the freeze-frame. The referee tries to falsify.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><span class="move">fuse</span><h4>Weight, don't vote</h4><p>Update belief by trust × likelihood ratio. Enforce independence — correlated echoes count once.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><span class="move">converge</span><h4>Accept on triangulation</h4><p>One chain must explain the DTC pattern, the signature, the executable path, and the cohort boundary at once — uncontradicted by testimony.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><span class="move">report</span><h4>Chain · confidence · kill-switch</h4><p>State the full chain, a confidence set by the weakest link, and the single disconfirming test. Then hand off to prognosis.</p></div></div>
+  </div>
+  <div class="note">
+    <span class="lab">The one-sentence version</span>
+    <p style="margin:0"><strong>Grade before you fuse; let the weak evidence propose and the strong evidence confirm; accept only the one mechanism that explains everything at once — and say what would prove you wrong.</strong></p>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- ============================ PART II =============================== -->
+<!-- =================================================================== -->
+<section id="partII" style="text-align:center; border-bottom:2px solid var(--ink)">
+  <p class="eyebrow" style="margin-bottom:14px">Part II — Worked Example</p>
+  <h2 style="font-size:clamp(28px,4.4vw,42px)">The Method in Action — A Battery Case, End to End</h2>
+  <p class="partlead">One fleet, one anomaly, and the full pile of mockup evidence. We run all eight steps and let the figures carry the argument. Every input below is fabricated for illustration, but each is shaped like the real artifact it stands in for — and the data hides a known ground truth so the analysis can grade its own detective work.</p>
+  <div class="reslinks" style="justify-content:center">
+    <span class="ic">⤓</span>
+    <a href="rca-uncertain-evidence-mockup.zip">Download the mockup inputs (zip)</a>
+    <a href="root-cause-analysis-battery-case-study.html">Compare: Case 1 on clean data</a>
+  </div>
+</section>
+
+<!-- ===================== 13 ===================== -->
+<section id="flowchart">
+  <span class="snum">§ 13 — The Procedure, Drawn</span>
+  <h2>The whole method as one flowchart</h2>
+  <p class="lead">Before the case, the procedure as a single diagram — the path every piece of evidence takes from the pile to the verdict, including the three gates where hypotheses die.</p>
+
+  <figure>
+    <div class="figlab">Figure 2 — Master procedure flowchart</div>
+    <svg viewBox="0 0 760 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart of the eight-step RCA procedure with impostor, referee, and convergence gates">
+      <defs>
+        <marker id="mflow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#5A5044"/>
+        </marker>
+      </defs>
+      <!-- pile -->
+      <rect x="130" y="22" width="500" height="30" rx="4" fill="#EFE7D6" stroke="#211C15" stroke-width="1.6"/>
+      <text x="380" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12.5" font-weight="600" fill="#211C15">THE EVIDENCE PILE — DTC · C source · telemetry · testimony · history</text>
+
+      <!-- step template helper: rect + circle + label -->
+      <!-- s1 -->
+      <rect x="250" y="82" width="260" height="40" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.5"/>
+      <circle cx="272" cy="102" r="13" fill="#211C15"/><text x="272" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#F4F0E6">1</text>
+      <text x="294" y="106" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">GRADE · provenance + trust</text>
+      <!-- s2 -->
+      <rect x="250" y="146" width="260" height="40" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.5"/>
+      <circle cx="272" cy="166" r="13" fill="#211C15"/><text x="272" y="170" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#F4F0E6">2</text>
+      <text x="294" y="170" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">ANCHOR · timeline + cohort</text>
+      <!-- s3 -->
+      <rect x="250" y="210" width="260" height="40" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.5"/>
+      <circle cx="272" cy="230" r="13" fill="#211C15"/><text x="272" y="234" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#F4F0E6">3</text>
+      <text x="294" y="234" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">FRAME · causal chains</text>
+      <!-- s4 gate -->
+      <rect x="250" y="282" width="260" height="40" rx="6" fill="#F7E9CF" stroke="#B45309" stroke-width="1.7"/>
+      <circle cx="272" cy="302" r="13" fill="#B45309"/><text x="272" y="306" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FBF8F1">4</text>
+      <text x="294" y="306" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#9A3412">IMPOSTOR GATE · partial corr</text>
+      <!-- s5 gate -->
+      <rect x="250" y="354" width="260" height="40" rx="6" fill="#F7E9CF" stroke="#B45309" stroke-width="1.7"/>
+      <circle cx="272" cy="374" r="13" fill="#B45309"/><text x="272" y="378" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FBF8F1">5</text>
+      <text x="294" y="378" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#9A3412">REFEREE GATE · physics + code</text>
+      <!-- s6 -->
+      <rect x="250" y="426" width="260" height="40" rx="6" fill="#FBF8F1" stroke="#211C15" stroke-width="1.5"/>
+      <circle cx="272" cy="446" r="13" fill="#211C15"/><text x="272" y="450" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#F4F0E6">6</text>
+      <text x="294" y="450" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#211C15">FUSE · weight × likelihood</text>
+      <!-- s7 gate -->
+      <rect x="250" y="498" width="260" height="40" rx="6" fill="#F7E9CF" stroke="#B45309" stroke-width="1.7"/>
+      <circle cx="272" cy="518" r="13" fill="#B45309"/><text x="272" y="522" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FBF8F1">7</text>
+      <text x="294" y="522" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#9A3412">CONVERGE GATE · all evidence</text>
+      <!-- s8 -->
+      <rect x="250" y="570" width="260" height="40" rx="6" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.8"/>
+      <circle cx="272" cy="590" r="13" fill="#C2410C"/><text x="272" y="594" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#FBF8F1">8</text>
+      <text x="294" y="594" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#9A3412">REPORT · chain + conf + test</text>
+      <!-- prognosis -->
+      <rect x="298" y="634" width="164" height="30" rx="15" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.6"/>
+      <text x="380" y="653" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#0F766E">→ PROGNOSIS / RUL</text>
+
+      <!-- vertical arrows -->
+      <line x1="380" y1="52"  x2="380" y2="80"  stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="122" x2="380" y2="144" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="186" x2="380" y2="208" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="250" x2="380" y2="280" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="322" x2="380" y2="352" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="394" x2="380" y2="424" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="466" x2="380" y2="496" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="538" x2="380" y2="568" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <line x1="380" y1="610" x2="380" y2="632" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mflow)"/>
+
+      <!-- s4 branch: drop impostor (right) -->
+      <line x1="510" y1="302" x2="554" y2="302" stroke="#B91C1C" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <rect x="556" y="286" width="196" height="32" rx="5" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.3"/>
+      <text x="568" y="305" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#B91C1C">co-effect → drop (§06)</text>
+      <!-- s5 branch: broken → re-frame (left) -->
+      <line x1="250" y1="374" x2="206" y2="374" stroke="#B45309" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <rect x="8" y="358" width="198" height="32" rx="5" fill="#F7E9CF" stroke="#B45309" stroke-width="1.3"/>
+      <text x="20" y="377" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#9A3412">broken → re-frame ↺ (§07)</text>
+      <!-- s7 branch: two survive (right) -->
+      <line x1="510" y1="518" x2="554" y2="518" stroke="#B45309" stroke-width="1.4" marker-end="url(#mflow)"/>
+      <rect x="556" y="502" width="196" height="32" rx="5" fill="#F7E9CF" stroke="#B45309" stroke-width="1.3"/>
+      <text x="568" y="521" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="#9A3412">2 survive → discriminate</text>
+    </svg>
+    <figcaption><b>Three gates, not one funnel.</b> Steps 1–3 prepare the evidence and the hypothesis set. The <b style="color:#9A3412">impostor gate</b> (4) drops co-effects; the <b style="color:#9A3412">referee gate</b> (5) sends unconfirmed chains back to be re-framed; the <b style="color:#9A3412">convergence gate</b> (7) refuses to commit when two chains still survive. Only a chain that clears all three reaches the verdict.</figcaption>
+  </figure>
+
+  <h3>The same procedure as an algorithm</h3>
+  <p>Drawn as a flowchart it is a path; written as pseudocode it is a loop with guards. The two gates that can reject — the referee and convergence — are why this is iterative, not a straight line.</p>
+  <div class="algo">
+    <div class="hd"><span>Algorithm 1</span><span class="nm">root_cause(E)</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input</span>  E = { DTC, C-source, telemetry, testimony, history }</p>
+<p class="ln"><span class="io">output</span> a confirmed causal chain, or two chains + a discriminating test</p>
+<p class="ln"></p>
+<p class="ln">G   <span class="kw">←</span> grade(E)                  <span class="cm"># §03  provenance + trust tier per source</span></p>
+<p class="ln">T   <span class="kw">←</span> anchor(G)                 <span class="cm"># §04  one timeline, one cohort</span></p>
+<p class="ln">H   <span class="kw">←</span> frame(T)                  <span class="cm"># §05  chains: cause → mechanism → signature</span></p>
+<p class="ln">H   <span class="kw">←</span> { h ∈ H : partial_corr_survives(h, T) }   <span class="cm"># §06  drop impostors</span></p>
+<p class="ln"><span class="kw">for</span> h <span class="kw">in</span> H:</p>
+<p class="ln i1">h.state <span class="kw">←</span> confirm(h, telemetry, C-source)    <span class="cm"># §07  physics + code referee</span></p>
+<p class="ln i1"><span class="kw">if</span> h.state = BROKEN: <span class="kw">continue</span>            <span class="cm"># falsified → re-frame</span></p>
+<p class="ln">H   <span class="kw">←</span> { h ∈ H : h.state = CONFIRMED }</p>
+<p class="ln">P   <span class="kw">←</span> fuse(H, G)                <span class="cm"># §08  Σ trust(e)·logLR(e|h), independence-gated</span></p>
+<p class="ln"><span class="kw">if</span> converges(argmax P):           <span class="cm"># §09  explains DTC ∧ signature ∧ code ∧ cohort</span></p>
+<p class="ln i1"><span class="kw">return</span> report(argmax P)        <span class="cm"># §10  chain · confidence · kill-switch</span></p>
+<p class="ln"><span class="kw">else</span>:</p>
+<p class="ln i1"><span class="kw">return</span> discriminating_test(top2(P))</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 14 ===================== -->
+<section id="evidence">
+  <span class="snum">§ 14 — The Evidence</span>
+  <h2>The pile, coloured by trust</h2>
+  <p class="lead">Six source classes land on the desk. Step one (§03) is to grade them — before reading a single value for meaning.</p>
+
+  <figure>
+    <div class="figlab">Figure 3 — Evidence intake and grading</div>
+    <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six evidence sources, each tagged by trust, converging into the grading step">
+      <defs>
+        <marker id="mg" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5A5044"/></marker>
+      </defs>
+      <!-- sources -->
+      <g font-family="IBM Plex Mono, monospace">
+        <rect x="20" y="14"  width="300" height="30" rx="4" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.4"/>
+        <text x="34" y="33" font-size="11.5" font-weight="600" fill="#0F766E">DTC · status bits + freeze-frame</text>
+        <text x="312" y="33" text-anchor="end" font-size="10" font-weight="700" fill="#0F766E">HIGH</text>
+
+        <rect x="20" y="50"  width="300" height="30" rx="4" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.4"/>
+        <text x="34" y="69" font-size="11.5" font-weight="600" fill="#B91C1C">DTC · text description</text>
+        <text x="312" y="69" text-anchor="end" font-size="10" font-weight="700" fill="#B91C1C">LOW</text>
+
+        <rect x="20" y="86"  width="300" height="30" rx="4" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.4"/>
+        <text x="34" y="105" font-size="11.5" font-weight="600" fill="#0F766E">ECU C source</text>
+        <text x="312" y="105" text-anchor="end" font-size="10" font-weight="700" fill="#0F766E">HIGH·cap</text>
+
+        <rect x="20" y="122" width="300" height="30" rx="4" fill="#F7E9CF" stroke="#B45309" stroke-width="1.4"/>
+        <text x="34" y="141" font-size="11.5" font-weight="600" fill="#9A3412">Telemetry / measurements</text>
+        <text x="312" y="141" text-anchor="end" font-size="10" font-weight="700" fill="#9A3412">MED·HI</text>
+
+        <rect x="20" y="158" width="300" height="30" rx="4" fill="#F7E9CF" stroke="#B45309" stroke-width="1.4"/>
+        <text x="34" y="177" font-size="11.5" font-weight="600" fill="#9A3412">Maintenance / repair history</text>
+        <text x="312" y="177" text-anchor="end" font-size="10" font-weight="700" fill="#9A3412">MED</text>
+
+        <rect x="20" y="194" width="300" height="30" rx="4" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.4"/>
+        <text x="34" y="213" font-size="11.5" font-weight="600" fill="#B91C1C">Dealer / customer testimony</text>
+        <text x="312" y="213" text-anchor="end" font-size="10" font-weight="700" fill="#B91C1C">LOW</text>
+      </g>
+      <!-- convergence arrows -->
+      <line x1="320" y1="29"  x2="476" y2="108" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <line x1="320" y1="65"  x2="476" y2="116" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <line x1="320" y1="101" x2="476" y2="122" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <line x1="320" y1="137" x2="476" y2="128" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <line x1="320" y1="173" x2="476" y2="134" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <line x1="320" y1="209" x2="476" y2="142" stroke="#5A5044" stroke-width="1.2" marker-end="url(#mg)"/>
+      <!-- grade node -->
+      <rect x="480" y="98" width="210" height="56" rx="7" fill="#FBF8F1" stroke="#211C15" stroke-width="1.7"/>
+      <text x="585" y="122" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="700" fill="#C2410C">STEP 1 · GRADE</text>
+      <text x="585" y="140" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5A5044">→ trust-weighted pile</text>
+    </svg>
+    <figcaption><b>The split that matters most:</b> the DTC enters as <em>two</em> sources — its machine-set fields (HIGH) and its catalog prose (LOW). The C source is HIGH for <em>capability</em> only. Testimony enters LOW: it will be allowed to propose and to date, never to confirm.</figcaption>
+  </figure>
+
+  <h3>Input 1 — the DTC &amp; freeze-frame &nbsp;<span class="tag hi">bits: HIGH</span> <span class="tag lo">text: LOW</span></h3>
+  <pre><span class="c"># dtc_freeze_frame.json  (vehicle EV-201)</span>
+<span class="k">dtc</span>:    P0A80-0F  <span class="s">"Replace Hybrid/EV Battery Pack"</span>   <span class="c"># generic boilerplate — LOW</span>
+        B2C1-17   <span class="s">"Cell voltage imbalance, pack 1"</span>  <span class="c"># mfr-specific  — MEDIUM</span>
+<span class="k">status</span>: 0x2F  <span class="c"># testFailed=1 confirmedDTC=1 warningIndicator=1</span>
+<span class="k">freeze_frame</span>:
+   odometer        <span class="n">38420</span> km
+   pack_temp       <span class="n">-8.4</span> &#176;C        <span class="c">&lt;-- cold</span>
+   soc             <span class="n">18</span> %
+   charge_mode     DC_FAST_CHARGE     <span class="c">&lt;-- charging hard</span>
+   pack_current    <span class="n">-142</span> A
+   balancing_state ACTIVE             <span class="c">&lt;-- balancing while cold-charging</span>
+   fw_version      <span class="n">4.2.1</span></pre>
+  <p>Ignore the P0A80 prose; it is a parts-replacement banner. The <strong>freeze-frame is the gold</strong>: the code set during <em>DC fast-charge, at &minus;8.4&nbsp;&deg;C, with cell balancing ACTIVE</em>. Three high-trust facts that, together, already point a finger — balancing is not supposed to be running in those conditions.</p>
+
+  <h3>Input 2 — the ECU C source &nbsp;<span class="tag md">HIGH for capability, silent on occurrence</span></h3>
+  <pre><span class="c">/* bms_balance.c — passive cell-balancing scheduler (fw 4.2.1) */</span>
+<span class="k">void</span> balance_step(Pack *p) {
+    int16_t t = p->temp_dC;            <span class="c">/* pack temp, signed deci-&deg;C */</span>
+    <span class="k">if</span> (t &gt; BAL_TMAX_dC) <span class="k">return</span>;       <span class="c">/* hot guard: OK */</span>
+    <span class="c">/* BUG (fw 4.2.0): negative temp cast to unsigned wraps high, */</span>
+    <span class="c">/* so the cold guard never fires below 0 &deg;C.               */</span>
+    <span class="k">if</span> ((uint16_t)t &lt; BAL_TMIN_dC)     <span class="c">/* -84 -&gt; 65452, NOT &lt; 50 =&gt; no skip */</span>
+        <span class="k">return</span>;
+    <span class="k">for</span> (int i = 0; i &lt; p-&gt;n; i++)
+        <span class="k">if</span> (p-&gt;cell_mV[i] - p-&gt;min_mV &gt; BAL_THRESH_mV)
+            bleed_on(i);               <span class="c">/* drains the weak cell cold */</span>
+}</pre>
+  <p>The suspect path exists: a signed/unsigned cast makes the cold cut-off unreachable, so balancing can run below freezing. But the code only proves the bug is <em>possible</em>. Whether it <em>fired on these cars</em> is a §07 question — answered by checking its guards against the freeze-frame.</p>
+
+  <h3>Input 3 — fleet telemetry &nbsp;<span class="tag md">MED·HIGH</span></h3>
+  <table class="tbl">
+    <thead><tr><th>Vehicle</th><th>fw</th><th>Climate</th><th>Cold&nbsp;FC</th><th>IR&nbsp;rise&nbsp;%/yr</th><th>Group</th></tr></thead>
+    <tbody>
+      <tr><td>EV-201</td><td>4.2.1</td><td>cold</td><td>44</td><td>9.6</td><td><span class="tag lo">affected</span></td></tr>
+      <tr><td>EV-017</td><td>4.2.1</td><td>cold</td><td>47</td><td>9.2</td><td><span class="tag lo">affected</span></td></tr>
+      <tr><td>EV-066</td><td>4.2.1</td><td>cold</td><td>39</td><td>7.9</td><td><span class="tag lo">affected</span></td></tr>
+      <tr><td>EV-129</td><td>4.1.0</td><td>cold</td><td>41</td><td>2.4</td><td><span class="tag hi">ok</span></td></tr>
+      <tr><td>EV-145</td><td>4.1.0</td><td>cold</td><td>46</td><td>2.6</td><td><span class="tag hi">ok</span></td></tr>
+      <tr><td>EV-103</td><td>4.2.1</td><td>temperate</td><td>3</td><td>2.1</td><td><span class="tag hi">ok</span></td></tr>
+      <tr><td>EV-118</td><td>4.2.1</td><td>temperate</td><td>2</td><td>2.3</td><td><span class="tag hi">ok</span></td></tr>
+    </tbody>
+  </table>
+  <p>Read the rows against each other, not in isolation. The affected cars share <em>fw&nbsp;&ge;&nbsp;4.2 &times; cold &times; many cold fast-charges</em>. Crucially, <strong>EV-129 and EV-145 fast-charge in the cold just as hard but sit on fw&nbsp;4.1 — and they are fine.</strong> Same usage, different firmware, different outcome.</p>
+
+  <h3>Input 4 — dealer &amp; customer reports &nbsp;<span class="tag lo">LOW</span></h3>
+  <div class="note">
+    <span class="lab">Verbatim — propose &amp; date only</span>
+    <p style="margin:0 0 8px"><b>2026-01-09 · EV-017</b> — &ldquo;Range dropped a lot this winter and it charges slower at the fast charger than in the fall.&rdquo;</p>
+    <p style="margin:0 0 8px"><b>2026-02-11 · EV-201</b> — &ldquo;Battery warning light came on right after a cold-morning fast charge.&rdquo;</p>
+    <p style="margin:0"><b>2026-02-27 · EV-044</b> — &ldquo;Loses range when it&rsquo;s freezing. Better on warm days.&rdquo;</p>
+  </div>
+  <p>Imprecise, but the unprompted common thread — <em>cold + fast charge</em> — is a free hypothesis and an onset date. That is exactly what low-trust testimony is <em>for</em>.</p>
+
+  <h3>Input 5 — maintenance &amp; repair history &nbsp;<span class="tag md">MEDIUM</span></h3>
+  <table class="tbl">
+    <thead><tr><th>Date</th><th>Event</th><th>Detail</th><th>Relevance</th></tr></thead>
+    <tbody>
+      <tr><td>2025-09-02</td><td>OTA</td><td>fw 4.1.0 &rarr; 4.2.0 (balancing rewrite)</td><td><span class="tag md">suspect change</span></td></tr>
+      <tr><td>2025-10-30</td><td>OTA</td><td>fw 4.2.0 &rarr; 4.2.1 fleet-wide</td><td><span class="tag md">timeline anchor</span></td></tr>
+      <tr><td>2025-11-14</td><td>repair</td><td>12V auxiliary battery replaced</td><td><span class="tag lo">red herring</span></td></tr>
+      <tr><td>2026-03-18</td><td>repair</td><td>imbalance DTC cleared (recurred)</td><td><span class="tag md">confound watch</span></td></tr>
+    </tbody>
+  </table>
+  <p>History earns its medium trust here: the <strong>balancing rewrite at fw 4.2.0</strong> is the suspect change that dates the whole problem, while the <strong>12V battery swap is a red herring</strong> — a real repair on an affected car that has nothing to do with the high-voltage pack. Putting both on one timeline keeps them from being confused.</p>
+</section>
+
+<!-- ===================== 15 ===================== -->
+<section id="anchor-case">
+  <span class="snum">§ 15 — Anchor</span>
+  <h2>One timeline, one cohort</h2>
+  <p class="lead">Now drop every dated fact onto a single axis, and plot the cohort. Most of the answer is visible before any modelling.</p>
+
+  <figure>
+    <div class="figlab">Figure 4 — The investigation timeline</div>
+    <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline of firmware events, symptom onset, complaints, and the DTC set date">
+      <!-- accelerated window -->
+      <rect x="300" y="64" width="345" height="86" fill="#F7E9CF" opacity="0.55"/>
+      <text x="472" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#9A3412">accelerated IR-rise window (first hard freeze →)</text>
+      <!-- axis -->
+      <line x1="60" y1="150" x2="724" y2="150" stroke="#211C15" stroke-width="1.6"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044" text-anchor="middle">
+        <text x="60" y="168">Sep</text><text x="142" y="168">Oct</text><text x="225" y="168">Nov</text>
+        <text x="307" y="168">Dec</text><text x="390" y="168">Jan</text><text x="472" y="168">Feb</text>
+        <text x="555" y="168">Mar</text><text x="637" y="168">Apr</text><text x="720" y="168">May</text>
+      </g>
+      <!-- below-axis: firmware / physical (teal/amber) -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="62" y1="150" x2="62" y2="190" stroke="#0F766E" stroke-width="1.3"/><circle cx="62" cy="190" r="4" fill="#0F766E"/>
+        <text x="62" y="206" text-anchor="middle" fill="#0F766E">fw 4.2.0</text><text x="62" y="218" text-anchor="middle" fill="#0F766E">(rewrite)</text>
+        <line x1="222" y1="150" x2="222" y2="190" stroke="#0F766E" stroke-width="1.3"/><circle cx="222" cy="190" r="4" fill="#0F766E"/>
+        <text x="222" y="206" text-anchor="middle" fill="#0F766E">fw 4.2.1 OTA</text>
+        <line x1="320" y1="150" x2="320" y2="184" stroke="#B45309" stroke-width="1.3"/><circle cx="320" cy="184" r="4" fill="#B45309"/>
+        <text x="320" y="200" text-anchor="middle" fill="#9A3412">IR divergence</text><text x="320" y="212" text-anchor="middle" fill="#9A3412">begins</text>
+      </g>
+      <!-- above-axis: symptoms / codes (rust/slate) -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="414" y1="150" x2="414" y2="100" stroke="#C2410C" stroke-width="1.3"/><circle cx="414" cy="100" r="4" fill="#C2410C"/>
+        <text x="414" y="92" text-anchor="middle" fill="#9A3412">first complaints</text>
+        <line x1="505" y1="150" x2="505" y2="58" stroke="#C2410C" stroke-width="1.6"/><circle cx="505" cy="58" r="5" fill="#C2410C"/>
+        <text x="505" y="50" text-anchor="middle" fill="#9A3412" font-weight="700">DTC sets (EV-201)</text>
+        <line x1="603" y1="150" x2="603" y2="100" stroke="#475569" stroke-width="1.3"/><circle cx="603" cy="100" r="4" fill="#475569"/>
+        <text x="603" y="92" text-anchor="middle" fill="#475569">code recurs</text>
+      </g>
+    </svg>
+    <figcaption><b>The shape jumps out:</b> the balancing rewrite ships (Sep), the divergence starts with the first hard freeze (Dec) — not with the OTA date and not with any single car&rsquo;s service visit — and the code and complaints follow mid-winter. A firmware-plus-cold story already fits the calendar; a pure-usage story does not explain the seasonal onset.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="figlab">Figure 5 — The cohort: cold fast-charges vs. resistance rise</div>
+    <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scatter of cold fast-charge count against internal-resistance rise, split by group">
+      <!-- axes -->
+      <line x1="80" y1="40" x2="80" y2="300" stroke="#211C15" stroke-width="1.4"/>
+      <line x1="80" y1="300" x2="715" y2="300" stroke="#211C15" stroke-width="1.4"/>
+      <text x="20" y="170" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" transform="rotate(-90 20 170)" text-anchor="middle">IR rise (%/yr)</text>
+      <text x="400" y="334" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" text-anchor="middle">cold fast-charge count</text>
+      <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">
+        <text x="74" y="304" text-anchor="end">0</text><text x="74" y="179" text-anchor="end">5</text><text x="74" y="54" text-anchor="end">10</text>
+        <text x="80" y="316" text-anchor="middle">0</text><text x="362" y="316" text-anchor="middle">25</text><text x="700" y="316" text-anchor="middle">55</text>
+      </g>
+      <!-- affected cluster box -->
+      <rect x="498" y="48" width="180" height="74" rx="6" fill="none" stroke="#C2410C" stroke-width="1.3" stroke-dasharray="5 4"/>
+      <text x="588" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#9A3412">affected: fw&ge;4.2 &times; cold</text>
+      <!-- points: affected (rust) -->
+      <g fill="#C2410C">
+        <circle cx="610" cy="70" r="6"/><circle cx="655" cy="80" r="6"/><circle cx="576" cy="60" r="6"/><circle cx="520" cy="103" r="6"/><circle cx="632" cy="73" r="6"/>
+      </g>
+      <!-- ok cold fw4.1 (slate) -->
+      <g fill="#475569">
+        <circle cx="542" cy="240" r="6"/><circle cx="599" cy="235" r="6"/><circle cx="91" cy="253" r="6"/>
+      </g>
+      <!-- ok temperate fw4.2 (teal) -->
+      <g fill="#0F766E">
+        <circle cx="114" cy="248" r="6"/><circle cx="103" cy="243" r="6"/><circle cx="125" cy="250" r="6"/><circle cx="136" cy="245" r="6"/>
+      </g>
+      <!-- annotation for cold 4.1 -->
+      <text x="570" y="262" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#475569">same usage, fw 4.1 → fine</text>
+      <!-- legend -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <circle cx="96" cy="346" r="5" fill="#C2410C"/><text x="106" y="350" fill="#5A5044">affected (fw&ge;4.2, cold)</text>
+        <circle cx="300" cy="346" r="5" fill="#475569"/><text x="310" y="350" fill="#5A5044">ok (fw 4.1, cold)</text>
+        <circle cx="470" cy="346" r="5" fill="#0F766E"/><text x="480" y="350" fill="#5A5044">ok (fw&ge;4.2, temperate)</text>
+      </g>
+    </svg>
+    <figcaption><b>The cohort boundary is two-dimensional.</b> Heavy cold fast-charging alone does not separate the groups — the fw&nbsp;4.1 cars (slate, bottom-right) charge just as hard and stay healthy. Only <em>firmware &times; climate</em> isolates the affected set. This figure quietly pre-empts the impostor of §16: usage is shared across healthy and sick cars alike.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 16 ===================== -->
+<section id="frame-case">
+  <span class="snum">§ 16 — Frame &amp; Break</span>
+  <h2>Four chains, and the impostor among them</h2>
+  <p class="lead">Write the candidates as causal chains, each with a signature you can go check. Then attack the most convincing one first.</p>
+  <div class="verdict">
+    <div class="vcard hold">
+      <h4>H0 · Calendar + cycle aging <span class="tag md" style="float:right">null</span></h4>
+      <p class="meta">cause: ordinary degradation → signature: smooth, unimodal, ~2%/yr fleet-wide</p>
+      <p>The null the others must beat. Contradicted on sight by the <em>bimodal</em> cohort (Fig 5) — aging does not split a fleet in two.</p>
+    </div>
+    <div class="vcard keep">
+      <h4>H1 · Cold-balancing firmware bug <span class="tag hi" style="float:right">survives</span></h4>
+      <p class="meta">cause: signed/unsigned cold-guard bug (fw&ge;4.2.0) → balancing runs cold → weak-cell over-discharge → IR rise</p>
+      <p>Signature: IR rise concentrated in <em>fw&ge;4.2 &times; cold &times; high cold-FC</em>, with balancing ACTIVE in cold freeze-frames. Matches every figure so far.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>H2 · Fast-charging stress <span class="tag lo" style="float:right">impostor?</span></h4>
+      <p class="meta">cause: DC-fast-charge lithium plating → IR rise → signature: IR &prop; total fast-charge count, any fw/climate</p>
+      <p>The story the whole room believes — &ldquo;fast charging wears batteries.&rdquo; It correlates. It is also the prime suspect for being a co-effect.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>H3 · Cell-supplier defect <span class="tag lo" style="float:right">drops</span></h4>
+      <p class="meta">cause: bad cell lot → signature: IR rise tracks supplier, not fw/climate</p>
+      <p>Plausible until you notice affected and healthy cars share the supplier; the split is firmware&times;climate, not lot. Conditioning removes it.</p>
+    </div>
+  </div>
+
+  <h3>The partial-correlation gate</h3>
+  <p>H2 is the dangerous one because its correlation is real. The test: does fast-charging still predict IR rise once we <em>condition on the cohort</em> — look only within a single firmware&times;climate stratum?</p>
+  <figure>
+    <div class="figlab">Figure 6 — The impostor, broken by conditioning</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two scatter panels: marginal correlation strong, conditional correlation flat">
+      <!-- LEFT panel: marginal -->
+      <text x="210" y="24" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#211C15">Marginal — whole fleet</text>
+      <line x1="70" y1="50" x2="70" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <line x1="70" y1="250" x2="360" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <text x="40" y="150" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044" transform="rotate(-90 40 150)" text-anchor="middle">IR rise</text>
+      <text x="215" y="276" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044" text-anchor="middle">total fast-charge count</text>
+      <line x1="82" y1="238" x2="350" y2="92" stroke="#B91C1C" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <g fill="#475569">
+        <circle cx="100" cy="232" r="5"/><circle cx="125" cy="226" r="5"/><circle cx="145" cy="230" r="5"/><circle cx="112" cy="238" r="5"/>
+      </g>
+      <g fill="#C2410C">
+        <circle cx="300" cy="108" r="5"/><circle cx="322" cy="100" r="5"/><circle cx="286" cy="120" r="5"/><circle cx="332" cy="96" r="5"/><circle cx="308" cy="104" r="5"/>
+      </g>
+      <text x="300" y="78" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#B91C1C">r = 0.78</text>
+
+      <!-- RIGHT panel: conditioned -->
+      <text x="560" y="24" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#211C15">Conditioned — within fw 4.1 &times; cold</text>
+      <line x1="430" y1="50" x2="430" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <line x1="430" y1="250" x2="720" y2="250" stroke="#211C15" stroke-width="1.3"/>
+      <text x="400" y="150" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044" transform="rotate(-90 400 150)" text-anchor="middle">IR rise</text>
+      <text x="575" y="276" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5A5044" text-anchor="middle">fast-charge count (same stratum)</text>
+      <line x1="445" y1="180" x2="710" y2="178" stroke="#0F766E" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <g fill="#475569">
+        <circle cx="470" cy="182" r="5"/><circle cx="520" cy="176" r="5"/><circle cx="560" cy="184" r="5"/><circle cx="610" cy="178" r="5"/><circle cx="660" cy="176" r="5"/><circle cx="690" cy="183" r="5"/>
+      </g>
+      <text x="575" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700" fill="#0F766E">r = 0.06</text>
+    </svg>
+    <figcaption><b>The association evaporates.</b> Across the fleet, fast-charging predicts IR rise (left, r&nbsp;=&nbsp;0.78) — because the buggy-firmware cold cars happen to fast-charge a lot. Hold firmware and climate fixed (right) and the relationship vanishes (r&nbsp;=&nbsp;0.06). H2 was a co-effect of the true cause. <b style="color:#B91C1C">Impostor dropped.</b></figcaption>
+  </figure>
+  <p>Two hypotheses are now gone for the price of one cheap test plus one scatter: H2 by conditioning, H3 and H0 by the cohort. Only <strong>H1</strong> walks into the referee.</p>
+</section>
+
+<!-- ===================== 17 ===================== -->
+<section id="referee-case">
+  <span class="snum">§ 17 — The Referee</span>
+  <h2>Code and physics confirm H1</h2>
+  <p class="lead">H1 has earned a hearing. Confirmation is two independent checks: the code path must <em>execute</em> under the recorded conditions, and the physics must <em>regenerate</em> the signature.</p>
+
+  <h3>Check 1 — trace the C path against the freeze-frame</h3>
+  <p>The freeze-frame recorded <code class="inl">pack_temp = &minus;8.4&nbsp;&deg;C</code> with <code class="inl">balancing_state = ACTIVE</code>. Does <code class="inl">balance_step()</code> actually run there?</p>
+  <div class="algo">
+    <div class="hd"><span>Trace</span><span class="nm">balance_step @ freeze-frame</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">given</span>  pack_temp = -8.4 &deg;C   →   t = temp_dC = -84</p>
+<p class="ln"><span class="kw">hot guard</span>  t &gt; 450 ?              -84 &gt; 450  →  <span class="cm">false, continue</span></p>
+<p class="ln"><span class="kw">cold guard</span> (uint16_t)t &lt; 50 ?     (uint16_t)(-84) = <span class="io">65452</span></p>
+<p class="ln i2">65452 &lt; 50  →  <span class="cm">FALSE → guard does NOT skip</span></p>
+<p class="ln"><span class="kw">result</span>  falls through to bleed loop  →  <span class="io">balancing RUNS at -8.4 &deg;C</span></p>
+<p class="ln"><span class="cm"># matches freeze-frame balancing_state = ACTIVE  ✓  reachable AND guarded-in</span></p>
+    </div>
+  </div>
+  <p>The path is not merely present in the source — it <em>executes</em> in exactly the conditions the high-trust freeze-frame captured. This is the distinction §07 insists on: capability became occurrence the moment the guard was shown to pass under the recorded state.</p>
+
+  <h3>Check 2 — regenerate the signature</h3>
+  <p>Drive the battery-aging model with the H1 mechanism (extra cold over-discharge cycles on the weakest cell) and compare its predicted IR-rise trajectory against the measured one.</p>
+  <figure>
+    <div class="figlab">Figure 7 — Model-regenerated signature vs. measurement</div>
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simulated and measured internal-resistance rise for affected and healthy cars">
+      <line x1="70" y1="40" x2="70" y2="270" stroke="#211C15" stroke-width="1.4"/>
+      <line x1="70" y1="270" x2="715" y2="270" stroke="#211C15" stroke-width="1.4"/>
+      <text x="34" y="155" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" transform="rotate(-90 34 155)" text-anchor="middle">internal resistance (norm.)</text>
+      <text x="390" y="300" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" text-anchor="middle">months since fw 4.2.0</text>
+      <!-- affected model line (steep) -->
+      <polyline points="70,255 180,238 290,205 400,165 510,120 620,90 700,72" fill="none" stroke="#C2410C" stroke-width="2"/>
+      <!-- affected measured dots -->
+      <g fill="#C2410C">
+        <circle cx="180" cy="241" r="4"/><circle cx="290" cy="200" r="4"/><circle cx="400" cy="170" r="4"/><circle cx="510" cy="116" r="4"/><circle cx="620" cy="94" r="4"/><circle cx="700" cy="68" r="4"/>
+      </g>
+      <!-- healthy model line (gentle) -->
+      <polyline points="70,255 180,251 290,247 400,243 510,239 620,235 700,231" fill="none" stroke="#0F766E" stroke-width="2"/>
+      <g fill="#0F766E">
+        <circle cx="290" cy="249" r="4"/><circle cx="510" cy="241" r="4"/><circle cx="700" cy="233" r="4"/>
+      </g>
+      <!-- legend -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="430" y1="64" x2="455" y2="64" stroke="#C2410C" stroke-width="2"/><circle cx="442" cy="64" r="3.5" fill="#C2410C"/>
+        <text x="462" y="68" fill="#5A5044">H1 model · measured (affected)</text>
+        <line x1="430" y1="84" x2="455" y2="84" stroke="#0F766E" stroke-width="2"/><circle cx="442" cy="84" r="3.5" fill="#0F766E"/>
+        <text x="462" y="88" fill="#5A5044">calendar-aging model · measured (healthy)</text>
+      </g>
+    </svg>
+    <figcaption><b>The model built from the bug reproduces the data it never saw.</b> Feeding H1&rsquo;s cold over-discharge into the aging model yields the steep affected curve (rust); plain calendar aging yields the flat healthy curve (teal). Measured points fall on their respective curves. A confirmed mechanism is one an independent model can regenerate — this is that.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 18 ===================== -->
+<section id="fuse-case">
+  <span class="snum">§ 18 — Fuse</span>
+  <h2>Score the evidence by trust, not by count</h2>
+  <p class="lead">Lay every piece of evidence against every surviving hypothesis, mark for-or-against, and weight the row by its trust tier. The posterior falls out.</p>
+  <figure>
+    <div class="figlab">Table 2 — Evidence &times; hypothesis, trust-weighted</div>
+    <table class="tbl">
+      <thead><tr><th>Evidence (trust)</th><th>H0 age</th><th>H1 bug</th><th>H2 fast-chg</th><th>H3 supplier</th></tr></thead>
+      <tbody>
+        <tr><td>Freeze-frame: cold + balancing ACTIVE <span class="tag hi">HI</span></td><td>0</td><td><b style="color:#0F766E">+ +</b></td><td>&minus;</td><td>0</td></tr>
+        <tr><td>C path executes at &minus;8.4&deg;C <span class="tag hi">HI</span></td><td>&minus;</td><td><b style="color:#0F766E">+ +</b></td><td>&minus;</td><td>&minus;</td></tr>
+        <tr><td>Signature match (Fig 7) <span class="tag hi">HI</span></td><td>&minus;</td><td><b style="color:#0F766E">+ +</b></td><td>0</td><td>0</td></tr>
+        <tr><td>Cohort = fw&times;climate (Fig 5) <span class="tag md">MED·HI</span></td><td>&minus; &minus;</td><td><b style="color:#0F766E">+</b></td><td><b style="color:#B91C1C">&minus; &minus;</b></td><td>&minus;</td></tr>
+        <tr><td>Partial-corr collapse (Fig 6) <span class="tag md">MED·HI</span></td><td>0</td><td>+</td><td><b style="color:#B91C1C">&minus; &minus;</b></td><td>0</td></tr>
+        <tr><td>Seasonal onset (Fig 4) <span class="tag md">MED</span></td><td>&minus;</td><td><b style="color:#0F766E">+</b></td><td>0</td><td>0</td></tr>
+        <tr><td>Complaints: &ldquo;cold + fast&rdquo; <span class="tag lo">LOW</span></td><td>0</td><td>+</td><td>+</td><td>0</td></tr>
+        <tr><td>12V battery repair <span class="tag lo">LOW</span></td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <figcaption><b>Note the discipline:</b> the three complaints are one row, not three (independence — they echo a single cause). The 12V repair scores zero everywhere — a real event with no causal bearing. The high-trust rows do the heavy lifting; the low-trust row only nudges.</figcaption>
+  </figure>
+  <figure>
+    <div class="figlab">Figure 8 — Posterior over hypotheses</div>
+    <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Posterior probability bars: H1 dominant">
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <text x="150" y="40" text-anchor="end" fill="#211C15" font-weight="600">H1 · firmware bug</text>
+        <rect x="160" y="26" width="520" height="22" rx="3" fill="#0F766E"/><text x="690" y="42" fill="#0F766E" font-weight="700">0.86</text>
+        <text x="150" y="82" text-anchor="end" fill="#5A5044">H3 · supplier</text>
+        <rect x="160" y="68" width="48" height="22" rx="3" fill="#475569"/><text x="216" y="84" fill="#5A5044">0.08</text>
+        <text x="150" y="124" text-anchor="end" fill="#5A5044">H2 · fast-charge</text>
+        <rect x="160" y="110" width="24" height="22" rx="3" fill="#B91C1C"/><text x="192" y="126" fill="#5A5044">0.04</text>
+        <text x="150" y="166" text-anchor="end" fill="#5A5044">H0 · aging</text>
+        <rect x="160" y="152" width="12" height="22" rx="3" fill="#B45309"/><text x="180" y="168" fill="#5A5044">0.02</text>
+      </g>
+    </svg>
+    <figcaption>After trust-weighted, independence-gated updating, H1 carries the belief. Not because more evidence pointed at it, but because the <em>high-trust, independent</em> evidence did — and the impostor&rsquo;s support was actively removed.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 19 ===================== -->
+<section id="converge-case">
+  <span class="snum">§ 19 — Converge &amp; Report</span>
+  <h2>One mechanism explains everything — then forecast</h2>
+  <p class="lead">H1 is accepted only because a single chain satisfies four independent lines at once, with the testimony consistent and nothing contradicting.</p>
+  <figure>
+    <div class="figlab">Figure 9 — Convergence on a single cause</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four independent evidence channels converging on one root cause">
+      <defs>
+        <marker id="mc" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5A5044"/></marker>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="20" y="28"  width="220" height="34" rx="5" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.3"/><text x="34" y="49" fill="#0F766E" font-weight="600">DTC freeze-frame: cold + ACTIVE</text>
+        <rect x="20" y="84"  width="220" height="34" rx="5" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.3"/><text x="34" y="105" fill="#0F766E" font-weight="600">telemetry signature match</text>
+        <rect x="20" y="140" width="220" height="34" rx="5" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.3"/><text x="34" y="161" fill="#0F766E" font-weight="600">C path executes at -8.4&deg;C</text>
+        <rect x="20" y="196" width="220" height="34" rx="5" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.3"/><text x="34" y="217" fill="#0F766E" font-weight="600">cohort = fw &times; climate</text>
+      </g>
+      <!-- arrows to center -->
+      <line x1="240" y1="45"  x2="468" y2="130" stroke="#5A5044" stroke-width="1.3" marker-end="url(#mc)"/>
+      <line x1="240" y1="101" x2="468" y2="142" stroke="#5A5044" stroke-width="1.3" marker-end="url(#mc)"/>
+      <line x1="240" y1="157" x2="468" y2="154" stroke="#5A5044" stroke-width="1.3" marker-end="url(#mc)"/>
+      <line x1="240" y1="213" x2="468" y2="166" stroke="#5A5044" stroke-width="1.3" marker-end="url(#mc)"/>
+      <!-- center cause -->
+      <rect x="470" y="112" width="160" height="80" rx="8" fill="#F7E7DF" stroke="#C2410C" stroke-width="2"/>
+      <text x="550" y="142" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="700" fill="#9A3412">H1</text>
+      <text x="550" y="160" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#9A3412">cold-balancing</text>
+      <text x="550" y="174" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#9A3412">cast bug</text>
+      <!-- to root cause -->
+      <line x1="630" y1="152" x2="680" y2="152" stroke="#5A5044" stroke-width="1.4" marker-end="url(#mc)"/>
+      <text x="690" y="148" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#C2410C">ROOT</text>
+      <text x="690" y="161" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700" fill="#C2410C">CAUSE</text>
+      <!-- testimony consistency -->
+      <rect x="320" y="244" width="240" height="34" rx="5" fill="#F3EEE0" stroke="#B45309" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="440" y="265" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#9A3412">testimony: consistent (not proof)</text>
+      <line x1="440" y1="244" x2="500" y2="194" stroke="#B45309" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#mc)"/>
+    </svg>
+    <figcaption><b>Convergence, not a single gun.</b> Four independent channels — each hard to fake on its own — all point at the same mechanism, and the low-trust testimony is consistent with it. A rival chain would have to explain all four simultaneously; none does.</figcaption>
+  </figure>
+
+  <h3>The verdict</h3>
+  <div class="verdict">
+    <div class="vcard keep">
+      <h4>Root cause</h4>
+      <p class="meta">the confirmed chain</p>
+      <p>A signed&rarr;unsigned cast in the cold balancing guard (introduced fw&nbsp;4.2.0) lets passive balancing run during cold fast-charge &rarr; the weakest cell is repeatedly over-discharged &rarr; accelerated internal-resistance rise &rarr; the SOH divergence and imbalance DTC, confined to <em>fw&nbsp;&ge;&nbsp;4.2 &times; cold-climate</em> vehicles.</p>
+    </div>
+    <div class="vcard hold">
+      <h4>Confidence &amp; residual uncertainty</h4>
+      <p class="meta">set by the weakest link</p>
+      <p>High on mechanism (code path traced to the freeze-frame; physics regenerates the signature). Medium on the exact population bound — &ldquo;cold&rdquo; is a coarse proxy; the true trigger is cell temperature at charge, which a few cars may hit in mild climates.</p>
+    </div>
+    <div class="vcard drop">
+      <h4>Disconfirming test</h4>
+      <p class="meta">the kill-switch</p>
+      <p>Pull fw&nbsp;&ge;&nbsp;4.2 cold-climate cars that have <em>never</em> cold-fast-charged. H1 predicts they are clean. If they show the same IR rise, the mechanism is wrong — run this before shipping the fix.</p>
+    </div>
+  </div>
+
+  <h3>Handoff to prognosis</h3>
+  <p>A confirmed mechanism is exactly what a degradation model needs. The same aging model from §17, now trusted, forecasts each affected car&rsquo;s remaining useful life with and without the OTA patch.</p>
+  <figure>
+    <div class="figlab">Figure 10 — Prognosis: SOH with and without the fix</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="State-of-health trajectories with and without the firmware fix">
+      <line x1="70" y1="30" x2="70" y2="250" stroke="#211C15" stroke-width="1.4"/>
+      <line x1="70" y1="250" x2="715" y2="250" stroke="#211C15" stroke-width="1.4"/>
+      <text x="34" y="140" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" transform="rotate(-90 34 140)" text-anchor="middle">SOH (%)</text>
+      <text x="390" y="282" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A5044" text-anchor="middle">months from today</text>
+      <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5A5044">
+        <text x="64" y="60" text-anchor="end">100</text><text x="64" y="150" text-anchor="end">85</text><text x="64" y="240" text-anchor="end">70</text>
+        <text x="70" y="264" text-anchor="middle">0</text><text x="392" y="264" text-anchor="middle">12</text><text x="700" y="264" text-anchor="middle">24</text>
+      </g>
+      <!-- warranty floor -->
+      <line x1="70" y1="210" x2="715" y2="210" stroke="#B45309" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="710" y="204" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#9A3412">warranty floor (75%)</text>
+      <!-- today marker -->
+      <circle cx="70" cy="120" r="4" fill="#211C15"/><text x="78" y="112" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#211C15">today</text>
+      <!-- no-fix (steep) -->
+      <polyline points="70,120 200,150 330,182 460,210 590,232 700,244" fill="none" stroke="#B91C1C" stroke-width="2.2"/>
+      <!-- with-fix (levels to baseline slope) -->
+      <polyline points="70,120 200,130 330,140 460,150 590,160 700,170" fill="none" stroke="#0F766E" stroke-width="2.2"/>
+      <!-- legend -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="430" y1="56" x2="455" y2="56" stroke="#B91C1C" stroke-width="2.2"/><text x="462" y="60" fill="#5A5044">no fix &rarr; hits warranty floor ~18 mo</text>
+        <line x1="430" y1="76" x2="455" y2="76" stroke="#0F766E" stroke-width="2.2"/><text x="462" y="80" fill="#5A5044">OTA fix today &rarr; reverts to normal aging</text>
+      </g>
+    </svg>
+    <figcaption><b>Diagnosis becomes a decision.</b> Untreated, affected packs cross the 75% warranty floor in roughly eighteen months; the OTA patch halts the cold over-discharge and returns them to the normal aging slope. The cost of waiting a quarter is now a number, not a worry — which is the whole point of carrying a confirmed mechanism forward into <a href="prognostics-health-management.html">prognostics</a>.</figcaption>
+  </figure>
+  <div class="note">
+    <span class="lab">What the worked case demonstrates</span>
+    <p style="margin:0">Every step earned its keep. Grading kept the DTC prose and the 12V repair from misleading us; anchoring exposed the seasonal onset; framing turned vague worry into testable chains; the impostor gate deleted the fleet&rsquo;s favourite theory; the referee turned a plausible bug into a confirmed one; fusion let one high-trust fact outweigh ten low-trust echoes; convergence justified commitment; and the report carried a mechanism — not a code — into a maintenance decision.</p>
+  </div>
+</section>
+
+<!-- ===================== 20 ===================== -->
+<section id="practical">
+  <span class="snum">§ 20 — Practical Notes</span>
+  <h2>Field rules for unequal-trust evidence</h2>
+  <p class="lead">The method distilled into habits you can carry into the investigation room.</p>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><span class="move">grade first</span><h4>Write the trust tier before you read the values</h4><p>For every source, note what it can establish, what it can&rsquo;t, and how far you trust it — <em>before</em> any number moves your belief. Grading after the fact is how the loudest clue wins.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><span class="move">two rows</span><h4>Split the DTC into machine fields and prose</h4><p>Trust the status bits and freeze-frame; treat the human-readable description as a search term, not a diagnosis. They deserve opposite trust tiers.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><span class="move">anchor</span><h4>One timeline, one cohort — before interpreting anything</h4><p>Place every code-set, complaint, repair, and excursion on a single timeline, and define affected vs. spared precisely. Most &ldquo;clues&rdquo; only become evidence once anchored in time and population.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><span class="move">kill the lead</span><h4>Name the most convincing correlation and attack it first</h4><p>The feature everyone believes is the prime suspect for being a co-effect. Run the partial-correlation test on it <em>before</em> you spend a week proving it.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><span class="move">referee</span><h4>Capability is not occurrence</h4><p>Source code and physics show what <em>can</em> happen. Confirm it <em>did</em> — trace the path under the recorded conditions, or regenerate the measured signature from the cause.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><span class="move">weight, don&rsquo;t count</span><h4>Independent corroboration beats volume</h4><p>Ten complaints tracing to one cause are one piece of evidence, not ten. Before a datum updates your belief, ask what it is independent of.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><span class="move">don&rsquo;t average</span><h4>A clash between two trusted sources is a finding</h4><p>When high-trust sources disagree, re-audit provenance — a bad sensor, a wrong-firmware log, a mismatch. Resolving the conflict usually <em>is</em> the discovery.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><span class="move">ship the chain</span><h4>Report a mechanism with a kill-switch, and keep the trail</h4><p>Deliver cause → mechanism → signature, a confidence set by the weakest link, and the single test that would overturn it. Keep the evidence trail auditable — diagnoses get re-litigated.</p></div></div>
+  </div>
+</section>
+
+<!-- ===================== 21 ===================== -->
+<section id="references">
+  <span class="snum">§ 21 — References &amp; Further Reading</span>
+  <h2>Where these ideas come from</h2>
+  <p class="lead">The method braids together abductive reasoning, causal inference, evidence combination, and engineering fault diagnosis. Entry points, grouped by the part of the method they ground.</p>
+
+  <h3>Abduction — inference to the best explanation</h3>
+  <div class="refs">
+    <p><b>C. S. Peirce, on abduction (<i>Collected Papers</i>).</b> The original account of reasoning from a surprising observation to the hypothesis that would best explain it — the engine of §05.</p>
+    <p><b>P. Lipton, <i>Inference to the Best Explanation</i> (2nd ed., 2004).</b> The modern philosophical treatment of how we rank competing explanations.</p>
+  </div>
+
+  <h3>Correlation, causation &amp; the impostor</h3>
+  <div class="refs">
+    <p><b>J. Pearl, <i>Causality: Models, Reasoning, and Inference</i> (2nd ed., 2009).</b> Confounding, partial correlation, and why a feature can predict an outcome it does not cause — the formal backbone of §06.</p>
+    <p><b>H. Reichenbach, <i>The Direction of Time</i> (1956).</b> The common-cause principle: a correlation between two effects of one cause. The impostor, named at its root.</p>
+  </div>
+
+  <h3>Combining evidence of unequal trust</h3>
+  <div class="refs">
+    <p><b>E. T. Jaynes, <i>Probability Theory: The Logic of Science</i> (2003).</b> Bayesian updating as the calculus of reasoning under uncertainty — the trust-weighted, likelihood-ratio fusion of §08.</p>
+    <p><b>G. Shafer, <i>A Mathematical Theory of Evidence</i> (1976).</b> Belief functions and the explicit handling of sources with different, partial reliability.</p>
+  </div>
+
+  <h3>Model-based &amp; consistency diagnosis</h3>
+  <div class="refs">
+    <p><b>R. Reiter, &ldquo;A Theory of Diagnosis from First Principles&rdquo; (1987).</b> Diagnoses as explanations consistent with the observations; the formal notion of a conflict.</p>
+    <p><b>J. de Kleer &amp; B. C. Williams, &ldquo;Diagnosing Multiple Faults&rdquo; (1987).</b> Candidate generation and reasoning about more than one fault — the discipline behind disciplined hypothesis sets.</p>
+  </div>
+
+  <h3>Fault diagnosis &amp; prognostics in engineering</h3>
+  <div class="refs">
+    <p><b>R. Isermann, <i>Fault-Diagnosis Systems</i> (2006).</b> Residuals, analytical redundancy, and the sensor/actuator/process fault distinctions underneath the referee step.</p>
+    <p><b>M. Blanke, M. Kinnaert, J. Lunze &amp; M. Staroswiecki, <i>Diagnosis and Fault-Tolerant Control</i> (Springer).</b> Structural diagnosability — when measurements can, in principle, separate faults at all.</p>
+  </div>
+
+  <h3>Measurement, provenance &amp; automotive diagnostics</h3>
+  <div class="refs">
+    <p><b>JCGM / BIPM, <i>Guide to the Expression of Uncertainty in Measurement</i> (GUM).</b> The standard vocabulary for the uncertainty that every measured input carries — the reason telemetry is high-trust but never infallible.</p>
+    <p><b>ISO 14229 (UDS) &amp; SAE J1979 (OBD-II).</b> The diagnostic protocols and DTC structure behind §03&rsquo;s split of the trouble code into machine fields and prose.</p>
+  </div>
+
+  <h3>Root-cause analysis in practice</h3>
+  <div class="refs">
+    <p><b>K. Ishikawa, <i>Guide to Quality Control</i>.</b> Cause-and-effect (fishbone) analysis — the shop-floor ancestor of structured hypothesis generation.</p>
+    <p><b>C. H. Kepner &amp; B. B. Tregoe, <i>The New Rational Manager</i>.</b> Systematic problem analysis: specifying what is and isn&rsquo;t affected — the cohort discipline of §04.</p>
+    <p><b>T. Ohno, <i>Toyota Production System</i> (1988).</b> The &ldquo;Five Whys&rdquo; — chasing a symptom back to its mechanism rather than stopping at the first cause.</p>
+  </div>
+  <div class="note">
+    <span class="lab">A note on these references</span>
+    <p style="margin:0">These are orientation points into large literatures, cited to show the lineage of the method rather than as the source of any single claim here. Titles and years are given so you can find them.</p>
+  </div>
+</section>
+
+<!-- ===================== the series ===================== -->
+<section id="series-nav">
+  <span class="snum">&sect; &mdash; The Series</span>
+  <h2>The Diagnosis Series</h2>
+  <p class="lead">Nine connected parts, from one car&rsquo;s evidence to a fleet campaign and back to prevention. <a href="diagnosis-series-index.html">See the full map &amp; reading guide &rarr;</a></p>
+  <div class="ladder">
+    <div class="rung"><div class="num">1</div><div class="body"><h4>Root-Cause Analysis Under Uncertain, Heterogeneous Evidence &nbsp;<span class="tag md" style="font-size:10px;vertical-align:middle">you are here</span></h4><p>Grade, anchor, and fuse messy, unequal-trust clues into one cause.</p></div></div>
+    <div class="rung"><div class="num">2</div><div class="body"><h4><a href="evidence-sufficiency-and-conflict.html">When Is the Evidence Enough?</a></h4><p>The sufficiency gate, value of information, and handling conflict.</p></div></div>
+    <div class="rung"><div class="num">3</div><div class="body"><h4><a href="harder-cases-in-diagnosis.html">Harder Cases in Diagnosis</a></h4><p>Multiple faults, intermittency, and lying sensors.</p></div></div>
+    <div class="rung"><div class="num">4</div><div class="body"><h4><a href="fleet-scale-root-cause-analysis.html">Fleet-Scale Root-Cause Analysis</a></h4><p>One code across a population: de-mix, stratify, remediate.</p></div></div>
+    <div class="rung"><div class="num">5</div><div class="body"><h4><a href="fleet-rca-made-rigorous.html">Fleet RCA, Made Rigorous</a></h4><p>Significance, surveillance, forecasting, closing the loop.</p></div></div>
+    <div class="rung"><div class="num">6</div><div class="body"><h4><a href="proving-cause-with-experiments.html">Proving Cause with Experiments</a></h4><p>Turn observation into proof with staged rollouts.</p></div></div>
+    <div class="rung"><div class="num">7</div><div class="body"><h4><a href="diagnosis-on-the-vehicle.html">Diagnosis on the Vehicle</a></h4><p>Real-time fault detection at the edge, feeding the fleet.</p></div></div>
+    <div class="rung"><div class="num">8</div><div class="body"><h4><a href="data-plumbing-fleet-diagnosis.html">The Data Plumbing Behind Fleet Diagnosis</a></h4><p>Joining, aligning, and cleaning the data that makes it work.</p></div></div>
+    <div class="rung"><div class="num">9</div><div class="body"><h4><a href="prevention-and-corrective-action.html">From Root Cause to No Cause</a></h4><p>Prevention and the corrective-action loop &mdash; engineer it out.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="reslinks" style="margin-top:0; border-top:none">
+    <span class="ic">▸</span>
+    <a href="root-cause-analysis-battery-case-study.html">Case 1: the worked battery RCA</a>
+    <a href="agentic-rca-prognostics-framework.html">The agentic framework</a>
+    <a href="framework-battery-walkthrough.html">Framework walkthrough</a>
+    <a href="fault-detection-isolation.html">Fault Detection &amp; Isolation</a>
+    <a href="prognostics-health-management.html">Prognostics &amp; Health Management</a>
+  </div>
+  <div class="rule"></div>
+  <p><b>Root-Cause Analysis Under Uncertain, Heterogeneous Evidence</b></p>
+  <p>By Majid Mazouchi · Vehicle Health Monitoring Notes</p>
+  <p>The methodological companion to the five-case RCA series.</p>
+</footer>
+
+</div>
+</body>
+</html>
