@@ -1,7 +1,7 @@
 ---
 title: "The Diagnosis Series: A Reading Map"
 subtitle: "Nine connected pieces, from one car's messy evidence to a fleet-wide campaign — and back around to preventing the fault entirely."
-date: 2026-06-21 09:00:00 -0400
+date: 2026-04-11 09:00:00 -0400
 category: "Control Systems"
 slug: diagnosis-series
 excerpt: "An index and reading map for the nine-part diagnosis series. It is one long argument: turn untrustworthy evidence into a cause, know when you have enough to conclude, handle the hard cases, scale to a fleet, make the fleet methods statistically honest, prove cause with real experiments, push detection onto the vehicle, lay the data foundation, and close the loop with prevention. Start at the beginning or jump to the part you need."

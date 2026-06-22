@@ -1,7 +1,7 @@
 ---
 title: "Proving Cause with Experiments: Causal Inference and Staged Rollouts"
 subtitle: "Observation suggests a cause; intervention proves it. How a staged software rollout becomes a randomized experiment — and how to settle causation when you can't randomize."
-date: 2026-06-20 23:20:00 -0400
+date: 2026-04-11 23:20:00 -0400
 category: "Control Systems"
 slug: proving-cause-with-experiments
 excerpt: "The diagnosis series found a cause by watching: a charging code (P0AE0) concentrated in cars on firmware ≥ v5.1, pointing to a cold-throttle bug, and a v5.2 patch was proposed. But 'the curve bent after we shipped' is not proof — coincidence, seasonality, regression to the mean, and other concurrent changes can all bend a curve. This post climbs the ladder of evidence from observation to intervention. We show why adjust-and-watch is limited by the confounders you never measured; draw the causal graph (DAGs, simply) that says what to adjust for and what not to — the collider trap; then make the rollout interventional. A staged rollout, when the order is randomized, is a clean randomized experiment: treatment versus control, the difference a real causal effect (the do-operator, in plain words). When you can't randomize, two workhorses recover causation from luck — difference-in-differences across not-yet-updated cohorts with its parallel-trends assumption, and instrumental variables / natural experiments where assignment is as-good-as-random. We close with how to run it well — power, a safe ramp, guardrails, a stopping rule — and a worked proof that v5.2 fixes the firmware cluster. Plain words, worked numbers, figures, algorithms, practical notes, and references."

@@ -1,7 +1,7 @@
 ---
 title: "Diagnosis on the Vehicle: Real-Time Fault Detection at the Edge"
 subtitle: "Everything so far happened at an analyst's desk. But the first diagnostician is the ECU — detecting faults in real time, on tiny compute, under a strict false-alarm budget."
-date: 2026-06-20 23:40:00 -0400
+date: 2026-04-11 23:40:00 -0400
 category: "Control Systems"
 slug: diagnosis-on-the-vehicle
 excerpt: "The whole diagnosis series, until now, has been offline — an analyst with logs. But the first diagnostician is the car itself. This post drops down to the edge, where an ECU decides to set a code in a few milliseconds, with a few kilobytes, no labels, and a hard rule that it must not cry wolf. We build the on-board detector from model-based observers and residuals, layer the cheap limit and plausibility checks beneath them, and add lightweight on-vehicle anomaly detection. Then we meet the two forces that shape every edge decision: a punishing false-alarm budget that demands debouncing and fault maturation, and the ISO 26262 / ASIL safety regime that keeps edge diagnosis bounded and auditable. Finally we close the loop — the car emits a DTC, freeze-frame, and snapshot that feed the offline fleet RCA pipeline, and fleet RCA tunes the detector's thresholds and ships them back by OTA. Worked throughout on one fault: charging code P0AE0, a high-resistance charge connector, caught by the car itself."

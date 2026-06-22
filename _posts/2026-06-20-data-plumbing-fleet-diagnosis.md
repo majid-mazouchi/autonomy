@@ -1,7 +1,7 @@
 ---
 title: "The Data Plumbing Behind Fleet Diagnosis"
 subtitle: "Every fleet method assumes a clean, joined, trustworthy table. Here is how that table is actually built — joining records by VIN, aligning clocks, and surviving missing data."
-date: 2026-06-20 23:55:00 -0400
+date: 2026-04-11 23:55:00 -0400
 category: "Control Systems"
 slug: data-plumbing-fleet-diagnosis
 excerpt: "The unglamorous foundation under the fleet posts. Those posts assumed a clean 'one row per car' table — build attributes, telemetry summary, warranty outcome — and went straight to de-mixing and surveillance. But that table does not arrive by post; it is assembled from messy raw sources that disagree about identity, time, and meaning. This piece builds it from the raw for the 6,000-car EV fleet with the P0AE0 charging code: join build records, telemetry, warranty claims, service notes, and DTC logs by VIN; survive the record-linkage pitfalls that corrupt the join — typos, duplicate claims, many-to-one rows, remanufactured parts — with fuzzy matching in the Fellegi–Sunter sense; align events that live on four different clocks to a common time-in-service reference so onset curves and survival models are valid; map and respect biased missingness instead of imputing over it; harmonize units and drifting DTC dictionaries into one shared canonical model; and wire it into an ingestion → canonical store → per-vehicle summary → analysis pipeline with lineage so any diagnosis can be re-run. Plain words, worked numbers, figures, algorithms, practical notes, and references."

@@ -1,7 +1,7 @@
 ---
 title: "Root-Cause Analysis Under Uncertain, Heterogeneous Evidence"
 subtitle: "A trouble code, a pile of telemetry, a few thousand lines of C, and a folder of customer complaints — none fully trustworthy. How to weigh them into one defensible cause."
-date: 2026-06-20 14:00:00 -0400
+date: 2026-04-11 14:00:00 -0400
 category: "Control Systems"
 slug: rca-under-uncertain-heterogeneous-evidence
 excerpt: "The methodological companion to the five-case RCA series. Real investigations don't begin with clean synthetic data — they begin with a heap of evidence of unequal trust: a DTC and its boilerplate description, ECU source code, measurement logs, dealer and customer symptom reports, and maintenance and repair history. This monograph is the procedure for turning that heap into a root cause with a mechanism: grade every input by provenance, anchor it to one timeline and cohort, frame the question as abduction, kill the impostor correlation, let physics and code referee, fuse the surviving evidence by Bayesian weight rather than by vote, and accept a cause only on convergence — then report it with its residual uncertainty and the single test that would still overturn it."

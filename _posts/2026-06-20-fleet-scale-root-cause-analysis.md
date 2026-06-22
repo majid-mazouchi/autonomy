@@ -1,7 +1,7 @@
 ---
 title: "Fleet-Scale Root-Cause Analysis: One Code, a Population of Evidence"
 subtitle: "When the same trouble code lights up across a whole fleet and the evidence arrives in bulk — how to diagnose a population instead of a single car."
-date: 2026-06-20 20:00:00 -0400
+date: 2026-04-11 20:00:00 -0400
 category: "Control Systems"
 slug: fleet-scale-root-cause-analysis
 excerpt: "The capstone of the diagnosis set. A single car gives you one observation; a fleet gives you a distribution — and a hypothesis must now explain not just that the code fired, but how common it is, who it happened to, and when it started spreading. Those stronger constraints are a gift, but they come with a trap: the same DTC across the fleet is usually a mixture of several root causes hiding behind one code, so you must de-mix the population before you diagnose it. We work through the fleet method in plain words — cluster the batch into homogeneous sub-populations, let the cohort boundary name each cause, defend against confounding and Simpson's paradox, aggregate batched evidence in two levels without double-counting, read the prevalence and onset curves for change-points, and turn the result into a remediation scope (OTA vs. recall vs. targeted). With a worked 6,000-vehicle scenario, figures, flowcharts, block diagrams, algorithms, practical notes, and references."

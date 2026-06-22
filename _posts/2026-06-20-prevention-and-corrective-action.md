@@ -1,7 +1,7 @@
 ---
 title: "From Root Cause to No Cause: Prevention and the Corrective-Action Loop"
 subtitle: "Finding the cause is half the job. The other half is making sure it never comes back — feeding the fix into design, process, and test so the fault is engineered out."
-date: 2026-06-20 23:00:00 -0400
+date: 2026-04-11 23:00:00 -0400
 category: "Control Systems"
 slug: prevention-and-corrective-action
 excerpt: "The closing note in the diagnosis series. The earlier posts found the cause; this one asks the harder question — how do you make sure it never happens again? Fixing the affected cars is containment, not victory; recurrence is the real failure. We walk the disciplined corrective-action loop (8D / CAPA and Deming's PDCA), separate the three actions people conflate — contain, correct, prevent — and then feed the confirmed cause backward: into the FMEA as a documented failure mode with a re-scored RPN, into the process control plan and its SPC charts, and into a poka-yoke that makes the failure physically impossible. We hunt the escape point — the test that should have caught it — add the missing test, and write the case into institutional memory so the next program inherits the fix. We run our two known causes, the firmware cold-throttle bug and the high-resistance connector lot, all the way through the loop. Plain words, worked steps, figures, algorithms, practical notes, and references."

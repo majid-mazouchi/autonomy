@@ -1,7 +1,7 @@
 ---
 title: "Fleet RCA, Made Rigorous: Significance, Surveillance, and Closing the Loop"
 subtitle: "The numbers under the fleet method — is the split real, did you fool yourself by looking everywhere, can you catch the next one early, and did the fix actually work?"
-date: 2026-06-20 22:00:00 -0400
+date: 2026-04-11 22:00:00 -0400
 category: "Control Systems"
 slug: fleet-rca-made-rigorous
 excerpt: "The rigorous companion to Fleet-Scale Root-Cause Analysis. That post showed the logic; this one puts numbers under the figures and closes the gaps. We make 'is this cohort split real?' a calculation — confidence intervals on prevalence, a chi-square test, and the Mantel–Haenszel stratified rate — and then name the trap that voids it: scanning many attributes for the best split manufactures false positives, fixed by Bonferroni/FDR and honest power. We move from reactive to proactive with control charts and CUSUM that catch a forming cluster at fifty cars instead of five thousand; handle boundaries that are gradients rather than crisp rules with logistic risk-scoring and interactions; pick the number of clusters honestly with BIC; turn the light forecast into a real one with Weibull hazards, censoring, and B10 life; quantify the remediation decision as prevented-loss vs campaign-cost against a mandatory-recall threshold; verify the fix by watching prevalence bend after the campaign; and catch phantom fleet patterns where a bad software update lights one code fleet-wide with no real fault. Plain words, worked numbers, figures, algorithms, practical notes, and references."

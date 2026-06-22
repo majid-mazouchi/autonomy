@@ -1,7 +1,7 @@
 ---
 title: "When Is the Evidence Enough? Sufficiency and Conflict in Diagnosis"
 subtitle: "How to tell whether your measurements can actually reach a conclusion — and what to do when they can't, or when they disagree with each other."
-date: 2026-06-20 16:00:00 -0400
+date: 2026-04-11 16:00:00 -0400
 category: "Control Systems"
 slug: evidence-sufficiency-and-conflict
 excerpt: "The companion to Root-Cause Analysis Under Uncertain, Heterogeneous Evidence. That post showed how to weigh messy evidence into a cause; this one answers the question it left open — how do you know you have enough to conclude at all? The key idea, in plain words: sufficiency is not about how much data you have, it is about whether your data can tell your hypotheses apart. We build a sufficiency gate (discrimination, margin, coverage, robustness), show how to pick the single most useful next measurement using value of information, and handle the case everyone dreads — two trusted sources that flatly contradict each other. With a worked EV 'reduced power' example, eight figures and flowcharts, two algorithms, practical field notes, and references."

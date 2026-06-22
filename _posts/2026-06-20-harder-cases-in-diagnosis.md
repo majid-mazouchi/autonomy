@@ -1,7 +1,7 @@
 ---
 title: "Harder Cases in Diagnosis: Multiple Faults, Intermittent Events, and Lying Sensors"
 subtitle: "Three comfortable assumptions every diagnosis quietly makes — one cause, a fault that stays put, sensors that tell the truth — and what to do when each one breaks."
-date: 2026-06-20 18:00:00 -0400
+date: 2026-04-11 18:00:00 -0400
 category: "Control Systems"
 slug: harder-cases-in-diagnosis
 excerpt: "The third post in the diagnosis set. The sufficiency method assumed away three hard realities, and this post tackles them head-on, in plain words. Multiple simultaneous faults: when two things are wrong at once, their symptoms add up, no single cause fits, and the leftover you can't explain is the tell — you must reason about combinations, not suspects. Intermittent faults and operating-condition coverage: 'rich enough' is not about how many readings you have but whether you captured the fault under the condition that triggers it; you don't have enough data until you've seen the event in the right corner of the operating envelope. Sensors that lie: sometimes the contradiction isn't in the system, it's in the instrument — is the gauge broken? — and the fix is redundancy, plausibility checks, and parity. With worked EV examples, figures, block diagrams, flowcharts, algorithms, practical notes, and references."
