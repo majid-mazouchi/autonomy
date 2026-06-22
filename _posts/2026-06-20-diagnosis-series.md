@@ -43,9 +43,13 @@ This is the hub for a nine-part series on disciplined fault diagnosis — one lo
 
 10. [From Method to Product]({{ '/posts/agentic-fleet-diagnosis-architecture/' | relative_url }}) — the architecture of an AI-powered, multi-agent fleet-diagnosis tool: data, detection, agents, tools, memory, and the human in the loop.
 
+## Reference
+
+[The Diagnosis & Prognosis Glossary]({{ '/posts/diagnosis-glossary/' | relative_url }}) — every term used across the series, from *cohort* and *DTC* to *dominant stressor*, *confounder*, *residual*, and *RUL*, defined in plain English and grouped into thirteen themes. Keep it open in a second tab.
+
 ## Where to start
 
-New to the topic? Read **1 → 2 → 3** for the reasoning discipline, then **4 → 5** for fleets. Already do this work and want the sharp edges? Jump to **5** (rigor), **6** (proof), or **9** (prevention). Building the system rather than doing the analysis? Start with **8** (data) and **7** (edge).
+New to the topic? Read **1 → 2 → 3** for the reasoning discipline, then **4 → 5** for fleets. Already do this work and want the sharp edges? Jump to **5** (rigor), **6** (proof), or **9** (prevention). Building the system rather than doing the analysis? Start with **8** (data) and **7** (edge). New to the vocabulary? Start with the [glossary]({{ '/posts/diagnosis-glossary/' | relative_url }}).
 
 ---
 
