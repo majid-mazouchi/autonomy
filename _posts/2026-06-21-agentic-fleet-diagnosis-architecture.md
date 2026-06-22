@@ -4,6 +4,7 @@ subtitle: "Nine posts built the method. This one turns it into software — a mu
 date: 2026-04-11 10:00:00 -0400
 category: "Control Systems"
 slug: agentic-fleet-diagnosis-architecture
+published: false
 excerpt: "The engineering capstone of the diagnosis series. A method is something a person follows; a product is software that runs that method at fleet scale, every day, on live data — and must be trusted under audit. This post lays out the architecture of such a tool in plain words: seven planes (data, detection, reasoning, tools, memory, runtime, human-in-the-loop) wired together by one rule — agents fetch and propose, deterministic tools verify, humans commit. We walk the always-on detection layer that turns a firehose into a ranked queue of cases; the multi-agent reasoning engine (an orchestrator over typed worker agents on a shared blackboard, not a free-form swarm); MCP-first tools with read free and write gated; five kinds of memory and the write-governance that keeps the system from poisoning itself; and the parts demos skip — evals on synthetic ground-truth fleets, guardrails, observability, cost control, multi-tenancy, and the closed loop that makes it smarter per fleet over time. With block diagrams, a diagnostic-loop flowchart, algorithms, a build path, practical notes, and references."
 reading_time: 32
 ---
