@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoring Time Series in Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(38px,6.4vw,68px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:670px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+  .legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);padding:4px 16px 12px;display:flex;flex-wrap:wrap;gap:16px;}
+  .legend i{width:16px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .eq{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;color:var(--ink);overflow-x:auto;line-height:1.9;}
+  .eq .c{color:var(--rust);font-weight:600;}
+  .eq .g{color:var(--teal);}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  .seriesnote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:24px 0 0;}
+  .seriesnote a{color:var(--rust);}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;·&nbsp; part four / keeping watch after deployment</p>
+    <h1>Monitoring Time Series <span class="em">in Production</span></h1>
+    <p class="lede">A model that forecasts beautifully in the lab is only half the job. Once it is live, the world drifts out from under it, the sensors it depends on fail in their own ways, and faults hide in the joint behaviour of channels that each look fine alone. This part is about the unglamorous discipline that keeps a deployed system honest: watching the watcher.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">a monitor on watch</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">control limits holding, for now</span>
+      </div>
+      <canvas id="heroCanvas" height="220"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#frame">Monitoring is its own discipline</a></li>
+      <li><a href="#multivariate">Multivariate anomaly detection</a></li>
+      <li><a href="#drift">Watching for concept drift</a></li>
+      <li><a href="#sensorfault">Is it the sensor or the machine?</a></li>
+      <li><a href="#evaluate">Evaluating a monitor</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="frame">
+    <p class="sec-num">Section 01</p>
+    <h2>Monitoring is its own discipline</h2>
+    <p>The first three parts of this series built a model: they turned a sensor into features, forecast its next value, and projected its failure. All of that assumed the model and its inputs stay the way they were when you validated them. In production that assumption quietly dies. The operating regime shifts, a new component changes the baseline, a sensor starts lying, and the carefully tuned detector keeps reporting that all is well while the ground moves beneath it.</p>
+    <p>Monitoring is the practice of catching these failures of the system around the model, and it needs its own tools, because the model's own outputs will not raise the alarm. Three problems dominate, and each gets a working simulation here: faults that are invisible in any single channel but obvious in the <strong>joint</strong> behaviour of several; the slow <strong>drift</strong> of the live data away from the distribution the model was trained on; and the maddening question of whether a strange reading means the <strong>machine</strong> is sick or merely the <strong>sensor</strong>.</p>
+    <div class="note field">
+      <p class="nt">Fourth in a series</p>
+      <p>This part assumes the earlier vocabulary. <strong>Sensory Data</strong> built features and residuals, <strong>Forecasting</strong> built backtests and intervals, and <strong>Remaining Useful Life</strong> built degradation models. Here those same signals are watched after deployment, where the enemy is not a hard forecasting problem but a world that refuses to hold still.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="multivariate">
+    <p class="sec-num">Section 02</p>
+    <h2>Multivariate anomaly detection</h2>
+    <p>Set a threshold on each channel alone and you will miss the most dangerous faults. Two sensors that normally move together, say a motor's current and its temperature, can each sit comfortably inside their usual range while their <strong>combination</strong> is something the machine has never produced in health. The fault lives in the correlation, and a per-channel limit is blind to it.</p>
+    <p>The classical fix is <em class="term">Hotelling's T-squared</em>, which measures distance in a way that accounts for the covariance between channels. It learns the healthy cloud's mean and covariance, then scores each new point by its <em class="term">Mahalanobis distance</em>: how many standard deviations away it is <strong>along the directions the data actually varies</strong>. A control limit drawn from the chi-square distribution turns that distance into an alarm. The simulation builds a healthy cloud of two correlated channels and lets you place a test point; watch a reading that is normal on each axis light up as a joint anomaly once it strays off the correlation ridge.</p>
+    <div class="eq">
+      <span class="c">D&sup2;</span> = (x &minus; &mu;)<sup>T</sup> <span class="g">S</span><sup>&minus;1</sup> (x &minus; &mu;) &nbsp;&nbsp;&middot;&nbsp;&nbsp; alarm when <span class="c">D&sup2;</span> &gt; &chi;&sup2;<sub>0.99</sub> = 9.21 (2 dof)
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 1</span> · Hotelling T-squared on two correlated channels &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="mvCanvas" height="320"></canvas></div>
+      <div class="readout" id="mvRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Healthy correlation <b><span id="mvRhov">0.80</span></b></label><input type="range" id="mvRho" min="0" max="0.95" value="0.8" step="0.05"></div>
+        <div class="ctrl"><label>Test point · channel A <b><span id="mvXv">1.5</span></b></label><input type="range" id="mvX" min="-3.5" max="3.5" value="1.5" step="0.1"></div>
+        <div class="ctrl"><label>Test point · channel B <b><span id="mvYv">-1.5</span></b></label><input type="range" id="mvY" min="-3.5" max="3.5" value="-1.5" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(47,107,107,0.6)"></i>healthy cloud</span>
+        <span><i style="background:#C8962C"></i>99% control ellipse</span>
+        <span><i style="background:#B0542B"></i>test point</span>
+      </div>
+      <div class="fig-cap">Teal dots: healthy operation, correlated. Ochre ellipse: the T-squared control limit, tilted to follow the data. Rust marker: your test point. Drive A positive and B negative and the point can stay inside both one-dimensional ranges yet fall far outside the ellipse, because health requires the two channels to move together. The readout shows the per-axis z-scores (both modest) against the joint distance (large).</div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="drift">
+    <p class="sec-num">Section 03</p>
+    <h2>Watching for concept drift</h2>
+    <p>Every model in this series carried the same warning: retrain on drift. This is how you know when. <em class="term">Concept drift</em> is the change over time in the distribution of the live data, and even a perfect model decays as the world wanders away from its training set. You catch it not by waiting for accuracy to collapse but by comparing the recent data against a fixed reference window and measuring how far they have diverged.</p>
+    <p>Two measures dominate. The <em class="term">population stability index</em> (PSI) bins both distributions and sums their disagreement; a rough convention treats below 0.1 as stable, 0.1 to 0.25 as a moderate shift worth watching, and above 0.25 as a significant drift that usually warrants retraining. The <em class="term">Kullback-Leibler divergence</em> measures the same idea in the language of information. The simulation holds a reference distribution fixed and lets you shift and stretch the current one, reporting both scores as the overlap erodes.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · reference vs current, scored by PSI and KL &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="driftCanvas" height="270"></canvas></div>
+      <div class="readout" id="driftRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Current mean shift <b><span id="dfShiftv">0.0</span></b></label><input type="range" id="dfShift" min="-2.5" max="2.5" value="0" step="0.1"></div>
+        <div class="ctrl"><label>Current spread <b><span id="dfScalev">1.0</span></b></label><input type="range" id="dfScale" min="0.5" max="2.5" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#5A554C"></i>reference window</span>
+        <span><i style="background:rgba(176,84,43,0.5)"></i>current window</span>
+      </div>
+      <div class="fig-cap">Grey outline: the reference distribution the model was trained on. Rust bars: the current live window. With no shift the two overlap and the PSI sits near zero. Slide the current mean or widen its spread and the bars pull apart; watch the PSI cross from stable, through the watch zone, into the retrain zone, with the verdict updating live.</div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="sensorfault">
+    <p class="sec-num">Section 04</p>
+    <h2>Is it the sensor or the machine?</h2>
+    <p>A monitor screams. Before anyone touches the machine, one question decides everything: is the equipment actually degrading, or has the sensor itself failed? Acting on a faulty sensor wastes a teardown; ignoring a real fault risks the asset. The two are distinguishable, but only if you have planned for it, usually with <strong>redundancy</strong> and a few cheap features.</p>
+    <p>Sensor faults have signatures. A <em class="term">stuck</em> sensor goes flat, its local variance collapsing to nothing. A <em class="term">drift</em> fault pulls one channel slowly away from its redundant twin, growing the residual between them. A <em class="term">spike</em> is a single impossible jump; a <em class="term">dropout</em> falls to zero. The tell that separates all of these from a real fault is the <strong>cross-sensor residual</strong>: when the machine degrades, every healthy sensor sees it and moves together, so the residual between redundant sensors stays small. When one sensor lies, only it moves, and the residual blows up. The simulation injects each fault type and runs simple detectors to reach a verdict.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · classifying the fault from redundant sensors &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="sfCanvas" height="300"></canvas></div>
+      <div class="toggle-row"><span class="lbl">inject:</span>
+        <span class="toggle on" id="ftNone">healthy</span>
+        <span class="toggle" id="ftStuck">stuck</span>
+        <span class="toggle" id="ftDrift">sensor drift</span>
+        <span class="toggle" id="ftSpike">spike</span>
+        <span class="toggle" id="ftDrop">dropout</span>
+        <span class="toggle" id="ftDeg">machine degradation</span>
+      </div>
+      <div class="readout" id="sfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Fault magnitude <b><span id="sfMagv">1.0</span></b></label><input type="range" id="sfMag" min="0.3" max="3" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>sensor A (suspect)</span>
+        <span><i style="background:#2F6B6B"></i>sensor B (redundant)</span>
+        <span><i style="background:#C8962C"></i>A &minus; B residual</span>
+      </div>
+      <div class="fig-cap">Top: two redundant sensors reading the same process. Bottom: the residual between them. Inject a sensor fault and only A moves, so the residual grows and the verdict reads sensor. Inject machine degradation and both sensors climb together, leaving the residual flat, so the verdict reads machine. That single distinction, residual large or small, is the backbone of fault isolation.</div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="evaluate">
+    <p class="sec-num">Section 05</p>
+    <h2>Evaluating a monitor</h2>
+    <p>A monitor is judged differently from a forecaster. Its currency is alarms, and the costs are asymmetric in a way that breeds a specific failure mode. Too sensitive and it cries wolf; the operators learn to ignore it, and <em class="term">alarm fatigue</em> quietly disables the whole system. Too lax and it misses the event it existed to catch. The tuning lives on that tradeoff.</p>
+    <div class="defs">
+      <div class="def"><h4>Precision &amp; recall</h4><p>Of the alarms raised, how many were real; of the real events, how many were caught. Monitoring usually cannot maximise both, so the operating point is a deliberate choice.</p></div>
+      <div class="def"><h4>Lead time</h4><p>How long before the event the alarm fires. A correct alarm that arrives too late to act on is worth little more than a miss.</p></div>
+      <div class="def"><h4>False-alarm rate</h4><p>Alarms per unit time during healthy operation. The single number most responsible for whether operators keep trusting the system.</p></div>
+      <div class="def"><h4>Time to detect</h4><p>Once a fault begins, how many samples until the alarm. Tighter limits detect faster but raise the false-alarm rate, the same tension seen with CUSUM in part one.</p></div>
+    </div>
+    <p>The discipline is to set these deliberately, with the cost of a miss and the cost of a false alarm both written down, rather than chasing a single accuracy number. A monitor nobody trusts is worse than no monitor, because it provides the illusion of safety while the operators have stopped looking.</p>
+
+    <div class="seriesnote">
+      End of part four, and of the guide. The arc began with a single sensor sample in <strong>Time Series as Sensory Data</strong>, forecast its next value in <strong>Forecasting Time Series</strong>, projected its failure in <strong>Prognostics and Remaining Useful Life</strong>, and ends here, keeping watch over the whole system once it is live and the world will not stop changing.
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <!-- practice -->
+  <section id="practice">
+    <p class="sec-num">Section 06</p>
+    <h2>Practical notes</h2>
+    <p>A monitor lives or dies on whether the people it serves keep trusting it. These are the habits that keep a deployed monitor useful long after the novelty of the dashboard has worn off.</p>
+    <ul>
+      <li><strong>Monitor the inputs, not just the output.</strong> The model's own prediction will not tell you that its sensors drifted or its world shifted. Watch the incoming distributions and the channel health directly, upstream of any score.</li>
+      <li><strong>Set limits from a false-alarm budget.</strong> Decide how many false alarms per week operators will tolerate, then set the threshold from the healthy-data distribution to meet it. Limits chosen by eye are limits nobody can defend.</li>
+      <li><strong>Use joint limits where channels are correlated.</strong> Per-channel thresholds miss the faults that live in the relationship between signals. If two channels normally move together, monitor them together.</li>
+      <li><strong>Build in redundancy on purpose.</strong> You cannot separate a sick sensor from a sick machine without something to compare against. A second sensor, or a physics model, is what turns an alarm into a diagnosis.</li>
+      <li><strong>Fight alarm fatigue.</strong> Add dwell time and hysteresis so a single noisy sample does not fire, and rank alarms by severity. A monitor that cries wolf is uninstalled in spirit long before it is uninstalled in fact.</li>
+      <li><strong>Make drift trigger a decision, not just a chart.</strong> A drift score is only useful if crossing it kicks off something, a retraining job, a review, a page to an engineer, with a human in the loop for the consequential calls.</li>
+      <li><strong>Write the runbook.</strong> For every alarm, state in advance what it means and what to do. Log inputs, scores and outcomes, because that history is what lets you set limits, diagnose misses, and prove the monitor earned its keep.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>A production monitor is a promise to notice when the world has changed, so watch the inputs as carefully as the outputs, tune every threshold against the cost of a false alarm and a miss, give it the redundancy to say why something looks wrong, and back it with a runbook, because a monitor nobody trusts is worse than none at all.</p>
+    </div>
+  </section>
+
+  <section id="refs">
+    <p class="sec-num">Section 07</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Hotelling, H. (1947). "Multivariate quality control." In <em>Techniques of Statistical Analysis.</em> The origin of the T-squared statistic for joint monitoring.</li>
+      <li>Montgomery, D. C. <em>Introduction to Statistical Quality Control.</em> Wiley. The standard reference on control charts and multivariate process monitoring.</li>
+      <li>Mahalanobis, P. C. (1936). "On the generalised distance in statistics." <em>Proceedings of the National Institute of Sciences of India.</em> The distance measure behind covariance-aware anomaly detection.</li>
+      <li>Gama, J., Zliobaite, I., Bifet, A., Pechenizkiy, M., &amp; Bouchachia, A. (2014). "A survey on concept drift adaptation." <em>ACM Computing Surveys.</em> A broad map of drift detection and response.</li>
+      <li>Kullback, S., &amp; Leibler, R. A. (1951). "On information and sufficiency." <em>Annals of Mathematical Statistics.</em> The divergence used to quantify distribution change.</li>
+      <li>Isermann, R. <em>Fault-Diagnosis Systems: An Introduction from Fault Detection to Fault Tolerance.</em> Springer. Analytical redundancy and sensor versus process fault isolation.</li>
+      <li>Qin, S. J. (2012). "Survey on data-driven industrial process monitoring and diagnosis." <em>Annual Reviews in Control.</em> Modern multivariate monitoring at industrial scale.</li>
+      <li>Hodge, V., &amp; Austin, J. (2004). "A survey of outlier detection methodologies." <em>Artificial Intelligence Review.</em> Methods for flagging the abnormal in multivariate data.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References point to further study; the explanations and simulations above are written and implemented from first principles rather than drawn from any single source.</p>
+  </section>
+
+</div>
+
+<footer>
+  Monitoring Time Series in Production &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; part four of the time-series series &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+  function makeEps(n){ var a=[]; for(var i=0;i<n;i++)a.push(gauss()); return a; }
+
+  // ===== HERO: control chart with a breach =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var N=180, buf=[], t=0, lbl=document.getElementById("heroLabel");
+    function val(tt){ var drift = tt>120? (tt-120)*0.02 : 0; return 0.6*Math.sin(tt*0.12)+0.4*gauss()+drift; }
+    for(var i=0;i<N;i++){ buf.push(val(t)); t++; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var UCL=2.4, LCL=-2.4, y0=10,y1=h-10;
+      function X(i){ return (i/(N-1))*w; } function Y(v){ return (y0+y1)/2 - v*((y1-y0)/2)/3.2; }
+      ctx.fillStyle="rgba(176,84,43,0.06)"; ctx.fillRect(0,0,w,Y(UCL)); ctx.fillRect(0,Y(LCL),w,h-Y(LCL));
+      ctx.strokeStyle="rgba(176,84,43,0.5)"; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(0,Y(UCL)); ctx.lineTo(w,Y(UCL)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,Y(LCL)); ctx.lineTo(w,Y(LCL)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.beginPath(); ctx.moveTo(0,Y(0)); ctx.lineTo(w,Y(0)); ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.6; ctx.beginPath();
+      var breach=false;
+      for(var p=0;p<N;p++){ var yy=Y(buf[p]); if(p===0)ctx.moveTo(X(p),yy);else ctx.lineTo(X(p),yy); if(buf[p]>UCL||buf[p]<LCL)breach=true; }
+      ctx.stroke();
+      for(var q=0;q<N;q++){ if(buf[q]>UCL||buf[q]<LCL){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(q),Y(buf[q]),2.6,0,7); ctx.fill(); } }
+      label(ctx,"UCL",w-4,Y(UCL)-4,RUST,"right");
+      if(lbl) lbl.textContent = breach? "control limit breached" : "control limits holding, for now";
+    }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ buf.push(val(t)); t++; if(buf.length>N)buf.shift(); draw(); },80); }
+  })();
+
+  // ===== FIG 1: multivariate anomaly (Hotelling T2) =====
+  (function(){
+    var c=document.getElementById("mvCanvas"); if(!c)return;
+    var rho=document.getElementById("mvRho"),tx=document.getElementById("mvX"),ty=document.getElementById("mvY");
+    var rhov=document.getElementById("mvRhov"),txv=document.getElementById("mvXv"),tyv=document.getElementById("mvYv"),read=document.getElementById("mvRead");
+    var base=makeEps(440); // 220 points x 2
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var RHO=parseFloat(rho.value),TX=parseFloat(tx.value),TY=parseFloat(ty.value);
+      rhov.textContent=RHO.toFixed(2); txv.textContent=TX.toFixed(1); tyv.textContent=TY.toFixed(1);
+      // generate correlated cloud: a = z1, b = rho*z1 + sqrt(1-rho^2)*z2
+      var n=200, A=[],B=[]; for(var i=0;i<n;i++){ var z1=base[2*i],z2=base[2*i+1]; A.push(z1); B.push(RHO*z1+Math.sqrt(1-RHO*RHO)*z2); }
+      var ma=mean(A),mb=mean(B);
+      var saa=0,sbb=0,sab=0; for(var k=0;k<n;k++){ saa+=(A[k]-ma)*(A[k]-ma); sbb+=(B[k]-mb)*(B[k]-mb); sab+=(A[k]-ma)*(B[k]-mb); }
+      saa/=(n-1); sbb/=(n-1); sab/=(n-1);
+      var det=saa*sbb-sab*sab; if(Math.abs(det)<1e-9)det=1e-9;
+      var iaa=sbb/det, ibb=saa/det, iab=-sab/det;
+      function D2(x,y){ var dx=x-ma,dy=y-mb; return dx*dx*iaa+2*dx*dy*iab+dy*dy*ibb; }
+      // layout
+      var pad=40,x0=pad,x1=w-14,y0=12,y1=h-26; var R=3.8;
+      function PX(v){ return x0+((v+R)/(2*R))*(x1-x0); } function PY(v){ return y1-((v+R)/(2*R))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      label(ctx,"channel A \u2192",x1-4,h-8,INKSOFT,"right"); label(ctx,"channel B",x0-4,y0+4,INKSOFT);
+      // healthy cloud
+      for(var d=0;d<n;d++){ ctx.fillStyle="rgba(47,107,107,0.45)"; ctx.beginPath(); ctx.arc(PX(A[d]),PY(B[d]),1.8,0,7); ctx.fill(); }
+      // control ellipses via eigen of S, radius sqrt(eig * chi2)
+      var tr=saa+sbb, dd=saa*sbb-sab*sab;
+      var l1=tr/2+Math.sqrt(Math.max(0,tr*tr/4-dd)), l2=tr/2-Math.sqrt(Math.max(0,tr*tr/4-dd));
+      var ang = Math.abs(sab)<1e-9 ? (saa>=sbb?0:Math.PI/2) : Math.atan2(l1-saa, sab);
+      function ellipse(chi2,col,wd){ ctx.strokeStyle=col; ctx.lineWidth=wd; ctx.beginPath();
+        var r1=Math.sqrt(l1*chi2), r2=Math.sqrt(l2*chi2);
+        for(var th=0;th<=2*Math.PI+0.01;th+=0.05){ var ex=r1*Math.cos(th),ey=r2*Math.sin(th);
+          var gx=ma+ex*Math.cos(ang)-ey*Math.sin(ang), gy=mb+ex*Math.sin(ang)+ey*Math.cos(ang);
+          if(th===0)ctx.moveTo(PX(gx),PY(gy));else ctx.lineTo(PX(gx),PY(gy)); } ctx.stroke(); }
+      ellipse(5.991,"rgba(200,150,44,0.5)",1); ellipse(9.210,OCHRE,1.8);
+      // marginal ranges (per-axis +-3 sigma guides)
+      ctx.strokeStyle="rgba(90,85,76,0.18)"; ctx.setLineDash([2,3]);
+      ctx.beginPath(); ctx.moveTo(PX(3*Math.sqrt(saa)),y0); ctx.lineTo(PX(3*Math.sqrt(saa)),y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PX(-3*Math.sqrt(saa)),y0); ctx.lineTo(PX(-3*Math.sqrt(saa)),y1); ctx.stroke(); ctx.setLineDash([]);
+      // test point
+      var d2=D2(TX,TY); var alarm=d2>9.210;
+      ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(PX(TX),PY(TY),5.5,0,7); ctx.fill();
+      ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+      var za=TX/Math.sqrt(saa), zb=TY/Math.sqrt(sbb);
+      read.innerHTML='<span>z(A): <b>'+za.toFixed(1)+'</b></span><span>z(B): <b>'+zb.toFixed(1)+'</b></span><span>T&sup2; distance D&sup2;: <b>'+d2.toFixed(1)+'</b></span><span class="'+(alarm?'warn':'ok')+'">verdict: <b>'+(alarm?'ANOMALY':'in control')+'</b></span>';
+    }
+    [rho,tx,ty].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 2: concept drift PSI / KL =====
+  (function(){
+    var c=document.getElementById("driftCanvas"); if(!c)return;
+    var sh=document.getElementById("dfShift"),sc=document.getElementById("dfScale");
+    var shv=document.getElementById("dfShiftv"),scv=document.getElementById("dfScalev"),read=document.getElementById("driftRead");
+    var refS=makeEps(4000), curS=makeEps(4000);
+    var B=14, LO=-5, HI=5;
+    function hist(data,shift,scale){ var bins=new Array(B).fill(0); for(var i=0;i<data.length;i++){ var v=data[i]*scale+shift; var bi=Math.floor((v-LO)/(HI-LO)*B); if(bi<0)bi=0; if(bi>=B)bi=B-1; bins[bi]++; } for(var b=0;b<B;b++)bins[b]/=data.length; return bins; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var SH=parseFloat(sh.value),SC=parseFloat(sc.value); shv.textContent=SH.toFixed(1); scv.textContent=SC.toFixed(1);
+      var ref=hist(refS,0,1), cur=hist(curS,SH,SC);
+      var psi=0, kl=0, eps=1e-4;
+      for(var b=0;b<B;b++){ var r=Math.max(ref[b],eps), cc=Math.max(cur[b],eps); psi+=(cc-r)*Math.log(cc/r); kl+=cc*Math.log(cc/r); }
+      var pad=36,x0=pad,x1=w-12,y0=14,y1=h-24; var maxP=0; for(var m=0;m<B;m++){ maxP=Math.max(maxP,ref[m],cur[m]); } maxP*=1.15;
+      axis(ctx,x0,y0,x1,y1);
+      var bw=(x1-x0)/B;
+      // current bars
+      for(var i=0;i<B;i++){ var bh=(cur[i]/maxP)*(y1-y0); ctx.fillStyle="rgba(176,84,43,0.5)"; ctx.fillRect(x0+i*bw+2, y1-bh, bw-3, bh); }
+      // reference outline
+      ctx.strokeStyle=INKSOFT; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var j=0;j<B;j++){ var rh=(ref[j]/maxP)*(y1-y0); var xx=x0+j*bw; ctx.moveTo(xx+1,y1-rh); ctx.lineTo(xx+bw-1,y1-rh); if(j<B-1){ var rh2=(ref[j+1]/maxP)*(y1-y0); ctx.lineTo(xx+bw-1,y1-rh2);} }
+      ctx.stroke();
+      label(ctx,"value distribution",x0,y0+4,INKSOFT);
+      var verdict = psi<0.1?"stable": (psi<0.25?"moderate drift":"significant drift");
+      var cls = psi<0.1?"ok": (psi<0.25?"":"warn");
+      read.innerHTML='<span>PSI: <b>'+psi.toFixed(3)+'</b></span><span>KL divergence: <b>'+kl.toFixed(3)+'</b></span><span class="'+cls+'">verdict: <b>'+verdict+'</b></span><span class="muted">thresholds 0.10 / 0.25</span>';
+    }
+    [sh,sc].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 3: sensor vs machine fault =====
+  (function(){
+    var c=document.getElementById("sfCanvas"); if(!c)return;
+    var fault="none";
+    var ftN=document.getElementById("ftNone"),ftS=document.getElementById("ftStuck"),ftD=document.getElementById("ftDrift"),
+        ftSp=document.getElementById("ftSpike"),ftDr=document.getElementById("ftDrop"),ftDe=document.getElementById("ftDeg");
+    var mag=document.getElementById("sfMag"),magv=document.getElementById("sfMagv"),read=document.getElementById("sfRead");
+    var n=140, epsA=makeEps(n), epsB=makeEps(n);
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var M=parseFloat(mag.value); magv.textContent=M.toFixed(1);
+      var truth=[],A=[],B=[];
+      for(var t=0;t<n;t++){ var pr=5+1.4*Math.sin(t*0.12)+0.5*Math.sin(t*0.31); 
+        // machine degradation moves the true process for both sensors
+        if(fault==="deg" && t>n*0.4) pr += M*1.2*((t-n*0.4)/(n*0.6));
+        truth.push(pr);
+        var a=pr+0.18*epsA[t], b=pr+0.18*epsB[t];
+        if(t>n*0.4){
+          if(fault==="stuck") a=A.length?A[Math.floor(n*0.4)]:a; // hold value
+          else if(fault==="drift") a=a + M*1.0*((t-n*0.4)/(n*0.6));
+          else if(fault==="spike"){ if(t===Math.floor(n*0.6)) a=a+M*4; }
+          else if(fault==="drop"){ if(t>n*0.6 && t<n*0.72) a=0.2*epsA[t]; }
+        }
+        A.push(a); B.push(b);
+      }
+      if(fault==="stuck"){ var hold=A[Math.floor(n*0.4)]; for(var s=Math.floor(n*0.4);s<n;s++)A[s]=hold; }
+      // features
+      var resid=[]; for(var i=0;i<n;i++)resid.push(A[i]-B[i]);
+      var w2=12; function localVar(arr,end){ var seg=arr.slice(Math.max(0,end-w2),end); var mm=mean(seg),v=0; for(var k=0;k<seg.length;k++)v+=(seg[k]-mm)*(seg[k]-mm); return v/Math.max(1,seg.length); }
+      var lvA=localVar(A,n), residRecent=Math.abs(mean(resid.slice(n-w2))), residStd=0;
+      var rm=mean(resid); for(var r=0;r<n;r++)residStd+=(resid[r]-rm)*(resid[r]-rm); residStd=Math.sqrt(residStd/n);
+      var maxJump=0; for(var j=Math.floor(n*0.4)+1;j<n;j++){ var jd=Math.abs(A[j]-A[j-1]); if(jd>maxJump)maxJump=jd; }
+      var minA=Math.min.apply(null,A.slice(Math.floor(n*0.4)));
+      // classify
+      var verdict, scope;
+      if(lvA<0.02 && fault!=="none"){ verdict="stuck sensor"; scope="SENSOR"; }
+      else if(maxJump>2.5){ verdict="spike (sensor)"; scope="SENSOR"; }
+      else if(minA<1.0){ verdict="dropout (sensor)"; scope="SENSOR"; }
+      else if(residRecent>0.6 && residStd>0.4){ verdict="drift (sensor)"; scope="SENSOR"; }
+      else if(residRecent<0.4 && (mean(A.slice(n-w2))-mean(A.slice(0,w2)))>0.8){ verdict="degradation"; scope="MACHINE"; }
+      else { verdict="nominal"; scope="\u2014"; }
+      // layout: top signals, bottom residual
+      var pad=34,x0=pad,x1=w-12,y0=12,y1=h*0.58;
+      var all=A.concat(B); var lo=Math.min.apply(null,all)-0.5,hi=Math.max.apply(null,all)+0.5;
+      function X(i){ return x0+(i/(n-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.4; ctx.beginPath(); for(var p=0;p<n;p++){ if(p===0)ctx.moveTo(X(p),Y(B[p]));else ctx.lineTo(X(p),Y(B[p])); } ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.6; ctx.beginPath(); for(var q=0;q<n;q++){ if(q===0)ctx.moveTo(X(q),Y(A[q]));else ctx.lineTo(X(q),Y(A[q])); } ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(n*0.4),y0); ctx.lineTo(X(n*0.4),y1); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"sensors A (rust) & B (teal)",x0,y0+4,INKSOFT);
+      // residual panel
+      var ry0=h*0.66,ry1=h-22; var rlo=-3,rhi=3;
+      function RY(v){ var vv=Math.max(rlo,Math.min(rhi,v)); return ry1-((vv-rlo)/(rhi-rlo))*(ry1-ry0); }
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,RY(0)); ctx.lineTo(x1,RY(0)); ctx.stroke();
+      ctx.fillStyle="rgba(200,150,44,0.18)"; ctx.fillRect(x0,RY(0.6),x1-x0,RY(-0.6)-RY(0.6));
+      ctx.strokeStyle=OCHRE; ctx.lineWidth=1.5; ctx.beginPath(); for(var rr=0;rr<n;rr++){ if(rr===0)ctx.moveTo(X(rr),RY(resid[rr]));else ctx.lineTo(X(rr),RY(resid[rr])); } ctx.stroke();
+      label(ctx,"A \u2212 B residual (band = healthy)",x0,ry0-2,INKSOFT);
+      read.innerHTML='<span>detected: <b>'+verdict+'</b></span><span class="'+(scope==="MACHINE"?"warn":(scope==="SENSOR"?"":"ok"))+'">scope: <b>'+scope+'</b></span><span>|residual|: <b>'+residRecent.toFixed(2)+'</b></span><span>local var(A): <b>'+lvA.toFixed(2)+'</b></span>';
+    }
+    function setF(f,el){ fault=f; [ftN,ftS,ftD,ftSp,ftDr,ftDe].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    ftN.addEventListener("click",function(){setF("none",ftN);}); ftS.addEventListener("click",function(){setF("stuck",ftS);});
+    ftD.addEventListener("click",function(){setF("drift",ftD);}); ftSp.addEventListener("click",function(){setF("spike",ftSp);});
+    ftDr.addEventListener("click",function(){setF("drop",ftDr);}); ftDe.addEventListener("click",function(){setF("deg",ftDe);});
+    mag.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>

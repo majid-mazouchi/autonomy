@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forecasting Time Series</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(38px,6.4vw,68px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:670px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+  .legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);padding:4px 16px 12px;display:flex;flex-wrap:wrap;gap:16px;}
+  .legend i{width:16px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .eq{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;color:var(--ink);overflow-x:auto;line-height:1.9;}
+  .eq .c{color:var(--rust);font-weight:600;}
+  .eq .g{color:var(--teal);}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .diagram{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 16px;overflow-x:auto;}
+  .diagram svg{display:block;margin:0 auto;max-width:100%;height:auto;}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  .seriesnote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:24px 0 0;}
+  .seriesnote a{color:var(--rust);}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;·&nbsp; part two / from the past to the next value</p>
+    <h1><span class="em">Forecasting</span> Time Series</h1>
+    <p class="lede">A time series tells you where something has been. Forecasting is the harder, more useful art of saying where it goes next, and being honest about how sure you are. This is a plain-language tour of the methods, from the humble baselines you must beat to deep global models, and the evaluation discipline that keeps all of them honest.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">history &amp; forecast</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">point forecast · widening interval</span>
+      </div>
+      <canvas id="heroCanvas" height="220"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#what">What forecasting really is</a></li>
+      <li><a href="#baselines">The baselines you must beat</a></li>
+      <li><a href="#backtest">Honest evaluation: backtesting</a></li>
+      <li><a href="#metrics">Measuring how wrong you are</a></li>
+      <li><a href="#ets">Exponential smoothing</a></li>
+      <li><a href="#arima">The ARIMA family</a></li>
+      <li><a href="#acfpacf">Reading the correlogram: ACF &amp; PACF</a></li>
+      <li><a href="#diff">Differencing and stationarity</a></li>
+      <li><a href="#decomp">Decomposition: forecast the parts</a></li>
+      <li><a href="#intervals">Owning the uncertainty</a></li>
+      <li><a href="#conformal">Conformal prediction intervals</a></li>
+      <li><a href="#quantile">Quantile forecasting &amp; pinball loss</a></li>
+      <li><a href="#calibration">Are your intervals honest?</a></li>
+      <li><a href="#ml">Forecasting as supervised learning</a></li>
+      <li><a href="#directrec">Direct vs recursive, measured</a></li>
+      <li><a href="#combo">Combining forecasts</a></li>
+      <li><a href="#deep">Deep learning, global &amp; foundation models</a></li>
+      <li><a href="#workflow">A practical workflow</a></li>
+      <li><a href="#leaderboard">The bake-off: a live leaderboard</a></li>
+      <li><a href="#prognostics">Forecasting for prognostics</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="what">
+    <p class="sec-num">Section 01</p>
+    <h2>What forecasting really is</h2>
+    <p>To <em class="term">forecast</em> is to use what a series has done so far to estimate what it will do next. Given values up to today, you produce one or more future values: tomorrow's demand, next month's temperature, the health of a bearing three weeks out. The number of steps ahead you reach for is the <em class="term">horizon</em>, and almost everything about the difficulty of a forecast scales with it. One step ahead is often easy. Fifty steps ahead, the future fans out into a wide cloud of possibilities.</p>
+    <p>Two ideas separate good forecasting from wishful thinking. The first is that a forecast is only meaningful next to a statement of <strong>uncertainty</strong>. A single number with no interval around it hides exactly the information a decision needs. The second is that forecasting is forward-looking by nature, so it can only be judged on data the model never saw. Fit quality on the past is almost worthless; performance on a genuine hold-out is everything.</p>
+    <div class="note field">
+      <p class="nt">Second in a series</p>
+      <p>This monograph follows <strong>Time Series as Sensory Data</strong>, which covered how raw signals become clean, ordered numbers. That groundwork (sampling, decomposition, autocorrelation, stationarity, residuals) is the vocabulary we lean on here. If a term like autocorrelation or stationary feels unfamiliar, the companion page builds it from scratch.</p>
+    </div>
+    <p>The landscape of methods is large but not chaotic. It sorts into a few families, and a good forecaster picks a family to match the series and the stakes, rather than reaching for the most fashionable tool. Here is the map we will walk.</p>
+
+    <div class="diagram" aria-label="Forecasting method taxonomy">
+      <svg viewBox="0 0 720 270" role="img" aria-labelledby="taxTitle">
+        <title id="taxTitle">Forecasting splits into judgmental and statistical; statistical into classical (exponential smoothing, ARIMA, decomposition) and machine learning (feature-based, deep learning), with local versus global as a cross-cutting choice.</title>
+        <defs><marker id="arrT" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#2A2724">
+          <rect x="290" y="10" width="140" height="36" rx="8" fill="#F6E7E0" stroke="#B0542B"/><text x="320" y="33">forecasting</text>
+          <line x1="360" y1="46" x2="200" y2="70" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrT)"/>
+          <line x1="360" y1="46" x2="520" y2="70" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrT)"/>
+          <rect x="120" y="72" width="160" height="34" rx="8" fill="#EAF2F1" stroke="#2F6B6B"/><text x="138" y="94">judgmental / expert</text>
+          <rect x="440" y="72" width="160" height="34" rx="8" fill="#EAF2F1" stroke="#2F6B6B"/><text x="470" y="94">statistical</text>
+          <line x1="520" y1="106" x2="430" y2="134" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrT)"/>
+          <line x1="520" y1="106" x2="610" y2="134" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrT)"/>
+          <rect x="330" y="136" width="160" height="34" rx="8" fill="#FBF6E9" stroke="#C8962C"/><text x="352" y="158">classical models</text>
+          <rect x="540" y="136" width="160" height="34" rx="8" fill="#FBF6E9" stroke="#C8962C"/><text x="556" y="158">machine learning</text>
+          <g font-size="10.5" fill="#5A554C">
+            <text x="330" y="196">· exponential smoothing</text>
+            <text x="330" y="214">· ARIMA</text>
+            <text x="330" y="232">· decomposition</text>
+            <text x="540" y="196">· feature-based regression</text>
+            <text x="540" y="214">· deep learning (RNN, TCN, attn)</text>
+            <text x="540" y="232">· global / cross-learned models</text>
+          </g>
+          <rect x="60" y="150" width="210" height="50" rx="8" fill="none" stroke="#C3BAA8" stroke-dasharray="4 3"/>
+          <text x="74" y="170" font-size="10.5" fill="#5A554C">cross-cutting choice:</text>
+          <text x="74" y="188" font-size="10.5" fill="#B0542B">one model per series (local)</text>
+          <text x="74" y="204" font-size="10.5" fill="#2F6B6B">one model for many (global)</text>
+        </g>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 1. The method families. We start at the bottom-left, the simplest classical tools, and work toward the machine-learned right, because the simple methods set the bar everything else has to clear.</p>
+  </section>
+
+  <!-- 02 -->
+  <section id="baselines">
+    <p class="sec-num">Section 02</p>
+    <h2>The baselines you must beat</h2>
+    <p>Before any model earns its keep, it has to beat a method so simple it takes one line to describe. These <em class="term">baselines</em> are not strawmen; on many real series they are shockingly hard to outperform, and a fancy model that loses to them is worse than useless because it costs more and hides its failure behind complexity.</p>
+    <div class="defs">
+      <div class="def"><h4>Naive</h4><p>Tomorrow equals today. The forecast for every future step is just the last observed value. Brutally simple, often the one to beat.</p></div>
+      <div class="def"><h4>Seasonal naive</h4><p>This July equals last July. Repeat the value from one full season ago. The right baseline whenever a clear cycle exists.</p></div>
+      <div class="def"><h4>Mean</h4><p>The future equals the historical average. Sensible only when the series has no trend and no season, just noise around a level.</p></div>
+      <div class="def"><h4>Drift</h4><p>Extend the straight line from the first point to the last. A naive forecast that is allowed to keep trending.</p></div>
+    </div>
+    <p>Switch between them below on a series with both a trend and a yearly season. Watch how naive ignores the season, mean ignores everything, drift catches the slope but not the cycle, and seasonal naive quietly does well, all without estimating a single parameter.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · the four baselines &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="bCanvas" height="260"></canvas></div>
+      <div class="toggle-row"><span class="lbl">method:</span>
+        <span class="toggle" id="bNaive">naive</span>
+        <span class="toggle on" id="bSnaive">seasonal naive</span>
+        <span class="toggle" id="bMean">mean</span>
+        <span class="toggle" id="bDrift">drift</span>
+      </div>
+      <div class="readout" id="bRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Trend strength <b><span id="bTrendv">0.06</span></b></label><input type="range" id="bTrend" min="-0.08" max="0.16" value="0.06" step="0.01"></div>
+        <div class="ctrl"><label>Seasonal amplitude <b><span id="bSeasonv">3.0</span></b></label><input type="range" id="bSeason" min="0" max="6" value="3" step="0.2"></div>
+        <div class="ctrl"><label>Noise level <b><span id="bNoisev">0.8</span></b></label><input type="range" id="bNoise" min="0" max="2.5" value="0.8" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Rust: the training history. Grey dashed: the held-out truth the forecast is graded against. Teal: the chosen baseline projected across the horizon. The error in the readout is computed only on the held-out region, never on the part the method "saw".</div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="backtest">
+    <p class="sec-num">Section 03</p>
+    <h2>Honest evaluation: backtesting</h2>
+    <p>The single most common way to fool yourself in forecasting is to test on data the model already learned from. Because a time series has an arrow, you cannot shuffle it into random train and test folds the way you would for ordinary data; that would let the model peek at the future to predict the past, a mistake called <em class="term">leakage</em>. Evaluation has to respect time.</p>
+    <p>The honest scheme is <em class="term">rolling-origin</em> evaluation, also called time-series cross-validation or backtesting. You pick an origin, train only on data before it, forecast the block just after it, record the error, then slide the origin forward and repeat. Every test block sits strictly in the future relative to its own training data, exactly as it will at deployment. You can let the training window grow (<strong>expanding</strong>) or hold it to a fixed length that slides along (<strong>sliding</strong>). The diagram below is live: change the folds and horizon and watch the blocks march forward in time.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · rolling-origin backtesting &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="btCanvas" height="240"></canvas></div>
+      <div class="toggle-row"><span class="lbl">window:</span>
+        <span class="toggle on" id="btExpand">expanding</span>
+        <span class="toggle" id="btSlide">sliding</span>
+      </div>
+      <div class="readout" id="btRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Number of folds <b><span id="btFoldsv">4</span></b></label><input type="range" id="btFolds" min="2" max="6" value="4" step="1"></div>
+        <div class="ctrl"><label>Forecast horizon <b><span id="btHorizonv">8</span></b></label><input type="range" id="btHorizon" min="3" max="14" value="8" step="1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>training data</span>
+        <span><i style="background:#C8962C"></i>test block (graded)</span>
+        <span><i style="background:#D9D2C5"></i>unused this fold</span>
+      </div>
+      <div class="fig-cap">Each row is one fold of the backtest, time running left to right. The teal training span always ends before its ochre test block begins, so no fold ever grades itself on data it trained on. Average the error across all the ochre blocks for an honest estimate of real-world accuracy.</div>
+    </div>
+
+    <div class="note">
+      <p class="nt">Practical note · the leakage that hides in features</p>
+      <p>Leakage rarely comes from an obvious shuffle. It sneaks in through features: a rolling mean computed with a centered window peeks ahead, a scaler fit on the whole series carries future statistics into the past, a "known future" covariate like a holiday flag is fine but a "demand last week" feature computed wrong is not. The rule is simple and unforgiving: every input to a forecast for time t must be computable strictly from information available at time t.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="metrics">
+    <p class="sec-num">Section 04</p>
+    <h2>Measuring how wrong you are</h2>
+    <p>Once you forecast honestly, you need a number for the error, and the choice of number quietly shapes which model wins. The two workhorses are <em class="term">MAE</em>, the mean absolute error, and <em class="term">RMSE</em>, the root mean squared error. They differ in temperament: MAE treats all misses proportionally, while RMSE squares them first, so it punishes a few large errors far more than many small ones. If a single bad miss is catastrophic, optimize RMSE; if all errors hurt equally, MAE is more faithful.</p>
+    <p>Percentage errors like <em class="term">MAPE</em> are tempting because they are unit-free and easy to explain, but they have a sharp edge: when the actual value approaches zero, the percentage explodes toward infinity, and the average becomes meaningless. <em class="term">sMAPE</em> softens this a little, and <em class="term">MASE</em> sidesteps it entirely by scaling your error against the naive baseline, so a MASE below one means you beat naive and above one means you lost. Push the series level toward zero below and watch MAPE detonate while MASE stays sane.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 4</span> · the same forecast, five metrics &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="mCanvas" height="230"></canvas></div>
+      <div class="readout" id="mRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Forecast bias <b><span id="mBiasv">0.0</span></b></label><input type="range" id="mBias" min="-2" max="2" value="0" step="0.1"></div>
+        <div class="ctrl"><label>Forecast noise <b><span id="mNoisev">0.6</span></b></label><input type="range" id="mNoise" min="0" max="2" value="0.6" step="0.1"></div>
+        <div class="ctrl"><label>Series level <b><span id="mLevelv">6.0</span></b></label><input type="range" id="mLevel" min="0.3" max="10" value="6" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Grey: the actual values. Rust: the forecast. The thin vertical stems are the errors each metric summarizes differently. Lower the series level so the line crosses near zero and MAPE leaps into the hundreds of percent while MAE, RMSE and MASE barely move, the classic warning against percentage errors on low-volume data.</div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="ets">
+    <p class="sec-num">Section 05</p>
+    <h2>Exponential smoothing</h2>
+    <p>The first real method family is built on one elegant idea: a forecast should be a weighted average of past observations, with the weights fading exponentially into the past. The most recent point matters most, the one before slightly less, and so on. The plainest version, <em class="term">simple exponential smoothing</em>, tracks a single evolving <em class="term">level</em> with one knob, the smoothing rate alpha. A high alpha reacts fast and trusts the latest point; a low alpha is sluggish and trusts the accumulated past.</p>
+    <p>Real series have more than a level, so the idea is extended. Add a <em class="term">trend</em> component (Holt's method) and the forecast can slope upward or downward. Add a <em class="term">seasonal</em> component (Holt-Winters) and it can carry a repeating yearly or weekly shape forward. Each component gets its own smoothing rate, updated every step from the newest data.</p>
+    <div class="eq">
+      level &nbsp; <span class="c">&#8467;<sub>t</sub></span> = &alpha;(y<sub>t</sub> &minus; s<sub>t&minus;m</sub>) + (1&minus;&alpha;)(&#8467;<sub>t&minus;1</sub> + b<sub>t&minus;1</sub>)<br>
+      trend &nbsp; <span class="c">b<sub>t</sub></span> = &beta;(&#8467;<sub>t</sub> &minus; &#8467;<sub>t&minus;1</sub>) + (1&minus;&beta;) b<sub>t&minus;1</sub><br>
+      season <span class="c">s<sub>t</sub></span> = &gamma;(y<sub>t</sub> &minus; &#8467;<sub>t&minus;1</sub> &minus; b<sub>t&minus;1</sub>) + (1&minus;&gamma;) s<sub>t&minus;m</sub><br>
+      forecast <span class="g">&#375;<sub>t+h</sub></span> = &#8467;<sub>t</sub> + h&middot;b<sub>t</sub> + s<sub>t&minus;m+((h&minus;1) mod m)+1</sub>
+    </div>
+    <p>The simulation runs genuine additive Holt-Winters on the history and projects across the horizon. Turn the three knobs and feel the tension: too much smoothing and the forecast lags behind real change; too little and it chases noise into the future.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 5</span> · Holt-Winters exponential smoothing &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="hwCanvas" height="270"></canvas></div>
+      <div class="readout" id="hwRead"></div>
+      <div class="toggle-row"><span class="lbl">overlay:</span><span class="toggle" id="hwLevel">show level component</span></div>
+      <div class="controls">
+        <div class="ctrl"><label>&alpha; level rate <b><span id="hwAlphav">0.30</span></b></label><input type="range" id="hwAlpha" min="0.02" max="0.99" value="0.3" step="0.01"></div>
+        <div class="ctrl"><label>&beta; trend rate <b><span id="hwBetav">0.08</span></b></label><input type="range" id="hwBeta" min="0" max="0.8" value="0.08" step="0.01"></div>
+        <div class="ctrl"><label>&gamma; season rate <b><span id="hwGammav">0.25</span></b></label><input type="range" id="hwGamma" min="0" max="0.99" value="0.25" step="0.01"></div>
+      </div>
+      <div class="fig-cap">Grey: history. Rust: the one-step fitted values from Holt-Winters as it learns level, trend and season online. Teal: the multi-step forecast over the held-out region, with the grey dashed truth for comparison. The method carries the seasonal shape forward, something none of the baselines except seasonal naive can do.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="arima">
+    <p class="sec-num">Section 06</p>
+    <h2>The ARIMA family</h2>
+    <p>The other great classical family models a series through its own correlations. An <em class="term">autoregressive</em> term (the AR in ARIMA) says the next value is a weighted sum of recent past values plus a shock: today leans on yesterday and the day before. A <em class="term">moving-average</em> term (the MA) says the next value also carries an echo of recent random shocks. The middle letter, the <em class="term">I</em> for integrated, is differencing: instead of the raw series you model its changes, which is how ARIMA tames a trend and works with the stationary signal underneath.</p>
+    <p>Two diagnostic plots from the companion page guide the choice of orders: the autocorrelation function and its partial cousin reveal how many AR and MA terms the data wants. The simulation below builds a genuine AR(2) process you control, fits the coefficients back from the training data by least squares, then forecasts recursively. Notice the signature behavior of every stationary autoregressive forecast: it decays back toward the series mean as the horizon grows, because the model has no information about the far future beyond "it will look average".</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 6</span> · AR(2): generate, fit, forecast &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="arCanvas" height="260"></canvas></div>
+      <div class="readout" id="arRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>&phi;<sub>1</sub> (lag-1 weight) <b><span id="arP1v">0.55</span></b></label><input type="range" id="arP1" min="-0.9" max="1.6" value="0.55" step="0.05"></div>
+        <div class="ctrl"><label>&phi;<sub>2</sub> (lag-2 weight) <b><span id="arP2v">0.20</span></b></label><input type="range" id="arP2" min="-0.9" max="0.9" value="0.2" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Rust: the AR(2) training history generated from your coefficients. Teal: the recursive forecast using coefficients re-estimated from that history alone. Grey dashed: the truth. Push the coefficients outside the stationary region and the readout warns you; inside it, watch how the forecast relaxes smoothly toward the mean.</div>
+    </div>
+
+    <div class="note">
+      <p class="nt">Practical note · ETS or ARIMA?</p>
+      <p>The two classical families overlap more than their different vocabularies suggest, and many series are served well by either. A rough guide: reach for exponential smoothing when the structure is clearly level-plus-trend-plus-season and you want robust, almost tuning-free behavior; reach for ARIMA when the autocorrelation structure is richer or you need its statistical machinery for intervals and tests. In practice, automated routines that search the ETS and ARIMA spaces and pick by an information criterion have made the choice far less agonizing than it once was.</p>
+    </div>
+  </section>
+
+  <!-- ACF/PACF -->
+  <section id="acfpacf">
+    <p class="sec-num">Section 07</p>
+    <h2>Reading the correlogram: ACF &amp; PACF</h2>
+    <p>How do you know how many autoregressive or moving-average terms a series wants? You ask the data, through two diagnostic plots. The <em class="term">autocorrelation function</em> (ACF), met in the first monograph, measures how a series correlates with itself at each lag. The <em class="term">partial autocorrelation function</em> (PACF) measures the correlation at a lag <strong>after removing</strong> the influence of all the shorter lags in between, isolating the direct link.</p>
+    <p>The two plots have a famous signature. For a pure autoregressive process of order p, the PACF cuts off sharply after lag p while the ACF decays gradually; for a pure moving-average process of order q, it is the mirror image, the ACF cuts off after q and the PACF trails away. Real series are messier, but this pattern is the first thing a forecaster reads off the correlogram. Build an AR process below and watch the PACF snap to zero past its true order while the ACF tapers.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 7</span> · ACF and PACF of an AR process &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="acfCanvas" height="300"></canvas></div>
+      <div class="readout" id="acfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>&phi;<sub>1</sub> (lag-1) <b><span id="acP1v">0.6</span></b></label><input type="range" id="acP1" min="-0.9" max="0.9" value="0.6" step="0.05"></div>
+        <div class="ctrl"><label>&phi;<sub>2</sub> (lag-2) <b><span id="acP2v">0.25</span></b></label><input type="range" id="acP2" min="-0.6" max="0.6" value="0.25" step="0.05"></div>
+        <div class="ctrl"><label>Noise level <b><span id="acNoisev">1.0</span></b></label><input type="range" id="acNoise" min="0.3" max="2" value="1" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Top: the ACF, bars at each lag with the dashed significance band. Bottom: the PACF. For this AR(2) the PACF has two significant spikes and then collapses into the band, the data-driven fingerprint that says "two autoregressive terms". The ACF, by contrast, decays smoothly across many lags.</div>
+    </div>
+  </section>
+
+  <!-- Differencing -->
+  <section id="diff">
+    <p class="sec-num">Section 08</p>
+    <h2>Differencing and stationarity</h2>
+    <p>Most classical methods assume the series is <em class="term">stationary</em>: its mean, variance and correlations do not drift over time. Real series rarely oblige, and the most common cure is <em class="term">differencing</em>, working with the change from one step to the next instead of the raw value. A single difference flattens a linear trend; a second difference handles a curving one; a <em class="term">seasonal difference</em>, subtracting the value one season ago, removes a repeating cycle. The "I" in ARIMA is exactly this operation, applied before the AR and MA machinery sees the data.</p>
+    <p>The art is to difference enough to reach stationarity but no more, since over-differencing injects its own artificial structure. The simulation takes a trended, seasonal series and applies the differencing you choose, reporting how the variance settles once the trend and season are removed.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 8</span> · differencing toward stationarity &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="diffCanvas" height="260"></canvas></div>
+      <div class="toggle-row"><span class="lbl">apply:</span>
+        <span class="toggle on" id="dfNone">none</span>
+        <span class="toggle" id="dfFirst">first difference</span>
+        <span class="toggle" id="dfSecond">second difference</span>
+        <span class="toggle" id="dfSeason">seasonal difference</span>
+      </div>
+      <div class="readout" id="diffRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Trend slope <b><span id="dfSlopev">0.08</span></b></label><input type="range" id="dfSlope" min="0" max="0.2" value="0.08" step="0.01"></div>
+        <div class="ctrl"><label>Seasonal amplitude <b><span id="dfSeasonAv">3.0</span></b></label><input type="range" id="dfSeasonA" min="0" max="6" value="3" step="0.2"></div>
+      </div>
+      <div class="fig-cap">Top: the original series with its trend and season intact, clearly non-stationary. Bottom: the differenced series under the operation you pick. A first difference levels the trend; a seasonal difference flattens the cycle; combine the right ones and the bottom panel becomes the flat, mean-reverting noise that the classical models are built to handle.</div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="decomp">
+    <p class="sec-num">Section 09</p>
+    <h2>Decomposition: forecast the parts</h2>
+    <p>A different and very intuitive strategy is to split the series into its ingredients, forecast each one separately, then add them back together. The companion page showed how a signal decomposes into trend, season and remainder; here we put that decomposition to work for prediction. Estimate the slow trend, estimate the repeating seasonal shape, and the leftover is a small stationary residual. To forecast, extend the trend forward, tile the seasonal shape across the horizon, and add the (usually near-zero) residual forecast on top.</p>
+    <p>The appeal is transparency. Each piece of the forecast has a clear meaning you can sanity-check and explain to a stakeholder: this much is the underlying growth, this much is the seasonal swing. The risk is that the trend extrapolation, often a straight line, can run away over long horizons, so decomposition forecasts are usually trusted more for their seasonal shape than their long-range level.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 9</span> · classical decomposition forecast &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="dcfCanvas" height="270"></canvas></div>
+      <div class="readout" id="dcfRead"></div>
+      <div class="legend">
+        <span><i style="background:#C8962C"></i>fitted trend</span>
+        <span><i style="background:#2F6B6B"></i>trend + season forecast</span>
+        <span><i style="background:#B0542B"></i>history</span>
+      </div>
+      <div class="controls">
+        <div class="ctrl"><label>Trend slope <b><span id="dcfSlopev">0.07</span></b></label><input type="range" id="dcfSlope" min="-0.06" max="0.18" value="0.07" step="0.01"></div>
+        <div class="ctrl"><label>Seasonal amplitude <b><span id="dcfSeasonv">3.5</span></b></label><input type="range" id="dcfSeason" min="0" max="6" value="3.5" step="0.2"></div>
+        <div class="ctrl"><label>Noise level <b><span id="dcfNoisev">0.7</span></b></label><input type="range" id="dcfNoise" min="0" max="2" value="0.7" step="0.1"></div>
+      </div>
+      <div class="fig-cap">The ochre line is the trend fitted to history and extended forward. The teal forecast adds the estimated seasonal shape on top of that extended trend. Increase the noise and the recovered season blurs; increase the seasonal amplitude and the forecast's repeating swing grows to match.</div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="intervals">
+    <p class="sec-num">Section 10</p>
+    <h2>Owning the uncertainty</h2>
+    <p>A point forecast is half an answer. The half that matters for a decision is the range: how far could the truth plausibly fall from the central guess? A <em class="term">prediction interval</em> states that range with a probability attached, an 80 percent interval is meant to contain the actual value four times out of five. The width of the interval is not decoration; it is the forecast's confession of how much it does not know.</p>
+    <p>Intervals share one universal feature: they <strong>widen with the horizon</strong>. One step ahead, the model is anchored to the freshest data and the interval is tight. Far ahead, errors compound and the interval flares into a fan. The simplest honest construction takes the spread of the model's one-step errors on the training data and grows it with the horizon, often like the square root of the number of steps for a random-walk-like series. The simulation draws nested 50, 80 and 95 percent bands and reports how often the held-out truth actually lands inside the outer one, the property that separates a calibrated interval from a comforting fiction.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 10</span> · the forecast fan chart &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="fanCanvas" height="260"></canvas></div>
+      <div class="readout" id="fanRead"></div>
+      <div class="toggle-row"><span class="lbl">interval growth:</span>
+        <span class="toggle on" id="fanSqrt">grows with &radic;h</span>
+        <span class="toggle" id="fanFlat">constant width</span>
+      </div>
+      <div class="controls">
+        <div class="ctrl"><label>Residual spread <b><span id="fanSigmav">1.0</span></b></label><input type="range" id="fanSigma" min="0.3" max="3" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Horizon <b><span id="fanHv">24</span></b></label><input type="range" id="fanH" min="8" max="36" value="24" step="1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(176,84,43,0.5)"></i>50% / 80% / 95% bands</span>
+        <span><i style="background:#2F6B6B"></i>point forecast</span>
+        <span><i style="background:#5A554C"></i>actual outcomes</span>
+      </div>
+      <div class="fig-cap">Teal: the central forecast. The shaded bands are nested prediction intervals; the darkest is 50 percent, the palest 95. Grey dots are what actually happened. With the square-root growth on, the fan opens realistically and most dots fall inside the 95 band; force constant width and watch the far dots escape, the sign of an over-confident interval.</div>
+    </div>
+  </section>
+
+  <!-- Conformal -->
+  <section id="conformal">
+    <p class="sec-num">Section 11</p>
+    <h2>Conformal prediction intervals</h2>
+    <p>The fan chart of the previous section assumed the errors were Gaussian and that the model's own variance estimate was trustworthy. Both assumptions fail quietly and often, leaving intervals that are too narrow exactly when it matters. <em class="term">Conformal prediction</em> sidesteps the problem with a guarantee that holds no matter what model produced the point forecast and no matter how the errors are distributed.</p>
+    <p>The recipe is almost suspiciously simple. Hold out a calibration set the model never trained on. Record the absolute error of the point forecast on each calibration point, the <em class="term">nonconformity scores</em>. To build a 90 percent interval for a new forecast, pad it by the 90th percentile of those scores. Because the new point and the calibration points are exchangeable, the resulting interval covers the truth about 90 percent of the time, by construction rather than by assumption. The simulation forecasts a holdout span and sizes its conformal band from the calibration residuals, then measures the coverage actually achieved.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 11</span> · distribution-free coverage &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="cfCanvas" height="260"></canvas></div>
+      <div class="readout" id="cfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Target coverage <b><span id="cfLevelv">90</span>%</b></label><input type="range" id="cfLevel" min="50" max="99" value="90" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="cfNoise2v">1.0</span></b></label><input type="range" id="cfNoise2" min="0.3" max="2.5" value="1" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Teal: the point forecast over the holdout. Rust band: the conformal interval, the same width everywhere because it comes from a single residual quantile. Dots are the actual values; those outside the band are the misses. Raise the target and the band widens until the achieved coverage in the readout matches what you asked for, no Gaussian assumed.</div>
+    </div>
+  </section>
+
+  <!-- Quantile -->
+  <section id="quantile">
+    <p class="sec-num">Section 12</p>
+    <h2>Quantile forecasting &amp; the pinball loss</h2>
+    <p>A symmetric band assumes the future is equally likely to surprise you high or low. Often it is not: demand can spike far above its median but rarely falls below zero, and the cost of under-forecasting may dwarf the cost of over-forecasting. <em class="term">Quantile forecasting</em> drops the symmetry and predicts the percentiles directly, say the 10th, 50th and 90th, letting the interval be lopsided when reality is.</p>
+    <p>You cannot train a quantile forecaster with squared error; that only ever learns the mean. The right objective is the <em class="term">pinball loss</em> (the quantile loss), which is tilted so that for the 90th percentile, falling short is penalised nine times as heavily as overshooting. Minimising it pins each prediction to its intended quantile. The simulation shows the three quantile forecasts and reports the pinball loss as you make the underlying noise asymmetric.</p>
+    <div class="eq">
+      pinball<sub>&tau;</sub>(y, q) = <span class="c">&tau;</span>&middot;(y &minus; q) &nbsp; if y &ge; q, &nbsp;&nbsp; otherwise &nbsp; (1 &minus; <span class="c">&tau;</span>)&middot;(q &minus; y)
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 12</span> · three quantiles and the pinball score &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="qCanvas" height="260"></canvas></div>
+      <div class="readout" id="qRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Noise scale <b><span id="qNoisev">1.0</span></b></label><input type="range" id="qNoise" min="0.3" max="2.5" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Upside skew <b><span id="qAsymv">0.6</span></b></label><input type="range" id="qAsym" min="0" max="1.5" value="0.6" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Teal: the median (50th percentile) forecast. The shaded region runs from the 10th to the 90th quantile. As you add upside skew the band grows lopsided, reaching further above the median than below, because that is where the mass of the future now lies. The readout tracks the pinball loss that made this possible.</div>
+    </div>
+  </section>
+
+  <!-- Calibration -->
+  <section id="calibration">
+    <p class="sec-num">Section 13</p>
+    <h2>Are your intervals honest?</h2>
+    <p>An interval is only as good as its honesty. If you ship 90 percent intervals that actually contain the truth 70 percent of the time, you are <em class="term">over-confident</em>, and every downstream decision inherits a risk it does not know about. The diagnostic is the <em class="term">reliability diagram</em>: for each nominal coverage level you intended, plot the empirical coverage you achieved. Perfect calibration lies on the diagonal.</p>
+    <p>A curve sagging below the diagonal means intervals that are too narrow; bulging above means they are needlessly wide and you are wasting precision. The simulation sweeps the nominal levels and plots achieved against intended coverage for a forecaster whose spread you can mis-set, so you can see over- and under-confidence directly.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 13</span> · the reliability diagram &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="calCanvas" height="260"></canvas></div>
+      <div class="readout" id="calRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Interval dispersion <b><span id="calDispv">1.0</span></b></label><input type="range" id="calDisp" min="0.4" max="1.8" value="1" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Dashed line: perfect calibration, where intended and achieved coverage agree. Teal curve: this forecaster. Set the dispersion below one and the curve sags, the intervals are too tight and the model is over-confident; above one it bulges, the intervals are too loose. The goal is to sit on the diagonal.</div>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section id="ml">
+    <p class="sec-num">Section 14</p>
+    <h2>Forecasting as supervised learning</h2>
+    <p>Machine learning enters through a simple reframing: turn the time series into an ordinary table. For each point, build a row of <em class="term">features</em> from its past, the last few values (called <em class="term">lags</em>), the value one season ago, rolling averages, calendar facts like day-of-week, and let the target be the next value. Now any regressor, a linear model, a gradient-boosted tree, a neural network, can learn the mapping from past to future. This is how tree ensembles came to dominate several large forecasting competitions.</p>
+    <p>Reaching multiple steps ahead forces a choice. The <em class="term">recursive</em> strategy forecasts one step, feeds that prediction back in as if it were real, and repeats, simple but it lets errors compound. The <em class="term">direct</em> strategy trains a separate model for each horizon, no feedback, but many models to fit. The simulation runs a genuine lag-feature linear model, fit by least squares on the history and rolled forward recursively. Add lags or switch on a seasonal lag feature and watch the forecast sharpen as the feature set captures more structure.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 14</span> · lag-feature regression forecast &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="mlCanvas" height="260"></canvas></div>
+      <div class="readout" id="mlRead"></div>
+      <div class="toggle-row"><span class="lbl">features:</span><span class="toggle" id="mlSeason">add seasonal lag (y<sub>t&minus;12</sub>)</span></div>
+      <div class="controls">
+        <div class="ctrl"><label>Number of lags <b><span id="mlLagsv">3</span></b></label><input type="range" id="mlLags" min="1" max="8" value="3" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="mlNoisev">0.7</span></b></label><input type="range" id="mlNoise" min="0" max="2" value="0.7" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Rust: history. Teal: a least-squares regression on lagged values, rolled forward recursively across the horizon. With only short lags the model captures the local momentum but misses the season; switch on the seasonal lag and the yearly shape snaps into the forecast, a vivid demonstration that in machine learning the features do the heavy lifting.</div>
+    </div>
+
+    <div class="diagram" aria-label="Recursive versus direct multi-step forecasting">
+      <svg viewBox="0 0 720 180" role="img" aria-labelledby="rdTitle">
+        <title id="rdTitle">Recursive forecasting feeds each prediction back as input for the next step; direct forecasting trains a separate model per horizon.</title>
+        <defs><marker id="arrR" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#2A2724">
+          <text x="14" y="22" font-size="12" fill="#B0542B">recursive</text>
+          <rect x="14" y="32" width="70" height="34" rx="7" fill="#FBF6E9" stroke="#C8962C"/><text x="34" y="53">model</text>
+          <line x1="84" y1="49" x2="120" y2="49" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/>
+          <rect x="122" y="32" width="54" height="34" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text x="138" y="53">&#375;<tspan dy="3" font-size="8">t+1</tspan></text>
+          <path d="M149,66 C149,92 40,92 40,68" fill="none" stroke="#5A554C" stroke-width="1.1" stroke-dasharray="3 3" marker-end="url(#arrR)"/>
+          <text x="60" y="104" fill="#5A554C">prediction fed back as input</text>
+          <line x1="176" y1="49" x2="212" y2="49" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/>
+          <rect x="214" y="32" width="70" height="34" rx="7" fill="#FBF6E9" stroke="#C8962C"/><text x="234" y="53">model</text>
+          <line x1="284" y1="49" x2="320" y2="49" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/>
+          <rect x="322" y="32" width="54" height="34" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text x="338" y="53">&#375;<tspan dy="3" font-size="8">t+2</tspan></text>
+          <text x="430" y="22" font-size="12" fill="#B0542B">direct</text>
+          <rect x="430" y="30" width="74" height="26" rx="6" fill="#FBF6E9" stroke="#C8962C"/><text x="446" y="47">model h=1</text>
+          <rect x="430" y="62" width="74" height="26" rx="6" fill="#FBF6E9" stroke="#C8962C"/><text x="446" y="79">model h=2</text>
+          <rect x="430" y="94" width="74" height="26" rx="6" fill="#FBF6E9" stroke="#C8962C"/><text x="446" y="111">model h=3</text>
+          <line x1="504" y1="43" x2="540" y2="43" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/><text x="544" y="47" fill="#2F6B6B">&#375;<tspan dy="3" font-size="8">t+1</tspan></text>
+          <line x1="504" y1="75" x2="540" y2="75" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/><text x="544" y="79" fill="#2F6B6B">&#375;<tspan dy="3" font-size="8">t+2</tspan></text>
+          <line x1="504" y1="107" x2="540" y2="107" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrR)"/><text x="544" y="111" fill="#2F6B6B">&#375;<tspan dy="3" font-size="8">t+3</tspan></text>
+          <text x="430" y="142" fill="#5A554C">one model trained per horizon, no feedback</text>
+        </g>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 15. Two ways to reach multiple steps ahead. Recursive is simple but compounds its own errors; direct avoids feedback at the cost of training and storing many models.</p>
+  </section>
+
+  <!-- Direct vs recursive -->
+  <section id="directrec">
+    <p class="sec-num">Section 15</p>
+    <h2>Direct vs recursive, measured</h2>
+    <p>The diagram above named two strategies for forecasting several steps ahead. The <em class="term">recursive</em> approach trains one model and feeds its own predictions back in to walk forward, which is simple but lets small errors compound as the horizon grows. The <em class="term">direct</em> approach trains a separate model for each horizon, predicting step h straight from the present, which avoids feedback at the cost of many models. Which wins is an empirical question, so here we settle it by running both on the same series.</p>
+    <p>The simulation fits a lag regression, then forecasts the same horizon recursively and directly, overlaying the two paths against the truth and reporting each one's error. Stretch the horizon and watch the recursive path drift as its own mistakes feed forward, while the direct forecasts, each trained for its own distance, often hold their line better far out.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 16</span> · two multi-step strategies, head to head &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="drCanvas" height="260"></canvas></div>
+      <div class="readout" id="drRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Horizon <b><span id="drHv">18</span> steps</b></label><input type="range" id="drH" min="6" max="36" value="18" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="drNoisev">0.8</span></b></label><input type="range" id="drNoise" min="0.2" max="2" value="0.8" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Grey: the true continuation. Rust: the recursive forecast, feeding its own output back in. Teal: the direct forecasts, one model per horizon. Early on they agree; far out, the recursive path tends to wander as its errors accumulate while the direct path stays anchored. The readout gives each strategy's RMSE over the horizon.</div>
+    </div>
+  </section>
+
+  <!-- Combination -->
+  <section id="combo">
+    <p class="sec-num">Section 16</p>
+    <h2>Combining forecasts</h2>
+    <p>One of the most reliable findings in the whole field is almost embarrassing in its simplicity: <strong>averaging several decent forecasts usually beats any one of them.</strong> The members make different errors, and a simple mean lets those errors partly cancel, so the combination is steadier than its parts. This has held up across decades of forecasting competitions, and a plain average is a famously hard baseline to improve on.</p>
+    <p>The simulation runs four different methods on a series, then forms their equal-weight average. Each member's accuracy is reported alongside the ensemble's, and the combination typically lands at or below the best individual, with far less risk of being the worst. It is the closest thing forecasting has to a free lunch.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 17</span> · the ensemble beats its members &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="combCanvas" height="260"></canvas></div>
+      <div class="readout" id="combRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Horizon <b><span id="cbHv">16</span> steps</b></label><input type="range" id="cbH" min="6" max="30" value="16" step="1"></div>
+        <div class="ctrl"><label>Series noise <b><span id="cbNoisev">1.0</span></b></label><input type="range" id="cbNoise" min="0.3" max="2.5" value="1" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Faint lines: the individual member forecasts (naive, seasonal-naive, drift and a smoother). Bold teal: their equal-weight average. Grey: the truth. The readout lists each member's MASE and the combination's; notice the average rarely loses to its best member and reliably beats its worst.</div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section id="deep">
+    <p class="sec-num">Section 17</p>
+    <h2>Deep learning and global models</h2>
+    <p>When you have many related series and enough data, neural networks can learn patterns no hand-built feature set would capture. <em class="term">Recurrent networks</em> (RNNs, and their sturdier variants LSTM and GRU) process a sequence one step at a time, carrying a hidden state that acts as a learned memory of everything seen so far. <em class="term">Convolutional</em> approaches (temporal convolutional networks) instead slide learned filters across time, capturing patterns at several scales in parallel. More recently, <em class="term">attention</em> based architectures let the model look directly at any past step it finds relevant, sidestepping the bottleneck of a single hidden state.</p>
+    <p>The deeper shift these models brought is not the architecture but the <em class="term">global</em> training idea. Classical methods fit one model per series in isolation. A global model trains a single network across thousands of series at once, so a new or sparse series borrows strength from the patterns learned on all the others. This cross-learning is what powered methods like DeepAR and N-BEATS, and it underlies the recent wave of pre-trained time-series foundation models that aim to forecast a series they have never seen, zero-shot. The trade is the usual one: enormous capacity and data appetite against the simplicity, speed and interpretability of the classical tools.</p>
+
+    <div class="diagram" aria-label="Recurrent cell unrolled and the global model concept">
+      <svg viewBox="0 0 720 200" role="img" aria-labelledby="dlTitle">
+        <title id="dlTitle">A recurrent network unrolled over time carries a hidden state forward; a global model trains one network across many series.</title>
+        <defs><marker id="arrD" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#2A2724">
+          <text x="14" y="20" font-size="12" fill="#B0542B">recurrent cell, unrolled in time</text>
+          <g>
+            <rect x="20" y="74" width="50" height="40" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text x="38" y="98">h<tspan dy="3" font-size="8">1</tspan></text>
+            <rect x="120" y="74" width="50" height="40" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text x="138" y="98">h<tspan dy="3" font-size="8">2</tspan></text>
+            <rect x="220" y="74" width="50" height="40" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text x="238" y="98">h<tspan dy="3" font-size="8">3</tspan></text>
+            <line x1="70" y1="94" x2="118" y2="94" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrD)"/>
+            <line x1="170" y1="94" x2="218" y2="94" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrD)"/>
+            <line x1="270" y1="94" x2="306" y2="94" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrD)"/>
+            <text x="312" y="98" fill="#2F6B6B">forecast</text>
+            <line x1="45" y1="140" x2="45" y2="116" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrD)"/>
+            <line x1="145" y1="140" x2="145" y2="116" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrD)"/>
+            <line x1="245" y1="140" x2="245" y2="116" stroke="#5A554C" stroke-width="1.2" marker-end="url(#arrD)"/>
+            <text x="36" y="156" fill="#5A554C">y<tspan dy="3" font-size="8">1</tspan></text>
+            <text x="136" y="156" fill="#5A554C">y<tspan dy="3" font-size="8">2</tspan></text>
+            <text x="236" y="156" fill="#5A554C">y<tspan dy="3" font-size="8">3</tspan></text>
+          </g>
+          <line x1="380" y1="30" x2="380" y2="170" stroke="#D9D2C5"/>
+          <text x="410" y="20" font-size="12" fill="#B0542B">global model</text>
+          <g font-size="10">
+            <path d="M410,46 h70" stroke="#B0542B" stroke-width="1.4" fill="none"/>
+            <path d="M410,66 h70" stroke="#C8962C" stroke-width="1.4" fill="none"/>
+            <path d="M410,86 h70" stroke="#2F6B6B" stroke-width="1.4" fill="none"/>
+            <text x="410" y="104" fill="#5A554C">thousands of series</text>
+          </g>
+          <line x1="486" y1="66" x2="528" y2="66" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrD)"/>
+          <rect x="530" y="46" width="90" height="44" rx="8" fill="#FBF6E9" stroke="#C8962C"/><text x="545" y="73">one network</text>
+          <line x1="620" y1="68" x2="656" y2="68" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrD)"/>
+          <text x="500" y="120" fill="#5A554C">each series borrows patterns learned from all the others</text>
+        </g>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 18. Left, a recurrent network passing a hidden memory along the sequence. Right, the global idea: one model learns across many series so each forecast draws on shared structure.</p>
+
+    <h3>Foundation models for time series</h3>
+    <p>The global idea, pushed to its limit, becomes a <em class="term">foundation model</em>: a single network pretrained on an enormous and varied corpus of time series, then asked to forecast a series it has never seen, with no training at all. This <em class="term">zero-shot</em> ambition borrows directly from large language models, and a wave of such models has arrived since late 2024. They cluster into a few architectural families. Decoder-only patched transformers, such as Google's TimesFM, chop the history into patches and predict forward in the native numeric domain. Tokenized-value models, such as Amazon's Chronos and the more recent Chronos-2, scale and quantize the values into a fixed vocabulary and run a language-model-style network over the resulting tokens, with Chronos-2 adding multivariate and covariate support. Masked encoders, such as Salesforce's Moirai and Carnegie Mellon's MOMENT, pretrain by reconstructing hidden spans, and mixture-of-experts variants like Time-MoE route different patterns to different sub-networks for efficiency.</p>
+    <p>The promise is real: respectable accuracy out of the box on series the model never trained on, turning forecasting from a per-series modelling problem into a model-selection one. But the field has a sobering caveat, and it deserves a place in any honest account. Because these models are pretrained on huge scraped corpora, the benchmarks used to praise them are frequently contaminated, the test series having leaked into the training data. On carefully de-contaminated benchmarks, the measured advantage of the best foundation model over strong classical baselines shrinks dramatically, in some studies to a margin of only a fraction of a percent up to the low double digits. The lesson echoes this whole monograph: a foundation model is another tool to put on the leaderboard, not a reason to retire the baselines. Run it through the same faithful backtest you would demand of anything else, and let the held-out numbers, not the parameter count, decide.</p>
+
+    <div class="note">
+      <p class="nt">Practical note · do not skip the baselines</p>
+      <p>The competitions that crowned machine-learning methods also delivered a humbling lesson: deep models win on large collections of related series with rich history, and frequently lose to a well-tuned exponential smoothing or a simple ensemble on a single short series. Complexity is a cost, not a virtue. Earn your way up the ladder of Figure 1 only when a faithful backtest says the extra machinery actually pays.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="workflow">
+    <p class="sec-num">Section 18</p>
+    <h2>A practical workflow</h2>
+    <p>The methods are only half the craft. The other half is a disciplined process that protects you from your own enthusiasm. Almost every successful forecasting effort walks the same loop.</p>
+
+    <div class="diagram" aria-label="Forecasting workflow flowchart">
+      <svg viewBox="0 0 440 410" role="img" aria-labelledby="wfTitle">
+        <title id="wfTitle">Workflow: understand the series, build baselines, set up backtesting, fit candidate models, compare honestly, add intervals, deploy and monitor, retrain on drift.</title>
+        <defs><marker id="arrW" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#2A2724">
+          <rect x="120" y="12" width="200" height="38" rx="19" fill="#EAF2F1" stroke="#2F6B6B"/><text x="140" y="36">understand the series</text>
+          <line x1="220" y1="50" x2="220" y2="68" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/>
+          <rect x="120" y="70" width="200" height="38" rx="6" fill="#FBF6E9" stroke="#C8962C"/><text x="150" y="94">build baselines</text>
+          <line x1="220" y1="108" x2="220" y2="126" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/>
+          <rect x="120" y="128" width="200" height="38" rx="6" fill="#FBF9F4" stroke="#C3BAA8"/><text x="138" y="152">set up rolling backtest</text>
+          <line x1="220" y1="166" x2="220" y2="184" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/>
+          <rect x="120" y="186" width="200" height="38" rx="6" fill="#FBF9F4" stroke="#C3BAA8"/><text x="135" y="210">fit candidate models</text>
+          <line x1="220" y1="224" x2="220" y2="242" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/>
+          <polygon points="220,242 330,282 220,322 110,282" fill="#FBF6E9" stroke="#C8962C"/>
+          <text x="168" y="278">beats</text><text x="160" y="294">baseline?</text>
+          <line x1="110" y1="282" x2="44" y2="282" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/><text x="56" y="274" fill="#B0542B">no</text>
+          <rect x="6" y="262" width="40" height="40" rx="6" fill="#F6E7E0" stroke="#B0542B"/><text x="14" y="287">ship</text>
+          <text x="2" y="318" font-size="9" fill="#5A554C">baseline</text>
+          <line x1="220" y1="322" x2="220" y2="340" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrW)"/><text x="228" y="336" fill="#2F6B6B">yes</text>
+          <rect x="100" y="342" width="240" height="36" rx="6" fill="#EAF2F1" stroke="#2F6B6B"/><text x="116" y="365">add intervals, deploy, monitor</text>
+          <path d="M340,360 C400,360 400,150 322,150" fill="none" stroke="#5A554C" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrW)"/>
+          <text x="350" y="250" font-size="9" fill="#5A554C">retrain</text><text x="350" y="262" font-size="9" fill="#5A554C">on drift</text>
+        </g>
+      </svg>
+    </div>
+
+    <ul>
+      <li><strong>Understand the series first.</strong> Plot it. Look for trend, seasonality, level shifts, gaps and outliers before choosing any method. Half of forecasting is just looking carefully.</li>
+      <li><strong>Establish baselines immediately.</strong> Naive and seasonal naive cost nothing and define the bar. A model is only worth its complexity if it clears them on a fair test.</li>
+      <li><strong>Backtest with a rolling origin.</strong> Never judge on a single split or on training fit. Average error across several forward-moving folds.</li>
+      <li><strong>Match the metric to the decision.</strong> RMSE if big misses hurt most, MAE if all errors are equal, MASE to compare honestly against naive. Avoid MAPE on low or zero-crossing data.</li>
+      <li><strong>Forecast intervals, not just points.</strong> A decision needs the range. Check that your stated intervals actually achieve their coverage on the backtest.</li>
+      <li><strong>Watch for drift and retrain.</strong> Series change. A model that was excellent last year can quietly rot; monitor its live error and retrain when it degrades.</li>
+    </ul>
+  </section>
+
+  <!-- Leaderboard -->
+  <section id="leaderboard">
+    <p class="sec-num">Section 19</p>
+    <h2>The bake-off: a live leaderboard</h2>
+    <p>Everything in this monograph converges on one ritual. Put every candidate method on the same series, evaluate them all with the same backtest and the same scale-free metric, and rank them. No method earns its place by reputation; it earns it on the leaderboard or not at all. This is the discipline that keeps a forecasting practice honest, and it is worth seeing run end to end.</p>
+    <p>The simulation backtests six methods at once, from the naive baselines through drift, a smoother and a lag regression, scoring each over rolling folds and sorting them by error. Change the series and the order reshuffles, which is exactly the point: the best method is a property of the data, not a fixed favourite. Watch how often a humble baseline finishes above something far more elaborate.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 19</span> · six methods, one backtest, ranked &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="lbCanvas" height="280"></canvas></div>
+      <div class="readout" id="lbRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Trend strength <b><span id="lbTrendv">0.5</span></b></label><input type="range" id="lbTrend" min="0" max="1.5" value="0.5" step="0.1"></div>
+        <div class="ctrl"><label>Seasonal strength <b><span id="lbSeasonv">1.0</span></b></label><input type="range" id="lbSeason" min="0" max="2" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="lbNoisev">1.0</span></b></label><input type="range" id="lbNoise" min="0.3" max="2.5" value="1" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Horizontal bars, one per method, sorted shortest (best) at the top, length proportional to backtest RMSE. The winning method is highlighted. Push the series toward strong trend and the drift and regression methods rise; add seasonality and the seasonal-naive climbs; flatten everything and the plain mean is suddenly hard to beat.</div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section id="prognostics">
+    <p class="sec-num">Section 20</p>
+    <h2>Forecasting for prognostics</h2>
+    <p>For condition monitoring and vehicle health, forecasting wears a specific and high-stakes mask. The companion page closed on <em class="term">remaining useful life</em>: track a health indicator as it degrades and project when it will cross a failure threshold. That projection is exactly a forecast, and everything in this guide applies, with the threshold turning a continuous forecast into a time-to-event decision.</p>
+    <p>Two themes from the methods above matter most here. First, <strong>intervals are not optional</strong>; a maintenance decision rests entirely on the lower edge of the RUL interval, the soonest plausible failure, not the central estimate. Techniques like conformal prediction, which wrap any forecaster in intervals with a coverage guarantee, are increasingly the standard for this reason. Second, the <strong>operating context is a covariate</strong>: the same degradation rate means different things at different loads and temperatures, so the strongest prognostic forecasters condition on those inputs rather than extrapolating the health indicator in a vacuum.</p>
+    <div class="note field">
+      <p class="nt">Detection and forecasting are one pipeline</p>
+      <p>The residual that raised an alarm in the first monograph becomes, tracked forward, the health indicator you forecast here. Diagnostics answers "is something wrong now"; prognostics answers "when will it matter". They are the same signal read at two horizons, and a mature health-management system runs both: a fast detector watching the present and a forecaster watching the future, each feeding the same maintenance decision.</p>
+    </div>
+    <div class="seriesnote">
+      This thread is picked up in full by the third monograph, <strong>Prognostics and Remaining Useful Life</strong>, which turns the forecast-to-a-threshold idea into degradation models, particle filters, similarity-based RUL and conformal failure intervals. Together with <strong>Time Series as Sensory Data</strong>, the three parts complete the arc from a single sensor sample, to a calibrated forecast of its next value, to a forecast of its failure.
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <!-- practice -->
+  <section id="practice">
+    <p class="sec-num">Section 21</p>
+    <h2>Practical notes</h2>
+    <p>A handful of lessons separate a forecast that survives contact with reality from one that only ever looked good on the training set. None are glamorous, and all are expensive to learn the hard way.</p>
+    <ul>
+      <li><strong>Always test out of sample.</strong> A model scored on the data it was fit to will flatter you. Use a rolling-origin backtest that only ever trains on the past and predicts the genuine future, and report the error from that, never the in-sample fit.</li>
+      <li><strong>Earn the right to be complex.</strong> A seasonal-naive baseline, last week's value repeated, is mandatory, not optional. If your model cannot beat it on the backtest, ship the baseline and save yourself the maintenance.</li>
+      <li><strong>Match the horizon to the decision.</strong> Forecast only as far ahead as you will actually act. Accuracy decays with horizon, and a precise ten-step forecast nobody uses is wasted effort that a one-step forecast would have spent better.</li>
+      <li><strong>The interval is the product.</strong> A point forecast hides exactly the uncertainty a decision needs. Carry a prediction interval, and then check its coverage: an interval that claims ninety percent but captures seventy is worse than honest silence.</li>
+      <li><strong>Re-check stationarity.</strong> Trends and changing variance break most models quietly. Difference or detrend as needed, and re-test, because a relationship that held last quarter can dissolve without warning.</li>
+      <li><strong>Guard against leakage.</strong> Every feature must be computable from data available at forecast time. Scaling parameters, lags, and rolling statistics all have to be fit on training data alone, or your backtest is fiction.</li>
+      <li><strong>Combine before you crown.</strong> A simple average of several reasonable forecasts usually beats the single best one and is far more robust when the future stops resembling the past. Reach for an ensemble before reaching for a bigger model.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>A forecast is a claim about the future scored only by how it does on data it never saw, so build the honest backtest first, carry the uncertainty with the number, and prefer the simple, combined, well-calibrated answer over the clever one that has not yet been tested where it counts.</p>
+    </div>
+  </section>
+
+  <section id="refs">
+    <p class="sec-num">Section 22</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Hyndman, R. J., &amp; Athanasopoulos, G. <em>Forecasting: Principles and Practice</em> (3rd ed.). OTexts. The definitive free online text on baselines, exponential smoothing, ARIMA, evaluation and intervals.</li>
+      <li>Box, G. E. P., Jenkins, G. M., Reinsel, G. C., &amp; Ljung, G. M. <em>Time Series Analysis: Forecasting and Control.</em> Wiley. The original and complete treatment of the ARIMA methodology.</li>
+      <li>Hamilton, J. D. <em>Time Series Analysis.</em> Princeton University Press. A rigorous reference for the statistical theory behind AR, MA and state-space models.</li>
+      <li>Brockwell, P. J., &amp; Davis, R. A. <em>Introduction to Time Series and Forecasting.</em> Springer. A clear bridge between theory and applied modelling.</li>
+      <li>Makridakis, S., Spiliotis, E., &amp; Assimakopoulos, V. (2020). "The M4 competition: 100,000 time series and 61 forecasting methods." <em>International Journal of Forecasting.</em> Evidence on when simple methods beat complex ones.</li>
+      <li>Makridakis, S., et al. (2022). "The M5 accuracy competition: results, findings and conclusions." <em>International Journal of Forecasting.</em> The competition where machine-learning and global methods came to the fore.</li>
+      <li>Petropoulos, F., et al. (2022). "Forecasting: theory and practice." <em>International Journal of Forecasting.</em> A broad, modern survey of the whole field.</li>
+      <li>Gneiting, T., &amp; Raftery, A. E. (2007). "Strictly proper scoring rules, prediction, and estimation." <em>Journal of the American Statistical Association.</em> The foundation for evaluating probabilistic forecasts.</li>
+      <li>Salinas, D., Flunkert, V., &amp; Gasthaus, J. (2020). "DeepAR: probabilistic forecasting with autoregressive recurrent networks." <em>International Journal of Forecasting.</em> A landmark global deep-learning forecaster.</li>
+      <li>Oreshkin, B. N., et al. (2020). "N-BEATS: neural basis expansion analysis for interpretable time series forecasting." <em>ICLR.</em> An influential pure deep-learning architecture for forecasting.</li>
+      <li>Lim, B., &amp; Zohren, S. (2021). "Time-series forecasting with deep learning: a survey." <em>Philosophical Transactions of the Royal Society A.</em> A map of the deep-learning landscape.</li>
+      <li>Lei, Y., et al. (2018). "Machinery health prognostics: a systematic review from data acquisition to RUL prediction." <em>Mechanical Systems and Signal Processing.</em> Forecasting in the prognostics and health-management setting.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References point to further study; the explanations and simulations above are written and implemented from first principles rather than drawn from any single source.</p>
+  </section>
+
+</div>
+
+<footer>
+  Forecasting Time Series &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; part two of the time-series series &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+  function linsolve(A,b,n){ // gaussian elimination with partial pivot, modifies copies
+    var M=[]; for(var i=0;i<n;i++){ M.push(A[i].slice()); M[i].push(b[i]); }
+    for(var c=0;c<n;c++){
+      var piv=c; for(var r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[piv][c])) piv=r;
+      var tmp=M[c]; M[c]=M[piv]; M[piv]=tmp;
+      if(Math.abs(M[c][c])<1e-12) M[c][c]=1e-12;
+      for(var r2=0;r2<n;r2++){ if(r2===c)continue; var f=M[r2][c]/M[c][c];
+        for(var k=c;k<=n;k++) M[r2][k]-=f*M[c][k]; }
+    }
+    var x=new Array(n); for(var i2=0;i2<n;i2++) x[i2]=M[i2][n]/M[i2][i2]; return x;
+  }
+  // bounds helper for plotting a set of series
+  function bounds(arrs){ var mn=Infinity,mx=-Infinity; for(var a=0;a<arrs.length;a++){ var s=arrs[a]; for(var i=0;i<s.length;i++){ if(s[i]==null||isNaN(s[i]))continue; if(s[i]<mn)mn=s[i]; if(s[i]>mx)mx=s[i]; } } if(mn===Infinity){mn=0;mx=1;} if(mx-mn<1e-6)mx=mn+1; var pad=(mx-mn)*0.12; return [mn-pad,mx+pad]; }
+
+  // ===== HERO =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var N=210,F=70,buf=[],t=0;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function sample(tt){ return 6+0.012*tt+2.0*Math.sin(tt*0.13)+0.8*Math.sin(tt*0.41)+0.5*gauss(); }
+    for(var i=0;i<N;i++){ buf.push(sample(t)); t+=1; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      // local linear fit on last 24 for forecast slope
+      var k=24,n=buf.length,sx=0,sy=0,sxx=0,sxy=0;
+      for(var i=0;i<k;i++){ var x=i,y=buf[n-k+i]; sx+=x;sy+=y;sxx+=x*x;sxy+=x*y; }
+      var b=(k*sxy-sx*sy)/(k*sxx-sx*sx), a=(sy-b*sx)/k;
+      var last=a+b*(k-1);
+      // residual std
+      var rs=0; for(var j=0;j<k;j++){ var e=buf[n-k+j]-(a+b*j); rs+=e*e; } rs=Math.sqrt(rs/k);
+      var fc=[]; for(var f=1;f<=F;f++) fc.push(last+b*f);
+      var all=buf.concat(fc), bd=bounds([all]), lo=bd[0],hi=bd[1];
+      function X(idx){ return (idx/(N+F-1))*w; }
+      function Y(v){ return h-8-((v-lo)/(hi-lo))*(h-16); }
+      // forecast cone
+      ctx.fillStyle="rgba(47,107,107,0.13)"; ctx.beginPath();
+      for(var f1=0;f1<F;f1++){ var wsd=1.96*rs*Math.sqrt(f1+1); ctx.lineTo(X(N-1+f1), Y(fc[f1]+wsd)); }
+      for(var f2=F-1;f2>=0;f2--){ var wsd2=1.96*rs*Math.sqrt(f2+1); ctx.lineTo(X(N-1+f2), Y(fc[f2]-wsd2)); }
+      ctx.closePath(); ctx.fill();
+      // history
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.7; ctx.beginPath();
+      for(var p=0;p<N;p++){ if(p===0)ctx.moveTo(X(p),Y(buf[p])); else ctx.lineTo(X(p),Y(buf[p])); } ctx.stroke();
+      // forecast
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.7; ctx.setLineDash([5,4]); ctx.beginPath();
+      ctx.moveTo(X(N-1),Y(buf[N-1]));
+      for(var q=0;q<F;q++) ctx.lineTo(X(N-1+q),Y(fc[q])); ctx.stroke(); ctx.setLineDash([]);
+      // divider
+      ctx.strokeStyle="rgba(90,85,76,0.35)"; ctx.beginPath(); ctx.moveTo(X(N-1),6); ctx.lineTo(X(N-1),h-6); ctx.stroke();
+      label(ctx,"now",X(N-1)-4,16,INKSOFT,"right");
+    }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ buf.push(sample(t)); t+=1; if(buf.length>N)buf.shift(); draw(); },90); }
+  })();
+
+  // ===== shared synthetic generator =====
+  function makeEps(n,seed){ var a=[]; for(var i=0;i<n;i++)a.push(gauss()); return a; }
+
+  // ===== FIG 2 baselines =====
+  (function(){
+    var c=document.getElementById("bCanvas"); if(!c)return;
+    var N=96,m=12,H=18,tr=N-H;
+    var eps=makeEps(N);
+    var els={tr:document.getElementById("bTrend"),se:document.getElementById("bSeason"),nz:document.getElementById("bNoise")};
+    var vs={tr:document.getElementById("bTrendv"),se:document.getElementById("bSeasonv"),nz:document.getElementById("bNoisev")};
+    var read=document.getElementById("bRead");
+    var method="snaive";
+    var toggles={naive:document.getElementById("bNaive"),snaive:document.getElementById("bSnaive"),mean:document.getElementById("bMean"),drift:document.getElementById("bDrift")};
+    function gen(){ var sl=parseFloat(els.tr.value),sa=parseFloat(els.se.value),nz=parseFloat(els.nz.value);
+      vs.tr.textContent=sl.toFixed(2); vs.se.textContent=sa.toFixed(1); vs.nz.textContent=nz.toFixed(1);
+      var y=[]; for(var t=0;t<N;t++) y.push(8+sl*t+sa*Math.sin(2*Math.PI*t/m)+nz*eps[t]); return y; }
+    function forecast(y){ var f=new Array(N).fill(null); var last=y[tr-1];
+      if(method==="naive"){ for(var h=0;h<H;h++) f[tr+h]=last; }
+      else if(method==="snaive"){ for(var h2=0;h2<H;h2++) f[tr+h2]=y[tr-m+(h2%m)]; }
+      else if(method==="mean"){ var mn=mean(y.slice(0,tr)); for(var h3=0;h3<H;h3++) f[tr+h3]=mn; }
+      else { var dr=(y[tr-1]-y[0])/(tr-1); for(var h4=0;h4<H;h4++) f[tr+h4]=last+(h4+1)*dr; }
+      return f; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var y=gen(),f=forecast(y); var x0=10,x1=w-10,y0=14,y1=h-22;
+      var bd=bounds([y,f]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(N-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(tr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"forecast \u2192",dx+4,y0+12,INKSOFT);
+      // train
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.7; ctx.beginPath(); for(var i=0;i<tr;i++){ if(i===0)ctx.moveTo(X(i),Y(y[i]));else ctx.lineTo(X(i),Y(y[i])); } ctx.stroke();
+      // actual holdout
+      ctx.strokeStyle="rgba(90,85,76,0.7)"; ctx.lineWidth=1.4; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var j=tr;j<N;j++) ctx.lineTo(X(j),Y(y[j])); ctx.stroke(); ctx.setLineDash([]);
+      // forecast
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var k=tr;k<N;k++) ctx.lineTo(X(k),Y(f[k])); ctx.stroke();
+      label(ctx,"history",x0+4,y1-4,RUST); label(ctx,"truth",x1-90,y1-4,INKSOFT); label(ctx,"forecast",x1-46,y1-4,TEAL);
+      // errors
+      var mae=0,rmse=0; for(var e=tr;e<N;e++){ var d=y[e]-f[e]; mae+=Math.abs(d); rmse+=d*d; } mae/=H; rmse=Math.sqrt(rmse/H);
+      read.innerHTML='<span>method: <b>'+method+'</b></span><span class="ok">hold-out MAE: <b>'+mae.toFixed(2)+'</b></span><span class="ok">RMSE: <b>'+rmse.toFixed(2)+'</b></span>'; }
+    Object.keys(toggles).forEach(function(key){ toggles[key].addEventListener("click",function(){ method=key; Object.keys(toggles).forEach(function(k2){toggles[k2].classList.remove("on");}); toggles[key].classList.add("on"); draw(); }); });
+    [els.tr,els.se,els.nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 3 backtest lanes =====
+  (function(){
+    var c=document.getElementById("btCanvas"); if(!c)return;
+    var Ntot=48;
+    var folds=document.getElementById("btFolds"),hor=document.getElementById("btHorizon");
+    var foldsv=document.getElementById("btFoldsv"),horv=document.getElementById("btHorizonv"),read=document.getElementById("btRead");
+    var tExp=document.getElementById("btExpand"),tSlide=document.getElementById("btSlide"); var mode="expand";
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var K=parseInt(folds.value,10),Hb=parseInt(hor.value,10); foldsv.textContent=K; horv.textContent=Hb; clear(ctx,w,h);
+      var x0=12,x1=w-12,y0=18,y1=h-26; var laneH=(y1-y0)/K; var cellW=(x1-x0)/Ntot;
+      var Wfix=Ntot-Hb*K; if(Wfix<Hb)Wfix=Hb;
+      for(var i=0;i<K;i++){
+        var testStart=Ntot-Hb*(K-i), testEnd=testStart+Hb;
+        var trainStart=mode==="expand"?0:Math.max(0,testStart-Wfix), trainEnd=testStart;
+        var ly=y0+i*laneH+2, ch=laneH-6;
+        for(var x=0;x<Ntot;x++){ var cx=x0+x*cellW, col;
+          if(x>=trainStart&&x<trainEnd) col="rgba(47,107,107,0.85)";
+          else if(x>=testStart&&x<testEnd) col="rgba(200,150,44,0.9)";
+          else col="rgba(217,210,197,0.5)";
+          ctx.fillStyle=col; ctx.fillRect(cx+0.5,ly,cellW-1,ch); }
+        label(ctx,"fold "+(i+1),x0+2,ly+ch-3,"#FBF9F4");
+      }
+      // time axis
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,y1+4); ctx.lineTo(x1,y1+4); ctx.stroke();
+      label(ctx,"time \u2192",x1-4,h-8,INKSOFT,"right");
+      label(ctx,mode==="expand"?"training window grows each fold":"training window slides, fixed length",x0,14,INKSOFT);
+      read.innerHTML='<span>folds: <b>'+K+'</b></span><span>horizon each: <b>'+Hb+'</b></span><span class="ok">every test block is strictly after its training</span>'; }
+    tExp.addEventListener("click",function(){ mode="expand"; tExp.classList.add("on"); tSlide.classList.remove("on"); draw(); });
+    tSlide.addEventListener("click",function(){ mode="slide"; tSlide.classList.add("on"); tExp.classList.remove("on"); draw(); });
+    [folds,hor].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 4 metrics =====
+  (function(){
+    var c=document.getElementById("mCanvas"); if(!c)return;
+    var L=24,eps=makeEps(L);
+    var bias=document.getElementById("mBias"),nz=document.getElementById("mNoise"),lev=document.getElementById("mLevel");
+    var biasv=document.getElementById("mBiasv"),nzv=document.getElementById("mNoisev"),levv=document.getElementById("mLevelv"),read=document.getElementById("mRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var B=parseFloat(bias.value),NZ=parseFloat(nz.value),LV=parseFloat(lev.value);
+      biasv.textContent=B.toFixed(1); nzv.textContent=NZ.toFixed(1); levv.textContent=LV.toFixed(1);
+      var a=[],f=[]; for(var i=0;i<L;i++){ a.push(LV+3*Math.sin(2*Math.PI*i/12)); f.push(a[i]+B+NZ*eps[i]); }
+      var x0=10,x1=w-10,y0=14,y1=h-20; var bd=bounds([a,f]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(L-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      if(lo<0&&hi>0){ var zy=Y(0); ctx.strokeStyle="rgba(176,84,43,0.4)"; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x0,zy); ctx.lineTo(x1,zy); ctx.stroke(); ctx.setLineDash([]); label(ctx,"zero",x1-4,zy-4,RUST,"right"); }
+      // error stems
+      ctx.strokeStyle="rgba(90,85,76,0.35)"; ctx.lineWidth=1; for(var s=0;s<L;s++){ ctx.beginPath(); ctx.moveTo(X(s),Y(a[s])); ctx.lineTo(X(s),Y(f[s])); ctx.stroke(); }
+      // actual
+      ctx.strokeStyle="rgba(90,85,76,0.8)"; ctx.lineWidth=1.6; ctx.beginPath(); for(var i2=0;i2<L;i2++){ if(i2===0)ctx.moveTo(X(i2),Y(a[i2]));else ctx.lineTo(X(i2),Y(a[i2])); } ctx.stroke();
+      for(var d=0;d<L;d++){ ctx.fillStyle=INKSOFT; ctx.beginPath(); ctx.arc(X(d),Y(a[d]),1.8,0,7); ctx.fill(); }
+      // forecast
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.7; ctx.beginPath(); for(var k=0;k<L;k++){ if(k===0)ctx.moveTo(X(k),Y(f[k]));else ctx.lineTo(X(k),Y(f[k])); } ctx.stroke();
+      label(ctx,"actual",x0+4,y0+12,INKSOFT); label(ctx,"forecast",x0+60,y0+12,RUST);
+      // metrics
+      var mae=0,rmse=0,mape=0,smape=0; for(var e=0;e<L;e++){ var er=a[e]-f[e]; mae+=Math.abs(er); rmse+=er*er;
+        mape+=Math.abs(er)/(Math.abs(a[e])+1e-9); smape+=2*Math.abs(er)/(Math.abs(a[e])+Math.abs(f[e])+1e-9); }
+      mae/=L; rmse=Math.sqrt(rmse/L); mape=mape/L*100; smape=smape/L*100;
+      var scal=0; for(var n2=1;n2<L;n2++) scal+=Math.abs(a[n2]-a[n2-1]); scal/=(L-1); var mase=mae/(scal+1e-9);
+      var mapeWarn=mape>60;
+      read.innerHTML='<span>MAE: <b>'+mae.toFixed(2)+'</b></span><span>RMSE: <b>'+rmse.toFixed(2)+'</b></span>'+
+        '<span class="'+(mapeWarn?'warn':'')+'">MAPE: <b>'+mape.toFixed(0)+'%</b></span>'+
+        '<span>sMAPE: <b>'+smape.toFixed(0)+'%</b></span>'+
+        '<span class="ok">MASE: <b>'+mase.toFixed(2)+'</b></span>'; }
+    [bias,nz,lev].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 5 Holt-Winters =====
+  (function(){
+    var c=document.getElementById("hwCanvas"); if(!c)return;
+    var N=120,m=12,H=24,tr=N-H,eps=makeEps(N);
+    var aEl=document.getElementById("hwAlpha"),bEl=document.getElementById("hwBeta"),gEl=document.getElementById("hwGamma");
+    var aV=document.getElementById("hwAlphav"),bV=document.getElementById("hwBetav"),gV=document.getElementById("hwGammav"),read=document.getElementById("hwRead");
+    var tLevel=document.getElementById("hwLevel"); var showLevel=false;
+    var y=[]; for(var t=0;t<N;t++) y.push(10+0.05*t+4*Math.sin(2*Math.PI*t/m)+1.2*Math.sin(2*Math.PI*t*2/m)+0.9*eps[t]);
+    function run(al,be,ga){
+      var s=new Array(m); var m1=mean(y.slice(0,m)), m2=mean(y.slice(m,2*m));
+      var lev=m1, tre=(m2-m1)/m;
+      for(var i=0;i<m;i++) s[i]=y[i]-m1;
+      var fitted=new Array(N).fill(null);
+      for(var t=0;t<tr;t++){ var ph=((t%m)+m)%m; var prevLev=lev,prevTre=tre;
+        var sIdx=s[ph];
+        fitted[t]=prevLev+prevTre+sIdx;
+        lev=al*(y[t]-sIdx)+(1-al)*(prevLev+prevTre);
+        tre=be*(lev-prevLev)+(1-be)*prevTre;
+        s[ph]=ga*(y[t]-prevLev-prevTre)+(1-ga)*sIdx;
+      }
+      var fc=new Array(N).fill(null), levArr=new Array(N).fill(null);
+      for(var hh=1;hh<=H;hh++){ var idx=tr-1+hh; var ph2=((idx%m)+m)%m; fc[idx]=lev+hh*tre+s[ph2]; levArr[idx]=lev+hh*tre; }
+      return {fitted:fitted,fc:fc,levArr:levArr,lev:lev,tre:tre}; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var al=parseFloat(aEl.value),be=parseFloat(bEl.value),ga=parseFloat(gEl.value);
+      aV.textContent=al.toFixed(2); bV.textContent=be.toFixed(2); gV.textContent=ga.toFixed(2);
+      var R=run(al,be,ga);
+      var x0=10,x1=w-10,y0=14,y1=h-22; var bd=bounds([y,R.fc]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(N-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(tr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]);
+      // history
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1.2; ctx.beginPath(); for(var i=0;i<tr;i++){ if(i===0)ctx.moveTo(X(i),Y(y[i]));else ctx.lineTo(X(i),Y(y[i])); } ctx.stroke();
+      // actual holdout dashed
+      ctx.strokeStyle="rgba(90,85,76,0.7)"; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var j=tr;j<N;j++) ctx.lineTo(X(j),Y(y[j])); ctx.stroke(); ctx.setLineDash([]);
+      // fitted
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath(); var st=false; for(var k=0;k<tr;k++){ if(R.fitted[k]==null)continue; if(!st){ctx.moveTo(X(k),Y(R.fitted[k]));st=true;}else ctx.lineTo(X(k),Y(R.fitted[k])); } ctx.stroke();
+      // level overlay
+      if(showLevel){ ctx.strokeStyle=OCHRE; ctx.lineWidth=1.3; ctx.setLineDash([2,3]); ctx.beginPath(); var st2=false; for(var p=tr;p<N;p++){ if(R.levArr[p]==null)continue; if(!st2){ctx.moveTo(X(p),Y(R.levArr[p]));st2=true;}else ctx.lineTo(X(p),Y(R.levArr[p])); } ctx.stroke(); ctx.setLineDash([]); }
+      // forecast
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var q=tr;q<N;q++) ctx.lineTo(X(q),Y(R.fc[q])); ctx.stroke();
+      label(ctx,"history",x0+4,y0+12,INKSOFT); label(ctx,"fitted",x0+58,y0+12,RUST); label(ctx,"forecast",x0+108,y0+12,TEAL);
+      var rmse=0; for(var e=tr;e<N;e++){ var d=y[e]-R.fc[e]; rmse+=d*d; } rmse=Math.sqrt(rmse/H);
+      read.innerHTML='<span class="ok">hold-out RMSE: <b>'+rmse.toFixed(2)+'</b></span><span>est. trend/step: <b>'+R.tre.toFixed(3)+'</b></span>'; }
+    tLevel.addEventListener("click",function(){ showLevel=!showLevel; tLevel.classList.toggle("on",showLevel); draw(); });
+    [aEl,bEl,gEl].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 6 AR(2) =====
+  (function(){
+    var c=document.getElementById("arCanvas"); if(!c)return;
+    var N=120,H=24,tr=N-H,eps=makeEps(N+10);
+    var p1=document.getElementById("arP1"),p2=document.getElementById("arP2");
+    var p1v=document.getElementById("arP1v"),p2v=document.getElementById("arP2v"),read=document.getElementById("arRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var P1=parseFloat(p1.value),P2=parseFloat(p2.value); p1v.textContent=P1.toFixed(2); p2v.textContent=P2.toFixed(2);
+      var stat=(P1+P2<1)&&(P2-P1<1)&&(P2>-1);
+      // generate
+      var y=new Array(N); y[0]=eps[0]; y[1]=eps[1];
+      for(var t=2;t<N;t++){ y[t]=P1*y[t-1]+P2*y[t-2]+0.8*eps[t]; if(!isFinite(y[t])||Math.abs(y[t])>1e4)y[t]=Math.sign(y[t])*1e4; }
+      // fit AR(2) by OLS on train, mean-centered
+      var yb=mean(y.slice(0,tr)); var S11=0,S22=0,S12=0,b1=0,b2=0;
+      for(var k=2;k<tr;k++){ var z=y[k]-yb,z1=y[k-1]-yb,z2=y[k-2]-yb; S11+=z1*z1;S22+=z2*z2;S12+=z1*z2;b1+=z*z1;b2+=z*z2; }
+      var det=S11*S22-S12*S12; if(Math.abs(det)<1e-9)det=1e-9;
+      var ph1=(b1*S22-b2*S12)/det, ph2=(S11*b2-S12*b1)/det;
+      // recursive forecast
+      var fc=new Array(N).fill(null); var pm1=y[tr-1]-yb, pm2=y[tr-2]-yb;
+      for(var hh=tr;hh<N;hh++){ var pred=ph1*pm1+ph2*pm2; fc[hh]=pred+yb; pm2=pm1; pm1=pred; }
+      var x0=10,x1=w-10,y0=14,y1=h-22; var clip=y.map(function(v){return Math.max(Math.min(v,yb+40),yb-40);});
+      var bd=bounds([clip.slice(0,tr),fc.slice(tr)]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(N-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(tr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]);
+      // mean line
+      ctx.strokeStyle="rgba(200,150,44,0.6)"; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(x0,Y(yb)); ctx.lineTo(x1,Y(yb)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"mean",x1-4,Y(yb)-4,OCHRE,"right");
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath(); for(var i=0;i<tr;i++){ if(i===0)ctx.moveTo(X(i),Y(clip[i]));else ctx.lineTo(X(i),Y(clip[i])); } ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.7)"; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(clip[tr-1])); for(var j=tr;j<N;j++) ctx.lineTo(X(j),Y(clip[j])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(clip[tr-1])); for(var q=tr;q<N;q++) ctx.lineTo(X(q),Y(fc[q])); ctx.stroke();
+      label(ctx,"history",x0+4,y0+12,RUST); label(ctx,"forecast",x0+58,y0+12,TEAL);
+      read.innerHTML='<span>true &phi;: <b>'+P1.toFixed(2)+', '+P2.toFixed(2)+'</b></span><span>estimated: <b>'+ph1.toFixed(2)+', '+ph2.toFixed(2)+'</b></span>'+
+        (stat?'<span class="ok">stationary &middot; forecast reverts to mean</span>':'<span class="warn">non-stationary region</span>'); }
+    [p1,p2].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 7 decomposition forecast =====
+  (function(){
+    var c=document.getElementById("dcfCanvas"); if(!c)return;
+    var N=108,m=12,H=24,tr=N-H,eps=makeEps(N);
+    var sl=document.getElementById("dcfSlope"),se=document.getElementById("dcfSeason"),nz=document.getElementById("dcfNoise");
+    var slv=document.getElementById("dcfSlopev"),sev=document.getElementById("dcfSeasonv"),nzv=document.getElementById("dcfNoisev"),read=document.getElementById("dcfRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var SL=parseFloat(sl.value),SE=parseFloat(se.value),NZ=parseFloat(nz.value);
+      slv.textContent=SL.toFixed(2); sev.textContent=SE.toFixed(1); nzv.textContent=NZ.toFixed(1);
+      var y=[]; for(var t=0;t<N;t++) y.push(9+SL*t+SE*Math.sin(2*Math.PI*t/m)+NZ*eps[t]);
+      // linear trend on train
+      var sx=0,sy=0,sxx=0,sxy=0; for(var i=0;i<tr;i++){ sx+=i;sy+=y[i];sxx+=i*i;sxy+=i*y[i]; }
+      var bb=(tr*sxy-sx*sy)/(tr*sxx-sx*sx), aa=(sy-bb*sx)/tr;
+      // seasonal phase means of detrended
+      var sumP=new Array(m).fill(0),cntP=new Array(m).fill(0);
+      for(var k=0;k<tr;k++){ var ph=k%m; sumP[ph]+=y[k]-(aa+bb*k); cntP[ph]++; }
+      var sea=new Array(m); var savg=0; for(var p=0;p<m;p++){ sea[p]=cntP[p]?sumP[p]/cntP[p]:0; savg+=sea[p]; } savg/=m; for(var p2=0;p2<m;p2++) sea[p2]-=savg;
+      var trend=new Array(N),fc=new Array(N).fill(null); for(var q=0;q<N;q++) trend[q]=aa+bb*q;
+      for(var f=tr;f<N;f++) fc[f]=trend[f]+sea[f%m];
+      var x0=10,x1=w-10,y0=14,y1=h-22; var bd=bounds([y,fc]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(N-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(tr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]);
+      // trend line full
+      ctx.strokeStyle=OCHRE; ctx.lineWidth=1.3; ctx.beginPath(); for(var i2=0;i2<N;i2++){ if(i2===0)ctx.moveTo(X(i2),Y(trend[i2]));else ctx.lineTo(X(i2),Y(trend[i2])); } ctx.stroke();
+      // history
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath(); for(var j=0;j<tr;j++){ if(j===0)ctx.moveTo(X(j),Y(y[j]));else ctx.lineTo(X(j),Y(y[j])); } ctx.stroke();
+      // actual holdout
+      ctx.strokeStyle="rgba(90,85,76,0.6)"; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var n2=tr;n2<N;n2++) ctx.lineTo(X(n2),Y(y[n2])); ctx.stroke(); ctx.setLineDash([]);
+      // forecast
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var r=tr;r<N;r++) ctx.lineTo(X(r),Y(fc[r])); ctx.stroke();
+      var rmse=0; for(var e=tr;e<N;e++){ var d=y[e]-fc[e]; rmse+=d*d; } rmse=Math.sqrt(rmse/H);
+      read.innerHTML='<span class="ok">hold-out RMSE: <b>'+rmse.toFixed(2)+'</b></span><span>est. trend/step: <b>'+bb.toFixed(3)+'</b></span>'; }
+    [sl,se,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 8 fan chart =====
+  (function(){
+    var c=document.getElementById("fanCanvas"); if(!c)return;
+    var sig=document.getElementById("fanSigma"),hor=document.getElementById("fanH");
+    var sigv=document.getElementById("fanSigmav"),horv=document.getElementById("fanHv"),read=document.getElementById("fanRead");
+    var tSqrt=document.getElementById("fanSqrt"),tFlat=document.getElementById("fanFlat"); var grow="sqrt";
+    var maxH=36,eps=makeEps(maxH),Htr=40;
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var SIG=parseFloat(sig.value),HH=parseInt(hor.value,10); sigv.textContent=SIG.toFixed(1); horv.textContent=HH;
+      // history (trend) then forecast continues trend; actual outcomes = forecast + growing noise
+      var slope=0.12, base=8;
+      var hist=[]; for(var i=0;i<Htr;i++) hist.push(base+slope*i+0.5*gauss());
+      var last=base+slope*(Htr-1);
+      var fcv=[],act=[]; for(var f=0;f<HH;f++){ fcv.push(last+slope*(f+1));
+        var sd=grow==="sqrt"?SIG*Math.sqrt(f+1):SIG; act.push(fcv[f]+ (sd*0.6)*eps[f]); }
+      var x0=10,x1=w-10,y0=14,y1=h-22;
+      var allLo=[],allHi=[]; for(var f2=0;f2<HH;f2++){ var sd2=grow==="sqrt"?SIG*Math.sqrt(f2+1):SIG; allLo.push(fcv[f2]-1.96*sd2); allHi.push(fcv[f2]+1.96*sd2); }
+      var bd=bounds([hist,allLo,allHi,act]),lo=bd[0],hi=bd[1];
+      var Ntot=Htr+HH; function X(i){ return x0+(i/(Ntot-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(Htr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"forecast \u2192",dx+4,y0+12,INKSOFT);
+      // bands 95,80,50
+      var zs=[[1.96,"rgba(176,84,43,0.13)"],[1.282,"rgba(176,84,43,0.18)"],[0.674,"rgba(176,84,43,0.28)"]];
+      for(var b=0;b<zs.length;b++){ var z=zs[b][0]; ctx.fillStyle=zs[b][1]; ctx.beginPath();
+        for(var f3=0;f3<HH;f3++){ var sd3=grow==="sqrt"?SIG*Math.sqrt(f3+1):SIG; ctx.lineTo(X(Htr+f3),Y(fcv[f3]+z*sd3)); }
+        for(var f4=HH-1;f4>=0;f4--){ var sd4=grow==="sqrt"?SIG*Math.sqrt(f4+1):SIG; ctx.lineTo(X(Htr+f4),Y(fcv[f4]-z*sd4)); }
+        ctx.closePath(); ctx.fill(); }
+      // history
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.6; ctx.beginPath(); for(var i2=0;i2<Htr;i2++){ if(i2===0)ctx.moveTo(X(i2),Y(hist[i2]));else ctx.lineTo(X(i2),Y(hist[i2])); } ctx.stroke();
+      // point forecast
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(Htr-1),Y(hist[Htr-1])); for(var q=0;q<HH;q++) ctx.lineTo(X(Htr+q),Y(fcv[q])); ctx.stroke(); ctx.setLineDash([]);
+      // actual outcomes
+      var inside=0; for(var d=0;d<HH;d++){ var sd5=grow==="sqrt"?SIG*Math.sqrt(d+1):SIG; var within=Math.abs(act[d]-fcv[d])<=1.96*sd5; if(within)inside++;
+        ctx.fillStyle=INKSOFT; ctx.beginPath(); ctx.arc(X(Htr+d),Y(act[d]),1.9,0,7); ctx.fill(); }
+      var cov=Math.round(inside/HH*100);
+      read.innerHTML='<span>growth: <b>'+(grow==="sqrt"?"\u221Ah":"constant")+'</b></span><span class="'+(cov>=90?'ok':'warn')+'">95% band coverage: <b>'+cov+'%</b></span><span>(target 95%)</span>'; }
+    tSqrt.addEventListener("click",function(){ grow="sqrt"; tSqrt.classList.add("on"); tFlat.classList.remove("on"); draw(); });
+    tFlat.addEventListener("click",function(){ grow="flat"; tFlat.classList.add("on"); tSqrt.classList.remove("on"); draw(); });
+    [sig,hor].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 9 ML lag regression =====
+  (function(){
+    var c=document.getElementById("mlCanvas"); if(!c)return;
+    var N=120,m=12,H=24,tr=N-H,eps=makeEps(N);
+    var lags=document.getElementById("mlLags"),nz=document.getElementById("mlNoise");
+    var lagsv=document.getElementById("mlLagsv"),nzv=document.getElementById("mlNoisev"),read=document.getElementById("mlRead");
+    var tSeason=document.getElementById("mlSeason"); var useSeason=false;
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var p=parseInt(lags.value,10),NZ=parseFloat(nz.value); lagsv.textContent=p; nzv.textContent=NZ.toFixed(1);
+      var y=[]; for(var t=0;t<N;t++) y.push(10+0.05*t+4*Math.sin(2*Math.PI*t/m)+NZ*eps[t]);
+      var start=Math.max(p, useSeason?m:p);
+      var k=1+p+(useSeason?1:0); // intercept + lags + seasonal
+      // build normal equations X'X, X'y
+      var XtX=[],Xty=[]; for(var a=0;a<k;a++){ XtX.push(new Array(k).fill(0)); Xty.push(0); }
+      function feat(arr,t){ var f=[1]; for(var L=1;L<=p;L++) f.push(arr[t-L]); if(useSeason) f.push(arr[t-m]); return f; }
+      for(var t2=start;t2<tr;t2++){ var f=feat(y,t2);
+        for(var a2=0;a2<k;a2++){ Xty[a2]+=f[a2]*y[t2]; for(var b=0;b<k;b++) XtX[a2][b]+=f[a2]*f[b]; } }
+      for(var d=0;d<k;d++) XtX[d][d]+=1e-6;
+      var beta=linsolve(XtX,Xty,k);
+      // recursive forecast
+      var ext=y.slice(0,tr); var fc=new Array(N).fill(null);
+      for(var hstep=tr;hstep<N;hstep++){ var f2=[1]; for(var L2=1;L2<=p;L2++) f2.push(ext[hstep-L2]); if(useSeason) f2.push(ext[hstep-m]);
+        var pred=0; for(var z=0;z<k;z++) pred+=beta[z]*f2[z]; ext.push(pred); fc[hstep]=pred; }
+      var x0=10,x1=w-10,y0=14,y1=h-22; var bd=bounds([y,fc]),lo=bd[0],hi=bd[1];
+      function X(i){ return x0+(i/(N-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      var dx=X(tr-1); ctx.strokeStyle="rgba(90,85,76,0.3)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(dx,y0); ctx.lineTo(dx,y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath(); for(var i=0;i<tr;i++){ if(i===0)ctx.moveTo(X(i),Y(y[i]));else ctx.lineTo(X(i),Y(y[i])); } ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.6)"; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var j=tr;j<N;j++) ctx.lineTo(X(j),Y(y[j])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var q=tr;q<N;q++){ if(fc[q]!=null)ctx.lineTo(X(q),Y(fc[q])); } ctx.stroke();
+      label(ctx,"history",x0+4,y0+12,RUST); label(ctx,"forecast",x0+58,y0+12,TEAL);
+      var rmse=0,cnt=0; for(var e=tr;e<N;e++){ if(fc[e]==null)continue; var dd=y[e]-fc[e]; rmse+=dd*dd; cnt++; } rmse=Math.sqrt(rmse/Math.max(1,cnt));
+      read.innerHTML='<span>features: <b>'+p+' lags'+(useSeason?' + seasonal':'')+'</b></span><span class="ok">hold-out RMSE: <b>'+rmse.toFixed(2)+'</b></span>'; }
+    tSeason.addEventListener("click",function(){ useSeason=!useSeason; tSeason.classList.toggle("on",useSeason); draw(); });
+    [lags,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 7 ACF / PACF =====
+  (function(){
+    var c=document.getElementById("acfCanvas"); if(!c)return;
+    var n=200, L=22, eps=makeEps(n+4);
+    var p1=document.getElementById("acP1"),p2=document.getElementById("acP2"),nz=document.getElementById("acNoise");
+    var p1v=document.getElementById("acP1v"),p2v=document.getElementById("acP2v"),nzv=document.getElementById("acNoisev"),read=document.getElementById("acfRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var P1=parseFloat(p1.value),P2=parseFloat(p2.value),NZ=parseFloat(nz.value);
+      p1v.textContent=P1.toFixed(2); p2v.textContent=P2.toFixed(2); nzv.textContent=NZ.toFixed(1);
+      var y=[0,0]; for(var t=2;t<n+2;t++) y.push(P1*y[t-1]+P2*y[t-2]+NZ*eps[t]); y=y.slice(2);
+      var m=mean(y),c0=0; for(var i=0;i<n;i++)c0+=(y[i]-m)*(y[i]-m); c0/=n; if(c0<1e-9)c0=1e-9;
+      var acf=[1]; for(var k=1;k<=L;k++){ var s=0; for(var t2=k;t2<n;t2++)s+=(y[t2]-m)*(y[t2-k]-m); acf.push((s/n)/c0); }
+      var phi=[]; for(var a=0;a<=L;a++)phi.push(new Array(L+1).fill(0));
+      var pacf=[1]; phi[1][1]=acf[1]; pacf[1]=acf[1];
+      for(var kk=2;kk<=L;kk++){ var num=acf[kk],den=1; for(var j=1;j<kk;j++){ num-=phi[kk-1][j]*acf[kk-j]; den-=phi[kk-1][j]*acf[j]; }
+        var pk=Math.abs(den)<1e-9?0:num/den; if(pk>1)pk=1; if(pk<-1)pk=-1; phi[kk][kk]=pk;
+        for(var j2=1;j2<kk;j2++) phi[kk][j2]=phi[kk-1][j2]-pk*phi[kk-1][kk-j2]; pacf[kk]=pk; }
+      var band=1.96/Math.sqrt(n), pad=34, panelH=(h-22)/2;
+      function panel(vals,yTop,title){ var zero=yTop+panelH/2; var scale=(panelH/2-10);
+        ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(pad,zero); ctx.lineTo(w-8,zero); ctx.stroke();
+        var bandPx=band*scale/1.05;
+        ctx.fillStyle="rgba(176,84,43,0.07)"; ctx.fillRect(pad,zero-bandPx,w-8-pad,2*bandPx);
+        ctx.strokeStyle="rgba(176,84,43,0.4)"; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(pad,zero-bandPx); ctx.lineTo(w-8,zero-bandPx); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad,zero+bandPx); ctx.lineTo(w-8,zero+bandPx); ctx.stroke(); ctx.setLineDash([]);
+        var bw=(w-8-pad)/(L+1);
+        for(var q=1;q<=L;q++){ var v=Math.max(-1.05,Math.min(1.05,vals[q])); var bh=v*scale/1.05; var bx=pad+q*bw;
+          ctx.strokeStyle=Math.abs(v)>band?TEAL:INKSOFT; ctx.lineWidth=Math.abs(v)>band?2.4:1.3;
+          ctx.beginPath(); ctx.moveTo(bx,zero); ctx.lineTo(bx,zero-bh); ctx.stroke(); }
+        label(ctx,title,pad,yTop+11,INKSOFT);
+      }
+      panel(acf,10,"ACF"); panel(pacf,10+panelH,"PACF (Durbin-Levinson)");
+      var sig=0; for(var s2=1;s2<=L;s2++) if(Math.abs(pacf[s2])>band)sig++;
+      read.innerHTML='<span class="ok">PACF significant lags: <b>'+sig+'</b></span><span>signif. band: <b>&plusmn;'+band.toFixed(2)+'</b></span><span>n: <b>'+n+'</b></span>';
+    }
+    [p1,p2,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 8 differencing =====
+  (function(){
+    var c=document.getElementById("diffCanvas"); if(!c)return;
+    var n=120, m=12, eps=makeEps(n+4), op="none";
+    var tN=document.getElementById("dfNone"),tF=document.getElementById("dfFirst"),tS=document.getElementById("dfSecond"),tSe=document.getElementById("dfSeason");
+    var sl=document.getElementById("dfSlope"),sa=document.getElementById("dfSeasonA");
+    var slv=document.getElementById("dfSlopev"),sav=document.getElementById("dfSeasonAv"),read=document.getElementById("diffRead");
+    function vr(arr){ var mm=mean(arr),s=0; for(var i=0;i<arr.length;i++)s+=(arr[i]-mm)*(arr[i]-mm); return s/arr.length; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var SL=parseFloat(sl.value),SA=parseFloat(sa.value); slv.textContent=SL.toFixed(2); sav.textContent=SA.toFixed(1);
+      var y=[]; for(var t=0;t<n;t++) y.push(10+SL*t+SA*Math.sin(2*Math.PI*t/m)+0.6*eps[t]);
+      var d=y.slice();
+      if(op==="first"){ var t1=[]; for(var i=1;i<n;i++)t1.push(y[i]-y[i-1]); d=t1; }
+      else if(op==="second"){ var a1=[]; for(var i=1;i<n;i++)a1.push(y[i]-y[i-1]); var a2=[]; for(var j=1;j<a1.length;j++)a2.push(a1[j]-a1[j-1]); d=a2; }
+      else if(op==="season"){ var sd=[]; for(var i=m;i<n;i++)sd.push(y[i]-y[i-m]); d=sd; }
+      var pad=34, gap=14, panelH=(h-gap)/2;
+      function plot(arr,yTop,col,lbl){ var bd=bounds([arr]),lo=bd[0],hi=bd[1],y0=yTop+4,y1=yTop+panelH-10;
+        ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(pad,y1); ctx.lineTo(w-8,y1); ctx.stroke();
+        ctx.strokeStyle=col; ctx.lineWidth=1.6; ctx.beginPath();
+        for(var i=0;i<arr.length;i++){ var x=pad+(i/(arr.length-1))*(w-8-pad); var yy=y1-((arr[i]-lo)/(hi-lo))*(y1-y0); if(i===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy); } ctx.stroke();
+        label(ctx,lbl,pad,yTop+12,INKSOFT);
+      }
+      plot(y,2,RUST,"original (trend + season)"); plot(d,2+panelH+gap,TEAL,"differenced: "+op);
+      var half=Math.floor(d.length/2),v1=vr(d.slice(0,half)),v2=vr(d.slice(half));
+      var ratio=v2>1e-9?v1/v2:1; var stat=(op!=="none" && Math.abs(Math.log(Math.max(ratio,1e-6)))<0.8 && Math.abs(mean(d))<Math.abs(mean(y))*0.5+0.5);
+      read.innerHTML='<span>variance: <b>'+vr(d).toFixed(2)+'</b></span><span>mean: <b>'+mean(d).toFixed(2)+'</b></span><span class="'+(stat?'ok':'warn')+'">closer to stationary: <b>'+(stat?'yes':'not yet')+'</b></span>';
+    }
+    function setOp(o,el){ op=o; [tN,tF,tS,tSe].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    tN.addEventListener("click",function(){setOp("none",tN);}); tF.addEventListener("click",function(){setOp("first",tF);});
+    tS.addEventListener("click",function(){setOp("second",tS);}); tSe.addEventListener("click",function(){setOp("season",tSe);});
+    [sl,sa].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 11 conformal =====
+  (function(){
+    var c=document.getElementById("cfCanvas"); if(!c)return;
+    var n=120, m=12, eps=makeEps(n+4);
+    var lv=document.getElementById("cfLevel"),nz=document.getElementById("cfNoise2");
+    var lvv=document.getElementById("cfLevelv"),nzv=document.getElementById("cfNoise2v"),read=document.getElementById("cfRead");
+    function qs(s,q){ if(!s.length)return 0; var p=(s.length-1)*q,b=Math.floor(p),r=p-b; return s[b+1]!==undefined?s[b]+r*(s[b+1]-s[b]):s[b]; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var LV=parseInt(lv.value,10),NZ=parseFloat(nz.value); lvv.textContent=LV; nzv.textContent=NZ.toFixed(1);
+      var slope=0.04, sA=2.0, y=[]; for(var t=0;t<n;t++) y.push(8+slope*t+sA*Math.sin(2*Math.PI*t/m)+NZ*eps[t]);
+      var trEnd=Math.floor(n*0.6), calEnd=Math.floor(n*0.8);
+      var sx=0,sy=0,sxx=0,sxy=0; for(var i=0;i<trEnd;i++){ sx+=i;sy+=y[i];sxx+=i*i;sxy+=i*y[i]; }
+      var b=(trEnd*sxy-sx*sy)/(trEnd*sxx-sx*sx), a=(sy-b*sx)/trEnd;
+      var seas=new Array(m).fill(0),cnt=new Array(m).fill(0);
+      for(var i2=0;i2<trEnd;i2++){ var rr=y[i2]-(a+b*i2); seas[i2%m]+=rr; cnt[i2%m]++; }
+      for(var s=0;s<m;s++) seas[s]=cnt[s]?seas[s]/cnt[s]:0;
+      function fc(t){ return a+b*t+seas[t%m]; }
+      var cal=[]; for(var i3=trEnd;i3<calEnd;i3++) cal.push(Math.abs(y[i3]-fc(i3))); cal.sort(function(p,q){return p-q;});
+      var band=qs(cal,LV/100);
+      var pad=34, up=[],dn=[]; for(var i9=0;i9<n;i9++){ up.push(fc(i9)+band); dn.push(fc(i9)-band); }
+      var bd=bounds([y,up,dn]),lo=bd[0],hi=bd[1],y0=10,y1=h-22;
+      function X(i){ return pad+(i/(n-1))*(w-8-pad); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,pad,y0,w-8,y1);
+      ctx.fillStyle="rgba(237,232,221,0.7)"; ctx.fillRect(X(calEnd),y0,X(n-1)-X(calEnd),y1-y0);
+      ctx.fillStyle="rgba(176,84,43,0.16)"; ctx.beginPath();
+      for(var i4=calEnd;i4<n;i4++) ctx.lineTo(X(i4),Y(fc(i4)+band));
+      for(var i5=n-1;i5>=calEnd;i5--) ctx.lineTo(X(i5),Y(fc(i5)-band)); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle="rgba(90,85,76,0.5)"; ctx.lineWidth=1.2; ctx.beginPath();
+      for(var i6=0;i6<calEnd;i6++){ if(i6===0)ctx.moveTo(X(i6),Y(y[i6]));else ctx.lineTo(X(i6),Y(y[i6])); } ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.8; ctx.beginPath();
+      for(var i7=calEnd;i7<n;i7++){ if(i7===calEnd)ctx.moveTo(X(i7),Y(fc(i7)));else ctx.lineTo(X(i7),Y(fc(i7))); } ctx.stroke();
+      var inside=0,tot=0;
+      for(var i8=calEnd;i8<n;i8++){ tot++; var within=Math.abs(y[i8]-fc(i8))<=band; if(within)inside++;
+        ctx.fillStyle=within?INKSOFT:RUST; ctx.beginPath(); ctx.arc(X(i8),Y(y[i8]),2.2,0,7); ctx.fill(); }
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(calEnd),y0); ctx.lineTo(X(calEnd),y1); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"calibrate \u2190 | \u2192 test",X(calEnd)-3,y0+11,INKSOFT,"right");
+      var cov=tot?Math.round(inside/tot*100):0;
+      read.innerHTML='<span>band: <b>&plusmn;'+band.toFixed(2)+'</b></span><span class="'+(cov>=LV-12?'ok':'warn')+'">achieved coverage: <b>'+cov+'%</b></span><span>target: <b>'+LV+'%</b></span>';
+    }
+    [lv,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 12 quantile / pinball =====
+  (function(){
+    var c=document.getElementById("qCanvas"); if(!c)return;
+    var H=40, eps=makeEps(H+4);
+    var nz=document.getElementById("qNoise"),as=document.getElementById("qAsym");
+    var nzv=document.getElementById("qNoisev"),asv=document.getElementById("qAsymv"),read=document.getElementById("qRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var NZ=parseFloat(nz.value),AS=parseFloat(as.value); nzv.textContent=NZ.toFixed(1); asv.textContent=AS.toFixed(1);
+      var med=[],q10=[],q90=[],act=[];
+      for(var t=0;t<H;t++){ var base=5+0.05*t; var up=NZ*(1+AS),dn=NZ; med.push(base); q10.push(base-1.28*dn); q90.push(base+1.28*up);
+        var e=eps[t]; act.push(base+(e>=0?e*up:e*dn)); }
+      var pad=34, bd=bounds([q10,q90,act]),lo=bd[0],hi=bd[1],y0=10,y1=h-22;
+      function X(i){ return pad+(i/(H-1))*(w-8-pad); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,pad,y0,w-8,y1);
+      ctx.fillStyle="rgba(47,107,107,0.16)"; ctx.beginPath();
+      for(var i=0;i<H;i++) ctx.lineTo(X(i),Y(q90[i]));
+      for(var j=H-1;j>=0;j--) ctx.lineTo(X(j),Y(q10[j])); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.8; ctx.beginPath(); for(var k=0;k<H;k++){ if(k===0)ctx.moveTo(X(k),Y(med[k]));else ctx.lineTo(X(k),Y(med[k])); } ctx.stroke();
+      for(var d=0;d<H;d++){ ctx.fillStyle=INKSOFT; ctx.beginPath(); ctx.arc(X(d),Y(act[d]),1.9,0,7); ctx.fill(); }
+      label(ctx,"q10 \u2013 q90 band, median line",pad,16,INKSOFT);
+      function pin(yv,q,tau){ return yv>=q?tau*(yv-q):(1-tau)*(q-yv); }
+      var pl=0; for(var t2=0;t2<H;t2++) pl+=pin(act[t2],q10[t2],0.1)+pin(act[t2],med[t2],0.5)+pin(act[t2],q90[t2],0.9); pl/=(3*H);
+      var cover=0; for(var t3=0;t3<H;t3++) if(act[t3]>=q10[t3]&&act[t3]<=q90[t3])cover++;
+      read.innerHTML='<span class="ok">avg pinball loss: <b>'+pl.toFixed(3)+'</b></span><span>80% band coverage: <b>'+Math.round(cover/H*100)+'%</b></span><span>upper spread: <b>'+(1+AS).toFixed(1)+'x</b></span>';
+    }
+    [nz,as].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 13 calibration / reliability =====
+  (function(){
+    var c=document.getElementById("calCanvas"); if(!c)return;
+    var dp=document.getElementById("calDisp"),dpv=document.getElementById("calDispv"),read=document.getElementById("calRead");
+    function ncdf(x){ var t=1/(1+0.2316419*Math.abs(x)), d=0.3989423*Math.exp(-x*x/2);
+      var p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x>0?1-p:p; }
+    function invn(p){ var lo=-6,hi=6; for(var i=0;i<60;i++){ var mid=(lo+hi)/2; if(ncdf(mid)<p)lo=mid;else hi=mid; } return (lo+hi)/2; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var D=parseFloat(dp.value); dpv.textContent=D.toFixed(2);
+      var pad=40,y0=12,y1=h-26,x0=pad,x1=w-12;
+      function X(p){ return x0+p*(x1-x0); } function Y(p){ return y1-p*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.5)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(1),Y(1)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); var first=true,pts=[];
+      for(var pp=0.5;pp<=0.961;pp+=0.05){ var z=invn((1+pp)/2),emp=2*ncdf(z*D)-1; pts.push([pp,emp]); if(first){ctx.moveTo(X(pp),Y(emp));first=false;}else ctx.lineTo(X(pp),Y(emp)); }
+      ctx.stroke();
+      for(var i=0;i<pts.length;i++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(pts[i][0]),Y(pts[i][1]),2.4,0,7); ctx.fill(); }
+      label(ctx,"intended coverage \u2192",x1-4,h-8,INKSOFT,"right"); label(ctx,"achieved",x0-4,y0+6,INKSOFT);
+      var verdict=D<0.95?"over-confident (too tight)":(D>1.05?"under-confident (too wide)":"well calibrated");
+      var at90=Math.round((2*ncdf(invn(0.95)*D)-1)*100);
+      read.innerHTML='<span class="'+(Math.abs(D-1)<0.06?'ok':'warn')+'">verdict: <b>'+verdict+'</b></span><span>90% intended &rarr; achieved: <b>'+at90+'%</b></span>';
+    }
+    dp.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 16 direct vs recursive =====
+  (function(){
+    var c=document.getElementById("drCanvas"); if(!c)return;
+    var n=150, L=4, eps=makeEps(n+50);
+    var hS=document.getElementById("drH"),nz=document.getElementById("drNoise");
+    var hv=document.getElementById("drHv"),nzv=document.getElementById("drNoisev"),read=document.getElementById("drRead");
+    function fitOLS(X,yv){ var p=X[0].length,A=[],b=[]; for(var i=0;i<p;i++){A.push(new Array(p).fill(0));b.push(0);}
+      for(var r=0;r<X.length;r++){ for(var i2=0;i2<p;i2++){ b[i2]+=X[r][i2]*yv[r]; for(var j=0;j<p;j++)A[i2][j]+=X[r][i2]*X[r][j]; } }
+      return linsolve(A,b,p); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var H=parseInt(hS.value,10),NZ=parseFloat(nz.value); hv.textContent=H; nzv.textContent=NZ.toFixed(1);
+      var y=[]; for(var t=0;t<n;t++){ y.push(t<2?5:0.55*y[t-1]+0.2*y[t-2]+0.03*t+1.2*Math.sin(2*Math.PI*t/12)+NZ*eps[t]); }
+      var tr=n-H;
+      var Xr=[],yr=[]; for(var i=L;i<tr;i++){ var row=[1]; for(var l=1;l<=L;l++)row.push(y[i-l]); Xr.push(row); yr.push(y[i]); }
+      var cr=fitOLS(Xr,yr), buf=y.slice(tr-L,tr), rec=[];
+      for(var stp=0;stp<H;stp++){ var rw=[1]; for(var l2=1;l2<=L;l2++)rw.push(buf[buf.length-l2]); var pr=0; for(var q=0;q<rw.length;q++)pr+=cr[q]*rw[q]; rec.push(pr); buf.push(pr); }
+      var dir=[];
+      for(var hh=1;hh<=H;hh++){ var Xd=[],yd=[]; for(var i3=L;i3<tr-hh;i3++){ var r2=[1]; for(var l3=1;l3<=L;l3++)r2.push(y[i3-l3]); Xd.push(r2); yd.push(y[i3-1+hh]); }
+        if(Xd.length<L+3){ dir.push(rec[hh-1]); continue; }
+        var cd=fitOLS(Xd,yd), r3=[1]; for(var l4=1;l4<=L;l4++)r3.push(y[tr-l4]); var p2=0; for(var q2=0;q2<r3.length;q2++)p2+=cd[q2]*r3[q2]; dir.push(p2); }
+      var act=y.slice(tr), pad=34, bd=bounds([y,rec,dir]),lo=bd[0],hi=bd[1],y0=10,y1=h-22;
+      function X(i){ return pad+(i/(n-1))*(w-8-pad); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,pad,y0,w-8,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.45)"; ctx.lineWidth=1.2; ctx.beginPath(); for(var i5=0;i5<tr;i5++){ if(i5===0)ctx.moveTo(X(i5),Y(y[i5]));else ctx.lineTo(X(i5),Y(y[i5])); } ctx.stroke();
+      ctx.strokeStyle=INKSOFT; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var a=0;a<H;a++)ctx.lineTo(X(tr+a),Y(act[a])); ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.8; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var r4=0;r4<H;r4++)ctx.lineTo(X(tr+r4),Y(rec[r4])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.8; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var d2=0;d2<H;d2++)ctx.lineTo(X(tr+d2),Y(dir[d2])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),y0); ctx.lineTo(X(tr-1),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(tr-1)+3,y0+11,INKSOFT);
+      label(ctx,"grey actual · rust recursive · teal direct",pad,16,INKSOFT);
+      function rmse(f){ var s=0; for(var i=0;i<H;i++)s+=(f[i]-act[i])*(f[i]-act[i]); return Math.sqrt(s/H); }
+      read.innerHTML='<span class="warn">recursive RMSE: <b>'+rmse(rec).toFixed(2)+'</b></span><span class="ok">direct RMSE: <b>'+rmse(dir).toFixed(2)+'</b></span><span>horizon: <b>'+H+'</b></span>';
+    }
+    [hS,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 17 combination =====
+  (function(){
+    var c=document.getElementById("combCanvas"); if(!c)return;
+    var n=120, m=12, eps=makeEps(n+50);
+    var hS=document.getElementById("cbH"),nz=document.getElementById("cbNoise");
+    var hv=document.getElementById("cbHv"),nzv=document.getElementById("cbNoisev"),read=document.getElementById("combRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var H=parseInt(hS.value,10),NZ=parseFloat(nz.value); hv.textContent=H; nzv.textContent=NZ.toFixed(1);
+      var y=[]; for(var t=0;t<n;t++) y.push(10+0.04*t+2.2*Math.sin(2*Math.PI*t/m)+NZ*eps[t]);
+      var tr=n-H, act=y.slice(tr), last=y[tr-1], slope=(y[tr-1]-y[0])/(tr-1);
+      var al=0.3, lev=y[0]; for(var i=1;i<tr;i++) lev=al*y[i]+(1-al)*lev;
+      var naive=[],snaive=[],drift=[],smooth=[];
+      for(var hh=1;hh<=H;hh++){ naive.push(last); snaive.push(y[tr-m+((hh-1)%m)]); drift.push(last+slope*hh); smooth.push(lev); }
+      var combo=[]; for(var k=0;k<H;k++) combo.push((naive[k]+snaive[k]+drift[k]+smooth[k])/4);
+      var sc=0,cnt=0; for(var i2=m;i2<tr;i2++){ sc+=Math.abs(y[i2]-y[i2-m]); cnt++; } sc/=cnt; if(sc<1e-9)sc=1e-9;
+      function mase(f){ var s=0; for(var i=0;i<H;i++)s+=Math.abs(f[i]-act[i]); return (s/H)/sc; }
+      var pad=34, bd=bounds([y,combo,snaive,drift]),lo=bd[0],hi=bd[1],y0=10,y1=h-22;
+      function X(i){ return pad+(i/(n-1))*(w-8-pad); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,pad,y0,w-8,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.lineWidth=1.1; ctx.beginPath(); for(var i3=0;i3<tr;i3++){ if(i3===0)ctx.moveTo(X(i3),Y(y[i3]));else ctx.lineTo(X(i3),Y(y[i3])); } ctx.stroke();
+      function ln(f,col,wd){ ctx.strokeStyle=col; ctx.lineWidth=wd; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var i=0;i<H;i++)ctx.lineTo(X(tr+i),Y(f[i])); ctx.stroke(); }
+      ctx.globalAlpha=0.4; ln(naive,OCHRE,1); ln(snaive,"#8a8a8a",1); ln(drift,RUST,1); ln(smooth,"#7BA7A7",1); ctx.globalAlpha=1;
+      ctx.strokeStyle=INKSOFT; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(X(tr-1),Y(y[tr-1])); for(var a=0;a<H;a++)ctx.lineTo(X(tr+a),Y(act[a])); ctx.stroke();
+      ln(combo,TEAL,2.6);
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(tr-1),y0); ctx.lineTo(X(tr-1),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(tr-1)+3,y0+11,INKSOFT);
+      read.innerHTML='<span>naive: <b>'+mase(naive).toFixed(2)+'</b></span><span>snaive: <b>'+mase(snaive).toFixed(2)+'</b></span><span>drift: <b>'+mase(drift).toFixed(2)+'</b></span><span>smooth: <b>'+mase(smooth).toFixed(2)+'</b></span><span class="ok">combo: <b>'+mase(combo).toFixed(2)+'</b></span>';
+    }
+    [hS,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 19 leaderboard =====
+  (function(){
+    var c=document.getElementById("lbCanvas"); if(!c)return;
+    var n=140, m=12, eps=makeEps(n+50);
+    var trS=document.getElementById("lbTrend"),seS=document.getElementById("lbSeason"),nz=document.getElementById("lbNoise");
+    var trv=document.getElementById("lbTrendv"),sev=document.getElementById("lbSeasonv"),nzv=document.getElementById("lbNoisev"),read=document.getElementById("lbRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var TR=parseFloat(trS.value),SE=parseFloat(seS.value),NZ=parseFloat(nz.value);
+      trv.textContent=TR.toFixed(1); sev.textContent=SE.toFixed(1); nzv.textContent=NZ.toFixed(1);
+      var y=[]; for(var t=0;t<n;t++) y.push(10+TR*0.08*t+SE*2*Math.sin(2*Math.PI*t/m)+NZ*eps[t]);
+      var H=12, folds=4;
+      function lagreg(tr2,hh){ var L=4,A=[],b=[]; for(var i=0;i<L+1;i++){A.push(new Array(L+1).fill(0));b.push(0);}
+        for(var r=L;r<tr2;r++){ var row=[1]; for(var l=1;l<=L;l++)row.push(y[r-l]); for(var i2=0;i2<L+1;i2++){ b[i2]+=row[i2]*y[r]; for(var j=0;j<L+1;j++)A[i2][j]+=row[i2]*row[j]; } }
+        var cf=linsolve(A,b,L+1), buf=y.slice(tr2-L,tr2);
+        for(var stp=0;stp<hh;stp++){ var r2=[1]; for(var l2=1;l2<=L;l2++)r2.push(buf[buf.length-l2]); var pr=0; for(var q=0;q<r2.length;q++)pr+=cf[q]*r2[q]; buf.push(pr); }
+        return buf[buf.length-1]; }
+      var methods=[
+        {name:"naive",fn:function(tr2,hh){return y[tr2-1];}},
+        {name:"seasonal-naive",fn:function(tr2,hh){return y[tr2-m+((hh-1)%m)];}},
+        {name:"drift",fn:function(tr2,hh){var sl=(y[tr2-1]-y[0])/(tr2-1);return y[tr2-1]+sl*hh;}},
+        {name:"mean",fn:function(tr2,hh){var s=0;for(var i=0;i<tr2;i++)s+=y[i];return s/tr2;}},
+        {name:"SES",fn:function(tr2,hh){var al=0.3,lev=y[0];for(var i=1;i<tr2;i++)lev=al*y[i]+(1-al)*lev;return lev;}},
+        {name:"lag-reg",fn:lagreg}
+      ];
+      var scores=methods.map(function(){return 0;});
+      for(var f=0;f<folds;f++){ var tr2=n-H*(folds-f);
+        for(var hh=1;hh<=H;hh++){ var actual=y[tr2-1+hh];
+          for(var mt=0;mt<methods.length;mt++){ var pred=methods[mt].fn(tr2,hh); scores[mt]+=(pred-actual)*(pred-actual); } } }
+      var res=methods.map(function(mm,idx){ return {name:mm.name,rmse:Math.sqrt(scores[idx]/(folds*H))}; });
+      res.sort(function(p,q){return p.rmse-q.rmse;});
+      var maxR=res[res.length-1].rmse*1.05; if(maxR<1e-6)maxR=1;
+      var pad=112, top=14, bh=(h-30)/res.length;
+      for(var i=0;i<res.length;i++){ var yy=top+i*bh, bw=(res[i].rmse/maxR)*(w-pad-46);
+        ctx.fillStyle=i===0?TEAL:"rgba(176,84,43,0.55)"; ctx.fillRect(pad,yy,bw,bh*0.6);
+        label(ctx,res[i].name,pad-8,yy+bh*0.42,i===0?TEAL:INKSOFT,"right");
+        label(ctx,res[i].rmse.toFixed(2),pad+bw+5,yy+bh*0.42,INKSOFT,"left"); }
+      label(ctx,"backtest RMSE, shorter is better \u2192",pad,h-8,INKSOFT);
+      read.innerHTML='<span class="ok">winner: <b>'+res[0].name+'</b></span><span>RMSE: <b>'+res[0].rmse.toFixed(2)+'</b></span><span class="warn">worst: <b>'+res[res.length-1].name+'</b></span>';
+    }
+    [trS,seS,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>

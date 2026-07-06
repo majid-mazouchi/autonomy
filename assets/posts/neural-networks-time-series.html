@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Time Series with Neural Networks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(38px,6.4vw,68px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:680px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+  .legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);padding:4px 16px 12px;display:flex;flex-wrap:wrap;gap:16px;}
+  .legend i{width:16px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .eq{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;color:var(--ink);overflow-x:auto;line-height:1.9;}
+  .eq .c{color:var(--rust);font-weight:600;}
+  .eq .g{color:var(--teal);}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  .seriesnote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:24px 0 0;}
+  .seriesnote a{color:var(--rust);}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;·&nbsp; part five / when the features learn themselves</p>
+    <h1>Learning Time Series with <span class="em">Neural Networks</span></h1>
+    <p class="lede">Every page so far built features by hand: a spectrum here, a residual there, an envelope, a threshold. Neural networks make a different bet. Given enough examples, they learn the features themselves, discovering the filters, the memory and the attention that a human engineer would otherwise design. This part opens the box and runs the machinery, training real networks in the page as you watch.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">signal in, prediction out</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">forward pass</span>
+      </div>
+      <canvas id="heroCanvas" height="200"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#frame">Why let the features learn themselves</a></li>
+      <li><a href="#learn">The learning machine: gradient descent</a></li>
+      <li><a href="#conv">Convolutions: a learnable filter bank</a></li>
+      <li><a href="#memory">Memory: recurrent networks</a></li>
+      <li><a href="#autoencoder">Autoencoders: learning normal</a></li>
+      <li><a href="#attention">Attention: what the model looks at</a></li>
+      <li><a href="#edge">Shrinking the network for the edge</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="frame">
+    <p class="sec-num">Section 01</p>
+    <h2>Why let the features learn themselves</h2>
+    <p>The earlier parts of this series were a catalogue of hand-built features. Someone who understood bearings decided that an envelope spectrum was the right lens; someone who understood control decided that an innovation sequence was the right residual. That expertise is precious, and where it exists it is hard to beat. Neural networks earn their place exactly where it runs out: when the signal is high-dimensional, the fault is subtle, or nobody yet knows which feature matters.</p>
+    <p>A neural network is a stack of simple adjustable functions, trained by showing it examples and nudging its millions of small parameters until its output matches the truth. The nudging is the whole story, and it has a single engine, <em class="term">gradient descent</em>, which this part starts with and then dresses in the four architectures that dominate time-series work: <strong>convolutions</strong> that learn filters, <strong>recurrence</strong> that learns memory, <strong>autoencoders</strong> that learn what normal looks like, and <strong>attention</strong> that learns where to look. Every simulation here computes the real thing in your browser, no recordings, so you can watch a network actually learn.</p>
+    <div class="note field">
+      <p class="nt">Fifth in a series</p>
+      <p>This is the methodological companion to the operational arc. Where <strong>Sensory Data</strong> and <strong>Forecasting</strong> engineered features and models by hand, this part lets the network find them. The lessons of the earlier parts do not disappear; the best systems usually feed hand-built features into a learned model, marrying domain knowledge to capacity.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="learn">
+    <p class="sec-num">Section 02</p>
+    <h2>The learning machine: gradient descent</h2>
+    <p>Strip a neural network to its core and you find one idea repeated. Each parameter has a knob; turning it changes the output and so changes the error. <em class="term">Backpropagation</em> computes, for every knob at once, which way and how hard to turn it to reduce the error, and <em class="term">gradient descent</em> takes a small step in that direction. Repeat a few thousand times and the network has shaped itself to the data.</p>
+    <p>The simulation below is a genuine network, one input, a layer of tanh units, one output, learning to reproduce a waveform from scratch by full gradient descent, training live as you watch the fit improve and the loss fall. The controls expose the three levers that decide whether learning succeeds: too few hidden units and the network <strong>underfits</strong>, unable to bend into the shape; too high a learning rate and it diverges; raise the noise and watch a large network start to <strong>overfit</strong>, chasing the noise instead of the signal.</p>
+    <div class="eq">
+      forward: <span class="g">&#375;</span> = &Sigma;<sub>j</sub> w&sup2;<sub>j</sub> &middot; tanh(w&sup1;<sub>j</sub> x + b&sup1;<sub>j</sub>) + b&sup2; &nbsp;&middot;&nbsp; update: <span class="c">w</span> &#8592; <span class="c">w</span> &minus; &eta; &part;L/&part;w
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 1</span> · a network learning a waveform by gradient descent &nbsp;· live training</div>
+      <div class="fig-body"><canvas id="mlpCanvas" height="320"></canvas></div>
+      <div class="readout" id="mlpRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Hidden units <b><span id="mlHv">10</span></b></label><input type="range" id="mlH" min="3" max="28" value="10" step="1"></div>
+        <div class="ctrl"><label>Learning rate &eta; <b><span id="mlLrv">0.12</span></b></label><input type="range" id="mlLr" min="1" max="100" value="30" step="1"></div>
+        <div class="ctrl"><label>Training noise <b><span id="mlNoisev">0.08</span></b></label><input type="range" id="mlNoise" min="0" max="0.4" value="0.08" step="0.02"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>training data</span>
+        <span><i style="background:#2F6B6B"></i>network output</span>
+        <span><i style="background:#C8962C"></i>loss curve</span>
+      </div>
+      <div class="fig-cap">Top: rust dots are the noisy training points; the teal curve is the network's current output, redrawn every few gradient steps as it learns. Bottom: the training loss, falling as the fit improves. Drop the hidden units to three and the curve cannot capture the fast wiggle; push the learning rate near its maximum and the loss spikes and thrashes; raise the noise with many units and the curve starts threading individual points, the signature of overfitting.</div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="conv">
+    <p class="sec-num">Section 03</p>
+    <h2>Convolutions: a learnable filter bank</h2>
+    <p>Part one designed filters by hand: a smoother here, a band-pass there, a matched template for bearing impacts. A <em class="term">convolutional</em> network learns those filters instead. Its core operation is the one part one used for matched filtering, sliding a short kernel along the signal and taking a dot product at every position, but the kernel's coefficients are <strong>parameters</strong>, trained until they detect whatever discriminates the classes in the data.</p>
+    <p>The simulation runs a genuine 1D convolution, then the two operations that make it a network layer: a <em class="term">ReLU</em> that keeps only positive responses, and <em class="term">max-pooling</em> that summarises each neighbourhood by its strongest activation, shrinking the signal while keeping what fired. Switch the kernel between a smoother, an edge detector and an impact-matched template, and watch the feature map light up where the kernel resonates. A trained network discovers the impact template on its own; here you can hand it the answer and see why it works.</p>
+    <div class="eq">
+      feature map: <span class="c">(k &lowast; x)</span>[t] = &Sigma;<sub>&tau;</sub> k[&tau;] &middot; x[t &minus; &tau;] &nbsp;&rarr;&nbsp; ReLU &nbsp;&rarr;&nbsp; <span class="g">max-pool</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · convolution, ReLU and pooling on vibration &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="cnnCanvas" height="320"></canvas></div>
+      <div class="toggle-row"><span class="lbl">kernel:</span>
+        <span class="toggle" id="ckSmooth">smoother</span>
+        <span class="toggle" id="ckEdge">edge</span>
+        <span class="toggle on" id="ckImpact">impact-matched</span>
+      </div>
+      <div class="readout" id="cnnRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Background noise <b><span id="cnNoisev">0.25</span></b></label><input type="range" id="cnNoise" min="0" max="0.8" value="0.25" step="0.05"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.5)"></i>input vibration</span>
+        <span><i style="background:#B0542B"></i>feature map (conv + ReLU)</span>
+        <span><i style="background:#C8962C"></i>pooled</span>
+      </div>
+      <div class="fig-cap">Top: the raw vibration, with periodic impacts hidden in noise. Middle: the feature map after convolving with the chosen kernel and clipping negatives. Bottom: the max-pooled summary. With the impact-matched kernel the feature map spikes cleanly at each impact and pooling preserves those spikes; the smoother blurs everything, and the edge detector fires on every sharp transition including the noise.</div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="memory">
+    <p class="sec-num">Section 04</p>
+    <h2>Memory: recurrent networks</h2>
+    <p>Convolutions see a fixed window. To carry information across an arbitrarily long sequence, a network needs <strong>memory</strong>, and a <em class="term">recurrent</em> network supplies it by keeping a hidden state that it updates at every step and feeds back into itself. The simulation runs the essential recurrence, a hidden state that blends its previous value with the new input, which is a genuine one-unit recurrent network and the seed of every fancier variant.</p>
+    <p>One knob, the <strong>recurrent weight</strong>, sets how much past the state retains, and so sets the effective memory length: near zero the unit just echoes the input, near one it integrates over a long horizon. The simulation also searches for the recurrent weight that best predicts the next sample, a tiny act of learning, and marks it. Real <em class="term">LSTM</em> and <em class="term">GRU</em> cells replace this single fixed knob with learned gates that decide, per step and per feature, what to remember and what to forget, which is how they hold information across hundreds of steps without it decaying away.</p>
+    <div class="eq">
+      hidden state: <span class="c">h<sub>t</sub></span> = a &middot; h<sub>t&minus;1</sub> + (1 &minus; a) &middot; x<sub>t</sub> &nbsp;&middot;&nbsp; effective memory &asymp; <span class="g">1 / (1 &minus; a)</span> steps
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · a recurrent hidden state and its memory &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="rnnCanvas" height="300"></canvas></div>
+      <div class="toggle-row"><span class="lbl">input:</span>
+        <span class="toggle on" id="riNoisy">noisy signal</span>
+        <span class="toggle" id="riStep">step</span>
+        <span class="toggle" id="riPulse">pulse train</span>
+      </div>
+      <div class="readout" id="rnnRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Recurrent weight a <b><span id="rnAv">0.80</span></b></label><input type="range" id="rnA" min="0" max="0.97" value="0.8" step="0.01"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.5)"></i>input x</span>
+        <span><i style="background:#2F6B6B"></i>hidden state h</span>
+        <span><i style="background:#C8962C"></i>best-memory weight</span>
+      </div>
+      <div class="fig-cap">Grey: the input sequence. Teal: the recurrent hidden state. Push the recurrent weight toward zero and the state copies the input, keeping no memory; push it toward one and the state becomes a long, smooth integral of the past. The readout reports the effective memory length and the prediction error, and the ochre marker shows the recurrent weight that best predicts the next sample, the value a one-parameter network would learn.</div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="autoencoder">
+    <p class="sec-num">Section 05</p>
+    <h2>Autoencoders: learning normal</h2>
+    <p>Faults are rare, and labelled faults rarer still. An <em class="term">autoencoder</em> sidesteps the problem by learning only what <strong>normal</strong> looks like. It squeezes each input through a narrow <em class="term">bottleneck</em> and then tries to reconstruct it; trained on healthy data alone, it becomes good at rebuilding healthy patterns and bad at rebuilding anything else. The <em class="term">reconstruction error</em> then doubles as an anomaly score, large exactly when the input does not resemble the training distribution.</p>
+    <p>The simulation makes this exact and genuine. Healthy windows of vibration live near a low-dimensional subspace; the autoencoder's job is to find that subspace and project onto it. A linear autoencoder provably learns the same subspace as <em class="term">principal component analysis</em>, so the simulation computes the principal components of the healthy data directly and reconstructs through a bottleneck of the size you choose. Feed it a healthy window and the reconstruction overlays the input; inject an anomaly and the reconstruction cannot follow it, and the error climbs past the alarm line.</p>
+    <div class="eq">
+      reconstruct: <span class="c">x&#770;</span> = &mu; + &Sigma;<sub>i&le;k</sub> (v<sub>i</sub> &middot; (x &minus; &mu;)) v<sub>i</sub> &nbsp;&middot;&nbsp; score = <span class="g">&#8741; x &minus; x&#770; &#8741;</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 4</span> · reconstruction error as an anomaly score &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="aeCanvas" height="300"></canvas></div>
+      <div class="toggle-row"><span class="lbl">input:</span>
+        <span class="toggle on" id="aeHealthy">healthy</span>
+        <span class="toggle" id="aeAnom">anomalous</span>
+      </div>
+      <div class="readout" id="aeRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Bottleneck size k <b><span id="aeKv">2</span></b></label><input type="range" id="aeK" min="1" max="8" value="2" step="1"></div>
+        <div class="ctrl"><label>Anomaly strength <b><span id="aeMagv">1.0</span></b></label><input type="range" id="aeMag" min="0.3" max="3" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>input window</span>
+        <span><i style="background:#2F6B6B"></i>reconstruction</span>
+      </div>
+      <div class="fig-cap">Rust: the input window. Teal: the autoencoder's reconstruction through a k-dimensional bottleneck. On a healthy window a bottleneck of two or three rebuilds it almost perfectly. Switch to an anomalous window and the reconstruction, trapped in the healthy subspace, cannot match it, so the residual and the error score jump. Too small a bottleneck reconstructs even healthy data poorly; too large a one starts reconstructing anomalies too, the same bias-variance tension seen throughout the series.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="attention">
+    <p class="sec-num">Section 06</p>
+    <h2>Attention: what the model looks at</h2>
+    <p>Recurrence carries memory forward but smears it; by the time a distant event matters, its trace has faded. <em class="term">Attention</em>, the mechanism behind transformers and the foundation models part two mentioned, takes a different route. Instead of a single rolling state, it lets every position look directly at every other position and decide, with a learned similarity, how much each one matters right now.</p>
+    <p>The simulation computes genuine self-attention over a short sequence. Each step is given a small query and key; their dot products, passed through a <em class="term">softmax</em>, become the attention weights, how strongly the step doing the looking attends to each step being looked at. The heatmap shows the full matrix, and the selected row shows where one position focuses. Here the queries and keys are simple fixed features so the mechanism is visible; a real transformer learns these projections, but the move is the same: attend most to the past that most resembles the present.</p>
+    <div class="eq">
+      attention: <span class="c">&alpha;<sub>ij</sub></span> = softmax<sub>j</sub>( q<sub>i</sub> &middot; k<sub>j</sub> / &radic;d ) &nbsp;&middot;&nbsp; output<sub>i</sub> = <span class="g">&Sigma;<sub>j</sub> &alpha;<sub>ij</sub> v<sub>j</sub></span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 5</span> · a self-attention weight matrix &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="attnCanvas" height="330"></canvas></div>
+      <div class="readout" id="attnRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Query position <b><span id="atQv">23</span></b></label><input type="range" id="atQ" min="0" max="23" value="23" step="1"></div>
+        <div class="ctrl"><label>Sharpness (temperature) <b><span id="atTv">1.0</span></b></label><input type="range" id="atT" min="0.2" max="4" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>attention weight</span>
+        <span><i style="background:#B0542B"></i>selected query</span>
+        <span><i style="background:#C8962C"></i>attended steps</span>
+      </div>
+      <div class="fig-cap">Top: the attention matrix, row i showing how strongly step i attends to each step j, darker teal for more weight. The rust-outlined row is the query position you selected. Bottom: the signal, with the steps that query attends to most marked in ochre. Raise the sharpness and the attention collapses onto a few most-similar steps; lower it and the focus spreads evenly. The model looks hardest at the moments that resemble the one it is trying to explain.</div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="edge">
+    <p class="sec-num">Section 07</p>
+    <h2>Shrinking the network for the edge</h2>
+    <p>A network that runs in a data centre is one thing; one that must run on a microcontroller bolted to a motor is another. Part one's edge pattern, keep the raw data local and send only the conclusion, demands that the model fit in kilobytes and run in milliseconds. The dominant tool is <em class="term">quantization</em>: storing the weights not as 32-bit floating point but as 8-bit, or fewer, integers.</p>
+    <p>The simulation quantizes the parameters of a small model that reconstructs a waveform, rounding each weight to one of a limited set of levels and rebuilding the output. At 8 bits the quantized output is visually indistinguishable from the original at a quarter of the size, which is why <em class="term">INT8</em> is the workhorse of embedded inference. Drop toward 3 or 2 bits and the reconstruction visibly degrades as the levels grow too coarse to represent the weights. The readout tracks the model size and the error, the tradeoff every edge deployment has to price.</p>
+    <div class="eq">
+      quantize: <span class="c">q</span> = round( (w &minus; min) / &Delta; ) &middot; &Delta; + min, &nbsp; &Delta; = <span class="g">(max &minus; min) / (2<sup>n</sup> &minus; 1)</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 6</span> · weight quantization and the size-accuracy tradeoff &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="quantCanvas" height="300"></canvas></div>
+      <div class="readout" id="quantRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Bit depth n <b><span id="qBv">8</span></b></label><input type="range" id="qB" min="2" max="16" value="8" step="1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.5)"></i>full-precision output</span>
+        <span><i style="background:#B0542B"></i>quantized output</span>
+      </div>
+      <div class="fig-cap">Grey: the model's output at full 32-bit precision. Rust: the output after quantizing every weight to n bits. From 16 down to 8 bits the two are almost identical while the model shrinks fourfold; below about 4 bits the coarse levels start to distort the output. The readout shows the model size and the reconstruction error, so you can read off how much accuracy each byte saved costs.</div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="practice">
+    <p class="sec-num">Section 08</p>
+    <h2>Practical notes</h2>
+    <p>Neural networks reward data and punish carelessness in ways the hand-built methods do not. These are the lessons that decide whether a learned model is an asset or a liability in a monitoring system.</p>
+    <ul>
+      <li><strong>Earn the network.</strong> A neural model is only worth its complexity when a simpler one has genuinely failed. Benchmark against the hand-built features and classical models from the earlier parts first, and adopt the network only when it clearly wins on an honest test.</li>
+      <li><strong>Data hunger is real.</strong> Capacity needs examples. With a few hundred labelled events, classical methods usually win; networks pull ahead when data is plentiful, and starve quietly when it is not.</li>
+      <li><strong>Normalize, and remember how.</strong> Networks are sensitive to input scale. Standardise every channel, and store those scaling constants with the model, because the same normalisation must run at inference or the network sees nonsense.</li>
+      <li><strong>Leakage is the silent killer.</strong> Split train and test by time or by unit, never at random across a sequence, or the network memorises the future and your accuracy is a fiction that collapses on deployment.</li>
+      <li><strong>Watch for overfitting.</strong> A model that nails training and fails validation has learned the noise. Hold out data honestly, use early stopping and regularisation, and treat a too-good training score as a warning, not a triumph.</li>
+      <li><strong>Calibrate the confidence.</strong> A network's raw output is not a probability. If a decision rests on its confidence, calibrate it and validate the calibration, exactly as part two did for forecast intervals.</li>
+      <li><strong>Quantize and measure.</strong> Do not assume INT8 is free. Quantize, then re-validate accuracy on real data, because a model that passed in floating point can fail once its weights are coarsened for the edge.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>A neural network is a feature learner, not a magic box, so spend your effort on honest data, honest splits and honest baselines, let the network earn its complexity against the hand-built methods that came before it, and remember that everything the earlier parts taught about leakage, calibration and the edge applies with more force, not less, once the features are learned.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section id="refs">
+    <p class="sec-num">Section 09</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. <em>Deep Learning.</em> MIT Press. The standard graduate text on the architectures and training methods in this part.</li>
+      <li>Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). "Learning representations by back-propagating errors." <em>Nature.</em> The paper that made gradient descent practical for multilayer networks.</li>
+      <li>LeCun, Y., Bengio, Y., &amp; Hinton, G. (2015). "Deep learning." <em>Nature.</em> A compact overview of convolutional and recurrent models and their reach.</li>
+      <li>Hochreiter, S., &amp; Schmidhuber, J. (1997). "Long short-term memory." <em>Neural Computation.</em> The LSTM cell and the gated memory behind it.</li>
+      <li>Vaswani, A., et al. (2017). "Attention is all you need." <em>NeurIPS.</em> The transformer and the self-attention mechanism of section six.</li>
+      <li>Hinton, G. E., &amp; Salakhutdinov, R. R. (2006). "Reducing the dimensionality of data with neural networks." <em>Science.</em> Autoencoders and their link to principal component analysis.</li>
+      <li>Jacob, B., et al. (2018). "Quantization and training of neural networks for efficient integer-arithmetic-only inference." <em>CVPR.</em> The basis of practical INT8 deployment.</li>
+      <li>Fawaz, H. I., et al. (2019). "Deep learning for time series classification: a review." <em>Data Mining and Knowledge Discovery.</em> A survey of architectures applied specifically to time series.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References point to further study; the explanations and simulations above are written and implemented from first principles rather than drawn from any single source.</p>
+
+    <div class="seriesnote">
+      That completes the methodological detour. The operational arc, <strong>Sensory Data</strong> to <strong>Forecasting</strong> to <strong>Remaining Useful Life</strong> to <strong>Monitoring</strong>, tells you what to do; this part tells you how a learned model does it underneath, and where its appetite for data and discipline makes it worth the trouble.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Learning Time Series with Neural Networks &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; part five of the time-series series &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+  function makeEps(n){ var a=[]; for(var i=0;i<n;i++)a.push(gauss()); return a; }
+
+  // ===== HERO: layered network with a traveling pulse =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var layers=[5,7,7,3], t=0, lbl=document.getElementById("heroLabel");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var nL=layers.length, pad=44, gapX=(w-2*pad)/(nL-1), pos=[];
+      for(var l=0;l<nL;l++){ var n=layers[l], col=[]; var gy=(h-40)/(n+1);
+        for(var i=0;i<n;i++) col.push({x:pad+l*gapX, y:20+gy*(i+1)}); pos.push(col); }
+      var pulse=(t%120)/120*(nL-1); // moving wavefront across layers
+      for(var l2=0;l2<nL-1;l2++){ for(var a=0;a<pos[l2].length;a++){ for(var b=0;b<pos[l2+1].length;b++){
+        var near=Math.abs(l2-pulse)<0.8; ctx.strokeStyle= near?"rgba(176,84,43,0.30)":"rgba(195,186,168,0.35)"; ctx.lineWidth=near?1.3:0.7;
+        ctx.beginPath(); ctx.moveTo(pos[l2][a].x,pos[l2][a].y); ctx.lineTo(pos[l2+1][b].x,pos[l2+1][b].y); ctx.stroke(); } } }
+      for(var l3=0;l3<nL;l3++){ for(var k=0;k<pos[l3].length;k++){ var on=Math.abs(l3-pulse)<0.6;
+        ctx.fillStyle= on?RUST:(l3===0?TEAL:(l3===nL-1?OCHRE:"#C9C0B0"));
+        ctx.beginPath(); ctx.arc(pos[l3][k].x,pos[l3][k].y, on?6:4.5, 0,7); ctx.fill();
+        if(on){ ctx.strokeStyle="rgba(176,84,43,0.25)"; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(pos[l3][k].x,pos[l3][k].y,10,0,7); ctx.stroke(); } } }
+      label(ctx,"input",pos[0][0].x,h-10,TEAL,"center");
+      label(ctx,"hidden layers",w/2,h-10,INKSOFT,"center");
+      label(ctx,"output",pos[nL-1][0].x,h-10,OCHRE,"center");
+      if(lbl){ var ph=Math.floor(pulse); lbl.textContent = ph>=nL-2? "prediction out" : (ph<=0? "signal in" : "forward pass"); }
+    }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ t+=2; draw(); },60); }
+  })();
+
+  // ===== FIG 1: MLP gradient descent (live training) =====
+  (function(){
+    var c=document.getElementById("mlpCanvas"); if(!c)return;
+    var Hs=document.getElementById("mlH"),Lrs=document.getElementById("mlLr"),Ns=document.getElementById("mlNoise");
+    var Hv=document.getElementById("mlHv"),Lrv=document.getElementById("mlLrv"),Nv=document.getElementById("mlNoisev"),read=document.getElementById("mlpRead");
+    var NT=48, xs=[], noiseSeed=makeEps(NT);
+    for(var i=0;i<NT;i++) xs.push(-1+2*i/(NT-1));
+    function target(x){ return Math.sin(3.2*x)+0.35*Math.sin(7.0*x); }
+    var H,lr,noise,w1,b1,w2,b2,ys,lossHist,epoch;
+    function reset(){
+      H=parseInt(Hs.value,10); lr=0.01+(parseFloat(Lrs.value)-1)/99*0.39; noise=parseFloat(Ns.value);
+      Hv.textContent=H; Lrv.textContent=lr.toFixed(2); Nv.textContent=noise.toFixed(2);
+      ys=[]; for(var i=0;i<NT;i++) ys.push(target(xs[i])+noise*noiseSeed[i]);
+      w1=[];b1=[];w2=[]; for(var j=0;j<H;j++){ w1.push(gauss()*1.3); b1.push(gauss()*0.7); w2.push(gauss()*0.5); } b2=0;
+      lossHist=[]; epoch=0;
+    }
+    function trainStep(){
+      var gw1=new Array(H).fill(0),gb1=new Array(H).fill(0),gw2=new Array(H).fill(0),gb2=0,L=0;
+      for(var i=0;i<NT;i++){ var x=xs[i], hs=new Array(H), y=b2;
+        for(var j=0;j<H;j++){ var hj=Math.tanh(w1[j]*x+b1[j]); hs[j]=hj; y+=w2[j]*hj; }
+        var e=y-ys[i]; L+=e*e; var dy=2*e/NT; gb2+=dy;
+        for(var j2=0;j2<H;j2++){ gw2[j2]+=dy*hs[j2]; var dh=dy*w2[j2]; var dp=dh*(1-hs[j2]*hs[j2]); gw1[j2]+=dp*x; gb1[j2]+=dp; } }
+      for(var j3=0;j3<H;j3++){ w1[j3]-=lr*gw1[j3]; b1[j3]-=lr*gb1[j3]; w2[j3]-=lr*gw2[j3]; }
+      b2-=lr*gb2; L/=NT; if(isFinite(L)){ lossHist.push(L); if(lossHist.length>360)lossHist.shift(); } epoch++;
+    }
+    function net(x){ var y=b2; for(var j=0;j<H;j++) y+=w2[j]*Math.tanh(w1[j]*x+b1[j]); return y; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var x0=40,x1=w-12, ty0=12,ty1=h*0.62, ly0=h*0.72,ly1=h-22;
+      function PX(x){ return x0+((x+1)/2)*(x1-x0); } function PY(v){ return (ty0+ty1)/2 - v*((ty1-ty0)/2)/1.7; }
+      axis(ctx,x0,ty0,x1,ty1);
+      ctx.strokeStyle="rgba(90,85,76,0.18)"; ctx.beginPath(); ctx.moveTo(x0,PY(0)); ctx.lineTo(x1,PY(0)); ctx.stroke();
+      // network curve
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2.2; ctx.beginPath();
+      for(var s=0;s<=160;s++){ var xx=-1+2*s/160; var v=net(xx); v=Math.max(-1.8,Math.min(1.8,v)); if(s===0)ctx.moveTo(PX(xx),PY(v));else ctx.lineTo(PX(xx),PY(v)); } ctx.stroke();
+      // data
+      for(var d=0;d<NT;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(PX(xs[d]),PY(ys[d]),2.4,0,7); ctx.fill(); }
+      label(ctx,"signal value vs input",x0,ty0+4,INKSOFT);
+      // loss curve (log)
+      axis(ctx,x0,ly0,x1,ly1);
+      if(lossHist.length>1){ var lo=Infinity,hi=-Infinity;
+        for(var k=0;k<lossHist.length;k++){ var lv=Math.log10(lossHist[k]+1e-6); if(lv<lo)lo=lv; if(lv>hi)hi=lv; }
+        if(hi-lo<0.3)lo=hi-0.3;
+        ctx.strokeStyle=OCHRE; ctx.lineWidth=1.8; ctx.beginPath();
+        for(var p=0;p<lossHist.length;p++){ var xx2=x0+(p/(lossHist.length-1))*(x1-x0); var lv2=Math.log10(lossHist[p]+1e-6); var yy=ly1-((lv2-lo)/(hi-lo))*(ly1-ly0); if(p===0)ctx.moveTo(xx2,yy);else ctx.lineTo(xx2,yy); } ctx.stroke();
+      }
+      label(ctx,"training loss (log)",x0,ly0+4,INKSOFT);
+      var curL=lossHist.length?lossHist[lossHist.length-1]:1;
+      var q = curL<0.02?"good fit": (curL<0.08?"learning":"underfit / unsettled");
+      read.innerHTML='<span>epoch: <b>'+epoch+'</b></span><span class="'+(curL<0.02?'ok':'')+'">loss: <b>'+curL.toFixed(4)+'</b></span><span>state: <b>'+q+'</b></span>';
+    }
+    [Hs,Lrs,Ns].forEach(function(e){ e.addEventListener("input",function(){ reset(); draw(); }); });
+    reset(); setup(c,draw)();
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(!reduced){ setInterval(function(){ for(var s=0;s<3;s++) trainStep(); draw(); },60); } else { for(var s2=0;s2<400;s2++)trainStep(); draw(); }
+  })();
+
+  // ===== FIG 2: 1D convolution + ReLU + pool =====
+  (function(){
+    var c=document.getElementById("cnnCanvas"); if(!c)return;
+    var kind="impact";
+    var bS=document.getElementById("ckSmooth"),bE=document.getElementById("ckEdge"),bI=document.getElementById("ckImpact");
+    var nzS=document.getElementById("cnNoise"),nzv=document.getElementById("cnNoisev"),read=document.getElementById("cnnRead");
+    var N=160, noiseSeed=makeEps(N), P=34;
+    function kernel(){
+      if(kind==="smooth"){ var k=[]; for(var i=0;i<9;i++)k.push(1/9); return k; }
+      if(kind==="edge"){ return [-1,-1,-1,0,0,0,1,1,1].map(function(v){return v/3;}); }
+      var imp=[]; for(var t=0;t<9;t++) imp.push(Math.exp(-t*0.30)*Math.sin(2*Math.PI*0.22*t)); // matched to impact ring
+      var nrm=Math.sqrt(imp.reduce(function(s,v){return s+v*v;},0)); return imp.map(function(v){return v/nrm;});
+    }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var NZ=parseFloat(nzS.value); nzv.textContent=NZ.toFixed(2);
+      var x=[]; for(var t=0;t<N;t++){ var tau=t%P; x.push(Math.exp(-tau*0.30)*Math.sin(2*Math.PI*0.22*tau)+NZ*noiseSeed[t]); }
+      var k=kernel(), L=k.length, fmap=[];
+      for(var i=0;i<=N-L;i++){ var s=0; for(var j=0;j<L;j++)s+=k[j]*x[i+L-1-j]; fmap.push(Math.max(0,s)); }
+      var pool=[], PW=4; for(var p=0;p+PW<=fmap.length;p+=PW){ var m=0; for(var q=0;q<PW;q++)m=Math.max(m,fmap[p+q]); pool.push(m); }
+      var x0=34,x1=w-12;
+      var r1=[12,h*0.32], r2=[h*0.38,h*0.64], r3=[h*0.70,h-20];
+      function panel(y0,y1,arr,col,mode){ axis(ctx,x0,y0,x1,y1); var mx=Math.max.apply(null,arr.map(Math.abs))||1;
+        if(mode==="bar"){ var bw=(x1-x0)/arr.length; for(var i=0;i<arr.length;i++){ var bh=(arr[i]/mx)*(y1-y0); ctx.fillStyle=col; ctx.fillRect(x0+i*bw+1,y1-bh,bw-2,bh); } }
+        else { ctx.strokeStyle=col; ctx.lineWidth=1.3; ctx.beginPath(); for(var j=0;j<arr.length;j++){ var xx=x0+(j/(arr.length-1))*(x1-x0); var yy=(mode==="signed")? (y0+y1)/2-(arr[j]/mx)*((y1-y0)/2) : y1-(arr[j]/mx)*(y1-y0); if(j===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);} ctx.stroke(); } }
+      panel(r1[0],r1[1],x,"rgba(90,85,76,0.6)","signed"); label(ctx,"input vibration",x0,r1[0]+4,INKSOFT);
+      panel(r2[0],r2[1],fmap,RUST,"pos"); label(ctx,"feature map (conv + ReLU)",x0,r2[0]+4,INKSOFT);
+      panel(r3[0],r3[1],pool,OCHRE,"bar"); label(ctx,"max-pooled",x0,r3[0]+4,INKSOFT);
+      var pk=0,pki=0; for(var z=0;z<fmap.length;z++){ if(fmap[z]>pk){pk=fmap[z];pki=z;} }
+      read.innerHTML='<span>kernel: <b>'+kind+'</b></span><span>peak response at: <b>t='+pki+'</b></span><span>pooled length: <b>'+pool.length+'</b></span>';
+    }
+    function setK(kk,el){ kind=kk; [bS,bE,bI].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    bS.addEventListener("click",function(){setK("smooth",bS);}); bE.addEventListener("click",function(){setK("edge",bE);}); bI.addEventListener("click",function(){setK("impact",bI);});
+    nzS.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 3: recurrent memory =====
+  (function(){
+    var c=document.getElementById("rnnCanvas"); if(!c)return;
+    var inp="noisy";
+    var bN=document.getElementById("riNoisy"),bS=document.getElementById("riStep"),bP=document.getElementById("riPulse");
+    var aS=document.getElementById("rnA"),av=document.getElementById("rnAv"),read=document.getElementById("rnnRead");
+    var N=150, noiseSeed=makeEps(N);
+    function signal(){ var x=[];
+      for(var t=0;t<N;t++){
+        if(inp==="step") x.push(t<N*0.35?0.1:0.85);
+        else if(inp==="pulse") x.push((t%24<2)?1.0:0.05);
+        else x.push(0.5+0.32*Math.sin(t*0.10)+0.12*noiseSeed[t]);
+      } return x; }
+    function runState(x,a){ var h=[x[0]]; for(var t=1;t<x.length;t++) h.push(a*h[t-1]+(1-a)*x[t]); return h; }
+    function predErr(x,a){ var h=runState(x,a),e=0,n=0; for(var t=0;t<x.length-1;t++){ var d=h[t]-x[t+1]; e+=d*d; n++; } return e/n; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var a=parseFloat(aS.value); av.textContent=a.toFixed(2);
+      var x=signal(), hst=runState(x,a);
+      // best a by 1D search
+      var bestA=0,bestE=Infinity; for(var aa=0;aa<=0.97;aa+=0.01){ var er=predErr(x,aa); if(er<bestE){bestE=er;bestA=aa;} }
+      var x0=36,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/(N-1))*(x1-x0); } function Y(v){ return y1-v*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1.1; ctx.beginPath(); for(var t=0;t<N;t++){ if(t===0)ctx.moveTo(X(t),Y(x[t]));else ctx.lineTo(X(t),Y(x[t])); } ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); for(var t2=0;t2<N;t2++){ if(t2===0)ctx.moveTo(X(t2),Y(hst[t2]));else ctx.lineTo(X(t2),Y(hst[t2])); } ctx.stroke();
+      label(ctx,"input (grey) and hidden state (teal)",x0,y0+4,INKSOFT);
+      var memLen=1/(1-a), curE=predErr(x,a);
+      read.innerHTML='<span>effective memory: <b>'+memLen.toFixed(1)+' steps</b></span><span>prediction error: <b>'+curE.toFixed(4)+'</b></span><span class="ok">best-memory a: <b>'+bestA.toFixed(2)+'</b></span>';
+    }
+    function setI(ii,el){ inp=ii; [bN,bS,bP].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    bN.addEventListener("click",function(){setI("noisy",bN);}); bS.addEventListener("click",function(){setI("step",bS);}); bP.addEventListener("click",function(){setI("pulse",bP);});
+    aS.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 4: autoencoder via PCA =====
+  (function(){
+    var c=document.getElementById("aeCanvas"); if(!c)return;
+    var mode="healthy";
+    var bH=document.getElementById("aeHealthy"),bA=document.getElementById("aeAnom");
+    var kS=document.getElementById("aeK"),mS=document.getElementById("aeMag");
+    var kv=document.getElementById("aeKv"),mv=document.getElementById("aeMagv"),read=document.getElementById("aeRead");
+    var D=16, M=240;
+    // build healthy windows near a 2D subspace (sin/cos at fixed freq) + small noise
+    var f=1.4, basisS=[],basisC=[]; for(var i=0;i<D;i++){ basisS.push(Math.sin(2*Math.PI*f*i/D)); basisC.push(Math.cos(2*Math.PI*f*i/D)); }
+    var windows=[]; for(var m=0;m<M;m++){ var aS=gauss(),aC=gauss(),wv=[]; for(var i2=0;i2<D;i2++) wv.push(aS*basisS[i2]+aC*basisC[i2]+0.12*gauss()); windows.push(wv); }
+    // mean
+    var mu=new Array(D).fill(0); for(var w2=0;w2<M;w2++)for(var d=0;d<D;d++)mu[d]+=windows[w2][d]/M;
+    // covariance DxD
+    var C=[]; for(var a=0;a<D;a++){ C.push(new Array(D).fill(0)); }
+    for(var w3=0;w3<M;w3++){ var cen=[]; for(var d2=0;d2<D;d2++)cen.push(windows[w3][d2]-mu[d2]);
+      for(var a2=0;a2<D;a2++)for(var b=0;b<D;b++)C[a2][b]+=cen[a2]*cen[b]/(M-1); }
+    // top-k eigenvectors via power iteration + deflation (compute up to 8 once)
+    function matvec(Mx,v){ var r=new Array(D).fill(0); for(var a=0;a<D;a++){ var s=0; for(var b=0;b<D;b++)s+=Mx[a][b]*v[b]; r[a]=s; } return r; }
+    var Cwork=C.map(function(row){return row.slice();}), comps=[];
+    for(var comp=0;comp<8;comp++){ var v=[]; for(var d3=0;d3<D;d3++)v.push(gauss());
+      for(var it=0;it<60;it++){ var nv=matvec(Cwork,v); var nrm=Math.sqrt(nv.reduce(function(s,x){return s+x*x;},0))||1; v=nv.map(function(x){return x/nrm;}); }
+      var Cv=matvec(Cwork,v); var lam=0; for(var d4=0;d4<D;d4++)lam+=v[d4]*Cv[d4];
+      comps.push(v); for(var a3=0;a3<D;a3++)for(var b2=0;b2<D;b2++)Cwork[a3][b2]-=lam*v[a3]*v[b2]; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var k=parseInt(kS.value,10), mag=parseFloat(mS.value); kv.textContent=k; mv.textContent=mag.toFixed(1);
+      // test window
+      var aS2=1.1,aC2=-0.7, xw=[]; for(var i=0;i<D;i++) xw.push(aS2*basisS[i]+aC2*basisC[i]+0.1*gauss());
+      if(mode==="anom"){ xw[Math.floor(D*0.55)]+=mag*1.6; xw[Math.floor(D*0.56)]+=mag*1.2; for(var i2=0;i2<D;i2++) xw[i2]+=mag*0.18*Math.sin(2*Math.PI*3.3*i2/D); }
+      // reconstruct: mu + sum_{i<k} (v_i . (x-mu)) v_i
+      var cen=[]; for(var d=0;d<D;d++)cen.push(xw[d]-mu[d]);
+      var rec=mu.slice();
+      for(var ci=0;ci<k;ci++){ var dot=0; for(var d2=0;d2<D;d2++)dot+=comps[ci][d2]*cen[d2]; for(var d3=0;d3<D;d3++)rec[d3]+=dot*comps[ci][d3]; }
+      var err=0; for(var d4=0;d4<D;d4++){ var e=xw[d4]-rec[d4]; err+=e*e; } err=Math.sqrt(err);
+      var thr=0.9;
+      var x0=40,x1=w-12,y0=18,y1=h-30;
+      function X(i){ return x0+(i/(D-1))*(x1-x0); }
+      var lo=-3,hi=3; function Y(v){ var vv=Math.max(lo,Math.min(hi,v)); return (y0+y1)/2-(vv)*((y1-y0)/2)/3; }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.2)"; ctx.beginPath(); ctx.moveTo(x0,Y(0)); ctx.lineTo(x1,Y(0)); ctx.stroke();
+      // input
+      ctx.strokeStyle=RUST; ctx.lineWidth=2; ctx.beginPath(); for(var i3=0;i3<D;i3++){ if(i3===0)ctx.moveTo(X(i3),Y(xw[i3]));else ctx.lineTo(X(i3),Y(xw[i3])); } ctx.stroke();
+      for(var i4=0;i4<D;i4++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(i4),Y(xw[i4]),2.2,0,7); ctx.fill(); }
+      // reconstruction
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.setLineDash([5,3]); ctx.beginPath(); for(var i5=0;i5<D;i5++){ if(i5===0)ctx.moveTo(X(i5),Y(rec[i5]));else ctx.lineTo(X(i5),Y(rec[i5])); } ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"input window vs reconstruction",x0,y0+4,INKSOFT);
+      var alarm=err>thr;
+      read.innerHTML='<span>reconstruction error: <b>'+err.toFixed(2)+'</b></span><span>alarm line: <b>'+thr.toFixed(2)+'</b></span><span class="'+(alarm?'warn':'ok')+'">verdict: <b>'+(alarm?'ANOMALY':'normal')+'</b></span>';
+    }
+    function setM(mm,el){ mode=mm; [bH,bA].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    bH.addEventListener("click",function(){setM("healthy",bH);}); bA.addEventListener("click",function(){setM("anom",bA);});
+    [kS,mS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 5: self-attention =====
+  (function(){
+    var c=document.getElementById("attnCanvas"); if(!c)return;
+    var qS=document.getElementById("atQ"),tS=document.getElementById("atT");
+    var qv=document.getElementById("atQv"),tv=document.getElementById("atTv"),read=document.getElementById("attnRead");
+    var T=24, val=[], noiseSeed=makeEps(T);
+    for(var t=0;t<T;t++){ var v=0.4*Math.sin(t*0.5); v+=0.9*Math.exp(-Math.pow((t-7),2)/3); v+=0.8*Math.exp(-Math.pow((t-17),2)/3); val.push(v+0.05*noiseSeed[t]); }
+    // simple fixed features: [value, slope]
+    var q=[],kk=[]; for(var t2=0;t2<T;t2++){ var slope=(t2>0? val[t2]-val[t2-1]:0); q.push([val[t2],slope*2]); kk.push([val[t2],slope*2]); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var qi=parseInt(qS.value,10), temp=parseFloat(tS.value); qv.textContent=qi; tv.textContent=temp.toFixed(1);
+      var d=2, A=[];
+      for(var i=0;i<T;i++){ var sc=[]; for(var j=0;j<T;j++){ var dot=q[i][0]*kk[j][0]+q[i][1]*kk[j][1]; sc.push(dot/Math.sqrt(d)*temp); }
+        var mx=Math.max.apply(null,sc); var ex=sc.map(function(s){return Math.exp(s-mx);}); var sum=ex.reduce(function(a,b){return a+b;},0); A.push(ex.map(function(e){return e/sum;})); }
+      // heatmap top
+      var gx0=46, gx1=w-14, gy0=14, gy1=h*0.60; var cw=(gx1-gx0)/T, ch=(gy1-gy0)/T;
+      for(var i2=0;i2<T;i2++){ for(var j2=0;j2<T;j2++){ var a=A[i2][j2]; ctx.fillStyle="rgba(47,107,107,"+Math.min(1,a*3.2).toFixed(3)+")"; ctx.fillRect(gx0+j2*cw, gy0+i2*ch, cw-0.5, ch-0.5); } }
+      // selected query row outline
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.8; ctx.strokeRect(gx0, gy0+qi*ch, gx1-gx0, ch);
+      label(ctx,"keys j \u2192",gx1,gy0-3,INKSOFT,"right"); label(ctx,"queries i \u2193",gx0-4,gy0+8,INKSOFT,"right");
+      // signal bottom with attended marks
+      var sy0=h*0.70, sy1=h-22; var row=A[qi];
+      var vmin=Math.min.apply(null,val), vmax=Math.max.apply(null,val);
+      function SX(t){ return gx0+(t/(T-1))*(gx1-gx0); } function SY(v){ return sy1-((v-vmin)/(vmax-vmin+1e-9))*(sy1-sy0); }
+      axis(ctx,gx0,sy0,gx1,sy1);
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1.3; ctx.beginPath(); for(var t3=0;t3<T;t3++){ if(t3===0)ctx.moveTo(SX(t3),SY(val[t3]));else ctx.lineTo(SX(t3),SY(val[t3])); } ctx.stroke();
+      // mark top attended
+      var idx=row.map(function(a,j){return [a,j];}).sort(function(x,y){return y[0]-x[0];});
+      for(var m=0;m<3;m++){ var jj=idx[m][1]; ctx.fillStyle=OCHRE; ctx.globalAlpha=Math.min(1,idx[m][0]*3+0.2); ctx.beginPath(); ctx.arc(SX(jj),SY(val[jj]),4.5,0,7); ctx.fill(); }
+      ctx.globalAlpha=1;
+      ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(SX(qi),SY(val[qi]),3.5,0,7); ctx.fill();
+      label(ctx,"sequence, query in rust, attended in ochre",gx0,sy0-2,INKSOFT);
+      // entropy
+      var ent=0; for(var e=0;e<T;e++){ if(row[e]>1e-9)ent-=row[e]*Math.log(row[e]); } ent/=Math.log(T);
+      read.innerHTML='<span>top attended step: <b>j='+idx[0][1]+'</b></span><span>weight: <b>'+(idx[0][0]*100).toFixed(0)+'%</b></span><span>focus (1 = sharp): <b>'+(1-ent).toFixed(2)+'</b></span>';
+    }
+    [qS,tS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 6: weight quantization =====
+  (function(){
+    var c=document.getElementById("quantCanvas"); if(!c)return;
+    var bS=document.getElementById("qB"),bv=document.getElementById("qBv"),read=document.getElementById("quantRead");
+    var NP=32, freqs=[], wts=[];
+    for(var i=0;i<NP;i++){ freqs.push((i+1)*0.6); wts.push((1/(i+1))*Math.cos(i*1.7)); } // weights reconstruct a waveform
+    var Npts=200;
+    function output(W){ var y=[]; for(var t=0;t<Npts;t++){ var xx=t/Npts*2*Math.PI, s=0; for(var i=0;i<NP;i++) s+=W[i]*Math.sin(freqs[i]*xx); y.push(s); } return y; }
+    function quantize(W,n){ var mn=Math.min.apply(null,W), mx=Math.max.apply(null,W); var d=(mx-mn)/(Math.pow(2,n)-1); if(d<1e-12)d=1e-12;
+      return W.map(function(v){ return Math.round((v-mn)/d)*d+mn; }); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var n=parseInt(bS.value,10); bv.textContent=n;
+      var y0arr=output(wts), Wq=quantize(wts,n), yq=output(Wq);
+      var x0=40,x1=w-12,y0=16,y1=h-28;
+      var all=y0arr.concat(yq); var lo=Math.min.apply(null,all), hi=Math.max.apply(null,all);
+      function X(t){ return x0+(t/(Npts-1))*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo+1e-9))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=2; ctx.beginPath(); for(var t=0;t<Npts;t++){ if(t===0)ctx.moveTo(X(t),Y(y0arr[t]));else ctx.lineTo(X(t),Y(y0arr[t])); } ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.6; ctx.beginPath(); for(var t2=0;t2<Npts;t2++){ if(t2===0)ctx.moveTo(X(t2),Y(yq[t2]));else ctx.lineTo(X(t2),Y(yq[t2])); } ctx.stroke();
+      label(ctx,"model output: full precision (grey) vs "+n+"-bit (rust)",x0,y0+4,INKSOFT);
+      var rmse=0; for(var t3=0;t3<Npts;t3++){ var e=y0arr[t3]-yq[t3]; rmse+=e*e; } rmse=Math.sqrt(rmse/Npts);
+      var bytes=Math.ceil(NP*n/8), fpBytes=NP*4, ratio=fpBytes/bytes;
+      read.innerHTML='<span>bit depth: <b>'+n+'-bit</b></span><span>model size: <b>'+bytes+' B</b></span><span class="ok">vs FP32: <b>'+ratio.toFixed(1)+'\u00d7 smaller</b></span><span>RMSE: <b>'+rmse.toFixed(3)+'</b></span>';
+    }
+    bS.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>

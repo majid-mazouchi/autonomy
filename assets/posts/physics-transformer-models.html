@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physics-Informed and Transformer Models for Time Series</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(34px,5.6vw,60px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:690px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+  .legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);padding:4px 16px 12px;display:flex;flex-wrap:wrap;gap:16px;}
+  .legend i{width:16px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .eq{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;color:var(--ink);overflow-x:auto;line-height:1.9;}
+  .eq .c{color:var(--rust);font-weight:600;}
+  .eq .g{color:var(--teal);}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  .seriesnote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:24px 0 0;}
+  .seriesnote a{color:var(--rust);}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;·&nbsp; part six / structure built in, structure learned</p>
+    <h1>Physics-Informed and <span class="em">Transformer</span> Models</h1>
+    <p class="lede">A model that knows nothing must learn everything from data, and data is expensive. The remedy is structure. You can build it in by hand, telling the network the differential equation the signal must obey, or you can give the network an architecture biased toward the structure of sequences and let it learn the rest. This part covers both: physics as a prior, and attention as an architecture, two routes to the same goal of needing less data to know more.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">equations meet attention</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">structure as prior</span>
+      </div>
+      <canvas id="heroCanvas" height="200"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#frame">Two ways to add structure</a></li>
+      <li><a href="#pinn">Physics-informed neural networks</a></li>
+      <li><a href="#hybrid">Grey-box hybrids</a></li>
+      <li><a href="#koopman">Koopman: making nonlinear dynamics linear</a></li>
+      <li><a href="#transformer">The transformer block</a></li>
+      <li><a href="#patching">Patching a series into tokens</a></li>
+      <li><a href="#tcn">Dilated convolutions: long memory</a></li>
+      <li><a href="#quantile">Probabilistic forecasts and pinball loss</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="frame">
+    <p class="sec-num">Section 01</p>
+    <h2>Two ways to add structure</h2>
+    <p>Part five let networks learn their features from scratch, which works when data is plentiful and fails when it is scarce. Most engineering problems are scarce. A motor that has failed three times does not offer the millions of examples a generic network wants, and yet you often know a great deal about it: the differential equations its windings obey, the conservation laws its temperatures respect, the periodic structure of its vibration. The art is to feed that knowledge into the model so it does not have to rediscover physics from a handful of measurements.</p>
+    <p>There are two complementary ways to do it. The first builds structure in explicitly: a <em class="term">physics-informed</em> network is trained to satisfy a governing equation, a <em class="term">grey-box hybrid</em> corrects a physics model with a small learned term, and a <em class="term">Koopman</em> embedding makes nonlinear dynamics behave linearly. The second builds structure into the architecture: <em class="term">transformers</em> bias a model toward attending across a sequence, <em class="term">patching</em> reshapes that sequence efficiently, and <em class="term">dilated convolutions</em> reach far back in time cheaply. Both routes reduce the data a model needs to be right, and every claim below is computed live in the page.</p>
+    <div class="note field">
+      <p class="nt">Sixth in a series</p>
+      <p>This part sits beside part five as the second half of the deep-learning material. It leans on the control and dynamics language of the prognostics work and the attention sketch from part five, and it closes the loop with part two by ending on probabilistic forecasts, the calibrated intervals a decision actually consumes.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="pinn">
+    <p class="sec-num">Section 02</p>
+    <h2>Physics-informed neural networks</h2>
+    <p>Suppose you have a few noisy measurements of a vibrating structure and you know it obeys a damped-oscillator equation. A plain network fit to the data alone will track the points it has seen and then wander off into nonsense the moment it runs out of them. A <em class="term">physics-informed</em> network refuses to wander, because its training loss has a second term: the <strong>residual of the governing equation</strong>, evaluated at many points where there is no data at all. The model is rewarded for fitting the data and, just as hard, for obeying the physics everywhere.</p>
+    <p>The simulation solves this genuinely. The model is a flexible function whose derivatives are known in closed form, so the equation residual is exact; the data loss and the physics loss combine into one objective that is solved by least squares. Start with the physics weight near zero and you have a pure data fit: it nails the sparse points in the early window and then diverges wildly in the data-free region. Turn the physics weight up and the governing equation takes over, carrying the solution correctly through the region where no data exists at all.</p>
+    <div class="eq">
+      loss = <span class="c">&Sigma;<sub>data</sub> (u &minus; y)&sup2;</span> + &lambda; &middot; <span class="g">&Sigma;<sub>colloc</sub> ( u&Prime; + 2&zeta;&omega; u&prime; + &omega;&sup2; u )&sup2;</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 1</span> · data fit vs physics-constrained extrapolation &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="pinnCanvas" height="300"></canvas></div>
+      <div class="readout" id="pinnRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Physics weight &lambda; <b><span id="piLamv">1.0</span></b></label><input type="range" id="piLam" min="0" max="100" value="30" step="1"></div>
+        <div class="ctrl"><label>Data points <b><span id="piNv">6</span></b></label><input type="range" id="piN" min="2" max="14" value="6" step="1"></div>
+        <div class="ctrl"><label>Measurement noise <b><span id="piNoisev">0.04</span></b></label><input type="range" id="piNoise" min="0" max="0.2" value="0.04" step="0.01"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>noisy data (early window)</span>
+        <span><i style="background:#2F6B6B"></i>model solution</span>
+        <span><i style="background:rgba(90,85,76,0.5)"></i>true solution</span>
+      </div>
+      <div class="fig-cap">Rust dots: noisy measurements, all in the shaded early window. Teal: the model's solution. Grey: the true damped oscillation. With the physics weight near zero the teal curve fits the dots and then flies apart in the unshaded data-free region. Raise the weight and the differential equation pins the solution down everywhere, so it keeps oscillating and decaying correctly long after the data has run out, the whole point of a physics prior.</div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="hybrid">
+    <p class="sec-num">Section 03</p>
+    <h2>Grey-box hybrids</h2>
+    <p>Pure physics models are never quite right. A real bearing has friction the equations idealise; a real battery has chemistry the circuit model simplifies. Pure data models, conversely, have no backbone and extrapolate badly. A <em class="term">grey-box hybrid</em> takes the best of each: run the physics model, which captures the gross behaviour, then train a small network to learn the <strong>correction</strong>, the part the physics got wrong.</p>
+    <p>The simulation has a true system, a physics model with a deliberately wrong parameter, and a learned correction fit to the gap between them. The physics-only prediction is biased, tracking the right shape with the wrong amplitude and decay. The correction, learned only from training-region data, repairs that bias and, because it sits on top of a model with real structure, the hybrid extrapolates beyond the data far better than a free-form fit could. Make the physics more wrong and watch the correction work harder; shrink the training data and watch the hybrid hold up where a pure data fit would collapse.</p>
+    <div class="eq">
+      hybrid: <span class="c">y&#770;(t)</span> = <span class="g">physics(t)</span> + correction(t),&nbsp; correction learned from ( y &minus; physics )
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · physics model plus a learned correction &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="hybridCanvas" height="300"></canvas></div>
+      <div class="readout" id="hybridRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Physics model error <b><span id="hyErrv">0.40</span></b></label><input type="range" id="hyErr" min="0" max="1" value="0.4" step="0.05"></div>
+        <div class="ctrl"><label>Training data fraction <b><span id="hyFracv">0.50</span></b></label><input type="range" id="hyFrac" min="0.25" max="0.8" value="0.5" step="0.05"></div>
+        <div class="ctrl"><label>Noise <b><span id="hyNoisev">0.05</span></b></label><input type="range" id="hyNoise" min="0" max="0.2" value="0.05" step="0.01"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>data</span>
+        <span><i style="background:rgba(90,85,76,0.5)"></i>physics only</span>
+        <span><i style="background:#2F6B6B"></i>hybrid</span>
+      </div>
+      <div class="fig-cap">Rust dots: measured data. Grey: the physics model alone, biased by its wrong parameter. Teal: the hybrid, physics plus a correction learned from the gap in the shaded training region. The hybrid matches the data and keeps tracking the truth into the unshaded region, because the physics backbone carries the structure and the correction only has to clean up a small, smooth residual rather than invent the whole signal.</div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="koopman">
+    <p class="sec-num">Section 04</p>
+    <h2>Koopman: making nonlinear dynamics linear</h2>
+    <p>Nonlinear systems are hard because the tools of linear analysis, eigenvalues, superposition, the whole comfortable toolbox, do not apply. <em class="term">Koopman</em> theory offers a trade: lift the state into a richer set of <em class="term">observables</em>, functions of the state, and in that lifted space the dynamics can become <strong>linear</strong>, even though the original system was not. A nonlinear flow in two variables can be an exactly linear flow in three well-chosen observables.</p>
+    <p>The simulation takes a genuinely nonlinear system and learns its Koopman operator from data by <em class="term">dynamic mode decomposition</em>: collect snapshots, lift them with the observables, and find the single linear matrix that best advances them one step. Predicting forward is then just repeated matrix multiplication, and the lifted prediction tracks the true nonlinear trajectory. For contrast, a naive linear model fit to the raw state alone, no lifting, cannot capture the nonlinear coupling and peels away. The lift is what buys the linearity, an idea that runs straight back to the control-theoretic heart of this whole field.</p>
+    <div class="eq">
+      lift g = [x, y, <span class="c">x&sup2;</span>] &nbsp;&middot;&nbsp; learn A from data: <span class="g">g<sub>k+1</sub> &asymp; A g<sub>k</sub></span> &nbsp;&middot;&nbsp; predict by iterating A
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · linear prediction of a nonlinear flow, with and without lifting &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="koopmanCanvas" height="320"></canvas></div>
+      <div class="readout" id="koopmanRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Start x&#8320; <b><span id="koX0v">-1.0</span></b></label><input type="range" id="koX0" min="-1.3" max="1.3" value="-1" step="0.1"></div>
+        <div class="ctrl"><label>Start y&#8320; <b><span id="koY0v">1.0</span></b></label><input type="range" id="koY0" min="-0.5" max="1.3" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.5)"></i>true nonlinear flow</span>
+        <span><i style="background:#2F6B6B"></i>Koopman (lifted, linear)</span>
+        <span><i style="background:#B0542B"></i>naive linear (no lift)</span>
+      </div>
+      <div class="fig-cap">Phase portrait, x against y. Grey: the true nonlinear trajectory. Teal: the prediction from the learned linear Koopman operator in the lifted space, which tracks the curve faithfully because the lift makes the dynamics genuinely linear. Rust dashed: a linear model fit to the raw state with no lifting, which misses the curvature of the slow manifold and drifts off. Move the start point and watch the lifted model stay accurate where the naive one cannot.</div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="transformer">
+    <p class="sec-num">Section 05</p>
+    <h2>The transformer block</h2>
+    <p>Part five showed a single head of attention. A real <em class="term">transformer</em> adds two ingredients that make it work on sequences. First, because attention is otherwise blind to order, every position is stamped with a <em class="term">positional encoding</em>, a fixed pattern of sines and cosines at many frequencies that uniquely labels where each step sits. Second, attention runs in parallel <em class="term">heads</em>, each free to specialise: one head can track content similarity while another tracks position, and their outputs are combined.</p>
+    <p>The simulation computes both genuinely. The top panel is the real sinusoidal positional encoding, a bank of waves whose interference gives every position a distinct fingerprint. Below it, two attention heads run on the same sequence: a content head that attends to steps with similar values, and a positional head that attends to nearby steps, producing visibly different patterns. A full block wraps these in a residual connection and normalisation, which keep deep stacks trainable, but the attention and the encoding are the heart of it.</p>
+    <div class="eq">
+      PE(pos, 2i) = sin( pos / 10000<sup>2i/d</sup> ) &nbsp;&middot;&nbsp; <span class="c">multi-head</span>: heads attend in parallel, then <span class="g">combine</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 4</span> · positional encoding and two attention heads &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="transCanvas" height="340"></canvas></div>
+      <div class="readout" id="transRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Attention sharpness <b><span id="trTv">1.0</span></b></label><input type="range" id="trT" min="0.3" max="4" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Encoding frequencies <b><span id="trFv">6</span></b></label><input type="range" id="trF" min="3" max="12" value="6" step="1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>encoding / attention weight</span>
+        <span><i style="background:#C8962C"></i>content head</span>
+        <span><i style="background:#B0542B"></i>position head</span>
+      </div>
+      <div class="fig-cap">Top: the sinusoidal positional encoding, positions down the rows and encoding dimensions across, each column a wave of a different frequency so that no two positions share a fingerprint. Bottom left: a head attending by content, lighting up between steps of similar value. Bottom right: a head attending by position, banded along the diagonal. Different heads, different jobs, which is why transformers use many of them at once.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="patching">
+    <p class="sec-num">Section 06</p>
+    <h2>Patching a series into tokens</h2>
+    <p>Attention costs grow with the square of the sequence length, which is ruinous for the long records typical of condition monitoring. The trick that made transformers practical for time series, popularised by <em class="term">PatchTST</em>, is <em class="term">patching</em>: chop the series into short segments and treat each segment as a single <strong>token</strong>, the way a sentence is a sequence of words rather than letters. A thousand samples become a few dozen patch-tokens, and the quadratic cost falls accordingly.</p>
+    <p>The simulation shows the reshaping directly. Choose a patch length and the long signal is sliced into patches, each becoming one column of a token grid that the transformer would then attend over. Longer patches mean fewer tokens and cheaper attention, but each token blurs more of the fine detail inside it; shorter patches keep detail at the cost of more tokens. That tradeoff, granularity against compute, is the single dial patching gives you, and it is why patch length is the first hyperparameter anyone tunes.</p>
+    <div class="eq">
+      length L, patch P &nbsp;&rarr;&nbsp; tokens = <span class="c">L / P</span> &nbsp;&middot;&nbsp; attention cost &prop; <span class="g">tokens&sup2;</span>
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 5</span> · slicing a long series into patch-tokens &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="patchCanvas" height="300"></canvas></div>
+      <div class="readout" id="patchRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Patch length P <b><span id="paPv">16</span></b></label><input type="range" id="paP" min="4" max="48" value="16" step="2"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.5)"></i>input series</span>
+        <span><i style="background:#2F6B6B"></i>patch boundaries</span>
+        <span><i style="background:#B0542B"></i>token grid</span>
+      </div>
+      <div class="fig-cap">Top: the long input series, with teal lines marking the patch boundaries for the chosen patch length. Bottom: the token grid, one column per patch, each column the stacked samples of that patch. Widen the patch and the boundaries spread out, the grid loses columns, and the attention cost, which scales with the square of the token count, drops sharply, at the price of coarser tokens. Narrow it and you recover detail but pay in tokens.</div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="tcn">
+    <p class="sec-num">Section 07</p>
+    <h2>Dilated convolutions: long memory</h2>
+    <p>Transformers are not the only way to reach far back in a sequence. A <em class="term">temporal convolutional network</em> stacks <em class="term">dilated causal convolutions</em>: causal so each output sees only the past, never the future, and dilated so each successive layer skips over an exponentially growing gap. A handful of layers then sees thousands of steps back, with none of the vanishing-gradient trouble that plagues recurrence and none of the quadratic cost of attention.</p>
+    <p>The simulation makes the <em class="term">receptive field</em> visible. Each layer doubles its dilation, one, two, four, eight, so the set of input samples that can influence the final output widens geometrically with depth. Add layers and watch the cone of influence reach further into the past; the readout reports exactly how many steps back the output can now see. This exponential reach for a linear cost in layers is why TCNs remain a strong, efficient baseline for long sequences.</p>
+    <div class="eq">
+      dilations 1, 2, 4, &hellip; , 2<sup>L&minus;1</sup> &nbsp;&middot;&nbsp; receptive field = <span class="c">1 + &Sigma;<sub>l</sub> (k &minus; 1) &middot; 2<sup>l</sup></span> = <span class="g">2<sup>L</sup></span> for k=2
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 6</span> · the growing receptive field of a dilated TCN &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="tcnCanvas" height="320"></canvas></div>
+      <div class="readout" id="tcnRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Layers <b><span id="tcLv">4</span></b></label><input type="range" id="tcL" min="1" max="6" value="4" step="1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>node</span>
+        <span><i style="background:#B0542B"></i>active connection</span>
+        <span><i style="background:#C8962C"></i>receptive field</span>
+      </div>
+      <div class="fig-cap">Each row is a layer, the bottom the input and the top the output. The dilated causal connections, rust, skip over a gap that doubles every layer, so the single output node at the top draws, through the stack, on an exponentially wide span of inputs, shaded in ochre. Add a layer and the receptive field roughly doubles. The readout gives the exact reach, the number of past steps the output can see.</div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="quantile">
+    <p class="sec-num">Section 08</p>
+    <h2>Probabilistic forecasts and pinball loss</h2>
+    <p>A forecast that is a single number hides exactly what a decision needs: how uncertain it is. Deep forecasters earn their keep by predicting a <strong>distribution</strong>, and the simplest honest way to do that is to predict several <em class="term">quantiles</em> directly. Train one output for the tenth percentile, one for the median, one for the ninetieth, and the spread between them is a calibrated forecast interval, the same object the conformal methods of part two produced by a different route.</p>
+    <p>The trick is the loss. The <em class="term">pinball loss</em> is an asymmetric penalty, tilted so that minimising it drives an output to the requested quantile rather than the mean. The simulation trains three quantile predictors by genuine gradient descent on the pinball loss, on data whose spread deliberately widens to the right. The result is a fan that hugs the points where they are tight and flares where they scatter, with the band capturing close to its nominal coverage, which the readout checks against the data.</p>
+    <div class="eq">
+      pinball<sub>&tau;</sub>(e) = <span class="c">max( &tau;&middot;e, (&tau;&minus;1)&middot;e )</span>, &nbsp; e = y &minus; <span class="g">&#375;</span> &nbsp;&middot;&nbsp; minimised at the &tau; quantile
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 7</span> · a quantile forecast fan trained on pinball loss &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="quantfCanvas" height="300"></canvas></div>
+      <div class="readout" id="quantfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Spread growth <b><span id="qfSpreadv">1.0</span></b></label><input type="range" id="qfSpread" min="0.2" max="2.5" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Noise <b><span id="qfNoisev">1.0</span></b></label><input type="range" id="qfNoise" min="0.4" max="2" value="1" step="0.1"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#B0542B"></i>data</span>
+        <span><i style="background:#2F6B6B"></i>median (q50)</span>
+        <span><i style="background:#C8962C"></i>q10 / q90 band</span>
+      </div>
+      <div class="fig-cap">Rust dots: data whose scatter widens to the right. Teal: the median forecast. Ochre band: the tenth-to-ninetieth percentile interval, each edge a separate predictor trained on its own pinball loss. The band stays tight where the data is tight and flares where it spreads, exactly tracking the changing uncertainty, and the readout reports the fraction of points it actually captures against the eighty percent it targets.</div>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section id="practice">
+    <p class="sec-num">Section 09</p>
+    <h2>Practical notes</h2>
+    <p>Structured models reward the knowledge you bring and punish the structure you get wrong. These are the lessons that decide whether a physics prior or a fancy architecture earns its place.</p>
+    <ul>
+      <li><strong>Wrong physics is worse than none.</strong> A physics-informed model is only as good as its equation. If the governing law is mis-specified, the prior fights the data and the result is confidently wrong; verify the physics before you trust the constraint.</li>
+      <li><strong>Weight the physics deliberately.</strong> The balance between data loss and physics loss is a real hyperparameter, not a detail. Too little and the constraint does nothing; too much and the model ignores measurements it should respect.</li>
+      <li><strong>Grey-box beats both extremes.</strong> When you have partial physics, a learned correction on top of it almost always outperforms either pure physics or pure data, and it extrapolates because the backbone carries structure.</li>
+      <li><strong>Lift, then check linearity.</strong> Koopman embeddings are powerful when a good set of observables exists, but a poor lift gives a linear model that fits the training trajectory and fails elsewhere. Validate the linear prediction on held-out initial conditions.</li>
+      <li><strong>Transformers are data-hungry.</strong> Attention has little built-in bias, so it needs either large data or the help of patching, pretraining and strong positional structure. On small datasets a TCN or a classical model often wins.</li>
+      <li><strong>Patch length is the first dial.</strong> For long series, set the patch length before anything else; it sets both the compute budget and the granularity the model can see.</li>
+      <li><strong>Predict intervals, calibrate them.</strong> A quantile head or a conformal wrapper turns a point forecast into a usable one, but a predicted interval is only worth its nominal coverage if you check that coverage on real held-out data.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>Structure is the cheapest data you will ever get, so inject what you genuinely know, the governing equation, a partial model, a sequence-aware architecture, weigh it honestly against the measurements rather than letting either dominate, and remember that a prior is a liability the moment it is wrong, which is why every structured model still has to be validated on data it has never seen.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section id="refs">
+    <p class="sec-num">Section 10</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Raissi, M., Perdikaris, P., &amp; Karniadakis, G. E. (2019). "Physics-informed neural networks." <em>Journal of Computational Physics.</em> The paper that defined the data-plus-equation training objective.</li>
+      <li>Karniadakis, G. E., et al. (2021). "Physics-informed machine learning." <em>Nature Reviews Physics.</em> A broad survey of physics priors and grey-box hybrids.</li>
+      <li>Brunton, S. L., &amp; Kutz, J. N. <em>Data-Driven Science and Engineering.</em> Cambridge University Press. Koopman theory, dynamic mode decomposition, and the lifting idea of section four.</li>
+      <li>Schmid, P. J. (2010). "Dynamic mode decomposition of numerical and experimental data." <em>Journal of Fluid Mechanics.</em> The DMD algorithm used to learn the linear operator.</li>
+      <li>Vaswani, A., et al. (2017). "Attention is all you need." <em>NeurIPS.</em> The transformer, positional encoding, and multi-head attention.</li>
+      <li>Nie, Y., et al. (2023). "A time series is worth 64 words." <em>ICLR.</em> PatchTST and the patching strategy of section six.</li>
+      <li>Bai, S., Kolter, J. Z., &amp; Koltun, V. (2018). "An empirical evaluation of generic convolutional and recurrent networks for sequence modeling." <em>arXiv.</em> The temporal convolutional network and its dilated receptive field.</li>
+      <li>Koenker, R., &amp; Bassett, G. (1978). "Regression quantiles." <em>Econometrica.</em> Quantile regression and the asymmetric loss behind probabilistic forecasting.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References point to further study; the explanations and simulations above are written and implemented from first principles rather than drawn from any single source.</p>
+
+    <div class="seriesnote">
+      Two routes to the same destination: physics builds structure in, attention learns it. Both let a model say more from less, and both, like everything in this series, are only as trustworthy as the data they are checked against. With part five, this completes the deep-learning arc that sits beneath the operational chain of sensing, forecasting, prognosis and monitoring.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Physics-Informed and Transformer Models for Time Series &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; part six of the time-series series &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+  function makeEps(n){ var a=[]; for(var i=0;i<n;i++)a.push(gauss()); return a; }
+
+  // n x n linear solve, Gaussian elimination with partial pivot
+  function solveLin(A,b,n){
+    var M=[]; for(var i=0;i<n;i++){ M.push(A[i].slice()); M[i].push(b[i]); }
+    for(var c=0;c<n;c++){
+      var piv=c; for(var r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[piv][c])) piv=r;
+      var tmp=M[c]; M[c]=M[piv]; M[piv]=tmp;
+      var d=M[c][c]; if(Math.abs(d)<1e-12) d=(d<0?-1e-12:1e-12);
+      for(var r2=0;r2<n;r2++){ if(r2===c)continue; var f=M[r2][c]/d;
+        for(var k=c;k<=n;k++) M[r2][k]-=f*M[c][k]; }
+    }
+    var x=[]; for(var i2=0;i2<n;i2++) x.push(M[i2][n]/M[i2][i2]); return x;
+  }
+  // n x n matrix inverse (Gauss-Jordan)
+  function matInv(A,n){
+    var M=[]; for(var i=0;i<n;i++){ var row=A[i].slice(); for(var j=0;j<n;j++)row.push(i===j?1:0); M.push(row); }
+    for(var c=0;c<n;c++){
+      var piv=c; for(var r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[piv][c])) piv=r;
+      var tmp=M[c]; M[c]=M[piv]; M[piv]=tmp;
+      var d=M[c][c]; if(Math.abs(d)<1e-12)d=(d<0?-1e-12:1e-12);
+      for(var k=0;k<2*n;k++) M[c][k]/=d;
+      for(var r2=0;r2<n;r2++){ if(r2===c)continue; var f=M[r2][c]; for(var k2=0;k2<2*n;k2++) M[r2][k2]-=f*M[c][k2]; }
+    }
+    var inv=[]; for(var i2=0;i2<n;i2++) inv.push(M[i2].slice(n)); return inv;
+  }
+
+  // ===== HERO: equation glyph morphing into attention grid =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var t=0, lbl=document.getElementById("heroLabel");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var phase=(t%240)/240; // 0..1 sweeps left (physics curve) to right (attention grid)
+      // left: a damped oscillation (physics)
+      var midx=w*0.5;
+      ctx.strokeStyle=RUST; ctx.lineWidth=2; ctx.beginPath();
+      for(var px=0;px<midx-10;px++){ var tt=px/(midx)*6; var v=Math.exp(-0.25*tt)*Math.cos(tt*2.2); var yy=h/2 - v*(h*0.3); if(px===0)ctx.moveTo(10+px,yy);else ctx.lineTo(10+px,yy); } ctx.stroke();
+      label(ctx,"u'' + 2\u03b6\u03c9 u' + \u03c9\u00b2u = 0",16,22,RUST);
+      // right: attention grid
+      var gx0=midx+14, gx1=w-14, gy0=24, gy1=h-20, T=8; var cw=(gx1-gx0)/T, ch=(gy1-gy0)/T;
+      for(var i=0;i<T;i++)for(var j=0;j<T;j++){ var a=Math.exp(-Math.pow(i-j,2)/(2+6*phase))*0.8 + 0.1*Math.abs(Math.sin(i*0.7+t*0.03)); ctx.fillStyle="rgba(47,107,107,"+Math.min(1,a).toFixed(3)+")"; ctx.fillRect(gx0+j*cw,gy0+i*ch,cw-1,ch-1); }
+      label(ctx,"attention",gx1,18,TEAL,"right");
+      ctx.strokeStyle="rgba(195,186,168,0.6)"; ctx.beginPath(); ctx.moveTo(midx,16); ctx.lineTo(midx,h-12); ctx.stroke();
+      if(lbl) lbl.textContent = phase<0.5? "structure as prior" : "structure as architecture";
+    }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ t+=2; draw(); },70); }
+  })();
+
+  // ===== FIG 1: PINN (collocation least squares, Fourier basis) =====
+  (function(){
+    var c=document.getElementById("pinnCanvas"); if(!c)return;
+    var lamS=document.getElementById("piLam"),nS=document.getElementById("piN"),nzS=document.getElementById("piNoise");
+    var lamv=document.getElementById("piLamv"),nv=document.getElementById("piNv"),nzv=document.getElementById("piNoisev"),read=document.getElementById("pinnRead");
+    var T=7.0, om=2.2, ze=0.12, K=8, M=1+2*K, bfreq=Math.PI/T;
+    var omd=om*Math.sqrt(1-ze*ze);
+    function truth(t){ return Math.exp(-ze*om*t)*(Math.cos(omd*t)+(ze*om/omd)*Math.sin(omd*t)); }
+    var noiseSeed=makeEps(20);
+    // basis value/deriv/second-deriv
+    function phi(m,t){ if(m===0)return 1; var k=Math.ceil(m/2), wk=k*bfreq; return (m%2===1)?Math.cos(wk*t):Math.sin(wk*t); }
+    function dphi(m,t){ if(m===0)return 0; var k=Math.ceil(m/2), wk=k*bfreq; return (m%2===1)?-wk*Math.sin(wk*t):wk*Math.cos(wk*t); }
+    function ddphi(m,t){ if(m===0)return 0; var k=Math.ceil(m/2), wk=k*bfreq; return (m%2===1)?-wk*wk*Math.cos(wk*t):-wk*wk*Math.sin(wk*t); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var lam=Math.pow(parseFloat(lamS.value)/10,2)*0.5, Nd=parseInt(nS.value,10), nz=parseFloat(nzS.value);
+      lamv.textContent=lam.toFixed(1); nv.textContent=Nd; nzv.textContent=nz.toFixed(2);
+      // data points in [0, 0.4T]
+      var dataT=[],dataY=[]; for(var i=0;i<Nd;i++){ var td=0.05*T + (i/(Nd-1||1))*0.35*T; dataT.push(td); dataY.push(truth(td)+nz*noiseSeed[i]); }
+      // normal equations
+      var ATA=[]; for(var a=0;a<M;a++)ATA.push(new Array(M).fill(0)); var ATb=new Array(M).fill(0);
+      function addRow(psi,b,wt){ var w2=wt*wt; for(var a=0;a<M;a++){ ATb[a]+=w2*psi[a]*b; for(var c2=0;c2<M;c2++) ATA[a][c2]+=w2*psi[a]*psi[c2]; } }
+      // physics collocation
+      var Ncol=44; for(var i2=0;i2<Ncol;i2++){ var t=i2/(Ncol-1)*T; var psi=[]; for(var m=0;m<M;m++) psi.push(ddphi(m,t)+2*ze*om*dphi(m,t)+om*om*phi(m,t)); addRow(psi,0,Math.sqrt(lam)); }
+      // IC: u(0)=1, u'(0)=0
+      var psi0=[],psi0d=[]; for(var m2=0;m2<M;m2++){ psi0.push(phi(m2,0)); psi0d.push(dphi(m2,0)); }
+      addRow(psi0,1,7); addRow(psi0d,0,7);
+      // data
+      for(var d=0;d<Nd;d++){ var psid=[]; for(var m3=0;m3<M;m3++) psid.push(phi(m3,dataT[d])); addRow(psid,dataY[d],1); }
+      // ridge
+      for(var r=0;r<M;r++) ATA[r][r]+=1e-4;
+      var coef=solveLin(ATA,ATb,M);
+      function model(t){ var s=0; for(var m=0;m<M;m++)s+=coef[m]*phi(m,t); return s; }
+      // plot
+      var x0=36,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/T)*(x1-x0); } function Y(v){ var vv=Math.max(-1.3,Math.min(1.3,v)); return (y0+y1)/2 - vv*((y1-y0)/2)/1.25; }
+      // data-free shading
+      ctx.fillStyle="rgba(47,107,107,0.05)"; ctx.fillRect(X(0),y0,X(0.4*T)-X(0),y1-y0);
+      ctx.fillStyle="rgba(176,84,43,0.04)"; ctx.fillRect(X(0.4*T),y0,x1-X(0.4*T),y1-y0);
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.2)"; ctx.beginPath(); ctx.moveTo(x0,Y(0)); ctx.lineTo(x1,Y(0)); ctx.stroke();
+      // true
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1.5; ctx.setLineDash([5,3]); ctx.beginPath();
+      for(var s=0;s<=240;s++){ var t=s/240*T; if(s===0)ctx.moveTo(X(t),Y(truth(t)));else ctx.lineTo(X(t),Y(truth(t))); } ctx.stroke(); ctx.setLineDash([]);
+      // model
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2.2; ctx.beginPath();
+      for(var s2=0;s2<=240;s2++){ var t2=s2/240*T; if(s2===0)ctx.moveTo(X(t2),Y(model(t2)));else ctx.lineTo(X(t2),Y(model(t2))); } ctx.stroke();
+      // data
+      for(var d2=0;d2<Nd;d2++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(dataT[d2]),Y(dataY[d2]),2.6,0,7); ctx.fill(); }
+      label(ctx,"displacement vs time \u00b7 left: data window, right: data-free",x0,y0+4,INKSOFT);
+      // metrics
+      var dErr=0; for(var d3=0;d3<Nd;d3++){ var e=model(dataT[d3])-dataY[d3]; dErr+=e*e; } dErr=Math.sqrt(dErr/Math.max(1,Nd));
+      var exErr=0,cnt=0; for(var ts=0;ts<=60;ts++){ var tt=0.4*T+ts/60*0.6*T; var e2=model(tt)-truth(tt); exErr+=e2*e2; cnt++; } exErr=Math.sqrt(exErr/cnt);
+      read.innerHTML='<span>data RMSE: <b>'+dErr.toFixed(3)+'</b></span><span class="'+(exErr<0.15?'ok':'warn')+'">extrapolation RMSE: <b>'+exErr.toFixed(3)+'</b></span><span>'+(lam<0.5?'data-only':'physics-constrained')+'</span>';
+    }
+    [lamS,nS,nzS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 2: grey-box hybrid =====
+  (function(){
+    var c=document.getElementById("hybridCanvas"); if(!c)return;
+    var errS=document.getElementById("hyErr"),fracS=document.getElementById("hyFrac"),nzS=document.getElementById("hyNoise");
+    var errv=document.getElementById("hyErrv"),fracv=document.getElementById("hyFracv"),nzv=document.getElementById("hyNoisev"),read=document.getElementById("hybridRead");
+    var T=10, N=160, noiseSeed=makeEps(N);
+    function truth(t){ return Math.exp(-0.22*t)*Math.sin(1.6*t)+0.15; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var perr=parseFloat(errS.value), frac=parseFloat(fracS.value), nz=parseFloat(nzS.value);
+      errv.textContent=perr.toFixed(2); fracv.textContent=frac.toFixed(2); nzv.textContent=nz.toFixed(2);
+      // physics model: wrong damping and amplitude
+      function physics(t){ return (1-0.45*perr)*Math.exp(-(0.22+0.25*perr)*t)*Math.sin(1.6*t)+0.15; }
+      var ts=[],ys=[]; for(var i=0;i<N;i++){ var t=i/(N-1)*T; ts.push(t); ys.push(truth(t)+nz*noiseSeed[i]); }
+      var trainN=Math.floor(N*frac);
+      // learn correction r(t)=sum c_k poly(t) fit to (y-physics) on training region; basis [1,t,t^2,t^3]
+      var B=4; function basis(t){ var s=t/T*2-1; return [1,s,s*s,s*s*s]; }
+      var ATA=[]; for(var a=0;a<B;a++)ATA.push(new Array(B).fill(0)); var ATb=new Array(B).fill(0);
+      for(var d=0;d<trainN;d++){ var ph=basis(ts[d]); var resid=ys[d]-physics(ts[d]); for(var a2=0;a2<B;a2++){ ATb[a2]+=ph[a2]*resid; for(var c2=0;c2<B;c2++)ATA[a2][c2]+=ph[a2]*ph[c2]; } }
+      for(var r=0;r<B;r++)ATA[r][r]+=1e-3; var coef=solveLin(ATA,ATb,B);
+      function corr(t){ var ph=basis(t),s=0; for(var k=0;k<B;k++)s+=coef[k]*ph[k]; return s; }
+      function hybrid(t){ return physics(t)+corr(t); }
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/T)*(x1-x0); } function Y(v){ var vv=Math.max(-1.2,Math.min(1.3,v)); return (y0+y1)/2-vv*((y1-y0)/2)/1.2; }
+      ctx.fillStyle="rgba(47,107,107,0.05)"; ctx.fillRect(X(0),y0,X(ts[trainN-1])-X(0),y1-y0);
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(90,85,76,0.2)"; ctx.beginPath(); ctx.moveTo(x0,Y(0)); ctx.lineTo(x1,Y(0)); ctx.stroke();
+      // physics only
+      ctx.strokeStyle="rgba(90,85,76,0.6)"; ctx.lineWidth=1.5; ctx.setLineDash([5,3]); ctx.beginPath();
+      for(var s=0;s<N;s++){ if(s===0)ctx.moveTo(X(ts[s]),Y(physics(ts[s])));else ctx.lineTo(X(ts[s]),Y(physics(ts[s]))); } ctx.stroke(); ctx.setLineDash([]);
+      // hybrid
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2.2; ctx.beginPath();
+      for(var s2=0;s2<N;s2++){ if(s2===0)ctx.moveTo(X(ts[s2]),Y(hybrid(ts[s2])));else ctx.lineTo(X(ts[s2]),Y(hybrid(ts[s2]))); } ctx.stroke();
+      // data (subsample)
+      for(var d2=0;d2<N;d2+=4){ ctx.fillStyle=RUST; ctx.globalAlpha=d2<trainN?0.85:0.4; ctx.beginPath(); ctx.arc(X(ts[d2]),Y(ys[d2]),2,0,7); ctx.fill(); } ctx.globalAlpha=1;
+      label(ctx,"signal vs time \u00b7 shaded = training region",x0,y0+4,INKSOFT);
+      var pErr=0,hErr=0,cnt=0; for(var s3=trainN;s3<N;s3++){ pErr+=Math.pow(physics(ts[s3])-truth(ts[s3]),2); hErr+=Math.pow(hybrid(ts[s3])-truth(ts[s3]),2); cnt++; }
+      pErr=Math.sqrt(pErr/cnt); hErr=Math.sqrt(hErr/cnt);
+      read.innerHTML='<span>physics-only RMSE: <b>'+pErr.toFixed(3)+'</b></span><span class="ok">hybrid RMSE: <b>'+hErr.toFixed(3)+'</b></span><span>(extrapolation region)</span>';
+    }
+    [errS,fracS,nzS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 3: Koopman / DMD =====
+  (function(){
+    var c=document.getElementById("koopmanCanvas"); if(!c)return;
+    var x0S=document.getElementById("koX0"),y0S=document.getElementById("koY0");
+    var x0v=document.getElementById("koX0v"),y0v=document.getElementById("koY0v"),read=document.getElementById("koopmanRead");
+    var mu=-0.06, lam=-0.7, dt=0.08, steps=60;
+    function stepTrue(s){ return [ s[0]+dt*mu*s[0], s[1]+dt*lam*(s[1]-s[0]*s[0]) ]; }
+    // build training data (lifted and raw) once
+    var G=[[],[],[]], Gp=[[],[],[]], Y=[[],[]], Yp=[[],[]];
+    (function fit(){ var ics=[]; for(var a=-1.2;a<=1.2;a+=0.5)for(var b=-0.4;b<=1.2;b+=0.5)ics.push([a,b]);
+      for(var i=0;i<ics.length;i++){ var s=ics[i].slice(); for(var k=0;k<40;k++){ var sn=stepTrue(s);
+        G[0].push(s[0]); G[1].push(s[1]); G[2].push(s[0]*s[0]);
+        Gp[0].push(sn[0]); Gp[1].push(sn[1]); Gp[2].push(sn[0]*sn[0]);
+        Y[0].push(s[0]); Y[1].push(s[1]); Yp[0].push(sn[0]); Yp[1].push(sn[1]); s=sn; } } })();
+    function dmd(Gm,Gpm,m){ // A = (Gp G^T)(G G^T)^-1
+      var P=[],Q=[]; for(var a=0;a<m;a++){ P.push(new Array(m).fill(0)); Q.push(new Array(m).fill(0)); }
+      var n=Gm[0].length;
+      for(var a2=0;a2<m;a2++)for(var b=0;b<m;b++){ var sp=0,sq=0; for(var k=0;k<n;k++){ sp+=Gm[a2][k]*Gm[b][k]; sq+=Gpm[a2][k]*Gm[b][k]; } P[a2][b]=sp; Q[a2][b]=sq; }
+      for(var r=0;r<m;r++)P[r][r]+=1e-6; var Pinv=matInv(P,m);
+      var A=[]; for(var a3=0;a3<m;a3++){ A.push(new Array(m).fill(0)); for(var b2=0;b2<m;b2++){ var s2=0; for(var k2=0;k2<m;k2++)s2+=Q[a3][k2]*Pinv[k2][b2]; A[a3][b2]=s2; } } return A;
+    }
+    var Alift=dmd(G,Gp,3), Anaive=dmd(Y,Yp,2);
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var X0=parseFloat(x0S.value), Y0=parseFloat(y0S.value); x0v.textContent=X0.toFixed(1); y0v.textContent=Y0.toFixed(1);
+      // trajectories
+      var tru=[[X0,Y0]], s=[X0,Y0]; for(var k=0;k<steps;k++){ s=stepTrue(s); tru.push(s.slice()); }
+      var gl=[X0,Y0,X0*X0], lift=[[X0,Y0]]; for(var k2=0;k2<steps;k2++){ var ng=[0,0,0]; for(var a=0;a<3;a++){ var ss=0; for(var b=0;b<3;b++)ss+=Alift[a][b]*gl[b]; ng[a]=ss; } gl=ng; lift.push([gl[0],gl[1]]); }
+      var sn=[X0,Y0], nai=[[X0,Y0]]; for(var k3=0;k3<steps;k3++){ var nv=[0,0]; for(var a2=0;a2<2;a2++){ var s3=0; for(var b2=0;b2<2;b2++)s3+=Anaive[a2][b2]*sn[b2]; nv[a2]=s3; } sn=nv; nai.push(sn.slice()); }
+      var x0=40,x1=w-14,y0=16,y1=h-26, lo=-1.5,hi=1.6;
+      function X(v){ return x0+((v-lo)/(hi-lo))*(x1-x0); } function Yc(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      // slow manifold y=x^2 guide
+      ctx.strokeStyle="rgba(200,150,44,0.35)"; ctx.setLineDash([2,3]); ctx.beginPath(); for(var xx=-1.5;xx<=1.6;xx+=0.05){ var yy=xx*xx; if(xx===-1.5)ctx.moveTo(X(xx),Yc(yy));else ctx.lineTo(X(xx),Yc(yy)); } ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"slow manifold y = x\u00b2",X(1.0),Yc(1.05),OCHRE);
+      function path(arr,col,wd,dash){ ctx.strokeStyle=col; ctx.lineWidth=wd; if(dash)ctx.setLineDash(dash); ctx.beginPath(); for(var i=0;i<arr.length;i++){ if(i===0)ctx.moveTo(X(arr[i][0]),Yc(arr[i][1]));else ctx.lineTo(X(arr[i][0]),Yc(arr[i][1])); } ctx.stroke(); ctx.setLineDash([]); }
+      path(nai,RUST,1.6,[5,3]);
+      path(tru,"rgba(90,85,76,0.6)",2.4,null);
+      path(lift,TEAL,1.8,null);
+      ctx.fillStyle=INK; ctx.beginPath(); ctx.arc(X(X0),Yc(Y0),3.5,0,7); ctx.fill();
+      label(ctx,"x \u2192",x1-4,h-8,INKSOFT,"right"); label(ctx,"y",x0-4,y0+6,INKSOFT,"right");
+      // errors
+      var le=0,ne=0; for(var i2=0;i2<tru.length;i2++){ le+=Math.pow(tru[i2][0]-lift[i2][0],2)+Math.pow(tru[i2][1]-lift[i2][1],2); ne+=Math.pow(tru[i2][0]-nai[i2][0],2)+Math.pow(tru[i2][1]-nai[i2][1],2); }
+      le=Math.sqrt(le/tru.length); ne=Math.sqrt(ne/tru.length);
+      read.innerHTML='<span class="ok">Koopman (lifted) error: <b>'+le.toFixed(3)+'</b></span><span class="warn">naive linear error: <b>'+ne.toFixed(3)+'</b></span>';
+    }
+    [x0S,y0S].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 4: transformer (positional encoding + 2 heads) =====
+  (function(){
+    var c=document.getElementById("transCanvas"); if(!c)return;
+    var tS=document.getElementById("trT"),fS=document.getElementById("trF");
+    var tv=document.getElementById("trTv"),fv=document.getElementById("trFv"),read=document.getElementById("transRead");
+    var T=20;
+    function softmaxRow(sc){ var mx=Math.max.apply(null,sc); var ex=sc.map(function(s){return Math.exp(s-mx);}); var su=ex.reduce(function(a,b){return a+b;},0); return ex.map(function(e){return e/su;}); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var temp=parseFloat(tS.value), dims=parseInt(fS.value,10)*2; tv.textContent=temp.toFixed(1); fv.textContent=parseInt(fS.value,10);
+      // positional encoding T x dims
+      var PE=[]; for(var p=0;p<T;p++){ var row=[]; for(var i=0;i<dims;i++){ var k=Math.floor(i/2); var denom=Math.pow(10000, (2*k)/dims); row.push((i%2===0)?Math.sin(p/denom):Math.cos(p/denom)); } PE.push(row); }
+      // signal values for content head
+      var val=[]; for(var t=0;t<T;t++){ val.push(0.5*Math.sin(t*0.55)+0.9*Math.exp(-Math.pow(t-6,2)/3)+0.8*Math.exp(-Math.pow(t-14,2)/3)); }
+      // content head: q=k=value ; position head: q=k=PE[:,0..1]
+      var Acont=[],Apos=[];
+      for(var i2=0;i2<T;i2++){ var sc=[],sp=[]; for(var j=0;j<T;j++){ sc.push(val[i2]*val[j]*temp); sp.push((PE[i2][0]*PE[j][0]+PE[i2][1]*PE[j][1])*temp*2); } Acont.push(softmaxRow(sc)); Apos.push(softmaxRow(sp)); }
+      // layout: top PE heatmap, bottom two attention grids
+      var x0=40,x1=w-14;
+      var py0=16, py1=h*0.40; var cwp=(x1-x0)/dims, chp=(py1-py0)/T;
+      for(var p2=0;p2<T;p2++)for(var i3=0;i3<dims;i3++){ var v=(PE[p2][i3]+1)/2; ctx.fillStyle="rgba(47,107,107,"+(0.12+0.8*v).toFixed(3)+")"; ctx.fillRect(x0+i3*cwp,py0+p2*chp,cwp-0.5,chp-0.5); }
+      label(ctx,"positional encoding (positions \u00d7 dimensions)",x0,py0-3,INKSOFT);
+      // two attention grids
+      var gy0=h*0.50, gy1=h-22; var gw=(x1-x0-24)/2; var cwA=gw/T, chA=(gy1-gy0)/T;
+      function grid(ox,A,title,accent){ for(var i=0;i<T;i++)for(var j=0;j<T;j++){ ctx.fillStyle="rgba(47,107,107,"+Math.min(1,A[i][j]*4).toFixed(3)+")"; ctx.fillRect(ox+j*cwA,gy0+i*chA,cwA-0.4,chA-0.4); }
+        ctx.strokeStyle=accent; ctx.lineWidth=1.5; ctx.strokeRect(ox,gy0,gw,gy1-gy0); label(ctx,title,ox,gy0-3,accent); }
+      grid(x0,Acont,"content head",OCHRE);
+      grid(x0+gw+24,Apos,"position head",RUST);
+      // focus measure of content head last row
+      var row=Acont[T-1], ent=0; for(var e=0;e<T;e++){ if(row[e]>1e-9)ent-=row[e]*Math.log(row[e]); } ent/=Math.log(T);
+      read.innerHTML='<span>encoding dims: <b>'+dims+'</b></span><span>heads: <b>2</b></span><span>content focus (1=sharp): <b>'+(1-ent).toFixed(2)+'</b></span>';
+    }
+    [tS,fS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 5: patching =====
+  (function(){
+    var c=document.getElementById("patchCanvas"); if(!c)return;
+    var pS=document.getElementById("paP"),pv=document.getElementById("paPv"),read=document.getElementById("patchRead");
+    var L=192, sig=[]; for(var i=0;i<L;i++) sig.push(0.6*Math.sin(i*0.09)+0.3*Math.sin(i*0.31)+0.18*Math.sin(i*0.7)+0.05*gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var P=parseInt(pS.value,10); pv.textContent=P;
+      var nTok=Math.floor(L/P);
+      var x0=34,x1=w-12, ty0=16,ty1=h*0.42, gy0=h*0.52,gy1=h-22;
+      // signal with patch boundaries
+      axis(ctx,x0,ty0,x1,ty1);
+      var mn=Math.min.apply(null,sig),mx=Math.max.apply(null,sig);
+      function X(i){ return x0+(i/(L-1))*(x1-x0); } function Y(v){ return ty1-((v-mn)/(mx-mn))*(ty1-ty0); }
+      for(var b=0;b<=nTok;b++){ var xx=X(b*P); ctx.strokeStyle="rgba(47,107,107,0.45)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xx,ty0); ctx.lineTo(xx,ty1); ctx.stroke(); }
+      ctx.strokeStyle="rgba(90,85,76,0.6)"; ctx.lineWidth=1.3; ctx.beginPath(); for(var i=0;i<L;i++){ if(i===0)ctx.moveTo(X(i),Y(sig[i]));else ctx.lineTo(X(i),Y(sig[i])); } ctx.stroke();
+      label(ctx,"input series with patch boundaries",x0,ty0+4,INKSOFT);
+      // token grid: nTok columns, P rows (capped display rows)
+      var dispRows=Math.min(P,24);
+      var cw=(x1-x0)/nTok, ch=(gy1-gy0)/dispRows;
+      for(var tk=0;tk<nTok;tk++){ for(var rr=0;rr<dispRows;rr++){ var idx=tk*P+Math.floor(rr*P/dispRows); var v=(sig[idx]-mn)/(mx-mn); ctx.fillStyle="rgba(176,84,43,"+(0.15+0.75*v).toFixed(3)+")"; ctx.fillRect(x0+tk*cw,gy0+rr*ch,cw-0.6,ch-0.4); } }
+      label(ctx,"token grid: one column per patch ("+nTok+" tokens)",x0,gy0-3,INKSOFT);
+      var costFull=L*L, costPatch=nTok*nTok, redux=costFull/costPatch;
+      read.innerHTML='<span>series length: <b>'+L+'</b></span><span>tokens: <b>'+nTok+'</b></span><span class="ok">attention cost: <b>'+redux.toFixed(0)+'\u00d7 cheaper</b></span>';
+    }
+    pS.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 6: dilated TCN receptive field =====
+  (function(){
+    var c=document.getElementById("tcnCanvas"); if(!c)return;
+    var lS=document.getElementById("tcL"),lv=document.getElementById("tcLv"),read=document.getElementById("tcnRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var Lr=parseInt(lS.value,10); lv.textContent=Lr;
+      var RF=1; for(var l=0;l<Lr;l++) RF+=Math.pow(2,l); // kernel 2
+      var Nshow=Math.min(48, Math.max(16,RF+2));
+      var x0=30,x1=w-14, y0=20, y1=h-30; var rows=Lr+1;
+      var rh=(y1-y0)/rows; var cw=(x1-x0)/(Nshow-1);
+      function NX(i){ return x0+i*cw; } function RY(layer){ return y1-layer*rh; } // layer 0 = input bottom
+      // receptive field set for output node (rightmost top), trace down
+      // output node index = Nshow-1 at layer Lr
+      var rf={}; rf[Nshow-1]=true;
+      // draw connections layer by layer (top-down): node at layer l connects to same index and index-2^(l-1) at layer l-1
+      // first compute active sets
+      var active=[]; for(var l2=0;l2<=Lr;l2++)active.push({});
+      active[Lr][Nshow-1]=true;
+      for(var l3=Lr;l3>=1;l3--){ var dil=Math.pow(2,l3-1); for(var idx in active[l3]){ idx=parseInt(idx,10); active[l3-1][idx]=true; var src=idx-dil; if(src>=0)active[l3-1][src]=true; } }
+      // shade receptive field on input row
+      ctx.fillStyle="rgba(200,150,44,0.18)";
+      var rfIdx=Object.keys(active[0]).map(Number); var rfMin=Math.min.apply(null,rfIdx), rfMax=Math.max.apply(null,rfIdx);
+      ctx.fillRect(NX(rfMin)-cw*0.3, RY(0)-6, (rfMax-rfMin)*cw+cw*0.6, 12);
+      // draw edges
+      for(var l4=Lr;l4>=1;l4--){ var dil2=Math.pow(2,l4-1);
+        for(var idx2 in active[l4]){ idx2=parseInt(idx2,10);
+          var srcs=[idx2, idx2-dil2];
+          for(var si=0;si<srcs.length;si++){ var sidx=srcs[si]; if(sidx<0)continue;
+            ctx.strokeStyle="rgba(176,84,43,0.55)"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(NX(idx2),RY(l4)); ctx.lineTo(NX(sidx),RY(l4-1)); ctx.stroke(); } } }
+      // draw nodes
+      for(var l5=0;l5<=Lr;l5++){ for(var i=0;i<Nshow;i++){ var on=active[l5][i]; ctx.fillStyle= (l5===Lr&&i===Nshow-1)?OCHRE : (on?TEAL:"#D9D2C5"); ctx.beginPath(); ctx.arc(NX(i),RY(l5), on?3.2:2,0,7); ctx.fill(); }
+        label(ctx, l5===0?"input":(l5===Lr?"output":("layer "+l5)), x0-4, RY(l5)+3, INKSOFT, "right"); }
+      label(ctx,"dilated causal connections (kernel 2, dilation doubles per layer)",x0,12,INKSOFT);
+      read.innerHTML='<span>layers: <b>'+Lr+'</b></span><span class="ok">receptive field: <b>'+RF+' steps</b></span><span>dilation up to: <b>'+Math.pow(2,Lr-1)+'</b></span>';
+    }
+    lS.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 7: quantile forecasting with pinball loss =====
+  (function(){
+    var c=document.getElementById("quantfCanvas"); if(!c)return;
+    var spS=document.getElementById("qfSpread"),nzS=document.getElementById("qfNoise");
+    var spv=document.getElementById("qfSpreadv"),nzv=document.getElementById("qfNoisev"),read=document.getElementById("quantfRead");
+    var N=90, xs=[], baseNoise=makeEps(N);
+    for(var i=0;i<N;i++) xs.push(i/(N-1));
+    function basis(x){ var s=x*2-1; return [1,s,s*s,s*s*s]; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var spread=parseFloat(spS.value), nz=parseFloat(nzS.value); spv.textContent=spread.toFixed(1); nzv.textContent=nz.toFixed(1);
+      // data: mean curve + heteroscedastic noise growing with x
+      var ys=[]; for(var i=0;i<N;i++){ var mu=0.5+0.6*Math.sin(3*xs[i]); var sd=nz*(0.05+0.5*spread*xs[i]); ys.push(mu+sd*baseNoise[i]); }
+      var taus=[0.1,0.5,0.9], B=4, coefs=[];
+      for(var q=0;q<taus.length;q++){
+        var tau=taus[q], c0=[0.5,0,0,0], lr=0.4;
+        for(var ep=0;ep<500;ep++){ var g=[0,0,0,0];
+          for(var i2=0;i2<N;i2++){ var ph=basis(xs[i2]); var yh=0; for(var k=0;k<B;k++)yh+=c0[k]*ph[k]; var e=ys[i2]-yh;
+            var dyh=(e>0)? -tau : (1-tau); for(var k2=0;k2<B;k2++)g[k2]+=dyh*ph[k2]; }
+          for(var k3=0;k3<B;k3++)c0[k3]-=lr*g[k3]/N; }
+        coefs.push(c0);
+      }
+      function pred(ci,x){ var ph=basis(x),s=0; for(var k=0;k<B;k++)s+=coefs[ci][k]*ph[k]; return s; }
+      var x0=34,x1=w-12,y0=16,y1=h-26;
+      var allv=ys.slice(); var lo=Math.min.apply(null,allv)-0.2, hi=Math.max.apply(null,allv)+0.2;
+      function X(x){ return x0+x*(x1-x0); } function Y(v){ return y1-((v-lo)/(hi-lo))*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      // band q10..q90
+      ctx.fillStyle="rgba(200,150,44,0.18)"; ctx.beginPath();
+      for(var s=0;s<=120;s++){ var x=s/120; ctx.lineTo(X(x),Y(pred(2,x))); }
+      for(var s2=120;s2>=0;s2--){ var x2=s2/120; ctx.lineTo(X(x2),Y(pred(0,x2))); } ctx.closePath(); ctx.fill();
+      // quantile lines
+      function qline(ci,col,wd){ ctx.strokeStyle=col; ctx.lineWidth=wd; ctx.beginPath(); for(var s=0;s<=120;s++){ var x=s/120; if(s===0)ctx.moveTo(X(x),Y(pred(ci,x)));else ctx.lineTo(X(x),Y(pred(ci,x))); } ctx.stroke(); }
+      qline(0,OCHRE,1.4); qline(2,OCHRE,1.4); qline(1,TEAL,2.2);
+      for(var d=0;d<N;d++){ ctx.fillStyle=RUST; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.arc(X(xs[d]),Y(ys[d]),2,0,7); ctx.fill(); } ctx.globalAlpha=1;
+      label(ctx,"value vs horizon \u00b7 median (teal), 10-90 band (ochre)",x0,y0+4,INKSOFT);
+      var inside=0; for(var d2=0;d2<N;d2++){ if(ys[d2]>=pred(0,xs[d2])&&ys[d2]<=pred(2,xs[d2]))inside++; }
+      var cov=inside/N*100;
+      read.innerHTML='<span>band: <b>10\u201390%</b></span><span class="'+(cov>70&&cov<90?'ok':'')+'">empirical coverage: <b>'+cov.toFixed(0)+'%</b></span><span>target: <b>80%</b></span>';
+    }
+    [spS,nzS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>

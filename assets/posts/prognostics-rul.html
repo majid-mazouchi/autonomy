@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prognostics and Remaining Useful Life</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(38px,6.4vw,68px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:670px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+  .legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);padding:4px 16px 12px;display:flex;flex-wrap:wrap;gap:16px;}
+  .legend i{width:16px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px;}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .eq{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:18px 0;color:var(--ink);overflow-x:auto;line-height:1.9;}
+  .eq .c{color:var(--rust);font-weight:600;}
+  .eq .g{color:var(--teal);}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .diagram{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 16px;overflow-x:auto;}
+  .diagram svg{display:block;margin:0 auto;max-width:100%;height:auto;}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  .seriesnote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:24px 0 0;}
+  .seriesnote a{color:var(--rust);}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;·&nbsp; part three / how long until it fails</p>
+    <h1>Prognostics and <span class="em">Remaining Useful Life</span></h1>
+    <p class="lede">Detecting that a machine is sick is diagnostics. Saying how many cycles it has left, and how sure you are, is prognostics. This is a plain-language tour of remaining useful life: how to turn a degrading signal into a forecast of failure, the models that track it, and the discipline of being honest about a number on which a maintenance decision rests.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">degradation &amp; remaining life</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">health indicator climbing to threshold</span>
+      </div>
+      <canvas id="heroCanvas" height="220"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#frame">From forecasting to prognostics</a></li>
+      <li><a href="#hi">Building a health indicator</a></li>
+      <li><a href="#degmodels">Degradation models</a></li>
+      <li><a href="#kalman">Tracking the state with a Kalman filter</a></li>
+      <li><a href="#particle">Particle filters for nonlinear wear</a></li>
+      <li><a href="#bayes">Bayesian degradation updating</a></li>
+      <li><a href="#similarity">Similarity-based RUL</a></li>
+      <li><a href="#hmm">Discrete health states with an HMM</a></li>
+      <li><a href="#conformal">Honest RUL intervals</a></li>
+      <li><a href="#covariates">Operating conditions as covariates</a></li>
+      <li><a href="#survival">The population view: survival &amp; hazard</a></li>
+      <li><a href="#evaluate">Evaluating a prognostic</a></li>
+      <li><a href="#maintenance">Optimizing the maintenance decision</a></li>
+      <li><a href="#workflow">The PHM pipeline</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="frame">
+    <p class="sec-num">Section 01</p>
+    <h2>From forecasting to prognostics</h2>
+    <p>The first monograph in this series turned a sensor into ordered numbers. The second learned to forecast those numbers forward. This one asks the question that maintenance engineers actually lose sleep over: given everything the machine has told us so far, <strong>how much longer will it run before it fails?</strong> That answer is the <em class="term">remaining useful life</em>, or RUL, and computing it well is the discipline of <em class="term">prognostics</em>.</p>
+    <p>The core move is simple to state. Distil the machine's condition into a single number that rises (or falls) steadily as the machine wears, the <em class="term">health indicator</em>. Decide the value of that number at which the machine is considered failed, the <em class="term">failure threshold</em>. Then forecast the health indicator forward and read off where it crosses the threshold. The gap between now and that crossing is the RUL. Prognostics, in other words, is forecasting with a finish line.</p>
+    <div class="note field">
+      <p class="nt">Third in a series</p>
+      <p>This page assumes the vocabulary of its companions. <strong>Time Series as Sensory Data</strong> built features, residuals and the Kalman filter; <strong>Forecasting Time Series</strong> built point forecasts, prediction intervals and conformal coverage. Here those threads converge: a health indicator is a feature, its forecast is a RUL, and its interval is the difference between a confident maintenance plan and a guess.</p>
+    </div>
+    <p>What makes prognostics distinct from ordinary forecasting is the <strong>asymmetry of being wrong</strong>. Forecast tomorrow's temperature two degrees high or low and the cost is symmetric. Forecast a turbine's failure two weeks late and you have a catastrophe; two weeks early and you have wasted life and an unnecessary teardown. Every method here is shadowed by that asymmetry, which is why the uncertainty around a RUL matters at least as much as the RUL itself.</p>
+  </section>
+
+  <!-- 02 -->
+  <section id="hi">
+    <p class="sec-num">Section 02</p>
+    <h2>Building a health indicator</h2>
+    <p>Before you can forecast a failure, you need something that actually trends toward it. A raw vibration or temperature channel rarely does; it is dominated by the operating point, not the slow march of damage. The art of constructing a <em class="term">health indicator</em> (HI) is to combine features, often many of them, into one curve with three desirable properties.</p>
+    <div class="defs">
+      <div class="def"><h4>Monotonicity</h4><p>The HI should move in one direction as damage accumulates, not wander up and down. Wear does not heal, so a good indicator does not either.</p></div>
+      <div class="def"><h4>Trendability</h4><p>The HI should change by enough over a unit's life to be measurable above the noise. A flat indicator carries no prognostic information.</p></div>
+      <div class="def"><h4>Prognosability</h4><p>Units should fail at similar HI values, so a single threshold is meaningful across the fleet rather than unit by unit.</p></div>
+    </div>
+    <p>In practice the HI is often a fusion: a weighted blend of RMS vibration, kurtosis, specific bearing-fault band energies, temperatures and currents, sometimes learned by a small model trained to score these three properties. The companion pages give you the raw materials; the skill here is choosing and combining them so the resulting curve is a clean, climbing thing a forecaster can grab onto. Everything that follows assumes you have done this work and hands you a usable HI.</p>
+  </section>
+
+  <!-- 03 -->
+  <section id="degmodels">
+    <p class="sec-num">Section 03</p>
+    <h2>Degradation models</h2>
+    <p>The most direct approach fits a parametric curve to the health indicator so far and extrapolates it to the threshold. The shape you assume matters enormously, because you are betting the future on it. Three forms cover most wear: a <em class="term">linear</em> model for steady erosion, an <em class="term">exponential</em> model for damage that feeds on itself (a crack that grows faster as it lengthens), and a <em class="term">power-law</em> model for the slow-then-sudden curve typical of fatigue. Picking the wrong shape early, when little of the curve is visible, is the largest single source of RUL error.</p>
+    <div class="eq">
+      linear &nbsp;&nbsp;&nbsp;&nbsp; <span class="c">h(t)</span> = a + b&middot;t<br>
+      exponential <span class="c">h(t)</span> = a&middot;e<sup>&thinsp;b&thinsp;t</sup><br>
+      power-law &nbsp; <span class="c">h(t)</span> = a&middot;t<sup>&thinsp;b</sup> &nbsp;&nbsp; &rarr; &nbsp; solve h(t)=H<sub>fail</sub> for the crossing time
+    </div>
+    <p>The simulation fits the model form you choose to the observed portion of a genuinely accelerating degradation, then extrapolates to the failure threshold. Reveal more of the curve with the slider and watch the estimate converge; switch the model form and watch a mismatched shape miss the true failure, sometimes badly.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 1</span> · fit a degradation model, extrapolate to failure &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="degCanvas" height="280"></canvas></div>
+      <div class="toggle-row"><span class="lbl">model form:</span>
+        <span class="toggle" id="dgLin">linear</span>
+        <span class="toggle on" id="dgExp">exponential</span>
+        <span class="toggle" id="dgPow">power-law</span>
+      </div>
+      <div class="readout" id="degRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="dgNowv">55</span>%</b></label><input type="range" id="dgNow" min="25" max="95" value="55" step="1"></div>
+        <div class="ctrl"><label>True curvature <b><span id="dgPv">2.2</span></b></label><input type="range" id="dgP" min="1" max="3.5" value="2.2" step="0.1"></div>
+        <div class="ctrl"><label>Measurement noise <b><span id="dgNoisev">0.04</span></b></label><input type="range" id="dgNoise" min="0" max="0.12" value="0.04" step="0.005"></div>
+      </div>
+      <div class="fig-cap">Rust dots: the health indicator observed up to now. Teal curve: the chosen model fitted to those dots and extrapolated. Dashed rust line: the failure threshold. The grey marker on the axis is the true failure cycle. When the model shape matches the true curvature the crossing lands near it; mismatch it and the forecast drifts early or late.</div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="kalman">
+    <p class="sec-num">Section 04</p>
+    <h2>Tracking the state with a Kalman filter</h2>
+    <p>Fitting a fixed curve to all the data treats every past point as equally relevant, but degradation rates change, and the freshest data should weigh most. A <em class="term">state-space</em> view fixes this. Model the hidden state as the current health level and its current rate of change, let both drift a little each cycle, and use the Kalman filter from the first monograph to track them as measurements arrive. The estimate adapts continuously, and crucially it carries a <strong>covariance</strong>: a running statement of how uncertain it is.</p>
+    <p>That covariance is the prize. To forecast the RUL, project the level and its growing uncertainty forward; the threshold crossing is no longer a single cycle but a <em class="term">distribution</em> of plausible crossings. The simulation runs a constant-velocity Kalman filter on the health indicator and projects forward, drawing the widening uncertainty cone and the resulting spread of RUL. Trust the measurements more or the model more and watch the cone tighten or flare.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · Kalman state-space degradation &amp; RUL spread &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="kfCanvas" height="280"></canvas></div>
+      <div class="readout" id="kfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="kfNowv">55</span>%</b></label><input type="range" id="kfNow" min="25" max="90" value="55" step="1"></div>
+        <div class="ctrl"><label>Process noise (Q) <b><span id="kfQv">0.020</span></b></label><input type="range" id="kfQ" min="0.002" max="0.1" value="0.02" step="0.002"></div>
+        <div class="ctrl"><label>Measurement noise (R) <b><span id="kfRv">0.05</span></b></label><input type="range" id="kfR" min="0.01" max="0.2" value="0.05" step="0.01"></div>
+      </div>
+      <div class="fig-cap">Rust dots: observed health. Teal: the Kalman estimate and its forward projection. The shaded cone is the projected uncertainty; where its centre meets the threshold is the median RUL, and the band where the cone straddles the threshold is the RUL interval. High process noise makes the filter nimble but the cone wide; low process noise tightens the cone at the risk of lagging a real change in rate.</div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="particle">
+    <p class="sec-num">Section 05</p>
+    <h2>Particle filters for nonlinear wear</h2>
+    <p>The Kalman filter is optimal when everything is linear and the noise is Gaussian. Real degradation is often neither: exponential crack growth, multiplicative noise, hard bounds. The <em class="term">particle filter</em> handles all of it by brute, honest sampling. Represent the belief about the hidden state not as a tidy mean and covariance but as a swarm of hundreds of <em class="term">particles</em>, each a candidate state with a weight. Each cycle, push every particle forward through the (possibly nonlinear) degradation model, reweight them by how well they explain the new measurement, and resample so that good hypotheses multiply and bad ones die.</p>
+    <p>To forecast the RUL, you do something no curve fit can: take the surviving particle cloud and run every particle forward to the threshold, collecting one failure time from each. The histogram of those times <strong>is</strong> the RUL distribution, with no Gaussian assumption imposed on it, and it can be skewed or even multi-modal in ways that match reality. The simulation runs a genuine sampling-importance-resampling particle filter on exponential degradation. Watch the cloud concentrate as evidence arrives and the RUL histogram sharpen.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · particle filter &amp; the RUL distribution &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="pfCanvas" height="300"></canvas></div>
+      <div class="readout" id="pfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="pfNowv">55</span>%</b></label><input type="range" id="pfNow" min="25" max="88" value="55" step="1"></div>
+        <div class="ctrl"><label>Process noise <b><span id="pfQv">0.06</span></b></label><input type="range" id="pfQ" min="0.01" max="0.2" value="0.06" step="0.01"></div>
+        <div class="ctrl"><label>Measurement noise <b><span id="pfRv">0.05</span></b></label><input type="range" id="pfR" min="0.01" max="0.2" value="0.05" step="0.01"></div>
+      </div>
+      <div class="fig-cap">Top: the health indicator (rust dots) with the particle cloud's projected trajectories fanning toward the threshold in faint teal. Bottom: the RUL histogram built by running each particle to the threshold. Notice it is not symmetric; the long right tail is the small chance the machine limps along, exactly the asymmetry a maintenance plan must respect.</div>
+    </div>
+  </section>
+
+  <!-- Bayesian -->
+  <section id="bayes">
+    <p class="sec-num">Section 06</p>
+    <h2>Bayesian degradation updating</h2>
+    <p>The particle filter tracked a belief by brute sampling. When the degradation is closer to linear, there is a far cheaper way to carry uncertainty that gives the same honest spread with a clean closed form: <em class="term">Bayesian</em> updating of the degradation parameters. Start with a <em class="term">prior</em> over the slope and intercept of the health trend, encoding what you believe before this unit has said much, then let each new measurement sharpen that belief into a <em class="term">posterior</em>.</p>
+    <p>The payoff is a predictive band that is wide when evidence is thin and tightens as the curve reveals itself, and which extrapolates to the threshold as a genuine RUL distribution rather than a single line. The simulation runs Bayesian linear regression on the health indicator, drawing the prior's vague forecast, the posterior's sharpened one, and the RUL interval that falls out. Weaken the prior and early forecasts swing wildly on little data; strengthen it and the model leans on belief until the measurements earn the right to overrule it.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 4</span> · prior to posterior, with a predictive RUL band &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="bayesCanvas" height="280"></canvas></div>
+      <div class="readout" id="bayesRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="byNowv">50</span>%</b></label><input type="range" id="byNow" min="20" max="90" value="50" step="1"></div>
+        <div class="ctrl"><label>Prior strength <b><span id="byPriorv">1.0</span></b></label><input type="range" id="byPrior" min="0.1" max="4" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Measurement noise <b><span id="byNoisev">0.05</span></b></label><input type="range" id="byNoise" min="0.01" max="0.15" value="0.05" step="0.01"></div>
+      </div>
+      <div class="fig-cap">Rust dots: observed health. Faint teal band: the prior predictive, before this unit's data is trusted. Solid teal with shaded band: the posterior predictive mean and its uncertainty, extrapolated to the threshold. The point where the band crosses the threshold gives the RUL and its interval. A strong prior keeps the early forecast steady but stubborn; a weak one is nimble but jumpy.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="similarity">
+    <p class="sec-num">Section 07</p>
+    <h2>Similarity-based RUL</h2>
+    <p>Sometimes you do not need to model the physics at all, because you have history: a library of units that ran to failure, each leaving a full degradation trajectory. The <em class="term">similarity-based</em> approach treats RUL as a matching problem. Take the partial trajectory of the unit you care about, slide it against every complete trajectory in the library, and find the ones whose shape it most resembles so far. Each close match has a known remaining life from that alignment point; blend those, weighted by similarity, and you have a data-driven RUL with no assumed curve.</p>
+    <p>This is the approach behind many strong results on run-to-failure benchmarks, because it captures whatever shape the real degradation takes, including kinks and plateaus a parametric model would never guess. Its weakness is its appetite: it needs a library of genuine failures, which are precisely the rare and expensive events. The simulation matches a developing trajectory against a library of run-to-failure curves and forms a similarity-weighted RUL estimate.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 5</span> · trajectory matching against a failure library &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="simCanvas" height="280"></canvas></div>
+      <div class="readout" id="simRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="smNowv">50</span>%</b></label><input type="range" id="smNow" min="20" max="85" value="50" step="1"></div>
+        <div class="ctrl"><label>This unit's wear rate <b><span id="smRatev">1.00</span></b></label><input type="range" id="smRate" min="0.7" max="1.4" value="1" step="0.02"></div>
+        <div class="ctrl"><label>Match bandwidth <b><span id="smBwv">0.30</span></b></label><input type="range" id="smBw" min="0.05" max="1" value="0.3" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Faint grey curves: a library of units that ran to failure. Rust: the current unit, observed only up to now. The library curves most similar to it over the observed region glow teal; their known remaining lives, blended by similarity, give the RUL marker. A tight bandwidth trusts only the closest matches; a loose one averages over more of the library.</div>
+    </div>
+  </section>
+
+  <!-- HMM -->
+  <section id="hmm">
+    <p class="sec-num">Section 08</p>
+    <h2>Discrete health states with an HMM</h2>
+    <p>Not all degradation is a smooth curve. Sometimes the natural description is a handful of <strong>regimes</strong>, healthy, degraded, critical, with the machine dwelling in one and occasionally jumping to a worse one, and never jumping back without repair. A <em class="term">hidden Markov model</em> captures exactly this: the true health state is hidden and follows a Markov chain, while the sensor emits a noisy observation that only hints at which state the machine is in.</p>
+    <p>Given the noisy stream, the <em class="term">forward algorithm</em> computes, at every moment, the probability of being in each state, fusing the new observation with the model's beliefs about how states evolve. The simulation generates a true state path and noisy observations, then runs the forward algorithm live. Watch the state-probability bands swap as the machine deteriorates, and notice how heavier emission noise blurs the handover, the discrete analogue of every uncertainty in this guide.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 6</span> · forward-algorithm state probabilities &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="hmmCanvas" height="300"></canvas></div>
+      <div class="readout" id="hmmRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Emission noise <b><span id="hmNoisev">0.30</span></b></label><input type="range" id="hmNoise" min="0.1" max="0.8" value="0.3" step="0.05"></div>
+        <div class="ctrl"><label>Transition rate <b><span id="hmTransv">0.04</span></b></label><input type="range" id="hmTrans" min="0.01" max="0.15" value="0.04" step="0.01"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>healthy</span>
+        <span><i style="background:#C8962C"></i>degraded</span>
+        <span><i style="background:#B0542B"></i>critical</span>
+      </div>
+      <div class="fig-cap">Top: the noisy health observation, with the true state shaded behind it. Bottom: the forward-algorithm probability of each state, stacked to one. As the machine steps from healthy through degraded to critical, the coloured mass shifts. With low noise the bands are crisp and the handover sharp; with high noise they overlap and the estimate hedges, exactly as it should when the evidence is ambiguous.</div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="conformal">
+    <p class="sec-num">Section 09</p>
+    <h2>Honest RUL intervals</h2>
+    <p>A point RUL is a liability. The maintenance decision rests on the <strong>lower edge</strong> of the interval, the soonest plausible failure, so an interval that is too tight is not a smaller error, it is a hazard. The challenge is that the fancy models do not always produce trustworthy intervals: a particle filter's spread can be over-confident if its noise is mis-specified, and a curve fit's textbook interval assumes a shape that may be wrong.</p>
+    <p><em class="term">Conformal prediction</em>, introduced in the forecasting monograph, is the antidote. It wraps any RUL predictor in an interval with a coverage guarantee that holds without trusting the model's assumptions. The recipe is mechanical: on a set of past units, record how far each RUL prediction missed (the <em class="term">nonconformity scores</em>), take the appropriate quantile of those errors, and pad every future prediction by that amount. If you want 90 percent coverage, you use the 90th percentile of historical errors, and you get close to 90 percent coverage on new units, by construction. The simulation tracks a RUL prediction as a unit ages, drawing the conformal band and the <em class="term">alpha-lambda</em> accuracy funnel that prognostics uses as its target.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 7</span> · conformal RUL band &amp; the alpha-lambda funnel &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="confCanvas" height="280"></canvas></div>
+      <div class="readout" id="confRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Target coverage <b><span id="cfCovv">90</span>%</b></label><input type="range" id="cfCov" min="50" max="99" value="90" step="1"></div>
+        <div class="ctrl"><label>Accuracy band &alpha; <b><span id="cfAlphav">0.20</span></b></label><input type="range" id="cfAlpha" min="0.1" max="0.4" value="0.2" step="0.05"></div>
+        <div class="ctrl"><label>Prediction noise <b><span id="cfNoisev">0.18</span></b></label><input type="range" id="cfNoise" min="0.05" max="0.5" value="0.18" step="0.02"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#5A554C"></i>true remaining life</span>
+        <span><i style="background:#2F6B6B"></i>predicted RUL</span>
+        <span><i style="background:rgba(176,84,43,0.4)"></i>conformal band</span>
+        <span><i style="background:rgba(200,150,44,0.35)"></i>&plusmn;&alpha; funnel</span>
+      </div>
+      <div class="fig-cap">Grey: the true remaining life, ticking down to zero at failure. Teal: the RUL predicted at each moment, noisy early and sharpening late. Rust band: the conformal interval sized for your chosen coverage. Ochre funnel: the alpha-lambda target, narrowing toward failure, the standard against which a prognostic is graded. A good predictor enters and stays inside the funnel as failure approaches.</div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="covariates">
+    <p class="sec-num">Section 10</p>
+    <h2>Operating conditions as covariates</h2>
+    <p>Here is the trap that fells naive prognostics: the same health indicator at the same level can mean wildly different remaining lives depending on what the machine is about to be asked to do. A bearing at 60 percent health has months left if the duty cycle stays gentle and weeks if it is about to be run hot and heavy. Extrapolating the health indicator in a vacuum ignores this, and the error is not random, it is systematic and dangerous.</p>
+    <p>The fix is to make the <em class="term">operating condition</em> a covariate of the degradation rate, not just a nuisance to be averaged away. The model learns how load, speed and temperature accelerate or slow the wear, and the RUL forecast then takes a <strong>future operating profile</strong> as an input. This is also what lets prognostics inform operations: ease off the load and you genuinely extend the life, and the forecast shows it. Change the assumed future load below and watch the same present state yield very different remaining lives.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 8</span> · same state, different futures &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="covCanvas" height="280"></canvas></div>
+      <div class="readout" id="covRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="cvNowv">50</span>%</b></label><input type="range" id="cvNow" min="25" max="85" value="50" step="1"></div>
+        <div class="ctrl"><label>Future load factor <b><span id="cvLoadv">1.0</span></b></label><input type="range" id="cvLoad" min="0.4" max="2" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Past load (so far) <b><span id="cvPastv">1.0</span></b></label><input type="range" id="cvPast" min="0.6" max="1.6" value="1" step="0.1"></div>
+      </div>
+      <div class="fig-cap">Rust dots: health observed under the past load. From the same present point, three teal futures branch out under light, nominal and heavy future loads, each crossing the threshold at a different cycle. The bold teal curve is your selected future-load scenario. This branching is why a RUL is meaningless without a stated future operating profile.</div>
+    </div>
+  </section>
+
+  <!-- Survival -->
+  <section id="survival">
+    <p class="sec-num">Section 11</p>
+    <h2>The population view: survival &amp; hazard</h2>
+    <p>Everything so far has tracked one unit's signal. There is a complementary tradition that asks a different question: across a whole population of similar machines, how is the time-to-failure distributed, regardless of any individual's sensor trace? This is <em class="term">survival analysis</em>, and its workhorse is the <em class="term">Weibull</em> distribution, prized because a single shape parameter captures the qualitative character of the failure.</p>
+    <p>The shape parameter k tells the story. Below one, the <em class="term">hazard rate</em>, the instantaneous risk of failing given survival so far, <strong>decreases</strong> with age: infant mortality, where survivors of early defects grow more reliable. Equal to one, the hazard is constant: failures arrive at random, memoryless. Above one, the hazard <strong>increases</strong>: wear-out, the regime most condition monitoring lives in. Stitch the three together and you get the classic bathtub curve of reliability. The simulation draws the survival and hazard curves for a Weibull you control, with the operative regime named.</p>
+    <div class="eq">
+      survival <span class="c">S(t)</span> = e<sup>&minus;(t/&lambda;)<sup>k</sup></sup> &nbsp;&middot;&nbsp; hazard <span class="g">h(t)</span> = (k/&lambda;)(t/&lambda;)<sup>k&minus;1</sup> &nbsp;&middot;&nbsp; MTTF = &lambda;&middot;&Gamma;(1 + 1/k)
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 9</span> · Weibull survival and hazard &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="survCanvas" height="280"></canvas></div>
+      <div class="readout" id="survRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Shape k <b><span id="svKv">2.2</span></b></label><input type="range" id="svK" min="0.5" max="4" value="2.2" step="0.1"></div>
+        <div class="ctrl"><label>Scale &lambda; (char. life) <b><span id="svLamv">120</span></b></label><input type="range" id="svLam" min="60" max="200" value="120" step="5"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>survival S(t)</span>
+        <span><i style="background:#B0542B"></i>hazard h(t)</span>
+      </div>
+      <div class="fig-cap">Teal: the fraction of the population still running at each age. Rust: the hazard rate, the risk of failing right now given survival so far. Push the shape below one and the hazard falls with age (infant mortality); set it to one and the hazard is flat (random failure); raise it and the hazard climbs (wear-out). The readout names the regime and reports the mean time to failure.</div>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section id="evaluate">
+    <p class="sec-num">Section 12</p>
+    <h2>Evaluating a prognostic</h2>
+    <p>Because late predictions are dangerous and early ones merely wasteful, prognostics is not graded with the symmetric metrics of ordinary forecasting. A few specialized measures encode the asymmetry and the importance of timing.</p>
+    <div class="defs">
+      <div class="def"><h4>Prognostic horizon</h4><p>How early before failure the prediction first becomes and stays accurate. Earlier is better, because it buys time to act.</p></div>
+      <div class="def"><h4>Alpha-lambda accuracy</h4><p>Whether the prediction sits inside a shrinking band (plus or minus alpha) around the truth at chosen fractions of life. The shrinking funnel seen with conformal RUL intervals.</p></div>
+      <div class="def"><h4>Asymmetric cost</h4><p>Scoring that penalizes late predictions far more than early ones, matching the real consequences of an unplanned failure.</p></div>
+      <div class="def"><h4>Convergence</h4><p>Whether the estimate steadily homes in on the truth as failure nears, rather than wandering or jumping.</p></div>
+    </div>
+    <p>The honest test, as always, is on units the model never saw, and ideally many of them, because a single run-to-failure curve tells you almost nothing about variance. A prognostic that looks brilliant on one bearing and falls apart on the next has learned that bearing, not the failure mode.</p>
+  </section>
+
+  <!-- Maintenance -->
+  <section id="maintenance">
+    <p class="sec-num">Section 13</p>
+    <h2>Optimizing the maintenance decision</h2>
+    <p>Every method in this guide has been building toward a single act: deciding when to intervene. A RUL distribution is not the answer, it is the input to the answer. The decision turns on an asymmetry stated plainly. Replace too early and you throw away good life and pay for an unnecessary teardown, the <em class="term">preventive</em> cost. Wait too long and the machine fails in service, the <em class="term">corrective</em> cost, which is usually far larger once you count secondary damage, downtime and safety.</p>
+    <p>The principled choice minimizes the long-run <strong>cost per unit time</strong>. For a chosen replacement age, the expected cost blends the corrective cost weighted by the chance of failing first with the preventive cost weighted by the chance of surviving to the planned replacement; divide by the expected time the unit actually runs and you have a cost rate to minimize. The simulation sweeps the replacement age over a Weibull failure distribution and finds the optimum. Crank the cost ratio up and the optimal replacement marches earlier, buying safety at the price of wasted life; this single curve is what the whole pipeline exists to produce.</p>
+    <div class="eq">
+      cost rate <span class="c">g(t<sub>r</sub>)</span> = [ C<sub>c</sub>&middot;F(t<sub>r</sub>) + C<sub>p</sub>&middot;S(t<sub>r</sub>) ] &divide; <span class="g">&int;<sub>0</sub><sup>t<sub>r</sub></sup> S(t) dt</span> &nbsp;&middot;&nbsp; choose t<sub>r</sub> to minimize it
+    </div>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 10</span> · the cost-rate curve and the optimal replacement age &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="maintCanvas" height="290"></canvas></div>
+      <div class="readout" id="maintRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Corrective / preventive cost <b><span id="mtRatiov">8</span>&times;</b></label><input type="range" id="mtRatio" min="1.5" max="25" value="8" step="0.5"></div>
+        <div class="ctrl"><label>Failure-time mean <b><span id="mtMeanv">120</span></b></label><input type="range" id="mtMean" min="70" max="180" value="120" step="5"></div>
+        <div class="ctrl"><label>Failure spread (shape k) <b><span id="mtKv">2.8</span></b></label><input type="range" id="mtK" min="1.4" max="6" value="2.8" step="0.2"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(47,107,107,0.5)"></i>failure-time density</span>
+        <span><i style="background:#B0542B"></i>cost rate</span>
+        <span><i style="background:#C8962C"></i>optimal replacement</span>
+      </div>
+      <div class="fig-cap">Teal: the distribution of when the machine fails. Rust: the long-run cost per unit time as a function of the age at which you preventively replace. Its minimum, the ochre line, is the optimal replacement age. Run-to-failure sits at the far right where you pay the corrective cost often; replace too early and you pay the preventive cost too frequently. Raise the cost ratio and the optimum slides left, trading life for safety.</div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section id="workflow">
+    <p class="sec-num">Section 14</p>
+    <h2>The PHM pipeline</h2>
+    <p>Stand all three monographs end to end and the full prognostics and health management loop appears. Sensors produce signals; signals become features; features fuse into a health indicator; a detector watches the present while a forecaster watches the future; and a RUL with its interval feeds a maintenance decision, which acts back on the machine.</p>
+
+    <div class="diagram" aria-label="PHM pipeline from sensing to maintenance action">
+      <svg viewBox="0 0 760 210" role="img" aria-labelledby="phmTitle">
+        <title id="phmTitle">Pipeline: sensing, features, health indicator, branching to detection (present) and prognosis (future), to a maintenance decision that acts back on the asset.</title>
+        <defs>
+          <marker id="arrP" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5A554C"/></marker>
+          <style>
+            .b{fill:#FBF9F4;stroke:#C3BAA8;stroke-width:1.3;}
+            .t{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:#2A2724;}
+            .s{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:#5A554C;}
+            .ph{fill:#EAF2F1;stroke:#2F6B6B;}
+            .oc{fill:#FBF6E9;stroke:#C8962C;}
+            .de{fill:#F6E7E0;stroke:#B0542B;}
+            .l{stroke:#5A554C;stroke-width:1.4;}
+          </style>
+        </defs>
+        <rect class="b ph" x="8" y="84" width="84" height="44" rx="7"/><text class="t" x="26" y="104">sensing</text><text class="s" x="20" y="118">signals</text>
+        <line class="l" x1="92" y1="106" x2="116" y2="106" marker-end="url(#arrP)"/>
+        <rect class="b" x="118" y="84" width="84" height="44" rx="7"/><text class="t" x="138" y="104">features</text><text class="s" x="130" y="118">rms · kurt</text>
+        <line class="l" x1="202" y1="106" x2="226" y2="106" marker-end="url(#arrP)"/>
+        <rect class="b oc" x="228" y="84" width="100" height="44" rx="7"/><text class="t" x="244" y="103">health</text><text class="t" x="244" y="119">indicator</text>
+        <line class="l" x1="328" y1="100" x2="360" y2="70" marker-end="url(#arrP)"/>
+        <line class="l" x1="328" y1="112" x2="360" y2="142" marker-end="url(#arrP)"/>
+        <rect class="b ph" x="362" y="48" width="120" height="40" rx="7"/><text class="t" x="378" y="66">detection</text><text class="s" x="378" y="80">present: is it sick?</text>
+        <rect class="b ph" x="362" y="124" width="120" height="40" rx="7"/><text class="t" x="378" y="142">prognosis</text><text class="s" x="378" y="156">future: RUL + interval</text>
+        <line class="l" x1="482" y1="68" x2="520" y2="96" marker-end="url(#arrP)"/>
+        <line class="l" x1="482" y1="144" x2="520" y2="116" marker-end="url(#arrP)"/>
+        <rect class="b de" x="522" y="84" width="110" height="44" rx="7"/><text class="t" x="538" y="103">maintenance</text><text class="t" x="538" y="119">decision</text>
+        <line class="l" x1="632" y1="106" x2="656" y2="106" marker-end="url(#arrP)"/>
+        <rect class="b" x="658" y="84" width="94" height="44" rx="7"/><text class="t" x="676" y="104">the asset</text><text class="s" x="672" y="118">act / replace</text>
+        <path class="l" d="M705,128 C705,180 50,180 50,128" fill="none" stroke-dasharray="4 3" marker-end="url(#arrP)"/>
+        <text class="s" x="330" y="196">the loop closes: acting on the machine changes what the sensors read next</text>
+      </svg>
+    </div>
+
+    <ul>
+      <li><strong>Earn the health indicator first.</strong> No prognostic is better than the curve it forecasts. Spend the effort making a monotonic, trendable indicator before reaching for clever models.</li>
+      <li><strong>Quantify uncertainty, always.</strong> Ship the interval, not just the number, and size it for the asymmetric cost of being late.</li>
+      <li><strong>Condition on the future.</strong> A RUL is a function of the operating profile to come. State the assumed profile, and recompute when the plan changes.</li>
+      <li><strong>Validate across units.</strong> Test on held-out run-to-failure histories, many of them, and report the variance, not just the best case.</li>
+      <li><strong>Retrain on drift.</strong> New failure modes, maintenance actions and fleet changes all shift the degradation. A prognostic is a living model, not a one-time fit.</li>
+    </ul>
+
+    <div class="seriesnote">
+      End of part three, and of the series. From a single sensor sample in <strong>Time Series as Sensory Data</strong>, through the forecast of its next value in <strong>Forecasting Time Series</strong>, to the forecast of its failure here, the arc is complete: sensing, predicting, and deciding when to act.
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <!-- practice -->
+  <section id="practice">
+    <p class="sec-num">Section 15</p>
+    <h2>Practical notes</h2>
+    <p>Prognostics fails in characteristic ways, and most of them have nothing to do with the sophistication of the model. These are the lessons that decide whether an RUL estimate is trusted on the floor or quietly ignored.</p>
+    <ul>
+      <li><strong>Ship a distribution, not a number.</strong> A single RUL figure invites false confidence and is almost always wrong. The interval, how sure you are and how that certainty tightens as failure nears, is the part a maintenance planner can actually use.</li>
+      <li><strong>Define failure before you predict it.</strong> The health-indicator threshold drives every estimate downstream, so set it from physics and consequence, not convenience. Move the threshold and you move every RUL; pretend it is fixed at your peril.</li>
+      <li><strong>Condition on the operating context.</strong> The same wear state has a different future under heavy load than at idle. A trajectory that ignores future duty cycle is forecasting a machine that does not exist.</li>
+      <li><strong>Score with prognostic metrics.</strong> A small RMSE that arrives only after the part has failed is useless. Judge with alpha-lambda accuracy and prognostic horizon, which reward being right early and penalise late confidence.</li>
+      <li><strong>Respect the scarcity of failures.</strong> Most fleets have few full run-to-failure records. Similarity matching, survival models and Bayesian priors all exist to squeeze information out of that scarcity rather than pretending it away.</li>
+      <li><strong>Accept wide early, demand narrow late.</strong> An honest RUL is vague when the unit is young and sharpens with evidence. A model that is confident from the first sample is not calibrated, it is bluffing.</li>
+      <li><strong>Watch for resets.</strong> A repair, a part swap, or a regime change can step the health indicator back. A prognostic that keeps extrapolating the old trend through a maintenance event will be confidently, dangerously wrong.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>Remaining useful life is a belief about the future of one specific machine under its specific duty, so anchor it to a defined failure, carry its uncertainty honestly, condition it on how the unit will actually be used, and judge it by whether it warns you in time to act rather than by how close the number looked in hindsight.</p>
+    </div>
+  </section>
+
+  <section id="refs">
+    <p class="sec-num">Section 16</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Lei, Y., et al. (2018). "Machinery health prognostics: a systematic review from data acquisition to RUL prediction." <em>Mechanical Systems and Signal Processing.</em> The standard modern overview of the whole field.</li>
+      <li>Si, X.-S., Wang, W., Hu, C.-H., &amp; Zhou, D.-H. (2011). "Remaining useful life estimation: a review on the statistical data driven approaches." <em>European Journal of Operational Research.</em> A clear taxonomy of degradation and statistical RUL methods.</li>
+      <li>Saxena, A., Goebel, K., Simon, D., &amp; Eklund, N. (2008). "Damage propagation modeling for aircraft engine run-to-failure simulation." <em>PHM Conference.</em> The C-MAPSS turbofan benchmark behind much RUL research.</li>
+      <li>Wang, T., Yu, J., Siegel, D., &amp; Lee, J. (2008). "A similarity-based prognostics approach for remaining useful life estimation." <em>PHM Conference.</em> The origin of trajectory-matching RUL.</li>
+      <li>Arulampalam, M. S., Maskell, S., Gordon, N., &amp; Clapp, T. (2002). "A tutorial on particle filters for online nonlinear/non-Gaussian Bayesian tracking." <em>IEEE Transactions on Signal Processing.</em> The canonical particle-filter reference.</li>
+      <li>Simon, D. <em>Optimal State Estimation: Kalman, H-infinity, and Nonlinear Approaches.</em> Wiley. State-space tracking for degradation.</li>
+      <li>Saxena, A., et al. (2008). "Metrics for evaluating performance of prognostic techniques." <em>PHM Conference.</em> Prognostic horizon, alpha-lambda accuracy and related measures.</li>
+      <li>Vovk, V., Gammerman, A., &amp; Shafer, G. <em>Algorithmic Learning in a Random World.</em> Springer. The foundations of conformal prediction.</li>
+      <li>Angelopoulos, A. N., &amp; Bates, S. (2023). "Conformal prediction: a gentle introduction." <em>Foundations and Trends in Machine Learning.</em> A practical modern guide to distribution-free intervals.</li>
+      <li>Sankararaman, S., &amp; Goebel, K. (2015). "Uncertainty in prognostics and systems health management." <em>International Journal of Prognostics and Health Management.</em> Why and how to quantify RUL uncertainty.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References point to further study; the explanations and simulations above are written and implemented from first principles rather than drawn from any single source.</p>
+  </section>
+
+</div>
+
+<footer>
+  Prognostics and Remaining Useful Life &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; part three of the time-series series &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+  function quantile(sorted,q){ if(sorted.length===0)return 0; var pos=(sorted.length-1)*q,base=Math.floor(pos),rest=pos-base;
+    return sorted[base+1]!==undefined ? sorted[base]+rest*(sorted[base+1]-sorted[base]) : sorted[base]; }
+  function makeEps(n){ var a=[]; for(var i=0;i<n;i++)a.push(gauss()); return a; }
+
+  var THRESH=1.0, BASE=0.08;
+
+  // ===== HERO =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var phase=0;
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var Tf=170, now=60+40*(0.5+0.5*Math.sin(phase));
+      var x0=10,x1=w-10,y0=14,y1=h-18; var Tdisp=210;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.15)*(y1-y0); }
+      // threshold
+      ctx.strokeStyle="rgba(176,84,43,0.6)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]);
+      // cone
+      ctx.fillStyle="rgba(47,107,107,0.12)"; ctx.beginPath();
+      for(var t=now;t<=Tdisp;t++){ var base=BASE+(0.92)*Math.pow(t/Tf,2.2); var sd=0.02+(t-now)*0.0016; ctx.lineTo(X(t),Y(base+sd)); }
+      for(var t2=Tdisp;t2>=now;t2--){ var base2=BASE+(0.92)*Math.pow(t2/Tf,2.2); var sd2=0.02+(t2-now)*0.0016; ctx.lineTo(X(t2),Y(Math.max(0,base2-sd2))); }
+      ctx.closePath(); ctx.fill();
+      // observed
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.8; ctx.beginPath();
+      for(var o=0;o<=now;o++){ var hv=BASE+(0.92)*Math.pow(o/Tf,2.2)+0.012*gauss(); if(o===0)ctx.moveTo(X(o),Y(hv));else ctx.lineTo(X(o),Y(hv)); } ctx.stroke();
+      // forecast centre
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.7; ctx.setLineDash([5,4]); ctx.beginPath();
+      for(var f=now;f<=Tdisp;f++){ var fv=BASE+(0.92)*Math.pow(f/Tf,2.2); if(f===now)ctx.moveTo(X(f),Y(fv));else ctx.lineTo(X(f),Y(fv)); } ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle="rgba(90,85,76,0.35)"; ctx.beginPath(); ctx.moveTo(X(now),y0); ctx.lineTo(X(now),y1); ctx.stroke();
+      label(ctx,"now",X(now)-4,16,INKSOFT,"right"); label(ctx,"failure threshold",x1-4,Y(THRESH)-5,RUST,"right");
+    }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ phase+=0.05; draw(); },70); }
+  })();
+
+  // ===== FIG 1 degradation models =====
+  (function(){
+    var c=document.getElementById("degCanvas"); if(!c)return;
+    var Tf=160, Tdisp=230, eps=makeEps(Tdisp+1);
+    var now=document.getElementById("dgNow"),pp=document.getElementById("dgP"),nz=document.getElementById("dgNoise");
+    var nowv=document.getElementById("dgNowv"),ppv=document.getElementById("dgPv"),nzv=document.getElementById("dgNoisev"),read=document.getElementById("degRead");
+    var tLin=document.getElementById("dgLin"),tExp=document.getElementById("dgExp"),tPow=document.getElementById("dgPow"); var form="exp";
+    function trueHI(t,p){ return BASE+(THRESH-BASE)*Math.pow(t/Tf,p); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var P=parseFloat(pp.value),NZ=parseFloat(nz.value),pct=parseInt(now.value,10);
+      nowv.textContent=pct; ppv.textContent=P.toFixed(1); nzv.textContent=NZ.toFixed(3);
+      var nowT=Math.round(Tf*pct/100);
+      var obsT=[],obsY=[]; for(var t=1;t<=nowT;t++){ obsT.push(t); obsY.push(Math.max(0.001,trueHI(t,P)+NZ*eps[t])); }
+      // fit
+      var pred=function(t){return 0;}, cross=Tdisp;
+      if(form==="lin"){ var n=obsT.length,sx=0,sy=0,sxx=0,sxy=0; for(var i=0;i<n;i++){sx+=obsT[i];sy+=obsY[i];sxx+=obsT[i]*obsT[i];sxy+=obsT[i]*obsY[i];}
+        var b=(n*sxy-sx*sy)/(n*sxx-sx*sx),a=(sy-b*sx)/n; pred=function(t){return a+b*t;}; cross=b>1e-6?(THRESH-a)/b:Tdisp; }
+      else if(form==="exp"){ var n2=obsT.length,sx2=0,sy2=0,sxx2=0,sxy2=0; for(var j=0;j<n2;j++){var ly=Math.log(obsY[j]);sx2+=obsT[j];sy2+=ly;sxx2+=obsT[j]*obsT[j];sxy2+=obsT[j]*ly;}
+        var b2=(n2*sxy2-sx2*sy2)/(n2*sxx2-sx2*sx2),a2=(sy2-b2*sx2)/n2; pred=function(t){return Math.exp(a2+b2*t);}; cross=b2>1e-6?(Math.log(THRESH)-a2)/b2:Tdisp; }
+      else { var n3=obsT.length,sx3=0,sy3=0,sxx3=0,sxy3=0; for(var k=0;k<n3;k++){var lx=Math.log(obsT[k]),ly3=Math.log(obsY[k]);sx3+=lx;sy3+=ly3;sxx3+=lx*lx;sxy3+=lx*ly3;}
+        var b3=(n3*sxy3-sx3*sy3)/(n3*sxx3-sx3*sx3),a3=(sy3-b3*sx3)/n3; pred=function(t){return Math.exp(a3)*Math.pow(t,b3);}; cross=b3>1e-6?Math.exp((Math.log(THRESH)-a3)/b3):Tdisp; }
+      if(!isFinite(cross)||cross<0||cross>Tdisp*1.5)cross=Tdisp*1.5;
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.55)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"failure threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      // true failure marker
+      ctx.fillStyle=INKSOFT; ctx.beginPath(); ctx.moveTo(X(Tf),y1); ctx.lineTo(X(Tf)-4,y1+8); ctx.lineTo(X(Tf)+4,y1+8); ctx.closePath(); ctx.fill(); label(ctx,"true failure",X(Tf),y1+20,INKSOFT,"center");
+      // now line
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      // fitted extrapolation
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath(); var st=false;
+      for(var t2=1;t2<=Math.min(Tdisp,cross+6);t2++){ var v=pred(t2); if(v<0)v=0; if(v>1.25)v=1.25; if(!st){ctx.moveTo(X(t2),Y(v));st=true;}else ctx.lineTo(X(t2),Y(v)); } ctx.stroke();
+      // observed dots
+      for(var d=0;d<obsT.length;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(obsT[d]),Y(Math.min(obsY[d],1.2)),1.9,0,7); ctx.fill(); }
+      label(ctx,"health indicator",2,y0+8,INKSOFT);
+      var rulHat=cross-nowT, rulTrue=Tf-nowT, err=rulHat-rulTrue;
+      read.innerHTML='<span>model: <b>'+form+'</b></span><span class="ok">RUL estimate: <b>'+(rulHat>0?Math.round(rulHat):0)+' cyc</b></span><span>true RUL: <b>'+Math.round(rulTrue)+'</b></span><span class="'+(Math.abs(err)>20?'warn':'')+'">error: <b>'+(err>0?'+':'')+Math.round(err)+'</b></span>'; }
+    function setF(f,el){ form=f; [tLin,tExp,tPow].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    tLin.addEventListener("click",function(){setF("lin",tLin);}); tExp.addEventListener("click",function(){setF("exp",tExp);}); tPow.addEventListener("click",function(){setF("pow",tPow);});
+    [now,pp,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 2 Kalman state-space =====
+  (function(){
+    var c=document.getElementById("kfCanvas"); if(!c)return;
+    var Tf=160, Tdisp=230, eps=makeEps(Tdisp+1);
+    var now=document.getElementById("kfNow"),qq=document.getElementById("kfQ"),rr=document.getElementById("kfR");
+    var nowv=document.getElementById("kfNowv"),qv=document.getElementById("kfQv"),rv=document.getElementById("kfRv"),read=document.getElementById("kfRead");
+    function trueHI(t){ return BASE+(THRESH-BASE)*Math.pow(t/Tf,2.0); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var pct=parseInt(now.value,10),Q=parseFloat(qq.value),R=parseFloat(rr.value);
+      nowv.textContent=pct; qv.textContent=Q.toFixed(3); rv.textContent=R.toFixed(2);
+      var nowT=Math.round(Tf*pct/100);
+      // constant-velocity KF: state [level, rate]
+      var x=[trueHI(1),0.005], P=[[0.05,0],[0,0.001]]; var dt=1;
+      var meas=[];
+      for(var t=1;t<=nowT;t++){ var z=trueHI(t)+R*eps[t]; meas.push([t,z]);
+        // predict
+        var xl=x[0]+x[1]*dt, xr=x[1];
+        var P00=P[0][0]+dt*(P[1][0]+P[0][1])+dt*dt*P[1][1]+Q;
+        var P01=P[0][1]+dt*P[1][1];
+        var P10=P[1][0]+dt*P[1][1];
+        var P11=P[1][1]+Q*0.25;
+        // update (measure level)
+        var S=P00+R, K0=P00/S, K1=P10/S, y=z-xl;
+        x=[xl+K0*y, xr+K1*y];
+        P=[[(1-K0)*P00,(1-K0)*P01],[P10-K1*P00,P11-K1*P01]];
+      }
+      // project forward
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.55)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"failure threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      var lev=x[0],rate=x[1],Pl=P[0][0]; var cone=[];
+      var crossMed=Tdisp,crossLo=Tdisp,crossHi=Tdisp, foundM=false,foundL=false,foundH=false;
+      for(var k=0;k<=Tdisp-nowT;k++){ var ml=lev+rate*k; var vv=Pl+ (P[1][1])*k*k + 0.0001*k; var sd=Math.sqrt(Math.max(vv,1e-6));
+        cone.push([nowT+k,ml,sd]);
+        if(!foundM&&ml>=THRESH){crossMed=nowT+k;foundM=true;}
+        if(!foundL&&ml+1.64*sd>=THRESH){crossLo=nowT+k;foundL=true;}
+        if(!foundH&&ml-1.64*sd>=THRESH){crossHi=nowT+k;foundH=true;}
+      }
+      // cone fill
+      ctx.fillStyle="rgba(47,107,107,0.13)"; ctx.beginPath();
+      for(var a=0;a<cone.length;a++){ ctx.lineTo(X(cone[a][0]),Y(Math.min(1.18,cone[a][1]+1.64*cone[a][2]))); }
+      for(var b2=cone.length-1;b2>=0;b2--){ ctx.lineTo(X(cone[b2][0]),Y(Math.max(0,cone[b2][1]-1.64*cone[b2][2]))); }
+      ctx.closePath(); ctx.fill();
+      // projection centre
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath();
+      for(var p=0;p<cone.length;p++){ var yy=Math.min(1.18,cone[p][1]); if(p===0)ctx.moveTo(X(cone[p][0]),Y(yy));else ctx.lineTo(X(cone[p][0]),Y(yy)); } ctx.stroke(); ctx.setLineDash([]);
+      // measurements
+      for(var d=0;d<meas.length;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(meas[d][0]),Y(Math.min(meas[d][1],1.2)),1.8,0,7); ctx.fill(); }
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      label(ctx,"health indicator",2,y0+8,INKSOFT);
+      var rulMed=crossMed-nowT, rulLo=crossLo-nowT, rulHi=crossHi-nowT;
+      read.innerHTML='<span class="ok">median RUL: <b>'+(rulMed>0?Math.round(rulMed):0)+' cyc</b></span><span>90% interval: <b>['+(rulLo>0?Math.round(rulLo):0)+', '+(rulHi>0?Math.round(rulHi):0)+']</b></span><span>true: <b>'+Math.round(Tf-nowT)+'</b></span>'; }
+    [now,qq,rr].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 3 particle filter =====
+  (function(){
+    var c=document.getElementById("pfCanvas"); if(!c)return;
+    var Tf=160, Tdisp=230, eps=makeEps(Tdisp+1), Np=300;
+    var now=document.getElementById("pfNow"),qq=document.getElementById("pfQ"),rr=document.getElementById("pfR");
+    var nowv=document.getElementById("pfNowv"),qv=document.getElementById("pfQv"),rv=document.getElementById("pfRv"),read=document.getElementById("pfRead");
+    function trueHI(t){ return BASE*Math.exp(2.78*t/Tf); } // exponential to ~1 at Tf
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var pct=parseInt(now.value,10),Q=parseFloat(qq.value),R=parseFloat(rr.value);
+      nowv.textContent=pct; qv.textContent=Q.toFixed(2); rv.textContent=R.toFixed(2);
+      var nowT=Math.round(Tf*pct/100);
+      // particles: state = [logLevel, growthRate g], level_{t+1}=level*exp(g)
+      var P=[]; for(var i=0;i<Np;i++) P.push([Math.log(BASE)+0.2*gauss(), 2.78/Tf*(1+0.4*gauss())]);
+      var meas=[];
+      for(var t=1;t<=nowT;t++){ var z=trueHI(t)*(1+R*eps[t]); if(z<0.001)z=0.001; meas.push([t,z]);
+        var wts=[],wsum=0;
+        for(var p=0;p<Np;p++){ P[p][0]+=P[p][1]+Q*gauss(); P[p][1]+=Q*0.15*gauss(); if(P[p][1]<0.0005)P[p][1]=0.0005;
+          var lv=Math.exp(P[p][0]); var err=(Math.log(Math.max(lv,1e-4))-Math.log(z));
+          var wq=Math.exp(-err*err/(2*R*R+1e-6)); wts.push(wq); wsum+=wq; }
+        // systematic resample
+        var newP=[],u0=Math.random()/Np,csum=wts[0]/wsum,idx=0;
+        for(var m=0;m<Np;m++){ var uu=u0+m/Np; while(uu>csum&&idx<Np-1){idx++;csum+=wts[idx]/wsum;} newP.push([P[idx][0],P[idx][1]]); }
+        P=newP;
+      }
+      // project each particle to threshold
+      var ruls=[],trajRate=[];
+      for(var pp=0;pp<Np;pp++){ var ll=P[pp][0],g=P[pp][1],k=0; while(Math.exp(ll)<THRESH&&k<Tdisp){ ll+=g; k++; } ruls.push(k); trajRate.push(g); }
+      ruls.sort(function(a,b){return a-b;});
+      var rMed=quantile(ruls,0.5), rLo=quantile(ruls,0.05), rHi=quantile(ruls,0.95);
+      // layout: top plot 0..0.66h, hist bottom
+      var x0=34,x1=w-12,y0=14,y1=h*0.60;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.55)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      // sample some projected trajectories
+      ctx.strokeStyle="rgba(47,107,107,0.10)"; ctx.lineWidth=1;
+      for(var s=0;s<60;s++){ var pi=Math.floor(Math.random()*Np); var lv=Math.exp(P[pi][0]),g2=P[pi][1]; ctx.beginPath(); ctx.moveTo(X(nowT),Y(Math.min(lv,1.18)));
+        for(var kk=1;kk<=Tdisp-nowT;kk++){ lv*=Math.exp(g2); if(lv>1.18)break; ctx.lineTo(X(nowT+kk),Y(lv)); } ctx.stroke(); }
+      for(var d=0;d<meas.length;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(meas[d][0]),Y(Math.min(meas[d][1],1.18)),1.7,0,7); ctx.fill(); }
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      label(ctx,"health + particle projections",2,y0+8,INKSOFT);
+      // histogram bottom
+      var hy0=h*0.68,hy1=h-22; var maxR=Math.min(Tdisp, Math.max(rHi*1.3,20)); var nb=26,bins=new Array(nb).fill(0);
+      for(var r=0;r<ruls.length;r++){ var bi=Math.floor(ruls[r]/maxR*nb); if(bi>=0&&bi<nb)bins[bi]++; }
+      var bmax=1; for(var bb=0;bb<nb;bb++)if(bins[bb]>bmax)bmax=bins[bb];
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,hy1); ctx.lineTo(x1,hy1); ctx.stroke();
+      for(var bn=0;bn<nb;bn++){ var bh=(bins[bn]/bmax)*(hy1-hy0); ctx.fillStyle="rgba(47,107,107,0.55)"; ctx.fillRect(x0+(bn/nb)*(x1-x0)+1, hy1-bh, (x1-x0)/nb-1.5, bh); }
+      var mx=x0+(rMed/maxR)*(x1-x0); ctx.strokeStyle=RUST; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(mx,hy0); ctx.lineTo(mx,hy1); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"RUL distribution (cycles ahead)",x0,hy0-4,INKSOFT);
+      read.innerHTML='<span class="ok">median RUL: <b>'+Math.round(rMed)+' cyc</b></span><span>90% interval: <b>['+Math.round(rLo)+', '+Math.round(rHi)+']</b></span><span>true: <b>'+Math.round(Tf-nowT)+'</b></span>'; }
+    [now,qq,rr].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 4 similarity-based =====
+  (function(){
+    var c=document.getElementById("simCanvas"); if(!c)return;
+    var Tdisp=230;
+    var now=document.getElementById("smNow"),rate=document.getElementById("smRate"),bw=document.getElementById("smBw");
+    var nowv=document.getElementById("smNowv"),ratev=document.getElementById("smRatev"),bwv=document.getElementById("smBwv"),read=document.getElementById("simRead");
+    // library of run-to-failure units
+    var lib=[]; var rates=[0.78,0.88,0.95,1.05,1.12,1.22,1.32], curv=[2.4,2.0,2.2,1.8,2.3,2.0,1.9];
+    for(var i=0;i<rates.length;i++){ var Tf=Math.round(150/rates[i]); var arr=[]; for(var t=1;t<=Tf;t++) arr.push(BASE+(THRESH-BASE)*Math.pow(t/Tf,curv[i])); lib.push({y:arr,Tf:Tf}); }
+    var epsC=makeEps(Tdisp+1);
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var pct=parseInt(now.value,10),rt=parseFloat(rate.value),bwv2=parseFloat(bw.value);
+      nowv.textContent=pct; ratev.textContent=rt.toFixed(2); bwv.textContent=bwv2.toFixed(2);
+      var TfTrue=Math.round(150/rt), nowT=Math.round(TfTrue*pct/100);
+      var cur=[]; for(var t=1;t<=nowT;t++) cur.push(BASE+(THRESH-BASE)*Math.pow(t/TfTrue,2.1)+0.02*epsC[t]);
+      // distance of current to each library over overlap (align at same index from start)
+      var weights=[],wsum=0,rulLib=[];
+      for(var L=0;L<lib.length;L++){ var ly=lib[L].y; if(ly.length<nowT){ weights.push(0); rulLib.push(0); continue; }
+        var d=0; for(var k=0;k<nowT;k++){ var df=cur[k]-ly[k]; d+=df*df; } d=Math.sqrt(d/nowT);
+        var wq=Math.exp(-(d*d)/(2*bwv2*bwv2)); weights.push(wq); wsum+=wq; rulLib.push(lib[L].Tf-nowT); }
+      var rulHat=0; if(wsum>1e-9){ for(var m=0;m<lib.length;m++) rulHat+=weights[m]/wsum*rulLib[m]; }
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.5)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      // library curves, glow by weight
+      for(var Lp=0;Lp<lib.length;Lp++){ var wnorm=wsum>1e-9?weights[Lp]/wsum:0; var ly2=lib[Lp].y;
+        ctx.strokeStyle = wnorm>0.12 ? "rgba(47,107,107,"+(0.35+0.5*wnorm)+")" : "rgba(90,85,76,0.18)";
+        ctx.lineWidth = wnorm>0.12?1.7:1; ctx.beginPath();
+        for(var q=0;q<ly2.length&&q<Tdisp;q++){ if(q===0)ctx.moveTo(X(q+1),Y(ly2[q]));else ctx.lineTo(X(q+1),Y(ly2[q])); } ctx.stroke(); }
+      // current
+      ctx.strokeStyle=RUST; ctx.lineWidth=2.2; ctx.beginPath(); for(var d2=0;d2<cur.length;d2++){ if(d2===0)ctx.moveTo(X(d2+1),Y(cur[d2]));else ctx.lineTo(X(d2+1),Y(cur[d2])); } ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      // predicted failure marker
+      var predFail=nowT+rulHat; if(predFail<Tdisp){ ctx.fillStyle=TEAL; ctx.beginPath(); ctx.arc(X(predFail),Y(THRESH),4,0,7); ctx.fill(); }
+      label(ctx,"health indicator",2,y0+8,INKSOFT);
+      read.innerHTML='<span class="ok">similarity RUL: <b>'+Math.round(rulHat)+' cyc</b></span><span>true RUL: <b>'+Math.round(TfTrue-nowT)+'</b></span><span>library size: <b>'+lib.length+'</b></span>'; }
+    [now,rate,bw].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 5 conformal + alpha-lambda =====
+  (function(){
+    var c=document.getElementById("confCanvas"); if(!c)return;
+    var Tf=160, eps=makeEps(Tf+2);
+    var cov=document.getElementById("cfCov"),al=document.getElementById("cfAlpha"),nz=document.getElementById("cfNoise");
+    var covv=document.getElementById("cfCovv"),alv=document.getElementById("cfAlphav"),nzv=document.getElementById("cfNoisev"),read=document.getElementById("confRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var CV=parseInt(cov.value,10),AL=parseFloat(al.value),NZ=parseFloat(nz.value);
+      covv.textContent=CV; alv.textContent=AL.toFixed(2); nzv.textContent=NZ.toFixed(2);
+      // predicted RUL at each cycle = trueRUL*(1+noise that shrinks near failure)
+      var preds=[],trues=[],resid=[];
+      for(var t=1;t<=Tf;t++){ var trueRUL=Tf-t; var frac=t/Tf; var nsd=NZ*(1.1-0.8*frac); var pr=trueRUL*(1+nsd*eps[t]); if(pr<0)pr=0; preds.push(pr); trues.push(trueRUL); resid.push(Math.abs(pr-trueRUL)); }
+      // conformal band: quantile of residuals (first 60% as calibration)
+      var calN=Math.round(Tf*0.6),calr=resid.slice(0,calN).slice().sort(function(a,b){return a-b;});
+      var qband=quantile(calr,CV/100);
+      var x0=40,x1=w-12,y0=14,y1=h-26; var maxR=Tf;
+      function X(t){ return x0+(t/Tf)*(x1-x0); } function Y(v){ return y1-(v/maxR)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      // alpha-lambda funnel around true
+      ctx.fillStyle="rgba(200,150,44,0.22)"; ctx.beginPath();
+      for(var t1=1;t1<=Tf;t1++){ ctx.lineTo(X(t1),Y(trues[t1-1]*(1+AL))); }
+      for(var t2=Tf;t2>=1;t2--){ ctx.lineTo(X(t2),Y(Math.max(0,trues[t2-1]*(1-AL)))); }
+      ctx.closePath(); ctx.fill();
+      // conformal band around prediction
+      ctx.fillStyle="rgba(176,84,43,0.16)"; ctx.beginPath();
+      for(var c1=1;c1<=Tf;c1++){ ctx.lineTo(X(c1),Y(Math.min(maxR,preds[c1-1]+qband))); }
+      for(var c2=Tf;c2>=1;c2--){ ctx.lineTo(X(c2),Y(Math.max(0,preds[c2-1]-qband))); }
+      ctx.closePath(); ctx.fill();
+      // true RUL line
+      ctx.strokeStyle="rgba(90,85,76,0.8)"; ctx.lineWidth=1.5; ctx.beginPath(); for(var a=0;a<Tf;a++){ if(a===0)ctx.moveTo(X(a+1),Y(trues[a]));else ctx.lineTo(X(a+1),Y(trues[a])); } ctx.stroke();
+      // predicted
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.7; ctx.beginPath(); for(var b=0;b<Tf;b++){ if(b===0)ctx.moveTo(X(b+1),Y(preds[b]));else ctx.lineTo(X(b+1),Y(preds[b])); } ctx.stroke();
+      label(ctx,"RUL (cycles)",2,y0+8,INKSOFT); label(ctx,"operating time \u2192",x1-4,h-8,INKSOFT,"right");
+      // coverage on validation portion
+      var inside=0,tot=0; for(var v=calN;v<Tf;v++){ tot++; if(Math.abs(preds[v]-trues[v])<=qband)inside++; }
+      var covObs=tot>0?Math.round(inside/tot*100):0;
+      read.innerHTML='<span>conformal band: <b>&plusmn;'+qband.toFixed(1)+' cyc</b></span><span class="'+(covObs>=CV-8?'ok':'warn')+'">achieved coverage: <b>'+covObs+'%</b></span><span>target: <b>'+CV+'%</b></span>'; }
+    [cov,al,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 6 covariates =====
+  (function(){
+    var c=document.getElementById("covCanvas"); if(!c)return;
+    var Tdisp=240, eps=makeEps(Tdisp+1);
+    var now=document.getElementById("cvNow"),load=document.getElementById("cvLoad"),past=document.getElementById("cvPast");
+    var nowv=document.getElementById("cvNowv"),loadv=document.getElementById("cvLoadv"),pastv=document.getElementById("cvPastv"),read=document.getElementById("covRead");
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var pct=parseInt(now.value,10),fut=parseFloat(load.value),pst=parseFloat(past.value);
+      nowv.textContent=pct; loadv.textContent=fut.toFixed(1); pastv.textContent=pst.toFixed(1);
+      // damage accumulates with rate proportional to load; HI = BASE + integral
+      var baseRate=(THRESH-BASE)/150; // nominal: reaches threshold ~150 at load 1
+      var nowT=Math.round(150/pst*pct/100); // observed cycles
+      // observed HI under past load
+      var obs=[],dmg=0; for(var t=1;t<=nowT;t++){ dmg+=baseRate*pst*(t/ (150/pst))*1.6; }
+      // simpler: HI accumulates quadratically with load-scaled rate
+      function hiAt(tArr,loadProfileBefore,loadAfter,nowCyc){ return 0; }
+      // build observed via incremental
+      var hi=BASE, obsArr=[];
+      for(var t2=1;t2<=nowT;t2++){ hi += baseRate*pst*(0.6+1.4*(t2/(150)))*1.0; obsArr.push(Math.min(hi+0.012*eps[t2],1.3)); }
+      var hiNow=hi;
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.5)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      // three future scenarios
+      var scen=[[0.6,"rgba(47,107,107,0.30)"],[1.0,"rgba(47,107,107,0.30)"],[1.7,"rgba(47,107,107,0.30)"]];
+      var crossings=[];
+      for(var sIdx=0;sIdx<scen.length;sIdx++){ var lf=scen[sIdx][0]; var hh=hiNow,cy=nowT; ctx.strokeStyle=scen[sIdx][1]; ctx.lineWidth=1.3; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),Y(Math.min(hh,1.18)));
+        while(cy<Tdisp&&hh<1.18){ cy++; hh+=baseRate*lf*(0.6+1.4*(cy/150)); ctx.lineTo(X(cy),Y(Math.min(hh,1.18))); }
+        ctx.stroke(); ctx.setLineDash([]); crossings.push(cy); }
+      // selected future bold
+      var hsel=hiNow,csel=nowT; ctx.strokeStyle=TEAL; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(X(nowT),Y(Math.min(hsel,1.18)));
+      while(csel<Tdisp&&hsel<THRESH){ csel++; hsel+=baseRate*fut*(0.6+1.4*(csel/150)); ctx.lineTo(X(csel),Y(Math.min(hsel,1.18))); } ctx.stroke();
+      // observed
+      ctx.lineWidth=2; ctx.strokeStyle=RUST; ctx.beginPath(); for(var d=0;d<obsArr.length;d++){ if(d===0)ctx.moveTo(X(d+1),Y(obsArr[d]));else ctx.lineTo(X(d+1),Y(obsArr[d])); } ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      label(ctx,"health indicator",2,y0+8,INKSOFT);
+      var rulSel=csel-nowT;
+      read.innerHTML='<span class="ok">RUL at load '+fut.toFixed(1)+': <b>'+Math.round(rulSel)+' cyc</b></span><span>light load: <b>'+Math.round(crossings[0]-nowT)+'</b></span><span class="warn">heavy load: <b>'+Math.round(crossings[2]-nowT)+'</b></span>'; }
+    [now,load,past].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 4 Bayesian degradation updating =====
+  (function(){
+    var c=document.getElementById("bayesCanvas"); if(!c)return;
+    var Tf=160, Tdisp=230, eps=makeEps(Tdisp+2);
+    var now=document.getElementById("byNow"),pr=document.getElementById("byPrior"),nz=document.getElementById("byNoise");
+    var nowv=document.getElementById("byNowv"),prv=document.getElementById("byPriorv"),nzv=document.getElementById("byNoisev"),read=document.getElementById("bayesRead");
+    function inv2(m){ var det=m[0][0]*m[1][1]-m[0][1]*m[1][0]; if(Math.abs(det)<1e-12)det=1e-12;
+      return [[m[1][1]/det,-m[0][1]/det],[-m[1][0]/det,m[0][0]/det]]; }
+    function trueHI(t){ return BASE+(THRESH-BASE)*(t/Tf)+0.0; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var pct=parseInt(now.value,10),PR=parseFloat(pr.value),NZ=parseFloat(nz.value);
+      nowv.textContent=pct; prv.textContent=PR.toFixed(1); nzv.textContent=NZ.toFixed(2);
+      var nowT=Math.round(Tf*pct/100), sig2=NZ*NZ;
+      // prior: deliberately low slope guess
+      var m0=[BASE,0.004]; var s0a=Math.pow(0.15/PR,2), s0b=Math.pow(0.006/PR,2);
+      var S0=[[s0a,0],[0,s0b]], S0inv=inv2(S0);
+      // accumulate
+      var A=[[S0inv[0][0],S0inv[0][1]],[S0inv[1][0],S0inv[1][1]]];
+      var bvec=[S0inv[0][0]*m0[0]+S0inv[0][1]*m0[1], S0inv[1][0]*m0[0]+S0inv[1][1]*m0[1]];
+      for(var t=1;t<=nowT;t++){ var y=trueHI(t)+NZ*eps[t]; // phi=[1,t]
+        A[0][0]+=1/sig2; A[0][1]+=t/sig2; A[1][0]+=t/sig2; A[1][1]+=t*t/sig2;
+        bvec[0]+=y/sig2; bvec[1]+=t*y/sig2; }
+      var Sn=inv2(A); var mn=[Sn[0][0]*bvec[0]+Sn[0][1]*bvec[1], Sn[1][0]*bvec[0]+Sn[1][1]*bvec[1]];
+      function pmean(t){ return mn[0]+mn[1]*t; }
+      function pvar(t){ return sig2 + Sn[0][0] + 2*t*Sn[0][1] + t*t*Sn[1][1]; }
+      function priormean(t){ return m0[0]+m0[1]*t; }
+      function priorvar(t){ return sig2 + S0[0][0] + t*t*S0[1][1]; }
+      var x0=34,x1=w-12,y0=14,y1=h-26;
+      function X(t){ return x0+(t/Tdisp)*(x1-x0); } function Y(v){ return y1-(v/1.18)*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle="rgba(176,84,43,0.55)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,Y(THRESH)); ctx.lineTo(x1,Y(THRESH)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"failure threshold",x1-4,Y(THRESH)-5,RUST,"right");
+      // prior band (faint)
+      ctx.fillStyle="rgba(47,107,107,0.08)"; ctx.beginPath();
+      for(var tp=1;tp<=Tdisp;tp++){ var sd=Math.sqrt(priorvar(tp)); ctx.lineTo(X(tp),Y(Math.min(1.18,priormean(tp)+1.64*sd))); }
+      for(var tp2=Tdisp;tp2>=1;tp2--){ var sd2=Math.sqrt(priorvar(tp2)); ctx.lineTo(X(tp2),Y(Math.max(0,priormean(tp2)-1.64*sd2))); }
+      ctx.closePath(); ctx.fill();
+      // posterior band
+      ctx.fillStyle="rgba(47,107,107,0.20)"; ctx.beginPath();
+      for(var t3=1;t3<=Tdisp;t3++){ var sd3=Math.sqrt(pvar(t3)); ctx.lineTo(X(t3),Y(Math.min(1.18,pmean(t3)+1.64*sd3))); }
+      for(var t4=Tdisp;t4>=1;t4--){ var sd4=Math.sqrt(pvar(t4)); ctx.lineTo(X(t4),Y(Math.max(0,pmean(t4)-1.64*sd4))); }
+      ctx.closePath(); ctx.fill();
+      // posterior mean
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath();
+      for(var t5=1;t5<=Tdisp;t5++){ var v=Math.min(1.18,pmean(t5)); if(t5===1)ctx.moveTo(X(t5),Y(v));else ctx.lineTo(X(t5),Y(v)); } ctx.stroke();
+      // observed
+      for(var d=1;d<=nowT;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(X(d),Y(Math.min(1.18,trueHI(d)+NZ*eps[d])),1.8,0,7); ctx.fill(); }
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(nowT),y0); ctx.lineTo(X(nowT),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",X(nowT)+3,y0+11,INKSOFT);
+      label(ctx,"health indicator",2,y0+8,INKSOFT);
+      // RUL: crossing of mean and of bands
+      function cross(fn){ for(var t=nowT;t<=Tdisp*1.5;t++){ if(fn(t)>=THRESH)return t; } return Tdisp*1.5; }
+      var cMed=cross(pmean), cLo=cross(function(t){return pmean(t)+1.64*Math.sqrt(pvar(t));}), cHi=cross(function(t){return pmean(t)-1.64*Math.sqrt(pvar(t));});
+      var rMed=cMed-nowT, rLo=cLo-nowT, rHi=cHi-nowT, rTrue=Tf-nowT;
+      read.innerHTML='<span class="ok">RUL median: <b>'+(rMed>0?Math.round(rMed):0)+' cyc</b></span><span>90% interval: <b>['+(rLo>0?Math.round(rLo):0)+', '+(rHi>0?Math.round(rHi):0)+']</b></span><span>true: <b>'+Math.round(rTrue)+'</b></span>';
+    }
+    [now,pr,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 6 HMM forward algorithm =====
+  (function(){
+    var c=document.getElementById("hmmCanvas"); if(!c)return;
+    var n=140, mu=[0.2,0.55,0.9], COL=[TEAL,OCHRE,RUST];
+    var nz=document.getElementById("hmNoise"),tr=document.getElementById("hmTrans");
+    var nzv=document.getElementById("hmNoisev"),trv=document.getElementById("hmTransv"),read=document.getElementById("hmmRead");
+    var noiseSeed=makeEps(n+2), uSeed=[]; for(var i=0;i<n+2;i++)uSeed.push(Math.random());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var SD=parseFloat(nz.value),P=parseFloat(tr.value); nzv.textContent=SD.toFixed(2); trv.textContent=P.toFixed(2);
+      // true path
+      var state=0, truePath=[], obs=[];
+      for(var t=0;t<n;t++){ if(state<2 && uSeed[t]<P) state++; truePath.push(state); obs.push(mu[state]+SD*noiseSeed[t]); }
+      // transition matrix
+      var T=[[1-P,P,0],[0,1-P,P],[0,0,1]];
+      function bpdf(y,s){ var z=(y-mu[s])/SD; return Math.exp(-0.5*z*z); }
+      // forward filtered
+      var alpha=[1,0,0], filt=[];
+      for(var t2=0;t2<n;t2++){ var a2=[0,0,0];
+        if(t2===0){ a2=[bpdf(obs[0],0),bpdf(obs[0],1)*0,bpdf(obs[0],2)*0]; a2=[bpdf(obs[0],0),0,0]; }
+        else { for(var j=0;j<3;j++){ var s=0; for(var i=0;i<3;i++)s+=alpha[i]*T[i][j]; a2[j]=s*bpdf(obs[t2],j); } }
+        var sum=a2[0]+a2[1]+a2[2]; if(sum<1e-12)sum=1e-12; a2=[a2[0]/sum,a2[1]/sum,a2[2]/sum]; alpha=a2; filt.push(a2.slice());
+      }
+      var pad=34,x0=pad,x1=w-12,y0=12,y1=h*0.50;
+      function X(i){ return x0+(i/(n-1))*(x1-x0); } function Y(v){ return y1-(v/1.1)*(y1-y0); }
+      // true-state shading behind obs
+      for(var s2=0;s2<n;s2++){ ctx.fillStyle = (truePath[s2]===0?"rgba(47,107,107,0.07)":truePath[s2]===1?"rgba(200,150,44,0.09)":"rgba(176,84,43,0.09)");
+        ctx.fillRect(X(s2),y0,(x1-x0)/n+1,y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      ctx.strokeStyle=INKSOFT; ctx.lineWidth=1.4; ctx.beginPath(); for(var p=0;p<n;p++){ if(p===0)ctx.moveTo(X(p),Y(obs[p]));else ctx.lineTo(X(p),Y(obs[p])); } ctx.stroke();
+      label(ctx,"noisy health observation (true state shaded)",x0,y0+4,INKSOFT);
+      // stacked prob bands bottom
+      var by0=h*0.58, by1=h-22;
+      for(var k=0;k<n;k++){ var xx=X(k), bw=(x1-x0)/n+1, cum=0;
+        for(var st=0;st<3;st++){ var ph=filt[k][st]*(by1-by0); ctx.fillStyle=COL[st]; ctx.globalAlpha=0.75; ctx.fillRect(xx,by1-cum-ph,bw,ph); cum+=ph; } }
+      ctx.globalAlpha=1; label(ctx,"P(state) by forward algorithm",x0,by0-2,INKSOFT);
+      var cur=filt[n-1], best=cur[0]>cur[1]?(cur[0]>cur[2]?0:2):(cur[1]>cur[2]?1:2);
+      var names=["healthy","degraded","critical"];
+      read.innerHTML='<span class="'+(best===2?'warn':(best===1?'':'ok'))+'">current state: <b>'+names[best]+'</b></span><span>confidence: <b>'+Math.round(cur[best]*100)+'%</b></span><span>true: <b>'+names[truePath[n-1]]+'</b></span>';
+    }
+    [nz,tr].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 9 Weibull survival & hazard =====
+  (function(){
+    var c=document.getElementById("survCanvas"); if(!c)return;
+    var k=document.getElementById("svK"),lam=document.getElementById("svLam");
+    var kv=document.getElementById("svKv"),lamv=document.getElementById("svLamv"),read=document.getElementById("survRead");
+    function gammaFn(z){ var g=7,cf=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+      if(z<0.5) return Math.PI/(Math.sin(Math.PI*z)*gammaFn(1-z));
+      z-=1; var x=cf[0]; for(var i=1;i<g+2;i++)x+=cf[i]/(z+i); var t=z+g+0.5; return Math.sqrt(2*Math.PI)*Math.pow(t,z+0.5)*Math.exp(-t)*x; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var K=parseFloat(k.value),L=parseFloat(lam.value); kv.textContent=K.toFixed(1); lamv.textContent=L;
+      var tmax=L*2.2;
+      function S(t){ return Math.exp(-Math.pow(t/L,K)); }
+      function hz(t){ return (K/L)*Math.pow(Math.max(t,1e-6)/L,K-1); }
+      var hmax=0; for(var t=0;t<=tmax;t+=tmax/200){ var hv=hz(t); if(hv>hmax)hmax=hv; } if(hmax<1e-9)hmax=1e-9;
+      var x0=40,x1=w-14,y0=14,y1=h-26;
+      function X(t){ return x0+(t/tmax)*(x1-x0); } function Y(v){ return y1-v*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1);
+      label(ctx,"age \u2192",x1-4,h-8,INKSOFT,"right");
+      // survival
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath();
+      for(var t1=0;t1<=tmax;t1+=tmax/240){ var v=S(t1); if(t1===0)ctx.moveTo(X(t1),Y(v));else ctx.lineTo(X(t1),Y(v)); } ctx.stroke();
+      // hazard (scaled)
+      ctx.strokeStyle=RUST; ctx.lineWidth=2; ctx.beginPath();
+      for(var t2=0;t2<=tmax;t2+=tmax/240){ var v2=hz(t2)/hmax; if(t2===0)ctx.moveTo(X(t2),Y(v2));else ctx.lineTo(X(t2),Y(v2)); } ctx.stroke();
+      // char life marker
+      ctx.strokeStyle="rgba(90,85,76,0.35)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(L),y0); ctx.lineTo(X(L),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"\u03bb",X(L)+3,y1-4,INKSOFT);
+      label(ctx,"S(t) teal · h(t) rust (scaled)",x0,y0+4,INKSOFT);
+      var regime = K<0.95?"infant mortality (falling hazard)":(K<1.05?"random failure (flat hazard)":"wear-out (rising hazard)");
+      var mttf=L*gammaFn(1+1/K);
+      read.innerHTML='<span class="'+(K>=1.05?'':'warn')+'">regime: <b>'+regime+'</b></span><span>MTTF: <b>'+mttf.toFixed(0)+' cyc</b></span><span>char. life &lambda;: <b>'+L+'</b></span>';
+    }
+    [k,lam].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 10 maintenance optimization =====
+  (function(){
+    var c=document.getElementById("maintCanvas"); if(!c)return;
+    var ratio=document.getElementById("mtRatio"),meanS=document.getElementById("mtMean"),kS=document.getElementById("mtK");
+    var rv=document.getElementById("mtRatiov"),mv=document.getElementById("mtMeanv"),kvv=document.getElementById("mtKv"),read=document.getElementById("maintRead");
+    function gammaFn(z){ var g=7,cf=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+      if(z<0.5) return Math.PI/(Math.sin(Math.PI*z)*gammaFn(1-z));
+      z-=1; var x=cf[0]; for(var i=1;i<g+2;i++)x+=cf[i]/(z+i); var t=z+g+0.5; return Math.sqrt(2*Math.PI)*Math.pow(t,z+0.5)*Math.exp(-t)*x; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var RT=parseFloat(ratio.value),MU=parseFloat(meanS.value),K=parseFloat(kS.value);
+      rv.textContent=RT % 1===0?RT:RT.toFixed(1); mv.textContent=MU; kvv.textContent=K.toFixed(1);
+      var L=MU/gammaFn(1+1/K); // scale from desired mean
+      var Cp=1, Cc=RT, tmax=MU*2.2, NG=240, dt=tmax/NG;
+      function S(t){ return Math.exp(-Math.pow(t/L,K)); }
+      function f(t){ return (K/L)*Math.pow(Math.max(t,1e-9)/L,K-1)*S(t); }
+      // sweep tr, cost rate g(tr)=[Cc F + Cp S]/ integral_0^tr S
+      var trArr=[],gArr=[], integ=0, prevS=S(0), best={g:Infinity,tr:dt};
+      for(var i=1;i<=NG;i++){ var tr=i*dt; var cs=S(tr); integ+=0.5*(prevS+cs)*dt; prevS=cs;
+        var F=1-cs; var g=(Cc*F+Cp*cs)/Math.max(integ,1e-6); trArr.push(tr); gArr.push(g);
+        if(g<best.g){ best={g:g,tr:tr,F:F}; } }
+      // scales
+      var gmin=Infinity,gmax=-Infinity; for(var j=0;j<gArr.length;j++){ if(gArr[j]<gmin)gmin=gArr[j]; if(gArr[j]<1e3&&gArr[j]>gmax)gmax=gArr[j]; }
+      var fmax=0; for(var t2=0;t2<=tmax;t2+=dt){ var fv=f(t2); if(fv>fmax)fmax=fv; } if(fmax<1e-9)fmax=1e-9;
+      var x0=40,x1=w-14,y0=14,y1=h-26;
+      function X(t){ return x0+(t/tmax)*(x1-x0); } function Y(v){ return y1-v*(y1-y0); }
+      axis(ctx,x0,y0,x1,y1); label(ctx,"replacement age \u2192",x1-4,h-8,INKSOFT,"right");
+      // failure density
+      ctx.fillStyle="rgba(47,107,107,0.16)"; ctx.beginPath(); ctx.moveTo(X(0),Y(0));
+      for(var td=0;td<=tmax;td+=dt) ctx.lineTo(X(td),Y(f(td)/fmax*0.85)); ctx.lineTo(X(tmax),Y(0)); ctx.closePath(); ctx.fill();
+      // cost rate (scaled gmin..gmax)
+      ctx.strokeStyle=RUST; ctx.lineWidth=2; ctx.beginPath(); var st=false;
+      for(var k2=0;k2<trArr.length;k2++){ var gv=gArr[k2]; if(gv>gmax)gv=gmax; var yy=(gv-gmin)/Math.max(gmax-gmin,1e-6); 
+        if(!st){ctx.moveTo(X(trArr[k2]),Y(yy));st=true;}else ctx.lineTo(X(trArr[k2]),Y(yy)); } ctx.stroke();
+      // optimal line
+      ctx.strokeStyle=OCHRE; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(best.tr),y0); ctx.lineTo(X(best.tr),y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=OCHRE; ctx.beginPath(); ctx.arc(X(best.tr),y0+6,3.5,0,7); ctx.fill();
+      label(ctx,"failure density (teal) · cost rate (rust)",x0,y0+4,INKSOFT);
+      read.innerHTML='<span class="ok">optimal replacement: <b>'+best.tr.toFixed(0)+' cyc</b></span><span>P(fail before): <b>'+(best.F*100).toFixed(0)+'%</b></span><span>at cost ratio: <b>'+RT+'&times;</b></span>';
+    }
+    [ratio,meanS,kS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>

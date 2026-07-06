@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Series as Sensory Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --panel:#FBF9F4; --panel-2:#EDE8DD;
+    --ink:#2A2724; --ink-soft:#5A554C;
+    --rust:#B0542B; --teal:#2F6B6B; --ochre:#C8962C;
+    --line:#D9D2C5; --line-strong:#C3BAA8;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.12;letter-spacing:-0.01em;}
+  a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px;}
+
+  header.hero{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F7F4EE 0%,var(--paper) 100%);}
+  .hero-inner{max-width:860px;margin:0 auto;padding:54px 24px 30px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--rust);margin:0 0 18px;}
+  h1{font-size:clamp(38px,6.4vw,68px);margin:0 0 14px;}
+  h1 .em{color:var(--rust);font-style:italic;}
+  .lede{font-size:clamp(19px,2.4vw,23px);color:var(--ink-soft);max-width:660px;margin:0 0 26px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  .hero-canvas-card{margin-top:30px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 2px 0 rgba(42,39,36,0.04);}
+  .hero-canvas-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);background:var(--panel-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.r{background:var(--rust);} .dot.o{background:var(--ochre);} .dot.t{background:var(--teal);}
+  .hero-canvas-bar .spacer{flex:1;}
+  canvas{display:block;width:100%;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin:0 0 10px;}
+  h2{font-size:clamp(27px,4vw,38px);margin:0 0 16px;}
+  h3{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  p{margin:0 0 16px;}
+  .muted{color:var(--ink-soft);}
+  strong{font-weight:600;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+  ul,ol{margin:0 0 16px;padding-left:22px;}
+  li{margin:0 0 8px;}
+  code{font-family:"IBM Plex Mono",monospace;font-size:0.86em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+  .fig{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;}
+  .fig-head{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.05em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .fig-head .tag{color:var(--teal);font-weight:600;}
+  .fig-body{padding:16px;}
+  .fig-cap{padding:0 16px 15px;font-size:14.5px;color:var(--ink-soft);font-style:italic;}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 22px;padding:14px 16px 4px;border-top:1px dashed var(--line);}
+  .ctrl{flex:1 1 200px;min-width:170px;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.03em;}
+  .ctrl label b{color:var(--rust);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--rust);height:22px;cursor:pointer;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0;align-items:center;}
+  .toggle-row .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.04em;margin-right:4px;}
+  .toggle{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;}
+  .toggle.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);padding:10px 16px 4px;display:flex;flex-wrap:wrap;gap:6px 20px;}
+  .readout span b{color:var(--rust);}
+  .readout span.warn b{color:var(--rust);}
+  .readout span.ok b{color:var(--teal);}
+
+  .note{border-left:4px solid var(--ochre);background:#FBF6E9;padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;}
+  .note .nt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:#9A7416;margin:0 0 6px;}
+  .note.field{border-left-color:var(--teal);background:#EAF2F1;}
+  .note.field .nt{color:var(--teal);}
+  .note p:last-child{margin-bottom:0;}
+
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0;}
+  .def{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .def h4{font-size:16px;margin:0 0 6px;color:var(--teal);}
+  .def p{font-size:14.5px;margin:0;color:var(--ink-soft);}
+
+  .diagram{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 16px;overflow-x:auto;}
+  .diagram svg{display:block;margin:0 auto;max-width:100%;height:auto;}
+
+  .refs{list-style:none;padding:0;counter-reset:r;}
+  .refs li{counter-increment:r;padding-left:34px;position:relative;font-size:15px;color:var(--ink-soft);margin-bottom:12px;}
+  .refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:0;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--rust);}
+
+  footer{padding:38px 0 60px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12.5px;}
+
+  nav.toc{font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:30px 0 6px;}
+  nav.toc div.t{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px;}
+  nav.toc li{margin-bottom:5px;break-inside:avoid;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline;}
+
+  @media (max-width:560px){ body{font-size:17px;} .controls{gap:12px 16px;} nav.toc ol{columns:1;} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">A field guide &nbsp;/&nbsp; signals from the physical world</p>
+    <h1>Time Series as <span class="em">Sensory Data</span></h1>
+    <p class="lede">Every sensor is a storyteller that can only say numbers, one at a time, forever. This is a plain-language tour of how those numbers become a time series, what hides inside them, and how machines learn to listen, all the way from a single sample to a remaining-useful-life estimate running on a chip.</p>
+    <p class="byline">By Majid Mazouchi · Drafted with Claude</p>
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-bar">
+        <span class="dot r"></span><span class="dot o"></span><span class="dot t"></span>
+        <span style="margin-left:6px;">live sensor stream</span>
+        <span class="spacer"></span>
+        <span id="heroLabel">vibration · 50 Hz sampling</span>
+      </div>
+      <canvas id="heroCanvas" height="220"></canvas>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="t">What's inside</div>
+    <ol>
+      <li><a href="#what">What a time series really is</a></li>
+      <li><a href="#sampling">From a wave to a list of numbers</a></li>
+      <li><a href="#trustworthy">Getting the data trustworthy</a></li>
+      <li><a href="#anatomy">The anatomy of a sensor signal</a></li>
+      <li><a href="#frequency">Two ways to look: time and frequency</a></li>
+      <li><a href="#ordertrack">Order tracking: vibration vs. shaft speed</a></li>
+      <li><a href="#memory">Memory in the signal: autocorrelation</a></li>
+      <li><a href="#cleaning">Cleaning the signal: smoothing and filters</a></li>
+      <li><a href="#filterdesign">Designing a digital filter</a></li>
+      <li><a href="#kurtosis">Finding the impulsive band: spectral kurtosis</a></li>
+      <li><a href="#envelope">Hunting specific faults: envelope analysis</a></li>
+      <li><a href="#cepstrum">Harmonic families: the cepstrum</a></li>
+      <li><a href="#features">Turning signals into features</a></li>
+      <li><a href="#fusion">More than one sensor: fusion and voting</a></li>
+      <li><a href="#models">Models that watch the features</a></li>
+      <li><a href="#kalman">Model-based residuals: the Kalman filter</a></li>
+      <li><a href="#alarm">Raising the alarm: thresholds and CUSUM</a></li>
+      <li><a href="#rul">From alarm to forecast: degradation and RUL</a></li>
+      <li><a href="#edge">Running it on the edge</a></li>
+      <li><a href="#pipeline">The full pipeline, end to end</a></li>
+      <li><a href="#practice">Practical notes</a></li>
+      <li><a href="#refs">References and further reading</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="what">
+    <p class="sec-num">Section 01</p>
+    <h2>What a time series really is</h2>
+    <p>A <em class="term">time series</em> is the simplest idea in data, dressed up in a fancy name: it is a list of measurements, written down in the order they happened. Your morning weight on a bathroom scale, the temperature outside each hour, the price of a stock each minute, the vibration of a spinning motor a few thousand times a second. Same shape every time: a value, and the moment it was taken.</p>
+    <p>What makes it special is the <strong>order</strong>. If you shuffle a spreadsheet of customer names, you lose nothing. If you shuffle a heartbeat trace, you destroy it. In a time series the position of each number <em>is</em> information. Tomorrow depends on today.</p>
+    <div class="note field">
+      <p class="nt">The sensor's point of view</p>
+      <p>A sensor cannot see, hear, or feel the way we do. It does exactly one trick: it converts some physical quantity into a number it can repeat over and over. A thermocouple turns heat into a voltage. An accelerometer turns motion into a charge. A current clamp turns magnetic field into amps. <strong>Sensory data is just the world translated into a stream of numbers in time.</strong> The whole craft of working with it is learning to translate back.</p>
+    </div>
+    <p>Once you see it this way, a surprising amount of the world is a time series waiting to be read. The strip chart at the top of this page is one: a vibration signal scrolling left as fresh samples arrive on the right, exactly how a condition-monitoring dashboard would show a bearing or a gearbox.</p>
+    <div class="defs">
+      <div class="def"><h4>Sample</h4><p>One single measurement: a value plus its timestamp. The atom of a time series.</p></div>
+      <div class="def"><h4>Sampling rate</h4><p>How many samples per second. Written in hertz (Hz). 50 Hz means 50 numbers every second.</p></div>
+      <div class="def"><h4>Channel</h4><p>One stream from one sensor. A car logs hundreds of channels at once: speed, temperatures, currents, pressures.</p></div>
+      <div class="def"><h4>Window</h4><p>A short slice of recent history, say the last 2 seconds, that we analyze as a unit.</p></div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="sampling">
+    <p class="sec-num">Section 02</p>
+    <h2>From a wave to a list of numbers</h2>
+    <p>The physical world is smooth and continuous. A vibrating shaft does not move in steps; it sweeps through every position in between. But a computer can only store numbers it has actually looked at, at specific instants. The act of looking at fixed intervals is called <em class="term">sampling</em>, and how often you look is the single most important decision you make about a signal.</p>
+    <p>Look often enough and the dots trace the true wave. Look too rarely and something strange happens: a fast wave can disguise itself as a slow one. The samples line up on a completely different, slower curve that was never really there. This illusion is called <em class="term">aliasing</em>, and it is the classic trap of sensory data.</p>
+    <p>The rule that saves you has a name, the <em class="term">Nyquist criterion</em>: to capture a wave honestly, you must sample at least twice as fast as the fastest frequency in it. Sample a 10 Hz vibration and you need at least 20 samples per second, and in practice quite a bit more. Drag the sliders below and watch the alias appear the moment you cross that line.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 1</span> · sampling &amp; aliasing &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="aliasCanvas" height="240"></canvas></div>
+      <div class="readout" id="aliasRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>True signal frequency <b><span id="aliasFv">8</span> Hz</b></label><input type="range" id="aliasF" min="1" max="30" value="8" step="0.5"></div>
+        <div class="ctrl"><label>Sampling rate <b><span id="aliasFsv">40</span> Hz</b></label><input type="range" id="aliasFs" min="4" max="80" value="40" step="1"></div>
+      </div>
+      <div class="fig-cap">Grey curve: the real wave. Rust dots: what the sensor actually records. Teal curve: the slowest wave that fits those dots, which is what your software will believe. When sampling drops below twice the signal frequency (the Nyquist line), the teal alias splits away from the truth.</div>
+    </div>
+
+    <div class="note">
+      <p class="nt">Practical note · pick your rate from the physics</p>
+      <p>Choose a sampling rate from what you are trying to see, not from what is convenient. For bearing fault frequencies in the kilohertz range you may sample at 20 to 50 kHz; for a slow thermal drift, once per second is plenty. When in doubt, oversample and an <strong>anti-alias filter</strong> (an analog low-pass filter before the converter) removes content above half the sampling rate so it cannot fold back and lie to you.</p>
+    </div>
+
+    <h3>The other compromise: quantization</h3>
+    <p>There is a second, quieter trade happening at the same instant. The converter does not store infinitely precise values; it rounds each one to the nearest rung on a ladder of allowed levels. This is <em class="term">quantization</em>, and the number of rungs is set by the converter's <em class="term">bit depth</em>. An 8-bit converter has 256 levels; a 12-bit one has 4096. The rounding error you cannot avoid sets the noise floor of everything downstream, and each extra bit buys you about 6 dB of headroom. Drop the bit depth below and watch the smooth wave turn into a staircase, with the leftover error shown as its own little signal.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 2</span> · quantization &amp; bit depth &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="quantCanvas" height="250"></canvas></div>
+      <div class="readout" id="quantRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Bit depth <b><span id="qBitsv">4</span> bits</b></label><input type="range" id="qBits" min="2" max="8" value="4" step="1"></div>
+        <div class="ctrl"><label>Signal level vs. range <b><span id="qAmpv">0.90</span></b></label><input type="range" id="qAmp" min="0.2" max="1" value="0.9" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Grey: the true analog signal. Rust staircase: the value the converter actually stores. Teal trace at the bottom: the quantization error, the part thrown away by rounding. Add bits and the staircase steps shrink toward the smooth truth; starve the signal of range and the relative error grows.</div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="trustworthy">
+    <p class="sec-num">Section 03</p>
+    <h2>Getting the data trustworthy</h2>
+    <p>Before any clever analysis, real sensory data needs a wash. Samples almost never arrive on a perfect clock. Timestamps jitter, different channels run at slightly different rates, packets show up out of order, and sometimes the sensor simply goes quiet for a while. Most painful bugs in a monitoring system trace back not to the values but to <strong>time</strong>: two channels that look correlated only because they were silently misaligned, or a gap that a model quietly read as a run of zeros.</p>
+    <p>The fix is to put everything onto one even, shared time grid by <em class="term">resampling</em>, and to decide on purpose what to do with the holes. The three common choices each tell a different small lie. <strong>Forward-fill</strong> repeats the last known value, which is honest for a setpoint but wrong for a fast signal. <strong>Linear interpolation</strong> draws a straight line across the gap, smooth but invented. <strong>Leaving the gap</strong> is the most honest, but every downstream step then has to cope with missing data. Toggle between them below over a stream with jittered timing and a dropout.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 3</span> · resampling &amp; gap handling &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="resampCanvas" height="240"></canvas></div>
+      <div class="toggle-row"><span class="lbl">gap method:</span>
+        <span class="toggle on" id="rsLin">linear interpolate</span>
+        <span class="toggle" id="rsFfill">forward-fill</span>
+        <span class="toggle" id="rsNone">leave gap</span>
+      </div>
+      <div class="controls">
+        <div class="ctrl"><label>Dropout width <b><span id="rsGapv">16</span> steps</b></label><input type="range" id="rsGap" min="0" max="40" value="16" step="1"></div>
+        <div class="ctrl"><label>Timestamp jitter <b><span id="rsJitv">0.40</span></b></label><input type="range" id="rsJit" min="0" max="1" value="0.4" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Grey dots: the raw samples as they actually arrived, unevenly spaced, with a dropout in the middle. Rust line: the signal placed onto a clean uniform grid using the chosen method. Notice how forward-fill makes a flat ledge across the gap while interpolation guesses a slope that may or may not be real.</div>
+    </div>
+
+    <div class="note">
+      <p class="nt">Practical note · keep the metadata with the data</p>
+      <p>A raw count is not a temperature. Carry the calibration, scale, zero-offset, units, and the true sampling rate alongside every channel, and sanity-check ranges before anything else. A pressure of negative one thousand is almost always a wiring or scaling error, not physics. And when you fill a gap, keep a flag marking which points were measured and which were invented, so later stages can choose to trust them or not.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="anatomy">
+    <p class="sec-num">Section 04</p>
+    <h2>The anatomy of a sensor signal</h2>
+    <p>A raw sensor trace looks like a mess, but it is usually a mess made of a few simple ingredients stacked on top of each other. A useful first move is to imagine pulling them apart. Most signals are some combination of:</p>
+    <div class="defs">
+      <div class="def"><h4>Trend</h4><p>The slow drift up or down. A motor warming up over minutes, a battery discharging, a filter slowly clogging.</p></div>
+      <div class="def"><h4>Periodic part</h4><p>Anything that repeats: the rotation of a shaft, a daily cycle, the firing of an engine. Also called seasonality.</p></div>
+      <div class="def"><h4>Noise</h4><p>The fast, random jitter with no pattern. Electrical pickup, sensor grain, quantization, the world being busy.</p></div>
+    </div>
+    <p>This split is more than tidy bookkeeping. Each ingredient tells a different story to a diagnostic engineer. A rising trend may mean wear or fouling. A change in the periodic part often points to a specific rotating component. A jump in the noise level can mean a loose connection or a failing sensor. Below, build a synthetic signal by mixing the three and watch how the personality of the trace changes.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 4</span> · signal decomposition &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="decompCanvas" height="250"></canvas></div>
+      <div class="controls">
+        <div class="ctrl"><label>Trend slope <b><span id="dcTrendv">0.4</span></b></label><input type="range" id="dcTrend" min="-1" max="1" value="0.4" step="0.05"></div>
+        <div class="ctrl"><label>Periodic amplitude <b><span id="dcAmpv">1.0</span></b></label><input type="range" id="dcAmp" min="0" max="2" value="1" step="0.05"></div>
+        <div class="ctrl"><label>Periodic frequency <b><span id="dcFreqv">3</span> cyc</b></label><input type="range" id="dcFreq" min="1" max="12" value="3" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="dcNoisev">0.25</span></b></label><input type="range" id="dcNoise" min="0" max="1" value="0.25" step="0.02"></div>
+      </div>
+      <div class="fig-cap">The faint coloured lines are the ingredients (ochre trend, teal periodic part). The bold rust line is what the sensor actually delivers: their sum, plus noise. Real analysis runs this in reverse, starting from the bold line and trying to recover the parts.</div>
+    </div>
+
+    <p>A signal whose ingredients stay put over time, the same average level, the same wobble, is called <em class="term">stationary</em>. One whose character keeps shifting, a growing trend or a wobble that gets wider, is <em class="term">non-stationary</em>. The distinction matters because many of the easiest tools assume stationarity, and a slow drift can quietly break them. A common fix is <strong>differencing</strong>: instead of the value itself, work with how much it changed since last time, which often flattens a trend away.</p>
+  </section>
+
+  <!-- 05 -->
+  <section id="frequency">
+    <p class="sec-num">Section 05</p>
+    <h2>Two ways to look: time and frequency</h2>
+    <p>So far we have watched signals as a line moving through time. There is a second, almost magical way to look at the same data. Any repeating signal, no matter how jagged, can be rebuilt by adding together pure sine waves of different speeds. List how much of each speed is present and you have the signal's <em class="term">spectrum</em>: its recipe in terms of frequencies. The mathematical machine that computes this is the <em class="term">Fourier transform</em>, and its fast computer version is the <strong>FFT</strong>.</p>
+    <p>Why bother? Because faults love to hide in the frequency view. A worn gear, an unbalanced fan, a cracked rotor bar each ring at their own characteristic frequency. In the time trace they all blur together into one wobble. In the spectrum they stand apart as separate spikes, each one a suspect with an address. Build a signal from a few tones below and watch the spectrum pick them out.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 5</span> · time domain vs. frequency domain &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="fftCanvas" height="320"></canvas></div>
+      <div class="controls">
+        <div class="ctrl"><label>Tone A frequency <b><span id="fA1v">6</span> Hz</b></label><input type="range" id="fA1" min="1" max="40" value="6" step="1"></div>
+        <div class="ctrl"><label>Tone B frequency <b><span id="fA2v">17</span> Hz</b></label><input type="range" id="fA2" min="1" max="40" value="17" step="1"></div>
+        <div class="ctrl"><label>Tone B strength <b><span id="fA2ampv">0.6</span></b></label><input type="range" id="fA2amp" min="0" max="1" value="0.6" step="0.05"></div>
+        <div class="ctrl"><label>Noise level <b><span id="fNoisev">0.15</span></b></label><input type="range" id="fNoise" min="0" max="0.8" value="0.15" step="0.02"></div>
+      </div>
+      <div class="fig-cap">Top: the signal in time, a single tangled wiggle. Bottom: its spectrum from an FFT, where each tone you mixed in becomes its own labelled peak. Add noise and the peaks stay put while a low fuzzy carpet rises beneath them, which is exactly how you tell signal from noise.</div>
+    </div>
+
+    <div class="note">
+      <p class="nt">Practical note · the price of the spectrum</p>
+      <p>The FFT is not free of trade-offs. You compute it over a window, and a short window gives blurry frequency resolution while a long window blurs <em>when</em> things happened. Cutting a window also creates fake edges that smear energy across the spectrum, so we taper the ends with a <strong>window function</strong> (Hann, Hamming, and friends) before transforming.</p>
+    </div>
+
+    <h3>When the frequency itself moves: the spectrogram</h3>
+    <p>A single FFT assumes the recipe holds still for the whole window. Real machines do not oblige: a motor runs up, a fan coasts down, a fault comes and goes. The <em class="term">spectrogram</em> handles this by computing an FFT on a short window, sliding it forward a little, and stacking the results into an image, time across the bottom, frequency up the side, brightness showing how much energy is present. A steady tone draws a flat horizontal line; a run-up draws a rising diagonal ridge. Sweep the start and end frequency below and watch the ridge tilt.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 6</span> · spectrogram of a run-up &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="spectroCanvas" height="280"></canvas></div>
+      <div class="controls">
+        <div class="ctrl"><label>Start frequency <b><span id="spF0v">6</span> Hz</b></label><input type="range" id="spF0" min="2" max="50" value="6" step="1"></div>
+        <div class="ctrl"><label>End frequency <b><span id="spF1v">48</span> Hz</b></label><input type="range" id="spF1" min="2" max="60" value="48" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="spNoisev">0.10</span></b></label><input type="range" id="spNoise" min="0" max="0.6" value="0.1" step="0.02"></div>
+      </div>
+      <div class="fig-cap">Each vertical strip is one short-window FFT; darker means more energy at that frequency. The bright diagonal is the sweeping tone of the run-up, and the faint horizontal line is a steady background tone. This time-and-frequency picture is the workhorse view for any machine whose speed changes.</div>
+    </div>
+  </section>
+
+  <!-- order tracking -->
+  <section id="ordertrack">
+    <p class="sec-num">Section 06</p>
+    <h2>Order tracking: vibration vs. shaft speed</h2>
+    <p>The frequency view assumes the machine holds a steady speed. Rotating machinery rarely obliges. During a run-up or under varying load the shaft speed sweeps, and so do all the vibration components tied to it: the once-per-rev imbalance, the gear-mesh tone, the bearing rates. A plain spectrum of such a record is a <strong>smear</strong>, because every fault frequency wandered across the bin while you were measuring.</p>
+    <p>The fix is to stop measuring in time and start measuring in <em class="term">angle</em>. With a tachometer giving shaft position, you resample the signal onto a grid of equal shaft increments rather than equal time steps. In that angular domain a component locked to the shaft sits at a fixed <em class="term">order</em>, an integer multiple of rotation, no matter how the speed varied. The smear collapses into sharp lines. The simulation runs a speed ramp with components at orders one, two and three; compare the blurred time-domain spectrum against the crisp order spectrum after angular resampling.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 7</span> · time spectrum vs. order spectrum under a speed ramp &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="otCanvas" height="300"></canvas></div>
+      <div class="readout" id="otRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Speed ramp rate <b><span id="otRampv">1.0</span></b></label><input type="range" id="otRamp" min="0" max="2.5" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Noise <b><span id="otNoisev">0.20</span></b></label><input type="range" id="otNoise" min="0" max="0.8" value="0.2" step="0.05"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#5A554C"></i>time-domain spectrum</span>
+        <span><i style="background:#B0542B"></i>order spectrum (resampled)</span>
+      </div>
+      <div class="fig-cap">Top: the ordinary frequency spectrum of a variable-speed record. With no ramp the peaks are sharp; add ramp and they smear into broad humps as each component sweeps across frequency. Bottom: the same signal resampled to equal shaft angle. The orders snap back to sharp lines at one, two and three times rotation, exactly where the imbalance, misalignment and a blade-pass term live, regardless of how the speed moved.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="memory">
+    <p class="sec-num">Section 07</p>
+    <h2>Memory in the signal: autocorrelation</h2>
+    <p>Sensory data has memory. The temperature now is a good guess for the temperature a second from now; a heartbeat now hints at the next beat's timing. <em class="term">Autocorrelation</em> measures exactly this: how much a signal resembles a time-shifted copy of itself. Shift the signal by a small lag, slide it over the original, and ask how well they match. Do this for every lag and you get a curve that reveals the signal's rhythm.</p>
+    <p>A purely random signal looks like nothing but itself, so its autocorrelation is a single spike at zero lag and flat everywhere else. A periodic signal, by contrast, lights up again at lags equal to its period, and at multiples of it. That makes autocorrelation a quiet, robust way to find a repeating beat even when it is buried in noise, which is why it underpins pitch detection, heart-rate estimation, and rotating-machinery diagnostics.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 8</span> · autocorrelation &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="acfCanvas" height="280"></canvas></div>
+      <div class="readout" id="acfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Hidden period <b><span id="acfPerv">28</span> samples</b></label><input type="range" id="acfPer" min="8" max="60" value="28" step="1"></div>
+        <div class="ctrl"><label>Noise level <b><span id="acfNoisev">0.6</span></b></label><input type="range" id="acfNoise" min="0" max="2" value="0.6" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Top: a periodic signal nearly drowned in noise, where the eye struggles to find the beat. Bottom: its autocorrelation, where the period announces itself as evenly spaced teal peaks. Push the noise up and notice how the peaks survive long after the rhythm is invisible in the raw trace.</div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="cleaning">
+    <p class="sec-num">Section 08</p>
+    <h2>Cleaning the signal: smoothing and filters</h2>
+    <p>Raw sensory data is rarely usable as it arrives. Noise hides the trend you care about; an occasional glitch throws off any average. <em class="term">Filtering</em> is the family of techniques for keeping the part you want and suppressing the part you do not. The simplest and most common is the <em class="term">moving average</em>: replace each point with the average of itself and its neighbours in a small window. Wider window, smoother result.</p>
+    <p>But smoothing always costs something. A wide moving average is sluggish; it lags behind sudden changes, so a real step in the signal arrives late and softened. An <em class="term">exponential moving average</em> (EWMA) is a popular middle ground that weights recent samples more heavily, reacting faster while still calming the noise. Choosing how much to smooth is a permanent tug of war between a clean line and a responsive one.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 9</span> · smoothing &amp; lag &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="smoothCanvas" height="250"></canvas></div>
+      <div class="controls">
+        <div class="ctrl"><label>Moving-average window <b><span id="smWinv">9</span> samples</b></label><input type="range" id="smWin" min="1" max="41" value="9" step="2"></div>
+        <div class="ctrl"><label>EWMA responsiveness <b><span id="smAlphav">0.20</span></b></label><input type="range" id="smAlpha" min="0.02" max="1" value="0.2" step="0.02"></div>
+        <div class="ctrl"><label>Noise level <b><span id="smNoisev">0.5</span></b></label><input type="range" id="smNoise" min="0" max="1.5" value="0.5" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Faint grey: the noisy raw signal, which hides a clean step in the middle. Teal: a moving average, smooth but late to the step. Rust: an EWMA. Widen the window and watch the smoothing improve while the response to the step gets slower. There is no free lunch.</div>
+    </div>
+
+    <div class="note field">
+      <p class="nt">Beyond the moving average</p>
+      <p>Moving averages are <strong>low-pass</strong> filters: they keep slow changes and drop fast ones. The same idea generalizes to <strong>high-pass</strong> filters (keep the fast, drop the slow, good for spotting sudden events), <strong>band-pass</strong> filters (keep only a chosen frequency band, good for isolating a known fault frequency), and <strong>median</strong> filters that excel at removing isolated spikes without smearing edges. Each is just a different rule for combining nearby samples.</p>
+    </div>
+  </section>
+
+  <!-- filter design -->
+  <section id="filterdesign">
+    <p class="sec-num">Section 09</p>
+    <h2>Designing a digital filter</h2>
+    <p>Smoothing was a blunt instrument; a real filter lets you keep exactly the band you want and reject the rest. The <em class="term">Butterworth</em> design is the workhorse, prized for a magnitude response that is maximally flat in the passband with no ripple, rolling off ever more steeply as you raise the <strong>order</strong>. Pick a shape, lowpass to keep the slow trend, highpass to isolate the vibration, bandpass to zoom on a resonance, set the cutoff and the order, and you have shaped the spectrum deliberately.</p>
+    <p>The cost of a sharper roll-off is a longer filter and more phase distortion, which is why offline analysis often filters forward and backward to cancel the phase shift. The simulation draws the Butterworth magnitude response you design, then applies it to a test signal that mixes a slow component, a fast one and noise, so you can watch the unwanted parts vanish as you tune the filter.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 10</span> · Butterworth response &amp; the filtered signal &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="filtCanvas" height="300"></canvas></div>
+      <div class="toggle-row"><span class="lbl">type:</span>
+        <span class="toggle on" id="flLow">low-pass</span>
+        <span class="toggle" id="flHigh">high-pass</span>
+        <span class="toggle" id="flBand">band-pass</span>
+      </div>
+      <div class="readout" id="filtRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Order n <b><span id="flNv">4</span></b></label><input type="range" id="flN" min="1" max="8" value="4" step="1"></div>
+        <div class="ctrl"><label>Cutoff <b><span id="flFcv">0.20</span></b></label><input type="range" id="flFc" min="0.05" max="0.45" value="0.2" step="0.01"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2F6B6B"></i>|H(f)| response</span>
+        <span><i style="background:rgba(90,85,76,0.4)"></i>input signal</span>
+        <span><i style="background:#B0542B"></i>filtered output</span>
+      </div>
+      <div class="fig-cap">Top: the magnitude response of the filter you designed, against normalised frequency. Bottom: a test signal of a slow tone plus a fast tone plus noise (grey) and the filtered result (rust), computed by applying the response in the frequency domain. Switch to high-pass and the slow tone disappears; raise the order and the transition between kept and rejected sharpens toward a brick wall.</div>
+    </div>
+  </section>
+
+  <!-- spectral kurtosis -->
+  <section id="kurtosis">
+    <p class="sec-num">Section 10</p>
+    <h2>Finding the impulsive band: spectral kurtosis</h2>
+    <p>Envelope analysis, next, only works if you band-pass the signal around the right resonance before demodulating. Choose the wrong band and the bearing impacts stay buried. <em class="term">Spectral kurtosis</em> answers the question of which band by measuring, frequency band by frequency band, how <strong>impulsive</strong> the signal is there. Kurtosis is the statistic that spikes when a signal has occasional large bursts against a quiet background, exactly the fingerprint of a bearing impact buried in noise.</p>
+    <p>Sweep a filter bank across the spectrum, compute the kurtosis of each band-filtered signal, and the band with the highest kurtosis is the one where the impacts ring loudest relative to the noise. The full method tiles a frequency-versus-bandwidth plane into the <em class="term">kurtogram</em>; the simulation shows the essential one-dimensional version, scanning bands and crowning the most impulsive one as the band to hand to envelope analysis.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 11</span> · kurtosis across a filter bank &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="skCanvas" height="300"></canvas></div>
+      <div class="readout" id="skRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Fault band centre <b><span id="skBandv">0.30</span></b></label><input type="range" id="skBand" min="0.1" max="0.45" value="0.3" step="0.01"></div>
+        <div class="ctrl"><label>Impulsiveness <b><span id="skImpv">1.0</span></b></label><input type="range" id="skImp" min="0.2" max="2.5" value="1" step="0.1"></div>
+        <div class="ctrl"><label>Background noise <b><span id="skNoisev">0.30</span></b></label><input type="range" id="skNoise" min="0.05" max="0.8" value="0.3" step="0.05"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(90,85,76,0.4)"></i>raw signal</span>
+        <span><i style="background:#C8962C"></i>kurtosis per band</span>
+        <span><i style="background:#B0542B"></i>selected band</span>
+      </div>
+      <div class="fig-cap">Top: the raw vibration, impacts hidden in broadband noise. Bottom: the kurtosis of each band in a filter bank. The band holding the impulsive fault rises above the rest and is crowned in rust; that is the band to band-pass before envelope analysis. Move the fault and the peak follows; bury it in noise and the peak shrinks toward the flat kurtosis of pure noise.</div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="envelope">
+    <p class="sec-num">Section 11</p>
+    <h2>Hunting specific faults: envelope analysis</h2>
+    <p>Here is a technique that feels like a magic trick the first time you see it work, and it is the bread and butter of bearing diagnostics. A damaged bearing does not hum at the defect frequency directly. Instead, every time a rolling element strikes the tiny spall on the race, it rings the whole structure like a bell at a high resonance, thousands of hertz up. What carries the diagnosis is not that ringing but its <strong>rhythm</strong>: the bell gets struck once per defect period. The defect frequency rides as a slow modulation on a fast carrier.</p>
+    <p>Plain spectrum analysis often misses this, because the energy is smeared around the high resonance, far from the low defect frequency you actually want. <em class="term">Envelope analysis</em> recovers it in three moves: band-pass around the resonance to isolate the ringing, take the <em class="term">envelope</em> (the slow outline of the bursts, found by rectifying and smoothing), then run an FFT on that envelope. The defect frequency, invisible before, now stands up as a clean peak with harmonics.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 12</span> · envelope analysis of bearing impacts &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="envCanvas" height="320"></canvas></div>
+      <div class="toggle-row"><span class="lbl">defect preset:</span>
+        <span class="toggle" id="enBPFO" data-fd="9.5">BPFO 9.5</span>
+        <span class="toggle" id="enBPFI" data-fd="15">BPFI 15</span>
+        <span class="toggle" id="enBSF" data-fd="6">BSF 6</span>
+      </div>
+      <div class="readout" id="envRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Defect frequency <b><span id="enFdv">9.5</span> Hz</b></label><input type="range" id="enFd" min="3" max="25" value="9.5" step="0.5"></div>
+        <div class="ctrl"><label>Impact severity <b><span id="enSevv">0.6</span></b></label><input type="range" id="enSev" min="0" max="1" value="0.6" step="0.05"></div>
+        <div class="ctrl"><label>Background noise <b><span id="enNoisev">0.15</span></b></label><input type="range" id="enNoise" min="0" max="0.6" value="0.15" step="0.02"></div>
+      </div>
+      <div class="fig-cap">Top: the raw vibration, a fast resonance ringing in repeated bursts. Middle: the extracted envelope (rust), the slow outline tracing one bump per impact. Bottom: the envelope spectrum, where the defect frequency you set appears as a labelled peak with harmonics. Drop the severity toward zero and the peak sinks into the noise, exactly the early-fault situation a monitor must catch.</div>
+    </div>
+  </section>
+
+  <!-- cepstrum -->
+  <section id="cepstrum">
+    <p class="sec-num">Section 12</p>
+    <h2>Harmonic families: the cepstrum</h2>
+    <p>Some faults announce themselves not as a single tone but as a whole <strong>family</strong> of evenly spaced lines: a gear mesh ringing at its fundamental and a long train of harmonics, or a bearing tone flanked by sidebands from amplitude modulation. The spectrum shows a picket fence of peaks, and reading the spacing by eye is fiddly. The <em class="term">cepstrum</em> turns that family into a single peak.</p>
+    <p>The trick is to take the spectrum of the log spectrum. A regular comb of harmonics spaced by some frequency is itself periodic <strong>along the frequency axis</strong>, and a second transform of the log magnitude finds that period, placing a peak at a <em class="term">quefrency</em> equal to one over the spacing. Whole harmonic families collapse to one clear marker whose position reads off the spacing directly. The simulation builds a fundamental with many harmonics and sidebands, then shows the comb in the spectrum and the single rahmonic peak in the cepstrum.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 13</span> · spectrum comb &rarr; cepstrum peak &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="cepCanvas" height="300"></canvas></div>
+      <div class="readout" id="cepRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Harmonic spacing <b><span id="cpSpacev">8</span></b></label><input type="range" id="cpSpace" min="4" max="16" value="8" step="1"></div>
+        <div class="ctrl"><label>Sideband strength <b><span id="cpSidev">0.4</span></b></label><input type="range" id="cpSide" min="0" max="1" value="0.4" step="0.05"></div>
+        <div class="ctrl"><label>Noise <b><span id="cpNoisev">0.20</span></b></label><input type="range" id="cpNoise" min="0" max="0.8" value="0.2" step="0.05"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#5A554C"></i>log magnitude spectrum</span>
+        <span><i style="background:#B0542B"></i>cepstrum</span>
+        <span><i style="background:#C8962C"></i>detected rahmonic</span>
+      </div>
+      <div class="fig-cap">Top: the log spectrum, a comb of harmonics whose spacing carries the diagnostic information. Bottom: the cepstrum, where that entire comb becomes one peak at the quefrency equal to one over the spacing, marked in ochre. Widen the spacing and the cepstral peak slides toward lower quefrency; the readout compares the spacing recovered from the peak against the truth.</div>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section id="features">
+    <p class="sec-num">Section 13</p>
+    <h2>Turning signals into features</h2>
+    <p>A machine learning model rarely eats a raw waveform. Thousands of wiggling samples are too many, too redundant, and too sensitive to exactly when you started recording. Instead we summarize each window of signal into a short list of meaningful numbers called <em class="term">features</em>. Good features are compact, they survive small shifts in timing, and they change in a way that tracks the health of the thing being measured.</p>
+    <p>Features come in two big families. <strong>Time-domain features</strong> are statistics of the raw values: the mean, the spread (standard deviation), the peak, and shape numbers like root-mean-square, crest factor, and kurtosis that are sensitive to spiky impacts. <strong>Frequency-domain features</strong> come from the spectrum: the energy in specific bands, the location of the dominant peak, the total power. A typical condition-monitoring system computes a few dozen of these every window and lets a model watch them drift.</p>
+
+    <div class="diagram" aria-label="Windowing into features diagram">
+      <svg viewBox="0 0 720 230" role="img" aria-labelledby="winTitle">
+        <title id="winTitle">A long signal is sliced into overlapping windows, each reduced to a feature vector.</title>
+        <text x="12" y="26" font-family="IBM Plex Mono, monospace" font-size="12" fill="#5A554C">continuous signal</text>
+        <path id="featWave" fill="none" stroke="#B0542B" stroke-width="1.6"/>
+        <rect x="60" y="44" width="150" height="58" fill="#2F6B6B" opacity="0.10" stroke="#2F6B6B" stroke-dasharray="4 3"/>
+        <rect x="180" y="44" width="150" height="58" fill="#2F6B6B" opacity="0.10" stroke="#2F6B6B" stroke-dasharray="4 3"/>
+        <rect x="300" y="44" width="150" height="58" fill="#2F6B6B" opacity="0.10" stroke="#2F6B6B" stroke-dasharray="4 3"/>
+        <text x="60" y="120" font-family="IBM Plex Mono, monospace" font-size="11" fill="#2F6B6B">window k</text>
+        <text x="300" y="120" font-family="IBM Plex Mono, monospace" font-size="11" fill="#2F6B6B">window k+2 (overlapping)</text>
+        <line x1="375" y1="128" x2="375" y2="150" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrF)"/>
+        <text x="390" y="145" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A554C">extract features</text>
+        <rect x="250" y="160" width="240" height="52" rx="8" fill="#FBF6E9" stroke="#C8962C"/>
+        <text x="270" y="182" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#2A2724">mean  rms  kurtosis</text>
+        <text x="270" y="200" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#2A2724">peak-freq  band-energy ...</text>
+        <text x="250" y="228" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A554C">one short feature vector per window  &rarr;  fed to the model</text>
+        <defs><marker id="arrF" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 14. Windowing turns an endless stream into a steady drumbeat of fixed-length feature vectors, the format almost every downstream model expects.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="fusion">
+    <p class="sec-num">Section 14</p>
+    <h2>More than one sensor: fusion and voting</h2>
+    <p>One sensor is a single point of failure. When it drifts or dies, a system that trusts it blindly will confidently act on a lie. The cure is <em class="term">redundancy</em>: measure the same quantity with several sensors and combine them. Combining is called <em class="term">sensor fusion</em>, and at its simplest it is just an average that beats down noise. The deeper payoff comes when one sensor goes bad.</p>
+    <p>With two sensors you can <strong>detect</strong> a problem, because their difference, the inter-channel residual, suddenly grows, but you cannot tell which one is wrong. With three you can <strong>vote</strong>: take the median, and a single faulty sensor is automatically outvoted by the two healthy ones while the others carry the estimate. This triple-redundant median trick is everywhere in safety-critical systems, from flight controls to brake pressure. Inject a fault into any of the three channels below and watch the median shrug it off.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 15</span> · triple-redundant fusion &amp; voting &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="fusionCanvas" height="260"></canvas></div>
+      <div class="readout" id="fusionRead"></div>
+      <div class="toggle-row"><span class="lbl">faulty sensor:</span>
+        <span class="toggle on" id="fuA">A</span><span class="toggle" id="fuB">B</span><span class="toggle" id="fuC">C</span>
+      </div>
+      <div class="controls">
+        <div class="ctrl"><label>Fault size <b><span id="fuFaultv">1.6</span></b></label><input type="range" id="fuFault" min="0" max="3" value="1.6" step="0.1"></div>
+        <div class="ctrl"><label>Per-sensor noise <b><span id="fuNoisev">0.20</span></b></label><input type="range" id="fuNoise" min="0.05" max="0.6" value="0.2" step="0.05"></div>
+      </div>
+      <div class="fig-cap">Three faint traces are the three sensors measuring one true quantity. The bold rust line is the median-voted estimate. Partway through, the chosen sensor drifts away, yet the median tracks the truth almost untouched, and the readout flags which channel disagrees.</div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="models">
+    <p class="sec-num">Section 15</p>
+    <h2>Models that watch the features</h2>
+    <p>Once a window is boiled down to a feature vector, a model turns it into a decision. Three shapes of model cover most of monitoring, and which one you reach for depends entirely on what you already know about the failures you are looking for.</p>
+    <div class="defs">
+      <div class="def"><h4>Anomaly detector</h4><p>Learns only what healthy looks like, then flags anything far from it. Needs no fault examples, which is lucky, because real faults are rare. Answers: is this normal?</p></div>
+      <div class="def"><h4>Classifier</h4><p>Learns to name the fault when you have labelled examples of each kind. Answers: which fault is this, inner-race, outer-race, imbalance?</p></div>
+      <div class="def"><h4>Regressor</h4><p>Learns to predict a number, most usefully a health index or the remaining useful life. Answers: how bad, and how long left?</p></div>
+    </div>
+    <p>The honest order of preference in the field is usually anomaly detection first, because healthy data is abundant and faults are not. You graduate to classifiers and regressors only once you have collected enough real failures, or trustworthy simulations of them, to learn from. Whatever the choice, the model sits in the same slot of the pipeline.</p>
+
+    <div class="diagram" aria-label="Feature vector to model types diagram">
+      <svg viewBox="0 0 720 200" role="img" aria-labelledby="modTitle">
+        <title id="modTitle">A feature vector feeds an anomaly detector, classifier, or regressor, each producing a different output.</title>
+        <defs><marker id="arrM" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker></defs>
+        <rect x="14" y="78" width="120" height="46" rx="8" fill="#FBF6E9" stroke="#C8962C"/>
+        <text x="30" y="98" font-family="IBM Plex Mono, monospace" font-size="11" fill="#2A2724">feature</text>
+        <text x="30" y="114" font-family="IBM Plex Mono, monospace" font-size="11" fill="#2A2724">vector</text>
+        <line x1="134" y1="101" x2="176" y2="58" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <line x1="134" y1="101" x2="176" y2="101" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <line x1="134" y1="101" x2="176" y2="144" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#2A2724">
+          <rect x="178" y="34" width="190" height="46" rx="8" fill="#EAF2F1" stroke="#2F6B6B"/><text x="194" y="62">anomaly detector</text>
+          <rect x="178" y="78" width="190" height="46" rx="8" fill="#EAF2F1" stroke="#2F6B6B"/><text x="194" y="106">classifier</text>
+          <rect x="178" y="122" width="190" height="46" rx="8" fill="#EAF2F1" stroke="#2F6B6B"/><text x="194" y="150">regressor</text>
+        </g>
+        <line x1="368" y1="57" x2="410" y2="57" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <line x1="368" y1="101" x2="410" y2="101" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <line x1="368" y1="145" x2="410" y2="145" stroke="#5A554C" stroke-width="1.3" marker-end="url(#arrM)"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#5A554C">
+          <text x="416" y="61">novelty score &rarr; alarm</text>
+          <text x="416" y="105">fault type / label</text>
+          <text x="416" y="149">health index / RUL</text>
+        </g>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 16. The same feature vector can drive three different jobs. Most programs start at the top, where no fault examples are needed, and work down as failure data accumulates.</p>
+  </section>
+
+  <!-- 12 -->
+  <section id="kalman">
+    <p class="sec-num">Section 16</p>
+    <h2>Model-based residuals: the Kalman filter</h2>
+    <p>An earlier section learned what healthy looks like from data. There is an older, complementary idea: if you have a <strong>physical model</strong> of how the system should behave, run it alongside the real one and watch where they disagree. That disagreement is the <em class="term">residual</em>, and a model that maintains a running estimate while comparing it to each new measurement is an <em class="term">observer</em>. The most famous observer is the <em class="term">Kalman filter</em>.</p>
+    <p>The Kalman filter works in a loop of two steps. It <strong>predicts</strong> where the signal should go next from its model, then <strong>corrects</strong> that prediction using the new measurement, trusting each source in proportion to how noisy it believes them to be. The gap between prediction and measurement is the <em class="term">innovation</em>, a residual that is small, white noise when the model fits and the sensor is healthy, and which jumps the moment either assumption breaks. Tune how much you trust the sensor against the model below and watch the estimate firm up or chase the noise.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 17</span> · Kalman filter &amp; innovation &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="kalmanCanvas" height="290"></canvas></div>
+      <div class="readout" id="kfRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Measurement noise (R) <b><span id="kfRv">0.60</span></b></label><input type="range" id="kfR" min="0.05" max="2" value="0.6" step="0.05"></div>
+        <div class="ctrl"><label>Process noise (Q) <b><span id="kfQv">0.020</span></b></label><input type="range" id="kfQ" min="0.001" max="0.2" value="0.02" step="0.001"></div>
+      </div>
+      <div class="fig-cap">Grey: the true signal. Faint dots: noisy measurements. Rust: the Kalman estimate, which smooths the dots toward the truth. Teal below: the innovation. Trust the sensor too much (high process noise) and the estimate chases every wiggle; trust the model too much (low process noise) and it lags real change. The innovation is what a fault detector actually watches.</div>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section id="alarm">
+    <p class="sec-num">Section 17</p>
+    <h2>Raising the alarm: thresholds and CUSUM</h2>
+    <p>However you produce a residual, by subtracting a learned model, an observer, or a redundant sensor, the same final question remains: when is it big enough to act on? The simplest answer is a <em class="term">threshold</em>, usually a few standard deviations away from the normal residual level. Cross it and raise an alarm. Set it too tight and you drown in false alarms that get ignored; too loose and you miss the real fault. That balance, false alarms against missed detections, is the central tension of every monitoring system. The simulation injects a slow drift fault so you can tune the threshold yourself.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 18</span> · residual threshold alarm &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="anomCanvas" height="260"></canvas></div>
+      <div class="readout" id="anomRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Fault size <b><span id="anFaultv">1.4</span></b></label><input type="range" id="anFault" min="0" max="3" value="1.4" step="0.1"></div>
+        <div class="ctrl"><label>Alarm threshold <b><span id="anThreshv">3.0</span> &sigma;</b></label><input type="range" id="anThresh" min="1" max="6" value="3" step="0.1"></div>
+        <div class="ctrl"><label>Background noise <b><span id="anNoisev">0.3</span></b></label><input type="range" id="anNoise" min="0.05" max="0.8" value="0.3" step="0.05"></div>
+      </div>
+      <div class="fig-cap">The residual (rust) sits near zero while healthy, then drifts as the injected fault grows. The shaded band is the normal range; the dashed lines are your alarm threshold. Points that escape the band turn solid and trip the alarm. Tighten the threshold and you catch the fault sooner, but watch the false-alarm count rise.</div>
+    </div>
+
+    <p>A fixed threshold is deaf to small, slow drifts: each individual point stays inside the band even while the mean creeps upward. <em class="term">CUSUM</em>, the cumulative sum, fixes this by adding up how far the signal sits above its expected level, sample after sample. A tiny persistent bias that never trips a threshold accumulates into a large running total that eventually does. CUSUM trades a little reaction time for the ability to catch drifts a threshold would sleep through. Shrink the shift below until the plain alarm above would miss it, and see CUSUM still fire.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 19</span> · CUSUM change detection &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="cusumCanvas" height="270"></canvas></div>
+      <div class="readout" id="cusumRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Mean shift size <b><span id="cuShiftv">0.5</span></b></label><input type="range" id="cuShift" min="0" max="1.5" value="0.5" step="0.05"></div>
+        <div class="ctrl"><label>Slack (k) <b><span id="cuKv">0.30</span></b></label><input type="range" id="cuK" min="0" max="1" value="0.3" step="0.05"></div>
+        <div class="ctrl"><label>Decision limit (h) <b><span id="cuHv">5.0</span></b></label><input type="range" id="cuH" min="1" max="12" value="5" step="0.5"></div>
+      </div>
+      <div class="fig-cap">Top: a residual with a small mean shift partway, the kind a fixed threshold misses. Bottom: the CUSUM statistic, which stays flat while healthy then climbs steadily once the shift starts, tripping its decision limit (dashed) a while after the change. The slack k sets how much drift to ignore as normal.</div>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section id="rul">
+    <p class="sec-num">Section 18</p>
+    <h2>From alarm to forecast: degradation and RUL</h2>
+    <p>Detecting that something is wrong is <strong>diagnostics</strong>. The richer, more valuable goal is <strong>prognostics</strong>: estimating how much useful life is left so maintenance happens before the breakdown, not after. The trick is to distil the machine's condition into a single <em class="term">health indicator</em> that trends steadily toward a known failure level, then fit that trend and project it forward. Where the projection crosses the failure line is the predicted end of life; the distance from now to there is the <em class="term">remaining useful life</em>, or RUL.</p>
+    <p>The honesty of prognostics lives in its uncertainty. Early on, with little of the degradation curve observed, the projection is a wild guess and the confidence cone is wide. As more of the curve comes in, the fit tightens and the cone narrows, so the RUL estimate sharpens just as the decision becomes urgent. Slide the observation window below from early to late and watch the forecast and its cone converge on the truth.</p>
+
+    <div class="fig">
+      <div class="fig-head"><span class="tag">FIGURE 20</span> · degradation trend &amp; RUL forecast &nbsp;· interactive</div>
+      <div class="fig-body"><canvas id="rulCanvas" height="280"></canvas></div>
+      <div class="readout" id="rulRead"></div>
+      <div class="controls">
+        <div class="ctrl"><label>Observed so far <b><span id="ruNowv">60</span>%</b></label><input type="range" id="ruNow" min="30" max="95" value="60" step="1"></div>
+        <div class="ctrl"><label>Degradation rate <b><span id="ruRatev">1.5</span></b></label><input type="range" id="ruRate" min="0.5" max="3" value="1.5" step="0.1"></div>
+        <div class="ctrl"><label>Measurement noise <b><span id="ruNoisev">0.12</span></b></label><input type="range" id="ruNoise" min="0" max="0.5" value="0.12" step="0.02"></div>
+      </div>
+      <div class="fig-cap">Rust dots: the health indicator measured up to now. Teal curve: a trend fitted to what has been seen and extrapolated forward, with a shaded confidence cone. The dashed line is the failure threshold; where the forecast meets it sets the RUL. Reveal more of the curve and the cone shrinks, the classic prognostic payoff of waiting just long enough.</div>
+    </div>
+
+    <div class="note field">
+      <p class="nt">Why the residual you built earlier matters here</p>
+      <p>The same residual that tripped an alarm today becomes, tracked over weeks, the degradation curve you extrapolate. Diagnostics and prognostics are not separate machines; they are the same signal read at two timescales. A good health indicator is monotonic, robust to operating conditions, and traceable to a physical wear mechanism, which is why feature engineering and domain knowledge matter as much as the forecasting math.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section id="edge">
+    <p class="sec-num">Section 19</p>
+    <h2>Running it on the edge</h2>
+    <p>Much of the time this whole pipeline does not run in a comfortable data centre. It runs on a microcontroller bolted to the machine, the <em class="term">edge</em>, where every resource is rationed. There is rarely the bandwidth to ship raw high-rate vibration to the cloud, the power budget to run a large model, or the memory to hold more than a few seconds of history. So the pipeline is reshaped around three hard budgets.</p>
+    <div class="defs">
+      <div class="def"><h4>Compute &amp; power</h4><p>Often a few hundred MHz and a fixed milliwatt budget. Heavy math like long FFTs is scheduled carefully or pushed to a hardware accelerator.</p></div>
+      <div class="def"><h4>Memory</h4><p>Kilobytes, not gigabytes. The signal lives in a small <strong>ring buffer</strong> that overwrites itself, and only features survive, not the raw stream.</p></div>
+      <div class="def"><h4>Numeric format</h4><p>Floating point is expensive. Models are <strong>quantized</strong> to 8-bit integers (INT8), shrinking size and energy roughly fourfold for a small accuracy cost.</p></div>
+    </div>
+    <p>The design pattern that falls out of these limits is to <strong>extract features as early and as cheaply as possible</strong>, so the expensive part of the system sees a trickle of small vectors rather than a torrent of samples. A compressed INT8 model then makes the call on-device, and only a decision, an alarm, a health index, the occasional snapshot, ever leaves over the network. This is why everything earlier in this guide, the windowing, the cheap statistics, the careful choice of sampling rate, is not academic: on the edge it is the difference between a system that fits and one that does not.</p>
+
+    <div class="diagram" aria-label="On-device edge pipeline diagram">
+      <svg viewBox="0 0 740 150" role="img" aria-labelledby="edgeTitle">
+        <title id="edgeTitle">On-device pipeline: sensor to ring buffer to feature extraction to quantized model to decision, with only the decision leaving over the network.</title>
+        <defs>
+          <marker id="arrE" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker>
+          <style>
+            .eb{fill:#FBF9F4;stroke:#C3BAA8;stroke-width:1.3;}
+            .et{font-family:"IBM Plex Mono",monospace;font-size:10.5px;fill:#2A2724;}
+            .es{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:#5A554C;}
+          </style>
+        </defs>
+        <rect class="eb" x="8" y="46" width="92" height="46" rx="7" fill="#EAF2F1" stroke="#2F6B6B"/><text class="et" x="34" y="66">sensor</text><text class="es" x="20" y="82">high-rate</text>
+        <line x1="100" y1="69" x2="124" y2="69" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrE)"/>
+        <rect class="eb" x="126" y="46" width="96" height="46" rx="7"/><text class="et" x="146" y="66">ring buffer</text><text class="es" x="146" y="82">few KB</text>
+        <line x1="222" y1="69" x2="246" y2="69" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrE)"/>
+        <rect class="eb" x="248" y="46" width="110" height="46" rx="7"/><text class="et" x="262" y="66">feature extract</text><text class="es" x="262" y="82">cheap stats</text>
+        <line x1="358" y1="69" x2="382" y2="69" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrE)"/>
+        <rect class="eb" x="384" y="46" width="120" height="46" rx="7" fill="#FBF6E9" stroke="#C8962C"/><text class="et" x="402" y="66">INT8 model</text><text class="es" x="398" y="82">quantized NN</text>
+        <line x1="504" y1="69" x2="528" y2="69" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrE)"/>
+        <rect class="eb" x="530" y="46" width="96" height="46" rx="7" fill="#F6E7E0" stroke="#B0542B"/><text class="et" x="548" y="66">decision</text><text class="es" x="542" y="82">alarm · RUL</text>
+        <line x1="626" y1="69" x2="650" y2="69" stroke="#5A554C" stroke-width="1.4" marker-end="url(#arrE)"/>
+        <text class="es" x="654" y="64">network</text><text class="es" x="654" y="78">(tiny)</text>
+        <rect x="8" y="14" width="350" height="20" fill="none"/>
+        <text class="es" x="8" y="28">stays on-device, high bandwidth</text>
+        <line x1="8" y1="104" x2="626" y2="104" stroke="#D9D2C5" stroke-dasharray="3 4"/>
+        <text class="es" x="8" y="120">everything left of the network link runs on the microcontroller</text>
+      </svg>
+    </div>
+    <p class="fig-cap" style="padding-left:0;">Figure 21. The edge pattern: keep the firehose of raw data local, send only the conclusion.</p>
+  </section>
+
+  <!-- 16 -->
+  <section id="pipeline">
+    <p class="sec-num">Section 20</p>
+    <h2>The full pipeline, end to end</h2>
+    <p>Put the pieces together and a sensory-data system is a relay race. The physical quantity is handed off through conditioning, conversion, cleaning, and feature extraction before any model or human sees it. Each stage throws away some information on purpose, keeping only what the next stage needs. Here is the whole path on one diagram.</p>
+
+    <div class="diagram" aria-label="Sensing-to-decision pipeline block diagram">
+      <svg viewBox="0 0 760 200" role="img" aria-labelledby="pipeTitle">
+        <title id="pipeTitle">Block diagram from physical quantity through sensor, conditioning, ADC, processing, features, model, to decision.</title>
+        <defs>
+          <marker id="arr2" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5A554C"/></marker>
+          <style>
+            .blk{fill:#FBF9F4;stroke:#C3BAA8;stroke-width:1.3;}
+            .blkt{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:#2A2724;}
+            .blks{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:#5A554C;}
+            .ph{fill:#EAF2F1;stroke:#2F6B6B;}
+            .dec{fill:#FBF6E9;stroke:#C8962C;}
+            .ln{stroke:#5A554C;stroke-width:1.4;}
+          </style>
+        </defs>
+        <rect class="blk ph" x="8"  y="20" width="92" height="48" rx="7"/><text class="blkt" x="20" y="40">physical</text><text class="blkt" x="20" y="55">quantity</text>
+        <line class="ln" x1="100" y1="44" x2="124" y2="44" marker-end="url(#arr2)"/>
+        <rect class="blk" x="126" y="20" width="92" height="48" rx="7"/><text class="blkt" x="146" y="40">sensor</text><text class="blks" x="138" y="56">transduce</text>
+        <line class="ln" x1="218" y1="44" x2="242" y2="44" marker-end="url(#arr2)"/>
+        <rect class="blk" x="244" y="20" width="100" height="48" rx="7"/><text class="blkt" x="256" y="38">conditioning</text><text class="blks" x="256" y="55">amp · anti-alias</text>
+        <line class="ln" x1="344" y1="44" x2="368" y2="44" marker-end="url(#arr2)"/>
+        <rect class="blk" x="370" y="20" width="84" height="48" rx="7"/><text class="blkt" x="394" y="40">ADC</text><text class="blks" x="380" y="56">sample · quantize</text>
+        <line class="ln" x1="412" y1="68" x2="412" y2="96" marker-end="url(#arr2)"/>
+        <rect class="blk" x="362" y="98" width="100" height="48" rx="7"/><text class="blkt" x="372" y="118">processing</text><text class="blks" x="372" y="134">filter · transform</text>
+        <line class="ln" x1="362" y1="122" x2="338" y2="122" marker-end="url(#arr2)"/>
+        <rect class="blk" x="236" y="98" width="100" height="48" rx="7"/><text class="blkt" x="250" y="118">features</text><text class="blks" x="246" y="134">summarize</text>
+        <line class="ln" x1="236" y1="122" x2="212" y2="122" marker-end="url(#arr2)"/>
+        <rect class="blk" x="120" y="98" width="92" height="48" rx="7"/><text class="blkt" x="132" y="118">model</text><text class="blks" x="130" y="134">detect · predict</text>
+        <line class="ln" x1="120" y1="122" x2="96" y2="122" marker-end="url(#arr2)"/>
+        <rect class="blk dec" x="8" y="98" width="92" height="48" rx="7"/><text class="blkt" x="26" y="118">decision</text><text class="blks" x="16" y="134">alarm · RUL</text>
+        <text class="blks" x="500" y="44">smooth, continuous world</text>
+        <text class="blks" x="500" y="122">discrete, digital world</text>
+        <line x1="490" y1="84" x2="740" y2="84" stroke="#D9D2C5" stroke-dasharray="3 4"/>
+      </svg>
+    </div>
+
+    <p>And a decision rarely ends the story; it feeds a control loop. The classic <em class="term">condition-monitoring loop</em> reads the sensor, decides whether the health indicator has crossed a line, and routes to the right response. Drawn as a flowchart it looks like this.</p>
+
+    <div class="diagram" aria-label="Condition monitoring decision flowchart">
+      <svg viewBox="0 0 420 430" role="img" aria-labelledby="flowTitle">
+        <title id="flowTitle">Flowchart: acquire window, extract features, compute residual, compare to threshold, then either log healthy or assess severity and act.</title>
+        <defs>
+          <marker id="arr3" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5A554C"/></marker>
+          <style>
+            .fb{fill:#FBF9F4;stroke:#C3BAA8;stroke-width:1.3;}
+            .ft{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:#2A2724;}
+            .fl{stroke:#5A554C;stroke-width:1.4;fill:none;}
+            .flt{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:#B0542B;}
+          </style>
+        </defs>
+        <rect class="fb" x="120" y="14" width="180" height="40" rx="20" fill="#EAF2F1" stroke="#2F6B6B"/><text class="ft" x="148" y="39">acquire signal window</text>
+        <line class="fl" x1="210" y1="54" x2="210" y2="74" marker-end="url(#arr3)"/>
+        <rect class="fb" x="120" y="76" width="180" height="40" rx="6"/><text class="ft" x="148" y="101">extract features</text>
+        <line class="fl" x1="210" y1="116" x2="210" y2="136" marker-end="url(#arr3)"/>
+        <rect class="fb" x="120" y="138" width="180" height="40" rx="6"/><text class="ft" x="135" y="163">compute residual / index</text>
+        <line class="fl" x1="210" y1="178" x2="210" y2="198" marker-end="url(#arr3)"/>
+        <polygon class="fb" points="210,198 320,250 210,302 100,250" fill="#FBF6E9" stroke="#C8962C"/>
+        <text class="ft" x="168" y="246">over</text><text class="ft" x="158" y="262">threshold?</text>
+        <line class="fl" x1="100" y1="250" x2="46" y2="250" marker-end="url(#arr3)"/><text class="flt" x="58" y="242">no</text>
+        <rect class="fb" x="6" y="230" width="40" height="40" rx="6"/><text class="ft" x="14" y="255">log</text>
+        <line class="fl" x1="26" y1="230" x2="26" y2="34" marker-end="url(#arr3)"/>
+        <path class="fl" d="M26,34 L120,34" marker-end="url(#arr3)"/>
+        <line class="fl" x1="210" y1="302" x2="210" y2="322" marker-end="url(#arr3)"/><text class="flt" x="218" y="318">yes</text>
+        <rect class="fb" x="120" y="324" width="180" height="40" rx="6"/><text class="ft" x="138" y="349">assess severity &amp; trend</text>
+        <line class="fl" x1="210" y1="364" x2="210" y2="384" marker-end="url(#arr3)"/>
+        <rect class="fb" x="100" y="386" width="220" height="40" rx="6" fill="#F6E7E0" stroke="#B0542B"/><text class="ft" x="118" y="411">alarm · estimate RUL · schedule</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section id="practice">
+    <p class="sec-num">Section 21</p>
+    <h2>Practical notes</h2>
+    <p>A handful of lessons recur across almost every project that turns sensory data into decisions. None of them are glamorous and all of them are expensive to learn the hard way.</p>
+    <ul>
+      <li><strong>Timestamps are data too.</strong> Clocks drift, sensors sample at slightly different rates, and channels arrive out of order. Before any analysis, get everything onto a common, evenly spaced time base. Most real headaches trace back to time, not values.</li>
+      <li><strong>Gaps are normal, plan for them.</strong> Sensors drop out, networks hiccup, power blips. Decide in advance how you mark missing data and how you fill or skip it, because a model that silently treats a gap as a zero will learn nonsense.</li>
+      <li><strong>Mind the units and the offset.</strong> A raw count is not a temperature. Keep calibration, scale, and zero-offset with the data, and sanity-check ranges.</li>
+      <li><strong>Normalize before you compare.</strong> Channels with wildly different magnitudes let the loud ones dominate any model. Scaling each channel to a common range is usually required, not optional.</li>
+      <li><strong>Beware leakage from the future.</strong> Every feature must be computable from data available at that moment. Centering on the full-series mean, or smoothing with a window that peeks ahead, quietly leaks the future into the past and inflates your accuracy until deployment.</li>
+      <li><strong>Label the operating context.</strong> The same vibration is healthy at idle and alarming at full load. Record speed, load, and temperature alongside the signal, because a residual only means something relative to the conditions that produced it.</li>
+      <li><strong>The cheapest fix is upstream.</strong> A better sensor mount, a shorter cable, or a proper anti-alias filter removes problems no amount of clever processing can fully undo. Spend effort at the front of the pipeline first.</li>
+    </ul>
+    <div class="note field">
+      <p class="nt">The one-sentence summary</p>
+      <p>Treat a sensor as a translator that turns the physical world into ordered numbers, respect the limits of that translation (how fast you sampled, what you rounded away, what you filtered out), and most of working with sensory data becomes a careful, honest conversation between the signal and the question you are asking of it.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section id="refs">
+    <p class="sec-num">Section 22</p>
+    <h2>References and further reading</h2>
+    <ol class="refs">
+      <li>Oppenheim, A. V., &amp; Schafer, R. W. <em>Discrete-Time Signal Processing.</em> Pearson. The standard reference for sampling, the Nyquist theorem, quantization, filtering, and the discrete Fourier transform.</li>
+      <li>Shumway, R. H., &amp; Stoffer, D. S. <em>Time Series Analysis and Its Applications.</em> Springer. Decomposition, stationarity, autocorrelation, and forecasting, with worked data examples.</li>
+      <li>Hyndman, R. J., &amp; Athanasopoulos, G. <em>Forecasting: Principles and Practice.</em> OTexts. A free, accessible online textbook on trend, seasonality, and practical time-series modelling.</li>
+      <li>Randall, R. B. <em>Vibration-based Condition Monitoring.</em> Wiley. Spectra, the spectrogram, envelope analysis, and fault frequencies for rotating machinery.</li>
+      <li>Isermann, R. <em>Fault-Diagnosis Systems: An Introduction from Fault Detection to Fault Tolerance.</em> Springer. Residual generation, observers, thresholds, and model-based diagnosis.</li>
+      <li>Simon, D. <em>Optimal State Estimation: Kalman, H-infinity, and Nonlinear Approaches.</em> Wiley. A clear, practical treatment of the Kalman filter and observers.</li>
+      <li>Montgomery, D. C. <em>Introduction to Statistical Quality Control.</em> Wiley. CUSUM and other control-chart methods for detecting small shifts.</li>
+      <li>Lei, Y., et al. (2018). "Machinery health prognostics: A systematic review from data acquisition to RUL prediction." <em>Mechanical Systems and Signal Processing.</em> A survey connecting features, health indicators, and remaining useful life.</li>
+      <li>Smith, S. W. <em>The Scientist and Engineer's Guide to Digital Signal Processing.</em> California Technical Publishing. Famously plain-language treatment of the FFT, filters, and quantization, available free online.</li>
+      <li>Warden, P., &amp; Situnayake, D. <em>TinyML.</em> O'Reilly. Machine learning on microcontrollers, quantization, and the constraints of edge deployment.</li>
+    </ol>
+    <p class="muted" style="font-size:14px;">References are pointers for further study; the explanations and simulations above are written from first principles rather than drawn from any single source.</p>
+  </section>
+
+</div>
+
+<footer>
+  Time Series as Sensory Data &nbsp;·&nbsp; an interactive monograph &nbsp;·&nbsp; By Majid Mazouchi · Drafted with Claude
+</footer>
+
+<script>
+"use strict";
+(function(){
+  var INK="#2A2724", INKSOFT="#5A554C", RUST="#B0542B", TEAL="#2F6B6B",
+      OCHRE="#C8962C", LINE="#D9D2C5", PAPER="#FBF9F4";
+
+  function setup(canvas, drawFn){
+    function resize(){
+      var dpr=window.devicePixelRatio||1;
+      var w=canvas.clientWidth||canvas.parentNode.clientWidth||600;
+      var h=parseInt(canvas.getAttribute("height"),10);
+      canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+      var ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas._W=w; canvas._H=h; canvas._ctx=ctx; drawFn();
+    }
+    canvas._resize=resize; window.addEventListener("resize",resize); return resize;
+  }
+  function clear(ctx,w,h){ ctx.clearRect(0,0,w,h); }
+  function axis(ctx,x0,y0,x1,y1){ ctx.strokeStyle=LINE; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke(); }
+  function gauss(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function label(ctx,txt,x,y,color,align){ ctx.fillStyle=color||INKSOFT;
+    ctx.font='11px "IBM Plex Mono", monospace'; ctx.textAlign=align||"left"; ctx.fillText(txt,x,y); ctx.textAlign="left"; }
+  function median3(a,b,c){ return Math.max(Math.min(a,b),Math.min(Math.max(a,b),c)); }
+  function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function ramp(v){ // 0..1 -> paper->ochre->rust->ink
+    var stops=[[0,hexToRgb("#F4F1EA")],[0.4,hexToRgb("#E0B45C")],[0.72,hexToRgb("#B0542B")],[1,hexToRgb("#2A2724")]];
+    v=Math.max(0,Math.min(1,v));
+    for(var i=1;i<stops.length;i++){ if(v<=stops[i][0]){ var t=(v-stops[i-1][0])/(stops[i][0]-stops[i-1][0]||1);
+      var a=stops[i-1][1],b=stops[i][1]; return "rgb("+Math.round(lerp(a[0],b[0],t))+","+Math.round(lerp(a[1],b[1],t))+","+Math.round(lerp(a[2],b[2],t))+")"; } }
+    return "rgb(42,39,36)";
+  }
+  function fft(re,im){
+    var n=re.length,j=0,i,k;
+    for(i=1;i<n;i++){ var bit=n>>1; for(;j&bit;bit>>=1){ j^=bit; } j^=bit;
+      if(i<j){ var tr=re[i];re[i]=re[j];re[j]=tr; var ti=im[i];im[i]=im[j];im[j]=ti; } }
+    for(var len=2;len<=n;len<<=1){ var ang=-2*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+      for(i=0;i<n;i+=len){ var cwr=1,cwi=0;
+        for(k=0;k<len/2;k++){ var ur=re[i+k],ui=im[i+k];
+          var vr=re[i+k+len/2]*cwr-im[i+k+len/2]*cwi, vi=re[i+k+len/2]*cwi+im[i+k+len/2]*cwr;
+          re[i+k]=ur+vr; im[i+k]=ui+vi; re[i+k+len/2]=ur-vr; im[i+k+len/2]=ui-vi;
+          var ncwr=cwr*wr-cwi*wi; cwi=cwr*wi+cwi*wr; cwr=ncwr; } } }
+  }
+
+  // ===== HERO =====
+  (function(){
+    var c=document.getElementById("heroCanvas"); if(!c)return;
+    var buf=[],N=320,t=0;
+    var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function sample(tt){ return 0.9*Math.sin(tt*0.9)+0.4*Math.sin(tt*3.1+0.5)+0.18*Math.sin(tt*9.0)
+      +0.12*gauss()+0.5*Math.exp(-Math.pow(((tt%14)-7),2)*1.4)*Math.sin(tt*15); }
+    for(var i=0;i<N;i++){ buf.push(sample(t)); t+=0.12; }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      ctx.strokeStyle="rgba(195,186,168,0.5)"; ctx.lineWidth=1;
+      for(var gy=1;gy<4;gy++){ var yy=h*gy/4; ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(w,yy); ctx.stroke(); }
+      ctx.lineWidth=1.7; ctx.strokeStyle=RUST; ctx.beginPath();
+      for(var i=0;i<buf.length;i++){ var x=i/(N-1)*w, y=h/2-buf[i]*(h*0.30); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y); }
+      ctx.stroke();
+      var ly=h/2-buf[buf.length-1]*(h*0.30); ctx.fillStyle=TEAL; ctx.beginPath(); ctx.arc(w-2,ly,3.2,0,7); ctx.fill(); }
+    setup(c,draw)();
+    if(!reduced){ setInterval(function(){ buf.push(sample(t)); t+=0.12; if(buf.length>N)buf.shift(); draw(); },60); }
+  })();
+
+  // ===== FIG 1 aliasing =====
+  (function(){
+    var c=document.getElementById("aliasCanvas"); if(!c)return;
+    var fEl=document.getElementById("aliasF"),fsEl=document.getElementById("aliasFs");
+    var fV=document.getElementById("aliasFv"),fsV=document.getElementById("aliasFsv"),read=document.getElementById("aliasRead");
+    function aliasFreq(f,fs){ return Math.abs(f-Math.round(f/fs)*fs); }
+    function draw(){ var ctx=c._ctx,w=c._H&&c._W,h=c._H; if(!ctx)return;
+      var f=parseFloat(fEl.value),fs=parseFloat(fsEl.value); fV.textContent=f; fsV.textContent=fs; clear(ctx,c._W,h);
+      var x0=10,x1=c._W-10,midY=h/2,amp=h*0.32; axis(ctx,x0,14,x1,h-18);
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1.4; ctx.beginPath();
+      for(var px=0;px<=(x1-x0);px++){ var tt=px/(x1-x0); var y=midY-Math.sin(2*Math.PI*f*tt)*amp; if(px===0)ctx.moveTo(x0+px,y);else ctx.lineTo(x0+px,y);} ctx.stroke();
+      var sx=[],sy=[]; for(var i=0;i<=fs;i++){ var tt=i/fs; if(tt>1.0001)break; var v=Math.sin(2*Math.PI*f*tt); sx.push(x0+tt*(x1-x0)); sy.push(midY-v*amp); }
+      var fa=aliasFreq(f,fs), aliased=fa<f-0.01;
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.6; ctx.setLineDash(aliased?[]:[5,4]); ctx.beginPath();
+      for(var p2=0;p2<=(x1-x0);p2++){ var t2=p2/(x1-x0); var y2=midY-Math.sin(2*Math.PI*fa*t2)*amp; if(p2===0)ctx.moveTo(x0+p2,y2);else ctx.lineTo(x0+p2,y2);} ctx.stroke(); ctx.setLineDash([]);
+      for(var s=0;s<sx.length;s++){ ctx.strokeStyle="rgba(176,84,43,0.35)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(sx[s],midY); ctx.lineTo(sx[s],sy[s]); ctx.stroke();
+        ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(sx[s],sy[s],2.8,0,7); ctx.fill(); }
+      label(ctx,"1 second",x1-2,h-4,INKSOFT,"right");
+      var nyq=fs>=2*f;
+      read.innerHTML='<span class="'+(nyq?'ok':'warn')+'">Nyquist limit (fs/2): <b>'+(fs/2).toFixed(1)+' Hz</b></span><span>signal: <b>'+f.toFixed(1)+' Hz</b></span>'+
+        (nyq?'<span class="ok">status: <b>captured faithfully</b></span>':'<span class="warn">status: <b>ALIASED &rarr; appears as '+fa.toFixed(1)+' Hz</b></span>'); }
+    fEl.addEventListener("input",draw); fsEl.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 2 quantization =====
+  (function(){
+    var c=document.getElementById("quantCanvas"); if(!c)return;
+    var bEl=document.getElementById("qBits"),aEl=document.getElementById("qAmp");
+    var bV=document.getElementById("qBitsv"),aV=document.getElementById("qAmpv"),read=document.getElementById("quantRead");
+    function sig(t){ return Math.sin(2*Math.PI*1.5*t)+0.4*Math.sin(2*Math.PI*4*t); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var bits=parseInt(bEl.value,10),amp=parseFloat(aEl.value); bV.textContent=bits; aV.textContent=amp.toFixed(2); clear(ctx,w,h);
+      var x0=10,x1=w-10,mid=h*0.40,scale=h*0.30; axis(ctx,x0,12,x1,h-14);
+      var levels=Math.pow(2,bits), step=2/levels, Npts=400;
+      ctx.strokeStyle="rgba(90,85,76,0.45)"; ctx.lineWidth=1.3; ctx.beginPath();
+      for(var i=0;i<=Npts;i++){ var t=i/Npts; var y=mid-amp*sig(t)*scale; if(i===0)ctx.moveTo(x0+t*(x1-x0),y);else ctx.lineTo(x0+t*(x1-x0),y);} ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.7; ctx.beginPath(); var prevY=null;
+      for(var k=0;k<=Npts;k++){ var t2=k/Npts; var raw=amp*sig(t2); var q=Math.round(raw/step)*step; if(q>1)q=1; if(q<-1)q=-1;
+        var X=x0+t2*(x1-x0), Y=mid-q*scale; if(k===0){ctx.moveTo(X,Y);} else { ctx.lineTo(X,prevY); ctx.lineTo(X,Y);} prevY=Y; } ctx.stroke();
+      var eMid=h-30, eScale=h*0.10/step;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,eMid); ctx.lineTo(x1,eMid); ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.2; ctx.beginPath();
+      for(var m=0;m<=Npts;m++){ var t3=m/Npts; var raw3=amp*sig(t3); var q3=Math.round(raw3/step)*step; if(q3>1)q3=1; if(q3<-1)q3=-1; var err=raw3-q3;
+        var Xe=x0+t3*(x1-x0), Ye=eMid-err*eScale; if(m===0)ctx.moveTo(Xe,Ye);else ctx.lineTo(Xe,Ye);} ctx.stroke();
+      label(ctx,"analog (grey) vs. quantized (rust)",x0,24,INKSOFT);
+      label(ctx,"quantization error",x0,eMid-10,TEAL);
+      var snr=6.02*bits+1.76;
+      read.innerHTML='<span>levels: <b>'+levels+'</b></span><span>step size: <b>'+step.toFixed(4)+'</b></span><span class="ok">ideal SNR: <b>'+snr.toFixed(1)+' dB</b></span>'; }
+    bEl.addEventListener("input",draw); aEl.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 3 resampling & gaps =====
+  (function(){
+    var c=document.getElementById("resampCanvas"); if(!c)return;
+    var gEl=document.getElementById("rsGap"),jEl=document.getElementById("rsJit");
+    var gV=document.getElementById("rsGapv"),jV=document.getElementById("rsJitv");
+    var tLin=document.getElementById("rsLin"),tFf=document.getElementById("rsFfill"),tNone=document.getElementById("rsNone");
+    var method="lin";
+    function trueSig(t){ return Math.sin(2*Math.PI*1.4*t)+0.5*Math.sin(2*Math.PI*0.5*t+1); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var gap=parseInt(gEl.value,10),jit=parseFloat(jEl.value); gV.textContent=gap; jV.textContent=jit.toFixed(2); clear(ctx,w,h);
+      var x0=10,x1=w-10,mid=h/2,scale=h*0.30; axis(ctx,x0,12,x1,h-14);
+      var Ngrid=80, gapStart=Math.round(Ngrid*0.45), gapEnd=gapStart+gap;
+      var pts=[];
+      for(var i=0;i<Ngrid;i++){ if(i>=gapStart&&i<gapEnd)continue; var tt=(i+jit*(Math.random()-0.5))/Ngrid; if(tt<0)tt=0; if(tt>1)tt=1; pts.push([tt,trueSig(tt)]); }
+      pts.sort(function(a,b){return a[0]-b[0];});
+      // reconstruct on uniform grid
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.8; ctx.beginPath(); var started=false;
+      for(var g=0;g<=Ngrid;g++){ var gt=g/Ngrid;
+        // find bracketing pts
+        var lo=null,hi=null; for(var k=0;k<pts.length;k++){ if(pts[k][0]<=gt)lo=pts[k]; if(pts[k][0]>=gt){hi=pts[k];break;} }
+        var inGap=(gt>(gapStart/Ngrid)&&gt<(gapEnd/Ngrid));
+        var val=null;
+        if(lo&&hi){ if(hi[0]===lo[0])val=lo[1]; else { var f=(gt-lo[0])/(hi[0]-lo[0]);
+          if(method==="lin")val=lo[1]+(hi[1]-lo[1])*f; else if(method==="ff")val=lo[1]; else { if(inGap)val=null; else val=lo[1]+(hi[1]-lo[1])*f; } } }
+        else if(lo){ val=lo[1]; } else if(hi){ val=hi[1]; }
+        if(method==="none"&&inGap)val=null;
+        if(val===null){ started=false; continue; }
+        var X=x0+gt*(x1-x0), Y=mid-val*scale;
+        if(!started){ ctx.moveTo(X,Y); started=true; } else ctx.lineTo(X,Y); }
+      ctx.stroke();
+      // raw dots
+      for(var d=0;d<pts.length;d++){ var X2=x0+pts[d][0]*(x1-x0), Y2=mid-pts[d][1]*scale;
+        ctx.fillStyle="rgba(90,85,76,0.6)"; ctx.beginPath(); ctx.arc(X2,Y2,2.4,0,7); ctx.fill(); }
+      // gap shading
+      var gx0=x0+(gapStart/Ngrid)*(x1-x0), gx1=x0+(gapEnd/Ngrid)*(x1-x0);
+      if(gap>0){ ctx.fillStyle="rgba(200,150,44,0.10)"; ctx.fillRect(gx0,12,gx1-gx0,h-26); label(ctx,"dropout",(gx0+gx1)/2,26,OCHRE,"center"); }
+      label(ctx,"raw samples (grey) · uniform-grid reconstruction (rust)",x0,h-2,INKSOFT); }
+    function setM(m,el){ method=m; [tLin,tFf,tNone].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    tLin.addEventListener("click",function(){setM("lin",tLin);});
+    tFf.addEventListener("click",function(){setM("ff",tFf);});
+    tNone.addEventListener("click",function(){setM("none",tNone);});
+    gEl.addEventListener("input",draw); jEl.addEventListener("input",draw); setup(c,draw)();
+  })();
+
+  // ===== FIG 4 decomposition =====
+  (function(){
+    var c=document.getElementById("decompCanvas"); if(!c)return;
+    var ids=["dcTrend","dcAmp","dcFreq","dcNoise"],els={}; ids.forEach(function(id){els[id]=document.getElementById(id);});
+    var vs={dcTrend:"dcTrendv",dcAmp:"dcAmpv",dcFreq:"dcFreqv",dcNoise:"dcNoisev"};
+    var ns=[]; for(var i=0;i<400;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var trend=parseFloat(els.dcTrend.value),amp=parseFloat(els.dcAmp.value),freq=parseFloat(els.dcFreq.value),noise=parseFloat(els.dcNoise.value);
+      document.getElementById(vs.dcTrend).textContent=trend.toFixed(2); document.getElementById(vs.dcAmp).textContent=amp.toFixed(2);
+      document.getElementById(vs.dcFreq).textContent=freq; document.getElementById(vs.dcNoise).textContent=noise.toFixed(2); clear(ctx,w,h);
+      var x0=10,x1=w-10,midY=h/2,A=h*0.16; axis(ctx,x0,12,x1,h-14); var Np=300;
+      function tv(t){return (t-0.5)*trend*2;} function pv(t){return amp*Math.sin(2*Math.PI*freq*t);}
+      ctx.strokeStyle="rgba(200,150,44,0.55)"; ctx.lineWidth=1.2; ctx.beginPath();
+      for(var i=0;i<=Np;i++){var t=i/Np;var y=midY-tv(t)*A;if(i===0)ctx.moveTo(x0+t*(x1-x0),y);else ctx.lineTo(x0+t*(x1-x0),y);} ctx.stroke();
+      ctx.strokeStyle="rgba(47,107,107,0.5)"; ctx.beginPath();
+      for(var i2=0;i2<=Np;i2++){var t2=i2/Np;var y2=midY-pv(t2)*A;if(i2===0)ctx.moveTo(x0+t2*(x1-x0),y2);else ctx.lineTo(x0+t2*(x1-x0),y2);} ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.9; ctx.beginPath();
+      for(var i3=0;i3<=Np;i3++){var t3=i3/Np;var v=tv(t3)+pv(t3)+noise*ns[i3%ns.length];var y3=midY-v*A;if(i3===0)ctx.moveTo(x0+t3*(x1-x0),y3);else ctx.lineTo(x0+t3*(x1-x0),y3);} ctx.stroke();
+      label(ctx,"trend",x0+6,22,OCHRE); label(ctx,"periodic",x0+58,22,TEAL); label(ctx,"measured = sum + noise",x1-6,22,RUST,"right"); }
+    ids.forEach(function(id){els[id].addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 5 FFT =====
+  (function(){
+    var c=document.getElementById("fftCanvas"); if(!c)return;
+    var f1=document.getElementById("fA1"),f2=document.getElementById("fA2"),a2=document.getElementById("fA2amp"),nz=document.getElementById("fNoise");
+    var f1v=document.getElementById("fA1v"),f2v=document.getElementById("fA2v"),a2v=document.getElementById("fA2ampv"),nzv=document.getElementById("fNoisev");
+    var N=512,fs=128,ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var F1=parseFloat(f1.value),F2=parseFloat(f2.value),A2=parseFloat(a2.value),NZ=parseFloat(nz.value);
+      f1v.textContent=F1; f2v.textContent=F2; a2v.textContent=A2.toFixed(2); nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var re=new Array(N),im=new Array(N);
+      for(var n=0;n<N;n++){ var t=n/fs; re[n]=Math.sin(2*Math.PI*F1*t)+A2*Math.sin(2*Math.PI*F2*t)+NZ*ns[n]; im[n]=0; }
+      var x0=10,x1=w-10,topH=h*0.42,botY0=h*0.52,botH=h-botY0-16,midT=topH/2+6;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,midT); ctx.lineTo(x1,midT); ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath(); var show=Math.round(N*0.35);
+      for(var k=0;k<show;k++){ var x=x0+(k/(show-1))*(x1-x0); var y=midT-re[k]*(topH*0.20); if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+      label(ctx,"TIME DOMAIN",x0,14,INKSOFT);
+      var reC=re.slice(),imC=im.slice(); for(var wI=0;wI<N;wI++){ reC[wI]*=0.5-0.5*Math.cos(2*Math.PI*wI/(N-1)); }
+      fft(reC,imC); var half=N/2,mags=[],maxm=1e-9;
+      for(var b=0;b<half;b++){ var m=Math.sqrt(reC[b]*reC[b]+imC[b]*imC[b]); mags.push(m); if(m>maxm)maxm=m; }
+      axis(ctx,x0,botY0,x1,botY0+botH);
+      var maxF=45,binHz=fs/N,maxBin=Math.min(half-1,Math.round(maxF/binHz));
+      ctx.fillStyle=TEAL; for(var bb=1;bb<=maxBin;bb++){ var fx=x0+((bb*binHz)/maxF)*(x1-x0); var bh=(mags[bb]/maxm)*(botH-6); ctx.fillRect(fx-1.4,botY0+botH-bh,2.8,bh); }
+      label(ctx,"FREQUENCY DOMAIN (spectrum)",x0,botY0-6,INKSOFT);
+      for(var ft=0;ft<=maxF;ft+=10){ var tx=x0+(ft/maxF)*(x1-x0); ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(tx,botY0+botH); ctx.lineTo(tx,botY0+botH+4); ctx.stroke();
+        label(ctx,ft+(ft===maxF?" Hz":""),tx,botY0+botH+15,INKSOFT,"center"); }
+      function mark(fr,col,txt){ var mx=x0+(fr/maxF)*(x1-x0); label(ctx,txt,mx,botY0+10,col,"center"); }
+      if(F1<=maxF)mark(F1,RUST,"A"); if(F2<=maxF&&A2>0.02)mark(F2,OCHRE,"B"); }
+    [f1,f2,a2,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 6 spectrogram =====
+  (function(){
+    var c=document.getElementById("spectroCanvas"); if(!c)return;
+    var f0=document.getElementById("spF0"),f1=document.getElementById("spF1"),nz=document.getElementById("spNoise");
+    var f0v=document.getElementById("spF0v"),f1v=document.getElementById("spF1v"),nzv=document.getElementById("spNoisev");
+    var total=512,fs=128,win=64,hop=12;
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var F0=parseFloat(f0.value),F1=parseFloat(f1.value),NZ=parseFloat(nz.value);
+      f0v.textContent=F0; f1v.textContent=F1; nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var sig=new Array(total);
+      for(var n=0;n<total;n++){ var t=n/fs, T=total/fs; var fInst=F0+(F1-F0)*(t/T);
+        var phase=2*Math.PI*(F0*t+(F1-F0)*t*t/(2*T)); sig[n]=Math.sin(phase)+0.4*Math.sin(2*Math.PI*16*t)+NZ*gauss(); }
+      var frames=[],pos=0;
+      while(pos+win<=total){ var re=new Array(win),im=new Array(win);
+        for(var i=0;i<win;i++){ re[i]=sig[pos+i]*(0.5-0.5*Math.cos(2*Math.PI*i/(win-1))); im[i]=0; }
+        fft(re,im); var col=[],mx=1e-9; for(var b=0;b<win/2;b++){ var m=Math.sqrt(re[b]*re[b]+im[b]*im[b]); col.push(m); if(m>mx)mx=m; }
+        for(var q=0;q<col.length;q++)col[q]/=mx; frames.push(col); pos+=hop; }
+      var x0=36,x1=w-12,y0=12,y1=h-26, plotW=x1-x0, plotH=y1-y0;
+      var nF=frames.length, nB=win/2, cw=plotW/nF, ch=plotH/nB;
+      for(var fi=0;fi<nF;fi++){ for(var bi=0;bi<nB;bi++){ var v=Math.pow(frames[fi][bi],0.6);
+        ctx.fillStyle=ramp(v); ctx.fillRect(x0+fi*cw, y1-(bi+1)*ch, cw+0.6, ch+0.6); } }
+      ctx.strokeStyle=LINE; ctx.strokeRect(x0,y0,plotW,plotH);
+      label(ctx,"freq",2,y0+8,INKSOFT); var nyq=fs/2;
+      for(var ff=0;ff<=nyq;ff+=16){ var yy=y1-(ff/nyq)*plotH; label(ctx,ff+"",x0-6,yy+3,INKSOFT,"right"); }
+      label(ctx,"time \u2192",x0+plotW/2,h-8,INKSOFT,"center");
+      label(ctx,"SPECTROGRAM (darker = more energy)",x0,y0-2,INKSOFT); }
+    [f0,f1,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 7 autocorrelation =====
+  (function(){
+    var c=document.getElementById("acfCanvas"); if(!c)return;
+    var per=document.getElementById("acfPer"),nz=document.getElementById("acfNoise");
+    var perv=document.getElementById("acfPerv"),nzv=document.getElementById("acfNoisev"),read=document.getElementById("acfRead");
+    var N=256,ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var P=parseFloat(per.value),NZ=parseFloat(nz.value); perv.textContent=P; nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var sig=new Array(N); for(var n=0;n<N;n++)sig[n]=Math.sin(2*Math.PI*n/P)+NZ*ns[n];
+      var x0=10,x1=w-10,topMid=h*0.24,topAmp=h*0.18;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,topMid); ctx.lineTo(x1,topMid); ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.3; ctx.beginPath();
+      for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=topMid-sig[k]*(topAmp/(1+NZ*0.5)); if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+      label(ctx,"RAW SIGNAL (noisy)",x0,14,INKSOFT);
+      var mean=0; for(var m=0;m<N;m++)mean+=sig[m]; mean/=N;
+      var maxLag=Math.min(120,N-1),acf=[],den=0; for(var d0=0;d0<N;d0++)den+=(sig[d0]-mean)*(sig[d0]-mean);
+      for(var lag=0;lag<=maxLag;lag++){ var s=0; for(var t=0;t<N-lag;t++)s+=(sig[t]-mean)*(sig[t+lag]-mean); acf.push(s/den); }
+      var b0=h*0.55,bH=h*0.40,bmid=b0+bH/2;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,bmid); ctx.lineTo(x1,bmid); ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var L=0;L<acf.length;L++){ var X=x0+(L/maxLag)*(x1-x0); var Y=bmid-acf[L]*(bH*0.46); if(L===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);} ctx.stroke();
+      var det=-1,best=0; for(var qq=4;qq<acf.length-1;qq++){ if(acf[qq]>acf[qq-1]&&acf[qq]>acf[qq+1]&&acf[qq]>best&&acf[qq]>0.1){best=acf[qq];det=qq;} }
+      if(det>0){ var dx=x0+(det/maxLag)*(x1-x0); ctx.strokeStyle=OCHRE; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(dx,b0); ctx.lineTo(dx,b0+bH); ctx.stroke(); ctx.setLineDash([]);
+        label(ctx,"peak @ lag "+det,dx,b0+bH,OCHRE,"center"); }
+      label(ctx,"AUTOCORRELATION vs lag",x0,h*0.52,INKSOFT);
+      read.innerHTML='<span>true period: <b>'+P+'</b></span><span class="ok">detected from ACF: <b>'+(det>0?det:"--")+'</b> samples</span>'; }
+    [per,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 8 smoothing =====
+  (function(){
+    var c=document.getElementById("smoothCanvas"); if(!c)return;
+    var win=document.getElementById("smWin"),alpha=document.getElementById("smAlpha"),nz=document.getElementById("smNoise");
+    var winv=document.getElementById("smWinv"),alphav=document.getElementById("smAlphav"),nzv=document.getElementById("smNoisev");
+    var N=260,ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var W=parseInt(win.value,10),A=parseFloat(alpha.value),NZ=parseFloat(nz.value);
+      winv.textContent=W; alphav.textContent=A.toFixed(2); nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var clean=new Array(N),raw=new Array(N);
+      for(var n=0;n<N;n++){ var base=n<N/2?-0.6:0.6; clean[n]=base; raw[n]=base+NZ*ns[n]; }
+      var x0=10,x1=w-10,mid=h/2,amp=h*0.30; axis(ctx,x0,12,x1,h-14);
+      function plot(arr,color,wd){ ctx.strokeStyle=color; ctx.lineWidth=wd; ctx.beginPath();
+        for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=mid-arr[k]*amp; if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke(); }
+      plot(raw,"rgba(90,85,76,0.30)",1);
+      var ma=new Array(N),half=(W-1)/2;
+      for(var i2=0;i2<N;i2++){ var s=0,cnt=0; for(var j=i2-half;j<=i2+half;j++){ if(j>=0&&j<N){s+=raw[j];cnt++;} } ma[i2]=s/cnt; }
+      plot(ma,TEAL,1.9);
+      var ew=new Array(N); ew[0]=raw[0]; for(var i3=1;i3<N;i3++)ew[i3]=A*raw[i3]+(1-A)*ew[i3-1];
+      plot(ew,RUST,1.9);
+      label(ctx,"raw",x0+4,22,INKSOFT); label(ctx,"moving avg",x0+50,22,TEAL); label(ctx,"EWMA",x0+150,22,RUST);
+      label(ctx,"step change \u2192",x1-4,mid-amp*0.6-4,INKSOFT,"right"); }
+    [win,alpha,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 9 envelope analysis =====
+  (function(){
+    var c=document.getElementById("envCanvas"); if(!c)return;
+    var fd=document.getElementById("enFd"),sev=document.getElementById("enSev"),nz=document.getElementById("enNoise");
+    var fdv=document.getElementById("enFdv"),sevv=document.getElementById("enSevv"),nzv=document.getElementById("enNoisev"),read=document.getElementById("envRead");
+    var presets=[document.getElementById("enBPFO"),document.getElementById("enBPFI"),document.getElementById("enBSF")];
+    var N=512,fs=512,fc=70;
+    var ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function syncPresets(){ var v=parseFloat(fd.value); presets.forEach(function(p){ p.classList.toggle("on", Math.abs(parseFloat(p.dataset.fd)-v)<0.01); }); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var FD=parseFloat(fd.value),SEV=parseFloat(sev.value),NZ=parseFloat(nz.value);
+      fdv.textContent=FD; sevv.textContent=SEV.toFixed(2); nzv.textContent=NZ.toFixed(2); syncPresets(); clear(ctx,w,h);
+      // build signal: decaying carrier bursts at defect rate
+      var sig=new Array(N); for(var n=0;n<N;n++)sig[n]=NZ*ns[n];
+      var T=N/fs, nImp=Math.floor(T*FD);
+      for(var im=0;im<=nImp;im++){ var t0=im/FD; var i0=Math.round(t0*fs);
+        for(var d=0;d<120&&i0+d<N;d++){ var td=d/fs; sig[i0+d]+=SEV*Math.exp(-td*55)*Math.sin(2*Math.PI*fc*td); } }
+      var x0=10,x1=w-10;
+      // top: raw
+      var tMid=h*0.16,tA=h*0.13;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,tMid); ctx.lineTo(x1,tMid); ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.7)"; ctx.lineWidth=1; ctx.beginPath();
+      for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=tMid-sig[k]*tA; if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+      label(ctx,"RAW VIBRATION (resonant bursts)",x0,12,INKSOFT);
+      // envelope: high-pass (remove mean), rectify, low-pass smooth
+      var mean=0; for(var a=0;a<N;a++)mean+=sig[a]; mean/=N;
+      var rect=new Array(N); for(var b=0;b<N;b++)rect[b]=Math.abs(sig[b]-mean);
+      var env=new Array(N),ww=12; for(var e=0;e<N;e++){ var s=0,cnt=0; for(var j=e-ww;j<=e+ww;j++){ if(j>=0&&j<N){s+=rect[j];cnt++;} } env[e]=s/cnt; }
+      var eMid=h*0.45,eA=h*0.16,emax=1e-6; for(var p=0;p<N;p++)if(env[p]>emax)emax=env[p];
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var k2=0;k2<N;k2++){ var x2=x0+(k2/(N-1))*(x1-x0); var y2=eMid-(env[k2]/emax)*eA*2+eA; if(k2===0)ctx.moveTo(x2,y2);else ctx.lineTo(x2,y2);} ctx.stroke();
+      label(ctx,"ENVELOPE (slow outline)",x0,h*0.30,RUST);
+      // FFT of envelope
+      var re=new Array(N),imv=new Array(N),em2=0; for(var q=0;q<N;q++)em2+=env[q]; em2/=N;
+      for(var r=0;r<N;r++){ re[r]=(env[r]-em2)*(0.5-0.5*Math.cos(2*Math.PI*r/(N-1))); imv[r]=0; }
+      fft(re,imv); var half=N/2,mags=[],mmax=1e-9,binHz=fs/N;
+      for(var bb=0;bb<half;bb++){ var mg=Math.sqrt(re[bb]*re[bb]+imv[bb]*imv[bb]); mags.push(mg); }
+      var maxF=Math.min(60,FD*4+10), maxBin=Math.round(maxF/binHz);
+      for(var c2=1;c2<=maxBin;c2++)if(mags[c2]>mmax)mmax=mags[c2];
+      var sy0=h*0.60,sH=h*0.34; axis(ctx,x0,sy0,x1,sy0+sH);
+      ctx.fillStyle=TEAL; for(var bn=1;bn<=maxBin;bn++){ var fx=x0+((bn*binHz)/maxF)*(x1-x0); var bh=(mags[bn]/mmax)*(sH-4); ctx.fillRect(fx-1.3,sy0+sH-bh,2.6,bh); }
+      // mark defect freq + harmonics
+      ctx.strokeStyle=OCHRE; ctx.setLineDash([3,3]);
+      for(var hh=1;hh<=3;hh++){ var hf=FD*hh; if(hf>maxF)break; var hx=x0+(hf/maxF)*(x1-x0);
+        ctx.beginPath(); ctx.moveTo(hx,sy0); ctx.lineTo(hx,sy0+sH); ctx.stroke();
+        label(ctx,hh===1?"defect f":(hh+"f"),hx,sy0+10,OCHRE,"center"); }
+      ctx.setLineDash([]);
+      label(ctx,"ENVELOPE SPECTRUM",x0,h*0.585,INKSOFT);
+      for(var ft=0;ft<=maxF;ft+=Math.max(5,Math.round(maxF/6))){ var tx=x0+(ft/maxF)*(x1-x0); label(ctx,ft+"",tx,sy0+sH+13,INKSOFT,"center"); }
+      var snr = SEV>0 ? (20*Math.log10((SEV+1e-6)/(NZ+1e-6))).toFixed(0) : "--";
+      read.innerHTML='<span>defect frequency: <b>'+FD+' Hz</b></span><span class="'+(SEV>0.25?'ok':'warn')+'">peak visibility: <b>'+(SEV>0.25?'clear':'near noise floor')+'</b></span>'; }
+    presets.forEach(function(p){ p.addEventListener("click",function(){ fd.value=p.dataset.fd; draw(); }); });
+    [fd,sev,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 11 fusion =====
+  (function(){
+    var c=document.getElementById("fusionCanvas"); if(!c)return;
+    var fa=document.getElementById("fuFault"),nz=document.getElementById("fuNoise");
+    var fav=document.getElementById("fuFaultv"),nzv=document.getElementById("fuNoisev"),read=document.getElementById("fusionRead");
+    var tA=document.getElementById("fuA"),tB=document.getElementById("fuB"),tC=document.getElementById("fuC"); var which="A";
+    var N=240,nA=[],nB=[],nC=[]; for(var i=0;i<N;i++){nA.push(gauss());nB.push(gauss());nC.push(gauss());}
+    var faultStart=Math.round(N*0.5);
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var FA=parseFloat(fa.value),NZ=parseFloat(nz.value); fav.textContent=FA.toFixed(1); nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var x0=10,x1=w-10,mid=h/2,scale=h*0.26; axis(ctx,x0,12,x1,h-14);
+      var A=new Array(N),B=new Array(N),C=new Array(N),M=new Array(N);
+      var maxDis=0;
+      for(var n=0;n<N;n++){ var truth=Math.sin(2*Math.PI*1.2*n/N)*0.8;
+        var fault=n>=faultStart?FA*((n-faultStart)/(N-faultStart)):0;
+        A[n]=truth+NZ*nA[n]+(which==="A"?fault:0);
+        B[n]=truth+NZ*nB[n]+(which==="B"?fault:0);
+        C[n]=truth+NZ*nC[n]+(which==="C"?fault:0);
+        M[n]=median3(A[n],B[n],C[n]);
+        var f=(which==="A"?A[n]:which==="B"?B[n]:C[n]); var dis=Math.abs(f-M[n]); if(n>faultStart+5&&dis>maxDis)maxDis=dis; }
+      function plot(arr,color,wd){ ctx.strokeStyle=color; ctx.lineWidth=wd; ctx.beginPath();
+        for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=mid-arr[k]*scale; if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke(); }
+      plot(A,which==="A"?"rgba(176,84,43,0.35)":"rgba(90,85,76,0.30)",1);
+      plot(B,which==="B"?"rgba(176,84,43,0.35)":"rgba(90,85,76,0.30)",1);
+      plot(C,which==="C"?"rgba(176,84,43,0.35)":"rgba(90,85,76,0.30)",1);
+      plot(M,RUST,2.1);
+      var fx=x0+(faultStart/(N-1))*(x1-x0); ctx.strokeStyle="rgba(200,150,44,0.7)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(fx,12); ctx.lineTo(fx,h-14); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx,"sensor "+which+" faults \u2192",fx+4,24,OCHRE);
+      label(ctx,"three sensors (faint) · median estimate (bold)",x0,h-2,INKSOFT);
+      read.innerHTML='<span class="warn">sensor '+which+' disagrees by up to <b>'+maxDis.toFixed(2)+'</b></span><span class="ok">median estimate: <b>holds near truth</b></span>'; }
+    function setW(ww,el){ which=ww; [tA,tB,tC].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    tA.addEventListener("click",function(){setW("A",tA);}); tB.addEventListener("click",function(){setW("B",tB);}); tC.addEventListener("click",function(){setW("C",tC);});
+    [fa,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 13 Kalman =====
+  (function(){
+    var c=document.getElementById("kalmanCanvas"); if(!c)return;
+    var rEl=document.getElementById("kfR"),qEl=document.getElementById("kfQ");
+    var rV=document.getElementById("kfRv"),qV=document.getElementById("kfQv"),read=document.getElementById("kfRead");
+    var N=220,ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var R=parseFloat(rEl.value),Q=parseFloat(qEl.value); rV.textContent=R.toFixed(2); qV.textContent=Q.toFixed(3); clear(ctx,w,h);
+      var truth=new Array(N),meas=new Array(N),est=new Array(N),innov=new Array(N);
+      for(var n=0;n<N;n++){ truth[n]=1.2*Math.sin(2*Math.PI*1.1*n/N)+(n>N*0.6?0.7:0); meas[n]=truth[n]+Math.sqrt(R)*ns[n]; }
+      var x=meas[0],P=1,Kss=0;
+      for(var k=0;k<N;k++){ var xp=x, Pp=P+Q; var inn=meas[k]-xp; var K=Pp/(Pp+R); x=xp+K*inn; P=(1-K)*Pp; est[k]=x; innov[k]=inn; Kss=K; }
+      var x0=10,x1=w-10,tMid=h*0.30,tA=h*0.20;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,tMid); ctx.lineTo(x1,tMid); ctx.stroke();
+      for(var d=0;d<N;d++){ var X=x0+(d/(N-1))*(x1-x0),Y=tMid-meas[d]*tA; ctx.fillStyle="rgba(90,85,76,0.35)"; ctx.beginPath(); ctx.arc(X,Y,1.6,0,7); ctx.fill(); }
+      ctx.strokeStyle="rgba(90,85,76,0.8)"; ctx.lineWidth=1.3; ctx.beginPath();
+      for(var t=0;t<N;t++){ var Xt=x0+(t/(N-1))*(x1-x0),Yt=tMid-truth[t]*tA; if(t===0)ctx.moveTo(Xt,Yt);else ctx.lineTo(Xt,Yt);} ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.9; ctx.beginPath();
+      for(var e=0;e<N;e++){ var Xe=x0+(e/(N-1))*(x1-x0),Ye=tMid-est[e]*tA; if(e===0)ctx.moveTo(Xe,Ye);else ctx.lineTo(Xe,Ye);} ctx.stroke();
+      label(ctx,"truth (grey) · measurements (dots) · Kalman estimate (rust)",x0,14,INKSOFT);
+      var iMid=h*0.80,iA=h*0.12;
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,iMid); ctx.lineTo(x1,iMid); ctx.stroke();
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.3; ctx.beginPath();
+      for(var j=0;j<N;j++){ var Xj=x0+(j/(N-1))*(x1-x0),Yj=iMid-innov[j]*iA; if(j===0)ctx.moveTo(Xj,Yj);else ctx.lineTo(Xj,Yj);} ctx.stroke();
+      label(ctx,"INNOVATION (residual)",x0,h*0.66,TEAL);
+      read.innerHTML='<span>steady-state gain K: <b>'+Kss.toFixed(3)+'</b></span><span class="ok">'+(Kss>0.5?'trusting the sensor':'trusting the model')+'</span>'; }
+    [rEl,qEl].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 14 threshold alarm =====
+  (function(){
+    var c=document.getElementById("anomCanvas"); if(!c)return;
+    var fa=document.getElementById("anFault"),th=document.getElementById("anThresh"),nz=document.getElementById("anNoise");
+    var fav=document.getElementById("anFaultv"),thv=document.getElementById("anThreshv"),nzv=document.getElementById("anNoisev"),read=document.getElementById("anomRead");
+    var N=300,faultStart=Math.round(N*0.55),ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var FA=parseFloat(fa.value),TH=parseFloat(th.value),NZ=parseFloat(nz.value);
+      fav.textContent=FA.toFixed(1); thv.textContent=TH.toFixed(1); nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var resid=new Array(N); for(var n=0;n<N;n++){ var fault=n>=faultStart?FA*((n-faultStart)/(N-faultStart)):0; resid[n]=NZ*ns[n]+fault; }
+      var he=resid.slice(0,faultStart),mu=0; for(var a=0;a<he.length;a++)mu+=he[a]; mu/=he.length;
+      var sd=0; for(var b=0;b<he.length;b++)sd+=(he[b]-mu)*(he[b]-mu); sd=Math.sqrt(sd/he.length)||1e-6;
+      var x0=10,x1=w-10,mid=h*0.5,scale=(h*0.40)/(Math.max(3.2,TH+0.5)*sd+1e-6); axis(ctx,x0,12,x1,h-14);
+      var bandTop=mid-TH*sd*scale,bandBot=mid+TH*sd*scale;
+      ctx.fillStyle="rgba(47,107,107,0.10)"; ctx.fillRect(x0,bandTop,x1-x0,bandBot-bandTop);
+      ctx.strokeStyle=TEAL; ctx.setLineDash([5,4]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0,bandTop); ctx.lineTo(x1,bandTop); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x0,bandBot); ctx.lineTo(x1,bandBot); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,mid); ctx.lineTo(x1,mid); ctx.stroke();
+      var fx=x0+(faultStart/(N-1))*(x1-x0); ctx.strokeStyle="rgba(200,150,44,0.7)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(fx,14); ctx.lineTo(fx,h-14); ctx.stroke(); ctx.setLineDash([]); label(ctx,"fault begins",fx+4,26,OCHRE);
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.5; ctx.beginPath();
+      for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=mid-resid[k]*scale; if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+      var falseA=0,firstD=-1;
+      for(var k2=0;k2<N;k2++){ if(Math.abs(resid[k2]-mu)>TH*sd){ var x2=x0+(k2/(N-1))*(x1-x0),y2=mid-resid[k2]*scale;
+        ctx.fillStyle="#9A2D12"; ctx.beginPath(); ctx.arc(x2,y2,2.6,0,7); ctx.fill(); if(k2<faultStart)falseA++; else if(firstD<0)firstD=k2; } }
+      label(ctx,"RESIDUAL",x0,14,INKSOFT);
+      var delay=firstD>=0?(firstD-faultStart):-1;
+      read.innerHTML='<span class="ok">detection delay: <b>'+(delay>=0?delay+" samples":"not detected")+'</b></span><span class="'+(falseA>0?'warn':'ok')+'">false alarms: <b>'+falseA+'</b></span>'; }
+    [fa,th,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 15 CUSUM =====
+  (function(){
+    var c=document.getElementById("cusumCanvas"); if(!c)return;
+    var sh=document.getElementById("cuShift"),kk=document.getElementById("cuK"),hh=document.getElementById("cuH");
+    var shv=document.getElementById("cuShiftv"),kv=document.getElementById("cuKv"),hv=document.getElementById("cuHv"),read=document.getElementById("cusumRead");
+    var N=300,shiftStart=Math.round(N*0.5),ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var SH=parseFloat(sh.value),K=parseFloat(kk.value),H=parseFloat(hh.value);
+      shv.textContent=SH.toFixed(2); kv.textContent=K.toFixed(2); hv.textContent=H.toFixed(1); clear(ctx,w,h);
+      var sig=new Array(N); for(var n=0;n<N;n++){ sig[n]=0.3*ns[n]+(n>=shiftStart?SH:0); }
+      var x0=10,x1=w-10,tMid=h*0.26,tA=h*0.16; axis(ctx,x0,12,x1,h*0.48);
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,tMid); ctx.lineTo(x1,tMid); ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.3; ctx.beginPath();
+      for(var k=0;k<N;k++){ var x=x0+(k/(N-1))*(x1-x0); var y=tMid-sig[k]*tA; if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+      var fx=x0+(shiftStart/(N-1))*(x1-x0); ctx.strokeStyle="rgba(200,150,44,0.7)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(fx,12); ctx.lineTo(fx,h-14); ctx.stroke(); ctx.setLineDash([]); label(ctx,"shift",fx+4,24,OCHRE);
+      label(ctx,"RESIDUAL (small shift)",x0,14,INKSOFT);
+      var Sp=0,cu=new Array(N); for(var c2=0;c2<N;c2++){ Sp=Math.max(0,Sp+(sig[c2]-K)); cu[c2]=Sp; }
+      var b0=h*0.56,bH=h*0.38,cmax=H*1.6; for(var d=0;d<N;d++)if(cu[d]>cmax)cmax=cu[d];
+      axis(ctx,x0,b0,x1,b0+bH);
+      var hy=b0+bH-(H/cmax)*bH; ctx.strokeStyle=TEAL; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,hy); ctx.lineTo(x1,hy); ctx.stroke(); ctx.setLineDash([]); label(ctx,"limit h",x1-4,hy-4,TEAL,"right");
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.7; ctx.beginPath();
+      var detect=-1;
+      for(var e=0;e<N;e++){ var Xe=x0+(e/(N-1))*(x1-x0),Ye=b0+bH-(cu[e]/cmax)*bH; if(e===0)ctx.moveTo(Xe,Ye);else ctx.lineTo(Xe,Ye); if(detect<0&&cu[e]>H)detect=e; }
+      ctx.stroke();
+      if(detect>0){ var dx=x0+(detect/(N-1))*(x1-x0); ctx.fillStyle="#9A2D12"; ctx.beginPath(); ctx.arc(dx,b0+bH-(cu[detect]/cmax)*bH,3,0,7); ctx.fill(); }
+      label(ctx,"CUSUM STATISTIC",x0,h*0.54,INKSOFT);
+      var delay=detect>0?(detect-shiftStart):-1;
+      read.innerHTML='<span class="'+(detect>0?'ok':'warn')+'">CUSUM detection: <b>'+(detect>0?("after "+(delay>0?delay:0)+" samples"):"not triggered")+'</b></span>'; }
+    [sh,kk,hh].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 16 RUL =====
+  (function(){
+    var c=document.getElementById("rulCanvas"); if(!c)return;
+    var now=document.getElementById("ruNow"),rate=document.getElementById("ruRate"),nz=document.getElementById("ruNoise");
+    var nowv=document.getElementById("ruNowv"),ratev=document.getElementById("ruRatev"),nzv=document.getElementById("ruNoisev"),read=document.getElementById("rulRead");
+    var N=200,ns=[]; for(var i=0;i<N;i++)ns.push(gauss());
+    var failTh=3.0;
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return;
+      var NOW=parseInt(now.value,10),RATE=parseFloat(rate.value),NZ=parseFloat(nz.value);
+      nowv.textContent=NOW; ratev.textContent=RATE.toFixed(1); nzv.textContent=NZ.toFixed(2); clear(ctx,w,h);
+      var g=RATE*0.025; var A0=0.15;
+      function trueHI(n){ return A0*Math.exp(g*n); }
+      var nowIdx=Math.round(N*NOW/100);
+      var x0=34,x1=w-12,y0=14,y1=h-26,plotW=x1-x0,plotH=y1-y0;
+      // y scale
+      var yMax=failTh*1.25;
+      function px(n){ return x0+(n/N)*plotW; } function py(v){ return y1-(v/yMax)*plotH; }
+      axis(ctx,x0,y0,x1,y1);
+      // failure threshold
+      ctx.strokeStyle="rgba(176,84,43,0.8)"; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,py(failTh)); ctx.lineTo(x1,py(failTh)); ctx.stroke(); ctx.setLineDash([]); label(ctx,"failure threshold",x1-4,py(failTh)-5,RUST,"right");
+      // observed points + log-linear regression
+      var sx=0,sy=0,sxx=0,sxy=0,cnt=0,obs=[];
+      for(var n=0;n<nowIdx;n++){ var hiVal=trueHI(n)+NZ*ns[n]; if(hiVal<0.01)hiVal=0.01; obs.push([n,hiVal]); var ly=Math.log(hiVal); sx+=n; sy+=ly; sxx+=n*n; sxy+=n*ly; cnt++; }
+      var bSlope=(cnt*sxy-sx*sy)/(cnt*sxx-sx*sx+1e-9), aInt=(sy-bSlope*sx)/cnt;
+      // residual std in log space
+      var rss=0; for(var o=0;o<obs.length;o++){ var pred=aInt+bSlope*obs[o][0]; rss+=Math.pow(Math.log(obs[o][1])-pred,2); }
+      var sigma=Math.sqrt(rss/Math.max(1,cnt-2));
+      // draw observed dots
+      for(var d=0;d<obs.length;d++){ ctx.fillStyle=RUST; ctx.beginPath(); ctx.arc(px(obs[d][0]),py(obs[d][1]),2,0,7); ctx.fill(); }
+      // extrapolation + cone
+      ctx.strokeStyle=TEAL; ctx.lineWidth=1.8; ctx.beginPath(); var crossN=-1;
+      for(var m=nowIdx;m<=N;m++){ var v=Math.exp(aInt+bSlope*m); var X=px(m),Y=py(Math.min(v,yMax)); if(m===nowIdx)ctx.moveTo(X,Y);else ctx.lineTo(X,Y); if(crossN<0&&v>=failTh)crossN=m; }
+      ctx.stroke();
+      // confidence cone
+      ctx.fillStyle="rgba(47,107,107,0.12)"; ctx.beginPath();
+      for(var u=nowIdx;u<=N;u++){ var ext=(u-nowIdx); var band=sigma*(1+ext*0.02); var v2=Math.exp(aInt+bSlope*u+band); ctx.lineTo(px(u),py(Math.min(v2,yMax))); }
+      for(var u2=N;u2>=nowIdx;u2--){ var ext2=(u2-nowIdx); var band2=sigma*(1+ext2*0.02); var v3=Math.exp(aInt+bSlope*u2-band2); ctx.lineTo(px(u2),py(Math.min(v3,yMax))); }
+      ctx.closePath(); ctx.fill();
+      // now line
+      ctx.strokeStyle="rgba(90,85,76,0.6)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(px(nowIdx),y0); ctx.lineTo(px(nowIdx),y1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"now",px(nowIdx)+3,y0+10,INKSOFT);
+      label(ctx,"health indicator",2,y0+8,INKSOFT); label(ctx,"life \u2192",x0+plotW/2,h-8,INKSOFT,"center");
+      var rul = crossN>0 ? (crossN-nowIdx) : -1;
+      read.innerHTML='<span>predicted end of life: <b>'+(crossN>0?("step "+crossN):"beyond horizon")+'</b></span><span class="ok">estimated RUL: <b>'+(rul>0?rul+" steps":"--")+'</b></span><span>uncertainty (log &sigma;): <b>'+sigma.toFixed(2)+'</b></span>'; }
+    [now,rate,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== feature-diagram SVG mini wave =====
+  (function(){
+    var p=document.getElementById("featWave"); if(!p)return;
+    var d="M8,72 "; for(var x=8;x<=470;x+=4){ var y=72-22*Math.sin(x*0.07)-6*Math.sin(x*0.31); d+="L"+x+","+y.toFixed(1)+" "; }
+    p.setAttribute("d",d);
+  })();
+
+  // shared inverse FFT via conjugate trick (forward fft is in-place radix-2)
+  function ifft(re,im){ var n=re.length;
+    for(var i=0;i<n;i++) im[i]=-im[i];
+    fft(re,im);
+    for(var j=0;j<n;j++){ re[j]/=n; im[j]=-im[j]/n; } }
+  function kurt(a){ var s=0,N=a.length; for(var q=0;q<N;q++)s+=a[q]; var m=s/N; var m2=0,m4=0; for(var i=0;i<N;i++){ var d=a[i]-m; m2+=d*d; m4+=d*d*d*d; } m2/=N; m4/=N; return m2<1e-12?0:m4/(m2*m2); }
+
+  // ===== FIG 7 order tracking =====
+  (function(){
+    var c=document.getElementById("otCanvas"); if(!c)return;
+    var ramp=document.getElementById("otRamp"),nz=document.getElementById("otNoise");
+    var rv=document.getElementById("otRampv"),nv=document.getElementById("otNoisev"),read=document.getElementById("otRead");
+    var N=512, noiseSeed=[]; for(var i=0;i<N;i++)noiseSeed.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var A=parseFloat(ramp.value),NZ=parseFloat(nz.value); rv.textContent=A.toFixed(1); nv.textContent=NZ.toFixed(2);
+      var w0=0.55, alpha=A*0.0010, amps=[1.0,0.6,0.42];
+      var xt=[],phase=[];
+      for(var t=0;t<N;t++){ var ph=w0*t+0.5*alpha*t*t; phase.push(ph);
+        var v=0; for(var k=1;k<=3;k++)v+=amps[k-1]*Math.sin(k*ph); v+=NZ*noiseSeed[t]; xt.push(v); }
+      var re=xt.slice(), im=new Array(N).fill(0); fft(re,im);
+      var tmag=[],tmax=0; for(var f=1;f<N/2;f++){ var mg=Math.hypot(re[f],im[f]); tmag.push(mg); if(mg>tmax)tmax=mg; }
+      // angular resample
+      var Phi=phase[N-1], M=N, dPhi=Phi/M, xr=[];
+      for(var m=0;m<M;m++){ var pm=m*dPhi, tm;
+        if(alpha>1e-9){ tm=(-w0+Math.sqrt(Math.max(0,w0*w0+2*alpha*pm)))/alpha; } else { tm=pm/w0; }
+        var i0=Math.floor(tm); if(i0<0)i0=0; if(i0>N-2)i0=N-2; var fr=tm-i0;
+        xr.push(xt[i0]*(1-fr)+xt[i0+1]*fr); }
+      var rre=xr.slice(), rim=new Array(M).fill(0); fft(rre,rim);
+      var R=Phi/(2*Math.PI);
+      var omax=0,omag=[]; for(var o=1;o<M/2;o++){ var mg2=Math.hypot(rre[o],rim[o]); omag.push(mg2); if(mg2>omax)omax=mg2; }
+      var x0=38,x1=w-12;
+      var ty0=14,ty1=h*0.46, oy0=h*0.56,oy1=h-24;
+      // top: time spectrum (first part of band)
+      axis(ctx,x0,ty0,x1,ty1);
+      var topBins=Math.floor(N*0.12);
+      ctx.fillStyle=INKSOFT;
+      for(var b=0;b<topBins;b++){ var bh=(tmag[b]/(tmax||1))*(ty1-ty0); var xx=x0+(b/topBins)*(x1-x0); ctx.fillRect(xx,ty1-bh,(x1-x0)/topBins+0.5,bh); }
+      label(ctx,"time-domain spectrum (frequency \u2192)",x0,ty0+4,INKSOFT);
+      // bottom: order spectrum, order = bin/R, show up to order 4.5
+      axis(ctx,x0,oy0,x1,oy1);
+      var maxOrder=4.5, maxBin=Math.min(omag.length, Math.floor(maxOrder*R));
+      for(var ob=0;ob<maxBin;ob++){ var order=(ob+1)/R; var oh=(omag[ob]/(omax||1))*(oy1-oy0); var ox=x0+(order/maxOrder)*(x1-x0); ctx.fillStyle=RUST; ctx.fillRect(ox,oy1-oh,2,oh); }
+      ctx.strokeStyle="rgba(90,85,76,0.25)"; ctx.setLineDash([2,3]);
+      for(var ord=1;ord<=4;ord++){ var gx=x0+(ord/maxOrder)*(x1-x0); ctx.beginPath(); ctx.moveTo(gx,oy0); ctx.lineTo(gx,oy1); ctx.stroke(); label(ctx,ord+"x",gx,oy1+12,INKSOFT,"center"); }
+      ctx.setLineDash([]);
+      label(ctx,"order spectrum (orders of rotation \u2192)",x0,oy0+4,INKSOFT);
+      // dominant order
+      var pk=0,pkb=0; for(var d2=0;d2<maxBin;d2++){ if(omag[d2]>pk){ pk=omag[d2]; pkb=d2; } }
+      var domOrder=(pkb+1)/R;
+      read.innerHTML='<span>shaft revolutions in record: <b>'+R.toFixed(1)+'</b></span><span class="ok">dominant order: <b>'+domOrder.toFixed(2)+'x</b></span><span>'+(A<0.05?'steady speed':'ramping speed')+'</span>';
+    }
+    [ramp,nz].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 11 Butterworth filter design =====
+  (function(){
+    var c=document.getElementById("filtCanvas"); if(!c)return;
+    var type="low";
+    var bLow=document.getElementById("flLow"),bHigh=document.getElementById("flHigh"),bBand=document.getElementById("flBand");
+    var nS=document.getElementById("flN"),fcS=document.getElementById("flFc");
+    var nv=document.getElementById("flNv"),fcv=document.getElementById("flFcv"),read=document.getElementById("filtRead");
+    var N=256, sig=[]; for(var i=0;i<N;i++) sig.push(Math.sin(2*Math.PI*0.04*i)+0.7*Math.sin(2*Math.PI*0.34*i)+0.25*gauss());
+    function H(f,fc,n){ f=Math.max(f,1e-6);
+      if(type==="low") return 1/Math.sqrt(1+Math.pow(f/fc,2*n));
+      if(type==="high") return 1/Math.sqrt(1+Math.pow(fc/f,2*n));
+      var lo=fc*0.6, hi=fc*1.6;
+      return (1/Math.sqrt(1+Math.pow(lo/f,2*n)))*(1/Math.sqrt(1+Math.pow(f/hi,2*n))); }
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var n=parseInt(nS.value,10), fc=parseFloat(fcS.value); nv.textContent=n; fcv.textContent=fc.toFixed(2);
+      // filter signal in freq domain
+      var re=sig.slice(), im=new Array(N).fill(0); fft(re,im);
+      for(var k=0;k<N;k++){ var f=(k<=N/2?k:N-k)/N; var g=H(f,fc,n); re[k]*=g; im[k]*=g; }
+      ifft(re,im); var filt=re;
+      var x0=40,x1=w-12, ty0=14,ty1=h*0.42, sy0=h*0.52,sy1=h-22;
+      // top: Bode magnitude
+      axis(ctx,x0,ty0,x1,ty1);
+      ctx.strokeStyle=TEAL; ctx.lineWidth=2; ctx.beginPath();
+      for(var p=0;p<=200;p++){ var ff=0.5*p/200; var hv=H(ff,fc,n); var xx=x0+(ff/0.5)*(x1-x0); var yy=ty1-hv*(ty1-ty0); if(p===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy); } ctx.stroke();
+      ctx.strokeStyle="rgba(176,84,43,0.4)"; ctx.setLineDash([4,3]); var fcx=x0+(fc/0.5)*(x1-x0); ctx.beginPath(); ctx.moveTo(fcx,ty0); ctx.lineTo(fcx,ty1); ctx.stroke(); ctx.setLineDash([]); label(ctx,"fc",fcx+3,ty0+11,RUST);
+      label(ctx,"|H(f)| vs normalised frequency",x0,ty0+4,INKSOFT);
+      // bottom: signal & filtered
+      var lo=-2.4,hi=2.4; function SY(v){ return sy1-((v-lo)/(hi-lo))*(sy1-sy0); } function SX(i){ return x0+(i/(N-1))*(x1-x0); }
+      ctx.strokeStyle=LINE; ctx.beginPath(); ctx.moveTo(x0,SY(0)); ctx.lineTo(x1,SY(0)); ctx.stroke();
+      ctx.strokeStyle="rgba(90,85,76,0.4)"; ctx.lineWidth=1; ctx.beginPath(); for(var s=0;s<N;s++){ if(s===0)ctx.moveTo(SX(s),SY(sig[s]));else ctx.lineTo(SX(s),SY(sig[s])); } ctx.stroke();
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.8; ctx.beginPath(); for(var q=0;q<N;q++){ if(q===0)ctx.moveTo(SX(q),SY(filt[q]));else ctx.lineTo(SX(q),SY(filt[q])); } ctx.stroke();
+      label(ctx,"input (grey) vs filtered (rust)",x0,sy0+2,INKSOFT);
+      var hLow=H(0.04,fc,n), hHigh=H(0.34,fc,n);
+      read.innerHTML='<span>type: <b>'+type+'</b></span><span>slow tone kept: <b>'+(hLow*100).toFixed(0)+'%</b></span><span>fast tone kept: <b>'+(hHigh*100).toFixed(0)+'%</b></span>';
+    }
+    function setT(tp,el){ type=tp; [bLow,bHigh,bBand].forEach(function(e){e.classList.remove("on");}); el.classList.add("on"); draw(); }
+    bLow.addEventListener("click",function(){setT("low",bLow);}); bHigh.addEventListener("click",function(){setT("high",bHigh);}); bBand.addEventListener("click",function(){setT("band",bBand);});
+    [nS,fcS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 12 spectral kurtosis =====
+  (function(){
+    var c=document.getElementById("skCanvas"); if(!c)return;
+    var bandS=document.getElementById("skBand"),impS=document.getElementById("skImp"),nzS=document.getElementById("skNoise");
+    var bv=document.getElementById("skBandv"),iv=document.getElementById("skImpv"),nv=document.getElementById("skNoisev"),read=document.getElementById("skRead");
+    var N=512, noiseSeed=[]; for(var i=0;i<N;i++)noiseSeed.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var fcF=parseFloat(bandS.value),IMP=parseFloat(impS.value),NZ=parseFloat(nzS.value);
+      bv.textContent=fcF.toFixed(2); iv.textContent=IMP.toFixed(1); nv.textContent=NZ.toFixed(2);
+      var P=46, x=[];
+      for(var t=0;t<N;t++){ var tau=t%P; var ring=IMP*Math.exp(-tau*0.22)*Math.sin(2*Math.PI*fcF*tau); x.push(ring+NZ*noiseSeed[t]); }
+      var re0=x.slice(), im0=new Array(N).fill(0); fft(re0,im0);
+      var B=30, kvals=[], centers=[], kmax=0, kbest=0, bestC=0;
+      for(var bi=0;bi<B;bi++){ var fcen=0.5*(bi+0.5)/B, bw=0.5/B*1.6; centers.push(fcen);
+        var re=re0.slice(), im=im0.slice();
+        for(var k=0;k<N;k++){ var f=(k<=N/2?k:N-k)/N; if(Math.abs(f-fcen)>bw/2){ re[k]=0; im[k]=0; } }
+        ifft(re,im); var kk=kurt(re); kvals.push(kk); if(kk>kmax){ kmax=kk; kbest=kk; bestC=fcen; } }
+      var x0=38,x1=w-12, ty0=14,ty1=h*0.42, ky0=h*0.52,ky1=h-24;
+      // raw signal
+      var mx=0; for(var s=0;s<N;s++)mx=Math.max(mx,Math.abs(x[s])); if(mx<1e-6)mx=1;
+      axis(ctx,x0,ty0,x1,ty1);
+      ctx.strokeStyle="rgba(90,85,76,0.55)"; ctx.lineWidth=1; ctx.beginPath();
+      for(var p=0;p<N;p++){ var xx=x0+(p/(N-1))*(x1-x0); var yy=(ty0+ty1)/2-(x[p]/mx)*((ty1-ty0)/2); if(p===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy); } ctx.stroke();
+      label(ctx,"raw vibration (impacts hidden in noise)",x0,ty0+4,INKSOFT);
+      // kurtosis bars
+      axis(ctx,x0,ky0,x1,ky1);
+      var kmx=Math.max.apply(null,kvals)*1.1||1; var bw2=(x1-x0)/B;
+      for(var c2=0;c2<B;c2++){ var bh=(kvals[c2]/kmx)*(ky1-ky0); var bx=x0+c2*bw2; var isbest=(centers[c2]===bestC); ctx.fillStyle=isbest?RUST:OCHRE; ctx.globalAlpha=isbest?1:0.55; ctx.fillRect(bx+1,ky1-bh,bw2-2,bh); }
+      ctx.globalAlpha=1;
+      label(ctx,"kurtosis per band (frequency \u2192)",x0,ky0+4,INKSOFT);
+      read.innerHTML='<span class="ok">best band centre: <b>'+bestC.toFixed(2)+'</b></span><span>max kurtosis: <b>'+kmax.toFixed(1)+'</b></span><span>'+(kmax>4?'clearly impulsive':'weak / noisy')+'</span>';
+    }
+    [bandS,impS,nzS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+  // ===== FIG 16 cepstrum =====
+  (function(){
+    var c=document.getElementById("cepCanvas"); if(!c)return;
+    var spS=document.getElementById("cpSpace"),sdS=document.getElementById("cpSide"),nzS=document.getElementById("cpNoise");
+    var spv=document.getElementById("cpSpacev"),sdv=document.getElementById("cpSidev"),nv=document.getElementById("cpNoisev"),read=document.getElementById("cepRead");
+    var N=512, noiseSeed=[]; for(var i=0;i<N;i++)noiseSeed.push(gauss());
+    function draw(){ var ctx=c._ctx,w=c._W,h=c._H; if(!ctx)return; clear(ctx,w,h);
+      var S=parseInt(spS.value,10),SIDE=parseFloat(sdS.value),NZ=parseFloat(nzS.value);
+      spv.textContent=S; sdv.textContent=SIDE.toFixed(2); nv.textContent=NZ.toFixed(2);
+      var f0=S/N, fm=0.012, K=Math.floor((N*0.45)/S), x=[];
+      for(var t=0;t<N;t++){ var v=0; for(var k=1;k<=K;k++){ v+=(1/Math.sqrt(k))*Math.sin(2*Math.PI*k*f0*t)*(1+SIDE*Math.sin(2*Math.PI*fm*t)); } x.push(v+NZ*noiseSeed[t]); }
+      var re=x.slice(), im=new Array(N).fill(0); fft(re,im);
+      var logmag=[]; for(var f=0;f<N;f++) logmag.push(Math.log(Math.hypot(re[f],im[f])+1e-6));
+      // cepstrum = ifft(logmag)
+      var cre=logmag.slice(), cim=new Array(N).fill(0); ifft(cre,cim);
+      var x0=38,x1=w-12, sy0=14,sy1=h*0.42, cy0=h*0.52,cy1=h-24;
+      // top: log magnitude spectrum (comb)
+      axis(ctx,x0,sy0,x1,sy1);
+      var half=Math.floor(N*0.45), lm=[]; for(var i2=1;i2<half;i2++)lm.push(logmag[i2]);
+      var lmin=Math.min.apply(null,lm), lmax=Math.max.apply(null,lm);
+      ctx.strokeStyle=INKSOFT; ctx.lineWidth=1; ctx.beginPath();
+      for(var b=1;b<half;b++){ var xx=x0+((b-1)/(half-1))*(x1-x0); var yy=sy1-((logmag[b]-lmin)/(lmax-lmin+1e-9))*(sy1-sy0); if(b===1)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy); } ctx.stroke();
+      label(ctx,"log magnitude spectrum (harmonic comb)",x0,sy0+4,INKSOFT);
+      // bottom: cepstrum vs quefrency
+      axis(ctx,x0,cy0,x1,cy1);
+      var qmin=Math.max(6,Math.floor(N/(K*S>0?K:1))), qmax=Math.floor(N/2);
+      var cmax=0,qpk=qmin; for(var q=qmin;q<qmax;q++){ var av=Math.abs(cre[q]); if(av>cmax){ cmax=av; qpk=q; } }
+      var cabs=[]; for(var q2=2;q2<qmax;q2++)cabs.push(Math.abs(cre[q2]));
+      var cdisp=Math.max.apply(null,cabs)||1;
+      ctx.strokeStyle=RUST; ctx.lineWidth=1.2; ctx.beginPath();
+      for(var q3=2;q3<qmax;q3++){ var xx2=x0+((q3-2)/(qmax-2))*(x1-x0); var yy2=cy1-(Math.abs(cre[q3])/cdisp)*(cy1-cy0); if(q3===2)ctx.moveTo(xx2,yy2);else ctx.lineTo(xx2,yy2); } ctx.stroke();
+      var pkx=x0+((qpk-2)/(qmax-2))*(x1-x0);
+      ctx.strokeStyle=OCHRE; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(pkx,cy0); ctx.lineTo(pkx,cy1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=OCHRE; ctx.beginPath(); ctx.arc(pkx,cy0+6,3.5,0,7); ctx.fill();
+      label(ctx,"cepstrum (quefrency \u2192)",x0,cy0+4,INKSOFT);
+      var detected=N/qpk;
+      read.innerHTML='<span class="ok">detected spacing: <b>'+detected.toFixed(1)+' bins</b></span><span>true spacing: <b>'+S+'</b></span><span>quefrency peak: <b>'+qpk+'</b></span>';
+    }
+    [spS,sdS,nzS].forEach(function(e){e.addEventListener("input",draw);}); setup(c,draw)();
+  })();
+
+})();
+</script>
+</body>
+</html>
