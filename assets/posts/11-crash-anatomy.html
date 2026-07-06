@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Crashes Happen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --paper:#FBF9F3;
+    --paper-2:#F0EBDF;
+    --ink:#221E1A;
+    --ink-soft:#5C544A;
+    --ink-faint:#8C8275;
+    --rule:#D9D1C0;
+    --rust:#B04A2F;
+    --rust-soft:#D98E76;
+    --teal:#2F6F6B;
+    --teal-soft:#7FB0AC;
+    --ochre:#C2912F;
+    --ochre-soft:#E2C588;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Spectral',Georgia,serif;
+    font-size:19px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  /* ---- Masthead ---- */
+  header.top{
+    border-bottom:2px solid var(--ink);
+    padding:46px 0 30px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(34px,7vw,58px);
+    line-height:1.04;
+    letter-spacing:-.015em;
+    margin:0 0 18px;
+  }
+  .standfirst{
+    font-size:clamp(18px,2.4vw,21px);
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .byline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    color:var(--ink-faint);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+
+  /* ---- Sections ---- */
+  section{padding:34px 0;border-bottom:1px solid var(--rule)}
+  .secnum{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--ochre);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:10px;
+  }
+  h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,4.4vw,36px);
+    line-height:1.1;
+    letter-spacing:-.01em;
+    margin:0 0 16px;
+  }
+  h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:30px 0 8px;
+  }
+  p{margin:0 0 18px}
+  a{color:var(--rust)}
+  strong{font-weight:600}
+  .lead{font-size:20px}
+  .term{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    color:var(--rust);
+  }
+
+  /* ---- Definition cards ---- */
+  .cards{display:grid;gap:14px;margin:22px 0}
+  @media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+  .card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--teal);
+    border-radius:3px;
+    padding:16px 18px;
+  }
+  .card .word{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .card .pron{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:.04em;
+    margin-left:6px;
+  }
+  .card p{font-size:16.5px;line-height:1.5;margin:0;color:var(--ink-soft)}
+  .card.rustline{border-left-color:var(--rust)}
+  .card.ochreline{border-left-color:var(--ochre)}
+
+  /* ---- Interactive panels ---- */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:5px;
+    padding:20px;
+    margin:24px 0;
+    box-shadow:0 1px 0 rgba(34,30,26,.03);
+  }
+  .panel .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 14px;
+  }
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  button.btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border:1.5px solid var(--ink);
+    background:var(--cream);
+    color:var(--ink);
+    padding:9px 15px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button.btn:hover{background:var(--ink);color:var(--cream)}
+  button.btn:focus-visible{outline:3px solid var(--ochre-soft);outline-offset:2px}
+  button.btn.on{background:var(--ink);color:var(--cream)}
+  button.btn.bull.on{background:var(--teal);border-color:var(--teal)}
+  button.btn.bear.on{background:var(--rust);border-color:var(--rust)}
+  canvas{display:block;width:100%;border-radius:4px;background:var(--paper-2);touch-action:none}
+  .readout{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    min-height:1.4em;
+    line-height:1.5;
+  }
+  .readout b{color:var(--ink)}
+  .stat{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--teal);
+    font-weight:600;
+  }
+  .stat.down{color:var(--rust)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:5px;border-radius:3px;
+    background:var(--paper-2);outline:none;margin:6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+  }
+  select{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;
+    background:var(--cream);color:var(--ink);
+  }
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--rule);
+    background:var(--cream);color:var(--ink-soft);cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pill.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* ---- candlestick svg ---- */
+  .candle-stage{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+  .candle-stage svg{flex:0 0 auto}
+  .candle-parts{flex:1 1 220px;min-width:200px}
+  .ckey{
+    display:block;padding:10px 12px;margin:0 0 8px;border-radius:4px;
+    border:1px solid var(--rule);background:var(--cream);cursor:pointer;
+    font-size:15px;line-height:1.4;transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ckey b{font-family:'Fraunces',serif;display:block;font-size:15.5px}
+  .ckey.active{background:var(--ochre-soft);border-color:var(--ochre)}
+  .cpart{transition:opacity .15s ease}
+  .cpart.dim{opacity:.22}
+
+  /* ---- rules ---- */
+  .rule-item{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule);
+    align-items:baseline;
+  }
+  .rule-item:last-child{border-bottom:none}
+  .rule-n{
+    font-family:'Fraunces',serif;font-weight:700;font-size:30px;
+    color:var(--rust);flex:0 0 44px;line-height:1;
+  }
+  .rule-item h3{margin:0 0 4px;font-size:18px}
+  .rule-item p{margin:0;font-size:16.5px;color:var(--ink-soft)}
+
+  /* ---- callout ---- */
+  .note{
+    background:var(--paper-2);
+    border-radius:4px;
+    padding:14px 18px;
+    margin:20px 0;
+    font-size:16.5px;
+    color:var(--ink-soft);
+    border-left:3px solid var(--ochre);
+  }
+  .note b{color:var(--ink)}
+
+  /* ---- glossary ---- */
+  .glossary dt{
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;
+    margin-top:14px;color:var(--ink);
+  }
+  .glossary dd{margin:2px 0 0;color:var(--ink-soft);font-size:16px;line-height:1.5}
+
+  footer{padding:40px 0 70px;text-align:center}
+  footer p{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--ink-faint);letter-spacing:.03em;line-height:1.7;
+  }
+
+  /* ---- part two divider ---- */
+  section.partbreak{border-bottom:none;text-align:center;padding:56px 0 8px}
+  .partbreak .ptlabel{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--rust);
+  }
+  .partbreak h2{margin:12px 0 10px}
+  .partbreak p{color:var(--ink-soft);max-width:58ch;margin:0 auto}
+  .partbreak .dash{width:46px;height:3px;background:var(--ink);margin:22px auto 0;border-radius:2px}
+
+  /* ---- phone order ticket ---- */
+  .phone{max-width:340px;margin:0 auto;background:var(--ink);border-radius:28px;padding:11px;box-shadow:0 10px 34px rgba(34,30,26,.20)}
+  .phone-screen{background:var(--cream);border-radius:20px;padding:18px 16px}
+  .app-head{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:14px}
+  .app-tkr{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--ink)}
+  .app-name{font-size:12px;color:var(--ink-faint);margin-left:8px}
+  .app-quote{font-family:'Fraunces',serif;font-weight:600;font-size:34px;line-height:1.15;margin-top:8px}
+  .app-chg{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)}
+  .app-chg.down{color:var(--rust)}
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden}
+  .seg.small{border-color:var(--rule)}
+  .seg-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 6px;background:var(--cream);color:var(--ink);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .seg-btn.on{background:var(--ink);color:var(--cream)}
+  .seg-btn.on[data-side="buy"]{background:var(--teal)}
+  .seg-btn.on[data-side="sell"]{background:var(--rust)}
+  .ticket-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:13px 0}
+  .ticket-row > label{font-size:14px;color:var(--ink-soft);flex:0 0 auto}
+  .ticket-row select,.ticket-row input[type=number]{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:7px 9px;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);max-width:130px}
+  .step{font-family:'IBM Plex Mono',monospace;width:30px;height:30px;border:1.5px solid var(--rule);background:var(--cream);color:var(--ink);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;-webkit-tap-highlight-color:transparent}
+  .ticket-meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin:8px 0 14px;text-align:center}
+  .btn.wide{width:100%;text-align:center;justify-content:center}
+  .bp{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:center;margin-top:13px}
+  .review-box{background:var(--paper-2);border-radius:10px;padding:14px;margin-top:12px}
+  .review-box .rl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:3px 0;color:var(--ink-soft)}
+  .review-box .rl b{color:var(--ink)}
+  .review-actions{display:flex;gap:8px;margin-top:12px}
+  .holdings{margin-top:18px;display:grid;gap:9px}
+  .hold-card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.5}
+  .hold-card .ht{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:.04em}
+  .badge.work{background:var(--ochre-soft);color:#6b4e16}
+  .badge.filled{background:var(--teal-soft);color:#143f3c}
+  .pl-pos{color:var(--teal);font-weight:600}
+  .pl-neg{color:var(--rust);font-weight:600}
+
+  /* ---- checklist ---- */
+  .checklist{list-style:none;padding:0;margin:6px 0 0}
+  .checklist li{border-bottom:1px solid var(--rule)}
+  .checklist li:last-child{border-bottom:none}
+  .checklist label{display:flex;gap:13px;align-items:flex-start;padding:13px 2px;cursor:pointer;font-size:16.5px}
+  .checklist input{margin-top:5px;width:18px;height:18px;accent-color:var(--teal);flex:0 0 auto}
+  .ck-prog{height:6px;background:var(--paper-2);border-radius:4px;margin:18px 0 10px;overflow:hidden}
+  .ck-fill{height:100%;width:0;background:var(--teal);transition:width .25s ease}
+
+  /* ---- table of contents ---- */
+  .toc{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;margin:28px 0 6px}
+  .toc h2{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 6px}
+  .toc-part{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);margin:16px 0 8px}
+  .toc ol{list-style:none;margin:0;padding:0;columns:2;column-gap:26px}
+  .toc li{margin:0 0 8px;break-inside:avoid;-webkit-column-break-inside:avoid}
+  .toc a{color:var(--ink);text-decoration:none;display:flex;gap:9px;align-items:baseline;font-size:15px;line-height:1.3}
+  .toc a:hover{color:var(--rust)}
+  .toc a:hover .tn{color:var(--rust)}
+  .toc .tn{font-family:'IBM Plex Mono',monospace;color:var(--ink-faint);font-size:12px;flex:0 0 22px}
+  @media(max-width:560px){.toc ol{columns:1}}
+  html{scroll-behavior:smooth}
+  section[id]{scroll-margin-top:16px}
+  .series{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.9}
+  .series a{color:var(--ink-soft);text-decoration:none;border-bottom:1px dotted var(--rule)}
+  .series b{color:var(--rust)}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<p class="eyebrow">Volume Ten · The Inevitable</p>
+<h1>Why Crashes Happen</h1>
+<p class="standfirst">Why market crashes are structurally guaranteed, the symptoms that mark a fragile market, the eight phases every crash walks through, and exactly what to do before and during, written in calm for use in chaos.</p>
+<p class="byline">By Majid Mazouchi · Drafted with Claude · Volume 10 of the series</p>
+<p class="series">In this series: <a href="stock-jargon.html">1 Foundations</a> · <a href="02-what-moves-prices.html">2 What Moves Prices</a> · <a href="03-practice-room.html">3 Practice Room</a> · <a href="04-reading-a-company.html">4 Reading a Company</a> · <a href="05-dangerous-aisle.html">5 The Dangerous Aisle</a> · <a href="06-building-your-portfolio.html">6 Your Portfolio</a> · <a href="08-case-study.html">7 Case Study</a> · <a href="09-analyst-toolkit.html">8 The Toolkit</a> · <a href="10-market-psychology.html">9 Crowd Psychology</a> · <b>10 Crashes</b> · <a href="12-forecasting.html">11 Forecasting</a> · <a href="07-cheat-sheet.html">Cheat Sheet</a></p>
+</div></header>
+<main class="wrap">
+  <section>
+    <span class="secnum">01 · The Uncomfortable Promise</span>
+    <h2>Crashes are guaranteed. Your ruin is optional.</h2>
+    <p class="lead">Here is the honest deal the stock market offers: excellent long-run returns, in exchange for living through several crashes you will not see coming. Since 1929 the US market has crashed hard roughly once or twice a decade, every single decade, under every kind of government, technology, and regulation.</p>
+    <p>Nobody, not the Fed, not the legends from Volume 2, reliably predicts <em>when</em>. But the <em>why</em>, the <em>warning symptoms</em>, the <em>phases</em>, and the <em>correct behavior</em> are all knowable in advance, and knowing them is the difference between investors who were wounded by crashes and investors who were made by them. That is this volume.</p>
+  </section>
+
+  <section>
+    <span class="secnum">02 · Why Crashes Must Happen</span>
+    <h2>The machine builds its own bomb</h2>
+    <p class="lead">Crashes are not accidents that better rules could abolish. They grow from the market’s own ingredients: humans, copying, and borrowed money. Five simple mechanisms, working together, make the cycle self-winding.</p>
+    <div class="cards">
+      <div class="card"><p class="word">1. The stability paradox</p><p>The economist Hyman Minsky’s great insight: <strong>calm itself creates risk</strong>. Every quiet year teaches people that danger is gone, so they borrow more, reach further, and hold less cushion. Stability plants the seeds of instability. Safety is a lesson the market always over-learns.</p></div>
+      <div class="card"><p class="word">2. The leverage ratchet</p><p>Borrowed money grows in good times because it works: it multiplies gains. But every borrowed dollar is a future forced seller (Volume 9). The longer the party, the more of the room is standing on the trapdoor.</p></div>
+      <div class="card"><p class="word">3. The herding loop</p><p>Rising prices recruit buyers, whose buying raises prices. The herding simulator in Volume 9 showed copying alone manufactures booms and busts with zero news. Humans cannot stop copying; it is the wiring.</p></div>
+      <div class="card"><p class="word">4. Valuation gravity</p><p>Prices can outrun earnings for years, never forever. The further the multiple stretches (Volume 8), the less bad news it takes to snap it back. High valuations do not cause crashes; they lower the height of the tripwire.</p></div>
+      <div class="card"><p class="word">5. The liquidity illusion</p><p>Everyone believes they can sell near today’s price. True for one seller; false for all sellers. Exits are small doors, and the moment everyone wants one, the door’s size sets the price, not the business’s value.</p></div>
+      <div class="card rustline"><p class="word">Why no fix exists</p><p>After every crash, new rules fence off the last trigger: margin rules after 1929, circuit breakers after 1987, bank capital after 2008. The next crisis simply walks around the fence, because the fuel, human confidence plus borrowed money, is never illegal. Different costume, same skeleton, every time.</p></div>
+    </div>
+    <p>Watch the stability paradox run. The only dial is how many calm years pass before the same modest shock arrives.</p>
+    <div class="panel">
+      <p class="label">Calm years build confidence and leverage (shaded). Then the same shock hits.</p>
+      <div class="ticket-row"><label for="mkY">Years of calm first</label><span style="display:flex;align-items:center;gap:10px"><input id="mkY" type="range" min="1" max="14" value="7" style="width:140px"><span id="mkYV" class="stat">7</span></span></div>
+      <canvas id="mkc" height="220" aria-label="Stability paradox simulator"></canvas>
+      <div class="readout" id="mko"></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> The scariest markets are the ones that have not scared anyone in years. When your least interested friends feel certain, certainty itself is the warning.</div>
+  </section>
+
+  <section>
+    <span class="secnum">03 · The Symptoms</span>
+    <h2>What a crash-prone market looks like</h2>
+    <p class="lead">Crashes cannot be timed, but <strong>fragility can be observed</strong>. These symptoms do not say “crash next month”; they say the tripwire is low and the room is crowded. The more that light up together, the less bad news it will take.</p>
+    <div class="cards">
+      <div class="card ochreline"><p class="word">Stretched valuations</p><p>Market P/E far above its own history means years of good news already spent. Professor Shiller’s CAPE ratio, free online, tracks this back to 1881.</p></div>
+      <div class="card ochreline"><p class="word">Record leverage</p><p>Margin debt at all-time highs is the trapdoor census: every borrowed dollar is a mandatory future seller.</p></div>
+      <div class="card ochreline"><p class="word">Euphoria fingerprints</p><p>Verticals, retail activity records, junk stocks leading, “this time is different” everywhere (the full list is Volume 9).</p></div>
+      <div class="card ochreline"><p class="word">Lending to anyone</p><p>When shaky companies borrow easily and cheaply, credit standards have dissolved. Credit markets usually sober up before stock markets do.</p></div>
+      <div class="card ochreline"><p class="word">Narrowing breadth</p><p>Indexes at highs carried by a handful of giants while the average stock sinks. Hollow markets crack from the inside.</p></div>
+      <div class="card ochreline"><p class="word">The bond market’s frown</p><p>When safe long-term bonds pay less than short-term ones (an inverted yield curve), the bond market is pricing trouble ahead. It has preceded most modern recessions, with long and variable delays.</p></div>
+      <div class="card ochreline"><p class="word">Good news stops working</p><p>Great earnings that get sold anyway: the crowd is quietly leaving through the exits while the band plays (Volume 9’s master gauge).</p></div>
+      <div class="card ochreline"><p class="word">Everyone is fully invested</p><p>Cash levels at funds and households at record lows means the buying power that fuels rallies is already spent. Who is left to buy?</p></div>
+    </div>
+    <div class="panel">
+      <p class="label">Fragility gauge: tick each symptom you can currently observe</p>
+      <ul class="checklist" id="fgL">
+        <li><label><input type="checkbox"> Valuations far above historical norms</label></li>
+        <li><label><input type="checkbox"> Margin debt / leverage at records</label></li>
+        <li><label><input type="checkbox"> Euphoria fingerprints (verticals, retail records)</label></li>
+        <li><label><input type="checkbox"> Easy lending to weak borrowers</label></li>
+        <li><label><input type="checkbox"> Narrow breadth: few giants carrying the index</label></li>
+        <li><label><input type="checkbox"> Inverted yield curve / bond market warning</label></li>
+        <li><label><input type="checkbox"> Good news getting sold</label></li>
+        <li><label><input type="checkbox"> Cash levels at record lows</label></li>
+      </ul>
+      <div class="ck-prog"><div class="ck-fill" id="fgF" style="background:var(--rust)"></div></div>
+      <div class="readout" id="fgO"></div>
+    </div>
+    <div class="note"><b>The honest limit, in bold.</b> Fragility is not timing. Markets have stayed fragile, and rising, for <em>years</em> after every light turned on; people who sold at the first symptom missed some of history’s best gains. The gauge tells you how to be <b>positioned</b>, never when to flee.</div>
+  </section>
+
+  <section>
+    <span class="secnum">04 · The Anatomy of a Crash</span>
+    <h2>Eight phases, same skeleton every time</h2>
+    <p class="lead">1929, 1987, 2000, 2008, 2020: different triggers, one shape. Learn the shape and you always know roughly where you are standing. Tap each phase.</p>
+    <div class="panel">
+      <p class="label">Tap a phase of the crash</p>
+      <div class="pills" id="caP"></div>
+      <canvas id="cac" height="230" style="margin-top:12px" aria-label="Crash anatomy curve"></canvas>
+      <div class="readout" id="cao"></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> You can never name the phase with certainty in real time, only in hindsight. That is exactly why the playbooks below are written by phase-<em>shape</em>, not by date, and why tranches beat all-at-once decisions in both directions.</div>
+  </section>
+
+  <section>
+    <span class="secnum">05 · The Before Playbook</span>
+    <h2>What to do when the symptoms light up</h2>
+    <p class="lead">Preparation is not prediction, and it is absolutely not “sell everything.” It is making yourself unkillable before the weather turns, so the crash becomes an event you use instead of one that uses you.</p>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Kill all leverage. Today.</h3><p>The single non-negotiable. Every crash in history transferred wealth from the leveraged to the patient. Margin is how investors with correct long-term views still go to zero.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Rebalance back to your written allocation</h3><p>If euphoria swelled stocks from 70% to 85% of your portfolio, trimming back is mechanical, unemotional profit-taking (Volume 6). You are not calling a top; you are keeping a promise.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Move soon-needed money out</h3><p>Anything required within about five years, a house deposit, tuition, does not belong in stocks while fragility is high. Or ever, really.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Upgrade quality</h3><p>Swap lottery tickets and story stocks for balance sheets that survive winters. In crashes, the difference between down 30% and down 90% is mostly debt and cash flow.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>Build the buying-power sleeve</h3><p>A cash reserve, sized in advance (many use 5 to 15% of the portfolio), with written deployment levels: this much at −20%, this much at −30%, the rest at −40%. Cash is an option on other people’s panic.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Write the crash letter</h3><p>One page from calm-you to panicking-you: “We expected this. Here is what we promised to do at each level, and here is why we are not selling.” Volume 6’s single best idea. Write it while it feels unnecessary.</p></div></div>
+    <div class="rule-item"><div class="rule-n">7</div><div><h3>Do not try to time the top</h3><p>Tops are only visible in hindsight, exits feel brilliant until the market rises another 40%, and re-entry is psychologically almost impossible. History’s data is brutal on top-callers. Prepare; never predict.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">06 · The During Playbook</span>
+    <h2>What to do in the middle of the storm</h2>
+    <p class="lead">The market is gapping down, the VIX is screaming, and every headline says historic. Your entire job compresses to a few behaviors, keyed to the phases above.</p>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Day one: do nothing</h3><p>Never sell into the first gap. Decisions made inside the first shock belong to the shock. The one exception was handled in the Before playbook: if you have leverage, that is what you exit, at any price.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Reread the crash letter, run the tilt checklist</h3><p>Volume 9’s checklist before <em>any</em> action. Two lights on means the app closes. Your body is flooded with the same chemistry driving the crowd.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Locate yourself on the anatomy</h3><p>First crack, cascade, or capitulation? You will be roughly wrong, but roughly is enough: it tells you whether forced sellers are still in charge (do not catch knives) or exhausted (bases and retests form).</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Keep the automatic buying running</h3><p>The monthly contribution from Volume 6 now buys more shares per dollar every month. Crash-era purchases have historically been the best-returning money most investors ever invest. Turning off the autopilot at lows is the quiet catastrophe.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>Deploy the sleeve by the written levels, in tranches</h3><p>At your pre-set −20/−30/−40 marks, buy the planned slice of broad quality, and accept that the price will likely fall further after each buy. Tranches exist because bottoms cannot be called.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Lump sums wait for the base and the retest</h3><p>For any big single deployment, wait for the crash anatomy’s later phases: a volume climax, a churning base, and a retest that holds on quieter volume. You will miss the exact bottom. Everyone does.</p></div></div>
+    <div class="rule-item"><div class="rule-n">7</div><div><h3>Harvest the tax losses</h3><p>In taxable accounts, selling losers and moving into similar (not identical) funds banks a deduction while staying invested (Volume 6). One of the few free lunches a crash serves.</p></div></div>
+    <div class="rule-item"><div class="rule-n">8</div><div><h3>Ration the news</h3><p>Check positions on a schedule, not a compulsion. Headlines are engineered to peak in terror precisely at bottoms, because terror is what sells at bottoms.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">07 · What Not to Do</span>
+    <h2>The five classic self-inflicted wounds</h2>
+    <div class="cards">
+      <div class="card rustline"><p class="word">Panic-selling the lows</p><p>Converts a temporary paper loss into a permanent real one, usually within days of the bottom. The single most expensive mistake in retail investing history.</p></div>
+      <div class="card rustline"><p class="word">Catching the first knife with size</p><p>The first bounce is usually a bull trap (phase 3). Committing everything to it leaves nothing for the real lows, and shakes your nerve for them too.</p></div>
+      <div class="card rustline"><p class="word">“Leverage, because it’s cheap now”</p><p>Borrowing to buy a crash converts a survivable drawdown into a margin call at the exact bottom. The market’s cruelest joke, replayed every cycle.</p></div>
+      <div class="card rustline"><p class="word">Waiting for the all-clear</p><p>The recovery climbs a wall of worry; headlines stay apocalyptic while prices rise 40%. Waiting for good news means buying the recovery’s top (phase 8).</p></div>
+      <div class="card rustline"><p class="word">Confusing the index with a stock</p><p>The doctrine “it always comes back” belongs to <b>diversified indexes</b>, which have recovered from every crash so far. Individual companies routinely do not: many dot-com and 2008 names never returned. Hold indexes through anything; hold single stocks only with exits and honest re-checks of the business.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">08 · Rules of Thumb</span>
+    <h2>The crash survival kit</h2>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Crashes are scheduled; the date is not</h3><p>Plan for several per investing lifetime. Surprise is a choice.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Calm is the fuel gauge</h3><p>The longer the quiet, the bigger the stored energy. Fear the absence of fear.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Fragility is observable; timing is not</h3><p>Symptoms position you. They never, ever date the storm.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Survive first, profit second</h3><p>No leverage, no soon-needed money at risk, quality holdings. The unkillable inherit the rebound.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>The letter beats the feeling</h3><p>Every crash decision should have been written before it. If it was not, the default is: do nothing for 24 hours.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Buy fear in slices, on schedule</h3><p>Pre-set levels, fixed tranches, broad quality. Ignore the certainty that this time it will not come back; that certainty is phase 5 talking.</p></div></div>
+    <div class="rule-item"><div class="rule-n">7</div><div><h3>The bottom is a process, not a day</h3><p>Climax, base, retest. Missing the exact low costs little; missing the whole recovery costs everything.</p></div></div>
+    <div class="rule-item"><div class="rule-n">8</div><div><h3>Indexes resurrect; stocks may not</h3><p>Hold the haystack through anything. Needles need stop-losses and re-underwriting.</p></div></div>
+    <div class="rule-item"><div class="rule-n">9</div><div><h3>Your fear is data</h3><p>When you cannot sleep, the crowd cannot either, and capitulation is near. When you feel like a genius, so does everyone, and so is the top.</p></div></div>
+    <div class="rule-item"><div class="rule-n">10</div><div><h3>Crashes are the tuition and the opportunity</h3><p>Every long-term fortune built in markets bought some of its shares from someone panicking. Decide, now, in calm, which side of that trade you intend to be.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">09 · Practical Notes and Further Reading</span>
+    <h2>Where to go deeper</h2>
+    <p class="lead">Crash literature is the market’s richest genre, because survivors write memoirs.</p>
+    <div class="cards">
+      <div class="card"><p class="word">The Great Crash 1929 · J.K. Galbraith</p><p>Short, witty, devastating. The original anatomy of euphoria, leverage, and collapse, and it reads like it was written about next year.</p></div>
+      <div class="card"><p class="word">This Time Is Different · Reinhart &amp; Rogoff</p><p>Eight centuries of financial crises, proving the title is always, eventually, wrong. The data behind this whole volume.</p></div>
+      <div class="card"><p class="word">Manias, Panics, and Crashes · Kindleberger</p><p>The classic cycle framework (met in Volume 2), built on Minsky’s stability paradox.</p></div>
+      <div class="card"><p class="word">Howard Marks’ memos · free online</p><p>Oaktree Capital publishes his investor memos free; the crisis-era ones are masterclasses in real-time crash thinking.</p></div>
+    </div>
+    <div class="note"><b>Free gauges for the symptoms list.</b> Shiller’s CAPE valuation data is free from his Yale site. FINRA publishes margin-debt statistics. The Federal Reserve publishes financial stability reports and yield-curve data. All the fragility lights in section 03 are public and free; the only thing not published is the date.</div>
+  </section>
+
+</main>
+<footer><div class="wrap"><p>By Majid Mazouchi · Drafted with Claude</p><p>Educational primer only. Nothing here is financial advice. Markets carry real risk of loss.</p></div></footer>
+<script>
+(function(){
+  "use strict";
+  window.PALETTE={cream:'#F4F1EA',paper2:'#F0EBDF',ink:'#221E1A',inkSoft:'#5C544A',inkFaint:'#8C8275',rule:'#D9D1C0',rust:'#B04A2F',rustSoft:'#D98E76',teal:'#2F6F6B',tealSoft:'#7FB0AC',ochre:'#C2912F',ochreSoft:'#E2C588'};
+  window.reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.fit=function(canvas){var dpr=window.devicePixelRatio||1;var w=canvas.clientWidth||canvas.parentNode.clientWidth;var h=canvas._h||parseInt(canvas.getAttribute('height'),10)||canvas.clientHeight;canvas._h=h;canvas.style.height=h+'px';canvas.width=w*dpr;canvas.height=h*dpr;var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);canvas._w=w;return ctx;};
+  window.hexA=function(hex,a){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';};
+})();
+(function(){
+"use strict";
+
+  /* W1 STABILITY PARADOX */
+  (function(){
+    var c=document.getElementById('mkc'); if(!c) return;
+    var Yr=document.getElementById('mkY'),Yv=document.getElementById('mkYV'),out=document.getElementById('mko'),ctx;
+    function draw(){
+      var yrs=+Yr.value;Yv.textContent=yrs;
+      var calmN=yrs*12, N=calmN+40, px=[],lev=[],P=100,L=10;
+      for(var t=0;t<N;t++){
+        if(t<calmN){ P+=0.28+(Math.random()-0.5)*0.7; L+=0.55; }
+        else{
+          var force=(t-calmN<18)?(0.5+L*0.055):( -0.4-(100-Math.min(P,100))*0.01 );
+          P-=force; L*=0.90;
+          if(t-calmN>=18){P+=0.9;}
+        }
+        P=Math.max(20,P);px.push(P);lev.push(L);
+      }
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=18,gw=w-pad*2,gh=h-pad*2;
+      var hi=Math.max.apply(null,px)+6,lo=Math.min.apply(null,px)-6;
+      function X(i){return pad+gw*i/(N-1);} function Y(v){return pad+gh*(1-(v-lo)/(hi-lo));}
+      // leverage shading
+      var maxL=Math.max.apply(null,lev);
+      ctx.beginPath();ctx.moveTo(X(0),h-pad);
+      for(var i=0;i<N;i++)ctx.lineTo(X(i),h-pad-(gh*0.45)*lev[i]/maxL);
+      ctx.lineTo(X(N-1),h-pad);ctx.closePath();
+      ctx.fillStyle=hexA(PALETTE.ochre,0.18);ctx.fill();
+      ctx.fillStyle=PALETTE.ochre;ctx.font='600 10px IBM Plex Mono';ctx.textAlign='left';
+      ctx.fillText('leverage & confidence building',pad+4,h-pad-8);
+      ctx.beginPath();for(i=0;i<N;i++){i?ctx.lineTo(X(i),Y(px[i])):ctx.moveTo(X(i),Y(px[i]));}
+      ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+      var shockX=X(calmN);
+      ctx.strokeStyle=PALETTE.rust;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(shockX,pad);ctx.lineTo(shockX,h-pad);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=PALETTE.rust;ctx.textAlign='center';
+      ctx.fillText('same shock',Math.min(w-pad-34,shockX),pad+10);
+      var peak=Math.max.apply(null,px.slice(0,calmN+2));
+      var trough=Math.min.apply(null,px.slice(calmN));
+      var depth=(1-trough/peak)*100;
+      out.innerHTML='After <b>'+yrs+' calm year'+(yrs>1?'s':'')+'</b>, leverage and confidence (shaded) had grown to '+(10+yrs*12*0.55).toFixed(0)+' units, and the identical shock produced a <span class="stat down">\u2212'+depth.toFixed(0)+'%</span> crash. Nothing about the shock changed; only the years of safety before it. <b>Calm is the fuel.</b>';
+    }
+    function boot(){ctx=fit(c);draw();}
+    Yr.addEventListener('input',draw);
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* W2 FRAGILITY GAUGE */
+  (function(){
+    var list=document.getElementById('fgL'); if(!list) return;
+    var boxes=list.querySelectorAll('input[type=checkbox]');
+    var fill=document.getElementById('fgF'),out=document.getElementById('fgO');
+    function upd(){
+      var n=0;for(var i=0;i<boxes.length;i++)if(boxes[i].checked)n++;
+      fill.style.width=(n/boxes.length*100)+'%';
+      out.innerHTML = n<=1?'<b>Clear-ish skies ('+n+'/8).</b> Ordinary market weather. The playbook: stay invested, keep contributing, stay boring.':
+        n<=3?'<b>Some fragility ('+n+'/8).</b> Normal late-cycle conditions. Run the Before playbook\u2019s hygiene items: no leverage, allocation on target, soon-needed money out.':
+        n<=5?'<b>Storm-prone ('+n+'/8).</b> The tripwire is low. Full Before playbook: quality upgrade, cash sleeve built, crash letter written. Still invested, now unkillable.':
+        '<b>Highly fragile ('+n+'/8).</b> History\u2019s big crashes launched from boards that looked like this. And yet: markets have risen for years from here too, which is exactly why the answer is preparation at full strength, never flight.';
+    }
+    for(var i=0;i<boxes.length;i++)boxes[i].addEventListener('change',upd);
+    upd();
+  })();
+
+  /* W3 CRASH ANATOMY */
+  (function(){
+    var c=document.getElementById('cac'); if(!c) return;
+    var pills=document.getElementById('caP'),out=document.getElementById('cao'),ctx;
+    var CP=[[0,0.80],[0.12,0.85],[0.20,0.58],[0.30,0.72],[0.45,0.28],[0.55,0.10],[0.68,0.18],[0.80,0.13],[1,0.52]];
+    var ST=[
+      ['1 \u00b7 The quiet peak',0.08,'Prices grind at highs but good news stops lifting them, breadth narrows, and steady selling absorbs every rally: institutions distributing to latecomers. <b>Do:</b> the entire Before playbook. This phase is only certain in hindsight.'],
+      ['2 \u00b7 The first crack',0.20,'A sharp drop, universally dismissed as a healthy dip. Dip-buyers step in confidently, and early ones even profit. <b>Do:</b> nothing new. Verify: no leverage, letter written, levels set.'],
+      ['3 \u00b7 The bull trap',0.30,'A strong rally recovers much of the fall, fails below the old high, and rolls over. The most expensive phase: it convinces everyone the storm passed. <b>Do:</b> respect the lower high. No lump sums here.'],
+      ['4 \u00b7 The cascade',0.45,'Margin calls and stop clusters take over (Volume 9\u2019s conveyor belt): gaps, one-way days, correlation goes to one. Forced sellers set prices. <b>Do:</b> refuse to join them. First tranche only if your written \u221220% level trips. No knives.'],
+      ['5 \u00b7 Capitulation',0.55,'The volume climax: everyone who can be scared out is scared out, often in one or two historic days. \u201cStocks are finished\u201d makes covers. <b>Do:</b> keep automatic buying on; deploy the deeper tranches at your levels. It will feel insane. That is the signature.'],
+      ['6 \u00b7 The base',0.68,'Churning sideways on fading volume. Apathy replaces terror; nobody cares anymore. Bad news stops moving prices. <b>Do:</b> this is where lump-sum money starts working in, still in slices.'],
+      ['7 \u00b7 The retest',0.80,'A slide back toward the low that holds on quieter volume: the crowd\u2019s surrender confirmed. Historically the highest-odds major entry. <b>Do:</b> complete planned deployment. Expect to feel no confidence whatsoever.'],
+      ['8 \u00b7 The wall of worry',0.93,'Prices recover while headlines stay apocalyptic, and everyone who fled calls it a fake rally, for years. <b>Do:</b> nothing clever. You already did everything, back when it was hard.']
+    ];
+    function curveY(t){
+      for(var i=0;i<CP.length-1;i++){
+        if(t>=CP[i][0]&&t<=CP[i+1][0]){
+          var f=(t-CP[i][0])/(CP[i+1][0]-CP[i][0]);
+          var e=(1-Math.cos(f*Math.PI))/2;
+          return CP[i][1]+(CP[i+1][1]-CP[i][1])*e;
+        }
+      }
+      return CP[CP.length-1][1];
+    }
+    var cur=0;
+    function draw(){
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=18,gw=w-pad*2,gh=h-pad*2;
+      ctx.beginPath();
+      for(var i=0;i<=220;i++){var t=i/220,x=pad+gw*t,y=pad+gh*(1-curveY(t));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+      ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+      for(i=0;i<ST.length;i++){
+        var t2=ST[i][1],x2=pad+gw*t2,y2=pad+gh*(1-curveY(t2));
+        var on=i===cur;
+        ctx.fillStyle=on?PALETTE.rust:PALETTE.rule;
+        ctx.beginPath();ctx.arc(x2,y2,on?8:4,0,7);ctx.fill();
+        if(on){ctx.strokeStyle=PALETTE.paper2;ctx.lineWidth=2;ctx.stroke();
+          ctx.fillStyle=PALETTE.rust;ctx.font='600 11px IBM Plex Mono';ctx.textAlign='center';
+          var lbl=ST[i][0].split(' \u00b7 ')[1];
+          ctx.fillText(lbl,Math.max(pad+40,Math.min(w-pad-40,x2)),y2+(curveY(t2)>0.5?26:-14));}
+      }
+    }
+    function sel(i){cur=i;
+      var bs=pills.querySelectorAll('.pill');
+      for(var b=0;b<bs.length;b++)bs[b].classList.toggle('on',b===i);
+      draw();out.innerHTML='<b>'+ST[i][0]+'.</b> '+ST[i][2];}
+    var ph='';for(var i=0;i<ST.length;i++)ph+='<span class="pill'+(i===0?' on':'')+'" data-i="'+i+'">'+(i+1)+'</span>';
+    pills.innerHTML=ph;
+    var bs=pills.querySelectorAll('.pill');
+    for(i=0;i<bs.length;i++)bs[i].addEventListener('click',function(e){sel(+e.currentTarget.getAttribute('data-i'));});
+    function boot(){ctx=fit(c);sel(0);}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forecasting by Horizon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --paper:#FBF9F3;
+    --paper-2:#F0EBDF;
+    --ink:#221E1A;
+    --ink-soft:#5C544A;
+    --ink-faint:#8C8275;
+    --rule:#D9D1C0;
+    --rust:#B04A2F;
+    --rust-soft:#D98E76;
+    --teal:#2F6F6B;
+    --teal-soft:#7FB0AC;
+    --ochre:#C2912F;
+    --ochre-soft:#E2C588;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Spectral',Georgia,serif;
+    font-size:19px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  /* ---- Masthead ---- */
+  header.top{
+    border-bottom:2px solid var(--ink);
+    padding:46px 0 30px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(34px,7vw,58px);
+    line-height:1.04;
+    letter-spacing:-.015em;
+    margin:0 0 18px;
+  }
+  .standfirst{
+    font-size:clamp(18px,2.4vw,21px);
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .byline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    color:var(--ink-faint);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+
+  /* ---- Sections ---- */
+  section{padding:34px 0;border-bottom:1px solid var(--rule)}
+  .secnum{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--ochre);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:10px;
+  }
+  h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,4.4vw,36px);
+    line-height:1.1;
+    letter-spacing:-.01em;
+    margin:0 0 16px;
+  }
+  h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:30px 0 8px;
+  }
+  p{margin:0 0 18px}
+  a{color:var(--rust)}
+  strong{font-weight:600}
+  .lead{font-size:20px}
+  .term{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    color:var(--rust);
+  }
+
+  /* ---- Definition cards ---- */
+  .cards{display:grid;gap:14px;margin:22px 0}
+  @media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+  .card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--teal);
+    border-radius:3px;
+    padding:16px 18px;
+  }
+  .card .word{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .card .pron{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:.04em;
+    margin-left:6px;
+  }
+  .card p{font-size:16.5px;line-height:1.5;margin:0;color:var(--ink-soft)}
+  .card.rustline{border-left-color:var(--rust)}
+  .card.ochreline{border-left-color:var(--ochre)}
+
+  /* ---- Interactive panels ---- */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:5px;
+    padding:20px;
+    margin:24px 0;
+    box-shadow:0 1px 0 rgba(34,30,26,.03);
+  }
+  .panel .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 14px;
+  }
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  button.btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border:1.5px solid var(--ink);
+    background:var(--cream);
+    color:var(--ink);
+    padding:9px 15px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button.btn:hover{background:var(--ink);color:var(--cream)}
+  button.btn:focus-visible{outline:3px solid var(--ochre-soft);outline-offset:2px}
+  button.btn.on{background:var(--ink);color:var(--cream)}
+  button.btn.bull.on{background:var(--teal);border-color:var(--teal)}
+  button.btn.bear.on{background:var(--rust);border-color:var(--rust)}
+  canvas{display:block;width:100%;border-radius:4px;background:var(--paper-2);touch-action:none}
+  .readout{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    min-height:1.4em;
+    line-height:1.5;
+  }
+  .readout b{color:var(--ink)}
+  .stat{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--teal);
+    font-weight:600;
+  }
+  .stat.down{color:var(--rust)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:5px;border-radius:3px;
+    background:var(--paper-2);outline:none;margin:6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+  }
+  select{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;
+    background:var(--cream);color:var(--ink);
+  }
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--rule);
+    background:var(--cream);color:var(--ink-soft);cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pill.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* ---- candlestick svg ---- */
+  .candle-stage{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+  .candle-stage svg{flex:0 0 auto}
+  .candle-parts{flex:1 1 220px;min-width:200px}
+  .ckey{
+    display:block;padding:10px 12px;margin:0 0 8px;border-radius:4px;
+    border:1px solid var(--rule);background:var(--cream);cursor:pointer;
+    font-size:15px;line-height:1.4;transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ckey b{font-family:'Fraunces',serif;display:block;font-size:15.5px}
+  .ckey.active{background:var(--ochre-soft);border-color:var(--ochre)}
+  .cpart{transition:opacity .15s ease}
+  .cpart.dim{opacity:.22}
+
+  /* ---- rules ---- */
+  .rule-item{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule);
+    align-items:baseline;
+  }
+  .rule-item:last-child{border-bottom:none}
+  .rule-n{
+    font-family:'Fraunces',serif;font-weight:700;font-size:30px;
+    color:var(--rust);flex:0 0 44px;line-height:1;
+  }
+  .rule-item h3{margin:0 0 4px;font-size:18px}
+  .rule-item p{margin:0;font-size:16.5px;color:var(--ink-soft)}
+
+  /* ---- callout ---- */
+  .note{
+    background:var(--paper-2);
+    border-radius:4px;
+    padding:14px 18px;
+    margin:20px 0;
+    font-size:16.5px;
+    color:var(--ink-soft);
+    border-left:3px solid var(--ochre);
+  }
+  .note b{color:var(--ink)}
+
+  /* ---- glossary ---- */
+  .glossary dt{
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;
+    margin-top:14px;color:var(--ink);
+  }
+  .glossary dd{margin:2px 0 0;color:var(--ink-soft);font-size:16px;line-height:1.5}
+
+  footer{padding:40px 0 70px;text-align:center}
+  footer p{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--ink-faint);letter-spacing:.03em;line-height:1.7;
+  }
+
+  /* ---- part two divider ---- */
+  section.partbreak{border-bottom:none;text-align:center;padding:56px 0 8px}
+  .partbreak .ptlabel{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--rust);
+  }
+  .partbreak h2{margin:12px 0 10px}
+  .partbreak p{color:var(--ink-soft);max-width:58ch;margin:0 auto}
+  .partbreak .dash{width:46px;height:3px;background:var(--ink);margin:22px auto 0;border-radius:2px}
+
+  /* ---- phone order ticket ---- */
+  .phone{max-width:340px;margin:0 auto;background:var(--ink);border-radius:28px;padding:11px;box-shadow:0 10px 34px rgba(34,30,26,.20)}
+  .phone-screen{background:var(--cream);border-radius:20px;padding:18px 16px}
+  .app-head{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:14px}
+  .app-tkr{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--ink)}
+  .app-name{font-size:12px;color:var(--ink-faint);margin-left:8px}
+  .app-quote{font-family:'Fraunces',serif;font-weight:600;font-size:34px;line-height:1.15;margin-top:8px}
+  .app-chg{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)}
+  .app-chg.down{color:var(--rust)}
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden}
+  .seg.small{border-color:var(--rule)}
+  .seg-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 6px;background:var(--cream);color:var(--ink);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .seg-btn.on{background:var(--ink);color:var(--cream)}
+  .seg-btn.on[data-side="buy"]{background:var(--teal)}
+  .seg-btn.on[data-side="sell"]{background:var(--rust)}
+  .ticket-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:13px 0}
+  .ticket-row > label{font-size:14px;color:var(--ink-soft);flex:0 0 auto}
+  .ticket-row select,.ticket-row input[type=number]{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:7px 9px;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);max-width:130px}
+  .step{font-family:'IBM Plex Mono',monospace;width:30px;height:30px;border:1.5px solid var(--rule);background:var(--cream);color:var(--ink);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;-webkit-tap-highlight-color:transparent}
+  .ticket-meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin:8px 0 14px;text-align:center}
+  .btn.wide{width:100%;text-align:center;justify-content:center}
+  .bp{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:center;margin-top:13px}
+  .review-box{background:var(--paper-2);border-radius:10px;padding:14px;margin-top:12px}
+  .review-box .rl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:3px 0;color:var(--ink-soft)}
+  .review-box .rl b{color:var(--ink)}
+  .review-actions{display:flex;gap:8px;margin-top:12px}
+  .holdings{margin-top:18px;display:grid;gap:9px}
+  .hold-card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.5}
+  .hold-card .ht{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:.04em}
+  .badge.work{background:var(--ochre-soft);color:#6b4e16}
+  .badge.filled{background:var(--teal-soft);color:#143f3c}
+  .pl-pos{color:var(--teal);font-weight:600}
+  .pl-neg{color:var(--rust);font-weight:600}
+
+  /* ---- checklist ---- */
+  .checklist{list-style:none;padding:0;margin:6px 0 0}
+  .checklist li{border-bottom:1px solid var(--rule)}
+  .checklist li:last-child{border-bottom:none}
+  .checklist label{display:flex;gap:13px;align-items:flex-start;padding:13px 2px;cursor:pointer;font-size:16.5px}
+  .checklist input{margin-top:5px;width:18px;height:18px;accent-color:var(--teal);flex:0 0 auto}
+  .ck-prog{height:6px;background:var(--paper-2);border-radius:4px;margin:18px 0 10px;overflow:hidden}
+  .ck-fill{height:100%;width:0;background:var(--teal);transition:width .25s ease}
+
+  /* ---- table of contents ---- */
+  .toc{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;margin:28px 0 6px}
+  .toc h2{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 6px}
+  .toc-part{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);margin:16px 0 8px}
+  .toc ol{list-style:none;margin:0;padding:0;columns:2;column-gap:26px}
+  .toc li{margin:0 0 8px;break-inside:avoid;-webkit-column-break-inside:avoid}
+  .toc a{color:var(--ink);text-decoration:none;display:flex;gap:9px;align-items:baseline;font-size:15px;line-height:1.3}
+  .toc a:hover{color:var(--rust)}
+  .toc a:hover .tn{color:var(--rust)}
+  .toc .tn{font-family:'IBM Plex Mono',monospace;color:var(--ink-faint);font-size:12px;flex:0 0 22px}
+  @media(max-width:560px){.toc ol{columns:1}}
+  html{scroll-behavior:smooth}
+  section[id]{scroll-margin-top:16px}
+  .series{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.9}
+  .series a{color:var(--ink-soft);text-decoration:none;border-bottom:1px dotted var(--rule)}
+  .series b{color:var(--rust)}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<p class="eyebrow">Volume Eleven · The Crystal Ball, Graded</p>
+<h1>Forecasting by Horizon</h1>
+<p class="standfirst">Whether stock prices can be predicted, honestly answered: nearly impossible tomorrow, hard next quarter, and surprisingly arithmetic over a decade. One method per clock, with the achievable accuracy of each.</p>
+<p class="byline">By Majid Mazouchi · Drafted with Claude · Volume 11 of the series</p>
+<p class="series">In this series: <a href="stock-jargon.html">1 Foundations</a> · <a href="02-what-moves-prices.html">2 What Moves Prices</a> · <a href="03-practice-room.html">3 Practice Room</a> · <a href="04-reading-a-company.html">4 Reading a Company</a> · <a href="05-dangerous-aisle.html">5 The Dangerous Aisle</a> · <a href="06-building-your-portfolio.html">6 Your Portfolio</a> · <a href="08-case-study.html">7 Case Study</a> · <a href="09-analyst-toolkit.html">8 The Toolkit</a> · <a href="10-market-psychology.html">9 Crowd Psychology</a> · <a href="11-crash-anatomy.html">10 Crashes</a> · <b>11 Forecasting</b> · <a href="07-cheat-sheet.html">Cheat Sheet</a></p>
+</div></header>
+<main class="wrap">
+  <section>
+    <span class="secnum">01 · The Honest Premise</span>
+    <h2>Forecasting works, but only on the right clock</h2>
+    <p class="lead">Can a stock’s price be forecast? The truthful answer is: <strong>it depends entirely on the horizon</strong>. Tomorrow is very nearly a coin flip. Next quarter is a mood. But ten years out, returns are surprisingly forecastable, because over decades the noise cancels and only the arithmetic of the business remains.</p>
+    <p>Most forecasting failures are clock mismatches: using long-term tools to predict Tuesday, or chart squiggles to plan retirement. This volume sorts every tool in the series onto its correct clock, gives you one honest method per horizon, and is blunt about the achievable accuracy of each.</p>
+  </section>
+
+  <section>
+    <span class="secnum">02 · The Predictability Ladder</span>
+    <h2>Noise cancels; fundamentals compound</h2>
+    <p class="lead">Every price move is a mix of two ingredients: <span class="term">noise</span> (flows, moods, randomness) and <span class="term">fundamentals</span> (earnings, dividends, valuation gravity). Their mix flips completely as the horizon stretches.</p>
+    <div class="panel">
+      <p class="label">Slide the horizon and watch what actually drives the outcome</p>
+      <input type="range" id="plH" min="0" max="7" value="0" aria-label="Horizon">
+      <canvas id="plc" height="170" aria-label="Noise vs fundamentals"></canvas>
+      <div class="readout" id="plo"></div>
+    </div>
+    <div class="note"><b>The paradox worth memorizing.</b> The market is hardest to predict where most people try (this week) and easiest where almost nobody bothers (this decade). The crowd competes ferociously over coin flips and leaves the forecastable horizon nearly uncontested. That mispriced attention is a genuine edge for the patient.</div>
+  </section>
+
+  <section>
+    <span class="secnum">03 · Short Term: Days to Weeks</span>
+    <h2>Mostly noise, slightly leaning</h2>
+    <p class="lead">Over days, prices are driven by order flow, news reactions, positioning, and randomness. No math reliably predicts them, but a few forces <em>lean</em> the odds slightly, and short-term trading is entirely about those leans plus ruthless risk control.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Momentum: follow, never predict</p><p>The one robust short-term pattern: things in motion tend to stay briefly in motion. Trend tools (the moving-average crossover from Volume 1) do not forecast; they <em>confirm and follow</em>, always late by design.</p></div>
+      <div class="card"><p class="word">Levels: memory, not magic</p><p>Support and resistance mark prices where the crowd previously acted, and may again. They are probability zones for placing entries and stops, never predictions.</p></div>
+      <div class="card"><p class="word">The reaction test</p><p>Volume 9’s master gauge is the best short-term tell that exists: strength that rallies on bad news, weakness that sinks on good. It reads what is already priced in.</p></div>
+      <div class="card rustline"><p class="word">The honest odds</p><p>Costs, spreads, and randomness eat tiny edges; study after study finds the large majority of short-term traders lose money over time. If you play here, the position-size math of Volume 1 is your entire survival, because the forecast never will be.</p></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> Short-term, you never forecast the price; you forecast <em>your exit</em>: where you are wrong (stop) and where you are paid (target), before entry. The market decides which. That is the whole craft.</div>
+  </section>
+
+  <section>
+    <span class="secnum">04 · Mid Term: Months to Two Years</span>
+    <h2>The hardest horizon, tamed by scenarios</h2>
+    <p class="lead">Over months, both engines from Volume 8 run at once: earnings move <em>and</em> the multiple moods around. Getting both right is why this horizon humbles professionals. The tools that help: the direction of <strong>earnings revisions</strong> (are analysts raising or cutting?), the <strong>cycle location</strong> (Volumes 2 and 9), the <strong>Fed’s direction</strong>, and the multiple’s room to re-rate or compress.</p>
+    <p>Because point forecasts fail here, professionals think in <span class="term">scenarios</span>: a bear case, a base case, and a bull case, each with a price and a probability. The payoff is an <span class="term">expected value</span> and, more usefully, a risk/reward shape. Build one:</p>
+    <div class="panel">
+      <p class="label">The stock trades at $100 today. Sketch your one-year scenarios.</p>
+      <div class="ticket-row"><label for="svBe">Bear case price</label><span style="display:flex;align-items:center;gap:10px"><input id="svBe" type="range" min="40" max="99" value="70" style="width:120px"><span id="svBeV" class="stat down">$70</span></span></div>
+      <div class="ticket-row"><label for="svBa">Base case price</label><span style="display:flex;align-items:center;gap:10px"><input id="svBa" type="range" min="60" max="170" value="112" style="width:120px"><span id="svBaV" class="stat">$112</span></span></div>
+      <div class="ticket-row"><label for="svBu">Bull case price</label><span style="display:flex;align-items:center;gap:10px"><input id="svBu" type="range" min="101" max="220" value="150" style="width:120px"><span id="svBuV" class="stat">$150</span></span></div>
+      <div class="ticket-row"><label for="svPb">Bear probability</label><span style="display:flex;align-items:center;gap:10px"><input id="svPb" type="range" min="5" max="60" value="25" style="width:120px"><span id="svPbV" class="stat down">25%</span></span></div>
+      <div class="ticket-row"><label for="svPu">Bull probability</label><span style="display:flex;align-items:center;gap:10px"><input id="svPu" type="range" min="5" max="60" value="25" style="width:120px"><span id="svPuV" class="stat">25%</span></span></div>
+      <canvas id="svc" height="160" aria-label="Scenario map"></canvas>
+      <div class="readout" id="svo"></div>
+    </div>
+    <div class="note"><b>Practical notes.</b> The discipline is in the bear case: make it genuinely ugly, not politely mild. A trade is attractive when the expected value clears today’s price <em>and</em> the upside distance is at least twice the downside (Volume 1’s 2:1 rule, reborn at a longer horizon). Write the three scenarios in the journal, then grade yourself when the year ends; that grading, repeated, is how forecasting skill is actually built.</div>
+  </section>
+
+  <section>
+    <span class="secnum">05 · Long Term: Five Years and Beyond</span>
+    <h2>The only truly forecastable horizon</h2>
+    <p class="lead">Over a decade, a stock’s return stops being a mystery and becomes arithmetic, a decomposition John Bogle used for fifty years:</p>
+    <p style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600">return ≈ dividend yield + earnings growth ± multiple change</p>
+    <p>Two engines are the business (yield and growth). The third is the crowd (what P/E people will pay at the end versus now). Over one year the crowd engine dominates and ruins every forecast. Over ten, it gets divided by ten while the business engines compound. Set the dials:</p>
+    <div class="panel">
+      <p class="label">Forecast a decade the Bogle way</p>
+      <div class="ticket-row"><label for="bgY">Dividend yield</label><span style="display:flex;align-items:center;gap:10px"><input id="bgY" type="range" min="0" max="5" step="0.25" value="1.5" style="width:120px"><span id="bgYV" class="stat">1.5%</span></span></div>
+      <div class="ticket-row"><label for="bgG">Earnings growth /yr</label><span style="display:flex;align-items:center;gap:10px"><input id="bgG" type="range" min="0" max="14" step="0.5" value="6" style="width:120px"><span id="bgGV" class="stat">6%</span></span></div>
+      <div class="ticket-row"><label for="bgP0">P/E today</label><span style="display:flex;align-items:center;gap:10px"><input id="bgP0" type="range" min="8" max="45" value="24" style="width:120px"><span id="bgP0V" class="stat">24</span></span></div>
+      <div class="ticket-row"><label for="bgP1">P/E in the end year</label><span style="display:flex;align-items:center;gap:10px"><input id="bgP1" type="range" min="8" max="45" value="17" style="width:120px"><span id="bgP1V" class="stat down">17</span></span></div>
+      <div class="ticket-row"><label for="bgT">Years</label><span style="display:flex;align-items:center;gap:10px"><input id="bgT" type="range" min="3" max="20" value="10" style="width:120px"><span id="bgTV" class="stat">10</span></span></div>
+      <canvas id="bgc" height="190" aria-label="Return decomposition"></canvas>
+      <div class="readout" id="bgo"></div>
+    </div>
+    <div class="cards">
+      <div class="card"><p class="word">Where the inputs come from</p><p>Yield is printed on any quote page. Growth: start from history and the analyst range, then haircut it, because growth fades. Ending P/E: gravity points toward long-run norms (roughly 15 to 20 for the US market historically), higher for durable quality, lower for cyclicals.</p></div>
+      <div class="card"><p class="word">Why this works when nothing else does</p><p>The crowd’s engine, the multiple, is bounded and mean-reverting, so time dilutes it. The business engines are not bounded; they compound. Ten years of compounding beats ten years of mood, almost every time.</p></div>
+      <div class="card ochreline"><p class="word">Its limits, honestly</p><p>It forecasts diversified indexes and stable franchises far better than young or story stocks, whose growth input is a guess. And it gives a <em>center of gravity</em>, not a promise: actual decades land in a band around it, sometimes a wide one.</p></div>
+      <div class="card"><p class="word">The case-study echo</p><p>Run Volume 7’s Microsoft through it: ~1% yield, your growth estimate, P/E 23 drifting wherever you believe. The whole bull-bear argument compresses into which dials you trust. That is what a real forecast disagreement looks like.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">06 · Which Tool Belongs to Which Clock</span>
+    <h2>The matching table</h2>
+    <div class="cards">
+      <div class="card"><p class="word">Days to weeks</p><p>Candles, support/resistance, volume, the reaction test, momentum following. From Volumes 1 and 9. Accuracy: a slight lean at best; risk control does the real work.</p></div>
+      <div class="card"><p class="word">Weeks to months</p><p>Moving averages and trend structure, relative strength versus the index, crowd-state diagnosis. Volumes 1 and 9. Accuracy: modest; trends persist until they do not.</p></div>
+      <div class="card"><p class="word">Months to two years</p><p>Earnings revisions, cycle location, Fed direction, multiple room, scenario trees. Volumes 2, 8, 9, and this page. Accuracy: genuinely hard; ranges only.</p></div>
+      <div class="card"><p class="word">Five-plus years</p><p>The Bogle decomposition, valuation gravity, the five business questions. Volumes 4, 8, and this page. Accuracy: the best available in finance, for diversified and durable assets.</p></div>
+      <div class="card rustline"><p class="word">Clock-mismatch errors</p><p>Using P/E to trade a Tuesday. Using a chart pattern to plan retirement. Selling a decade-long holding over a monthly candle. Every one is a category error, and each is committed daily by millions.</p></div>
+      <div class="card"><p class="word">The stop-clock rule</p><p>Decide the horizon <em>before</em> the trade, then only consult that clock’s tools. Checking daily charts on a ten-year position is how good forecasts get abandoned at the worst moment.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">07 · Forecasting Hygiene</span>
+    <h2>How good forecasters actually operate</h2>
+    <p class="lead">Research on elite forecasters (Tetlock’s “superforecasters”) found their edge was not intelligence or information. It was habits, and every habit is copyable.</p>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Ranges, never points</h3><p>“Between $90 and $130, centered near $110” is a forecast. “$117” is a lottery ticket wearing a suit.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Probabilities, not certainties</h3><p>Think 60/40, not yes/no. The words “always” and “cannot” are how forecasters go broke.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Update without shame</h3><p>New evidence moves the estimate a notch, not to zero or to certainty. Stubbornness and capitulation are the same error at different speeds.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Keep score in the journal</h3><p>Write the forecast, the reasoning, and the probability. Grade it later. Volume 3’s journal is a forecasting gym; ungraded predictions teach nothing.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>Start from the base rate</h3><p>Before any clever analysis, ask what usually happens: most years are up, most breakouts fail, most growth fades, most forecasts of doom and of miracles both miss. Adjust from there, modestly.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Beware anyone selling certainty</h3><p>Confident point-forecasts about next month are entertainment products. The louder the certainty, the better the television and the worse the track record.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">08 · Rules of Thumb</span>
+    <h2>The forecasting survival kit</h2>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Match the tool to the clock</h3><p>Charts for weeks, cycles for quarters, arithmetic for decades. Never cross the streams.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Short term: forecast your exits, not the price</h3><p>Stop and target written first; the market grades the paper.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Mid term: three scenarios beat one conviction</h3><p>And the bear case must be honestly ugly, or the exercise is decoration.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Long term: yield + growth ± multiple</h3><p>Three dials, one center of gravity. The crowd engine shrinks as years divide it.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>High starting valuations forecast low future returns</h3><p>Not next year, but reliably across decades. The price you pay is the forecast.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Growth fades; haircut every growth input</h3><p>Trees do not reach the sky, and 20% growers become 8% growers on schedule.</p></div></div>
+    <div class="rule-item"><div class="rule-n">7</div><div><h3>The market forecasts you back</h3><p>Whatever you predict is partly priced in already (Volume 2). Your real forecast is always “versus expectations,” never versus zero.</p></div></div>
+    <div class="rule-item"><div class="rule-n">8</div><div><h3>When your horizon changes, your forecast expires</h3><p>A ten-year thesis checked hourly becomes a one-day trade with extra steps. Guard the clock you chose.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">09 · Practical Notes and Further Reading</span>
+    <h2>Where to go deeper</h2>
+    <p class="lead">Forecasting is where humility and arithmetic meet, and its best books are about exactly that pairing.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Superforecasting · Philip Tetlock</p><p>The landmark study of who predicts well and why. Every hygiene habit above comes from its findings.</p></div>
+      <div class="card"><p class="word">Common Sense on Mutual Funds · John Bogle</p><p>The home of the return decomposition, with fifty years of receipts showing it works on decade horizons.</p></div>
+      <div class="card"><p class="word">Mastering the Market Cycle · Howard Marks</p><p>The mid-term horizon’s best guide: positioning by where you probably are, without pretending to know dates.</p></div>
+      <div class="card"><p class="word">The Little Book of Valuation · Damodaran</p><p>For turning the long-term dials, growth, fade rates, and reasonable multiples, with actual craft.</p></div>
+    </div>
+    <div class="note"><b>Free data for the dials.</b> Shiller’s Yale dataset gives a century of yields, earnings, and P/Es. Damodaran’s NYU pages publish growth and return estimates yearly. Your broker’s research tab (Volume 7) supplies the per-stock inputs. Everything this volume needs is public; the discipline is the only scarce ingredient.</div>
+  </section>
+
+</main>
+<footer><div class="wrap"><p>By Majid Mazouchi · Drafted with Claude</p><p>Educational primer only. Nothing here is financial advice. Markets carry real risk of loss.</p></div></footer>
+<script>
+(function(){
+  "use strict";
+  window.PALETTE={cream:'#F4F1EA',paper2:'#F0EBDF',ink:'#221E1A',inkSoft:'#5C544A',inkFaint:'#8C8275',rule:'#D9D1C0',rust:'#B04A2F',rustSoft:'#D98E76',teal:'#2F6F6B',tealSoft:'#7FB0AC',ochre:'#C2912F',ochreSoft:'#E2C588'};
+  window.reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.fit=function(canvas){var dpr=window.devicePixelRatio||1;var w=canvas.clientWidth||canvas.parentNode.clientWidth;var h=canvas._h||parseInt(canvas.getAttribute('height'),10)||canvas.clientHeight;canvas._h=h;canvas.style.height=h+'px';canvas.width=w*dpr;canvas.height=h*dpr;var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);canvas._w=w;return ctx;};
+  window.hexA=function(hex,a){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';};
+})();
+(function(){
+"use strict";
+
+  /* W1 PREDICTABILITY LADDER */
+  (function(){
+    var c=document.getElementById('plc'); if(!c) return;
+    var H=document.getElementById('plH'),out=document.getElementById('plo'),ctx;
+    var LB=['1 day','1 week','1 month','1 quarter','1 year','3 years','10 years','20 years'];
+    var NZ=[99,96,90,80,64,45,22,12];
+    var MSG=[
+      'A coin flip with fees. No tool on earth reliably calls tomorrow; anyone claiming otherwise is selling something.',
+      'Still almost pure noise. Momentum and levels lean the odds a hair; risk control is the entire game.',
+      'Noise rules, but trends and the reaction test start to whisper. Follow, never predict.',
+      'The mood quarter: earnings revisions and positioning matter, and surprise still owns the outcome.',
+      'The fifty-fifty zone: the business and the crowd wrestle as equals. Scenario trees, not convictions.',
+      'Fundamentals take the wheel. Valuation gravity and the cycle location genuinely help here.',
+      'Arithmetic country: yield plus growth plus multiple gravity explains most of the decade. This is where forecasting actually works.',
+      'Almost pure fundamentals. At this range, the starting valuation and the business are nearly the whole story.'
+    ];
+    function draw(){
+      var i=+H.value,nz=NZ[i];
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=20,bw=w-pad*2,bh=34,y=h/2-bh/2-8;
+      ctx.fillStyle=PALETTE.rustSoft;ctx.fillRect(pad,y,bw*nz/100,bh);
+      ctx.fillStyle=PALETTE.teal;ctx.fillRect(pad+bw*nz/100,y,bw*(100-nz)/100,bh);
+      ctx.font='600 12px IBM Plex Mono';ctx.textAlign='center';ctx.fillStyle='#fff';
+      if(nz>18)ctx.fillText('noise '+nz+'%',pad+bw*nz/200,y+bh/2+4);
+      if(nz<82)ctx.fillText('fundamentals '+(100-nz)+'%',pad+bw*nz/100+bw*(100-nz)/200,y+bh/2+4);
+      ctx.fillStyle=PALETTE.ink;ctx.font='600 14px IBM Plex Mono';
+      ctx.fillText('horizon: '+LB[i],w/2,y-14);
+      ctx.fillStyle=PALETTE.inkFaint;ctx.font='10px IBM Plex Mono';
+      ctx.fillText('illustrative split of what drives the outcome',w/2,y+bh+20);
+      out.innerHTML='<b>'+LB[i]+':</b> '+MSG[i];
+    }
+    function boot(){ctx=fit(c);draw();}
+    H.addEventListener('input',draw);
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* W2 SCENARIO BUILDER */
+  (function(){
+    var c=document.getElementById('svc'); if(!c) return;
+    var Be=document.getElementById('svBe'),Ba=document.getElementById('svBa'),Bu=document.getElementById('svBu');
+    var Pb=document.getElementById('svPb'),Pu=document.getElementById('svPu');
+    var ids=['svBeV','svBaV','svBuV','svPbV','svPuV'];
+    var out=document.getElementById('svo'),ctx,CUR=100;
+    function draw(){
+      var be=+Be.value,ba=+Ba.value,bu=+Bu.value,pb=+Pb.value,pu=+Pu.value;
+      if(pb+pu>90){ if(this===Pb)pu=90-pb; else pb=90-pu; Pb.value=pb;Pu.value=pu; }
+      var pm=100-pb-pu;
+      document.getElementById('svBeV').textContent='$'+be;
+      document.getElementById('svBaV').textContent='$'+ba;
+      document.getElementById('svBuV').textContent='$'+bu;
+      document.getElementById('svPbV').textContent=pb+'%';
+      document.getElementById('svPuV').textContent=pu+'%';
+      var ev=(be*pb+ba*pm+bu*pu)/100;
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=22,gw=w-pad*2,lo=Math.min(be,60)-10,hi=Math.max(bu,160)+10,y=h/2;
+      function X(v){return pad+gw*(v-lo)/(hi-lo);}
+      ctx.strokeStyle=PALETTE.rule;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
+      function dot(v,col,lbl,p,up){
+        var r=5+p*0.28;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(X(v),y,r,0,7);ctx.fill();
+        ctx.font='600 10px IBM Plex Mono';ctx.textAlign='center';ctx.fillStyle=col;
+        ctx.fillText(lbl+' $'+v+' ('+p+'%)',Math.max(pad+34,Math.min(w-pad-34,X(v))),up?y-r-8:y+r+16);
+      }
+      dot(be,PALETTE.rust,'bear',pb,true);
+      dot(ba,PALETTE.inkSoft,'base',pm,false);
+      dot(bu,PALETTE.teal,'bull',pu,true);
+      // current + EV markers
+      ctx.strokeStyle=PALETTE.ink;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(X(CUR),y-26);ctx.lineTo(X(CUR),y+26);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=PALETTE.ink;ctx.font='600 10px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('today $100',X(CUR),y+38);
+      ctx.fillStyle=PALETTE.ochre;
+      ctx.beginPath();ctx.moveTo(X(ev),y-30);ctx.lineTo(X(ev)-6,y-40);ctx.lineTo(X(ev)+6,y-40);ctx.closePath();ctx.fill();
+      ctx.fillText('EV $'+ev.toFixed(0),Math.max(pad+26,Math.min(w-pad-26,X(ev))),y-46);
+      var upDist=bu-CUR, dnDist=CUR-be, rr=dnDist>0?upDist/dnDist:99;
+      var verdict = ev<CUR?'Expected value sits <b>below</b> today\u2019s price: by your own scenarios this is a losing bet on average. Believe your sliders or change them, but do not buy against them.':
+        (rr>=2?'EV clears the price and the upside is '+rr.toFixed(1)+'\u00d7 the downside: the shape Volume 1 taught, at a one-year clock. A candidate, pending the business checks of Volume 4.':
+        'EV clears the price, but upside is only '+rr.toFixed(1)+'\u00d7 the downside. Positive yet fragile: one over-optimistic slider and it inverts. Demand a better entry or a better bear case.');
+      out.innerHTML='Expected value: <b>$'+ev.toFixed(0)+'</b> vs $100 today ('+pb+'% bear / '+pm+'% base / '+pu+'% bull). '+verdict;
+    }
+    [Be,Ba,Bu,Pb,Pu].forEach(function(el){el.addEventListener('input',draw);});
+    function boot(){ctx=fit(c);draw();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* W3 BOGLE DECOMPOSITION */
+  (function(){
+    var c=document.getElementById('bgc'); if(!c) return;
+    var Y=document.getElementById('bgY'),G=document.getElementById('bgG'),P0=document.getElementById('bgP0'),P1=document.getElementById('bgP1'),T=document.getElementById('bgT');
+    var out=document.getElementById('bgo'),ctx;
+    function draw(){
+      var y=+Y.value,g=+G.value,p0=+P0.value,p1=+P1.value,t=+T.value;
+      document.getElementById('bgYV').textContent=y+'%';
+      document.getElementById('bgGV').textContent=g+'%';
+      document.getElementById('bgP0V').textContent=p0;
+      var p1v=document.getElementById('bgP1V');p1v.textContent=p1;p1v.className=p1>=p0?'stat':'stat down';
+      document.getElementById('bgTV').textContent=t;
+      var mult=(Math.pow(p1/p0,1/t)-1)*100;
+      var tot=y+g+mult;
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=22,bw=(w-pad*5)/4,base=h-42,scale=(h-84)/16;
+      function bar(i,val,col,lbl){
+        var x=pad+i*(bw+pad),bh=Math.min(h-84,Math.abs(val)*scale);
+        ctx.fillStyle=col;
+        ctx.fillRect(x,val>=0?base-bh:base,bw,Math.max(2,bh));
+        ctx.fillStyle=PALETTE.ink;ctx.font='600 12px IBM Plex Mono';ctx.textAlign='center';
+        ctx.fillText((val>0?'+':'')+val.toFixed(1)+'%',x+bw/2,(val>=0?base-bh-7:base+bh+14));
+        ctx.fillStyle=PALETTE.inkFaint;ctx.font='9px IBM Plex Mono';
+        var ws=lbl.split(' ');
+        for(var k=0;k<ws.length;k++)ctx.fillText(ws[k],x+bw/2,base+16+k*10);
+      }
+      ctx.strokeStyle=PALETTE.rule;ctx.beginPath();ctx.moveTo(pad,base);ctx.lineTo(w-pad,base);ctx.stroke();
+      bar(0,y,PALETTE.teal,'dividend yield');
+      bar(1,g,PALETTE.tealSoft,'earnings growth');
+      bar(2,mult,mult>=0?PALETTE.ochre:PALETTE.rust,'multiple change /yr');
+      bar(3,tot,tot>=0?PALETTE.ink:PALETTE.rust,'\u2248 total /yr');
+      var end=(1+tot/100);var wealth=Math.pow(1+tot/100,t);
+      out.innerHTML='Business engines: '+y+'% yield + '+g+'% growth. Crowd engine: P/E '+p0+' \u2192 '+p1+' over '+t+' years = <b>'+(mult>0?'+':'')+mult.toFixed(1)+'%/yr</b>. Center of gravity: <span class="'+(tot>=0?'stat':'stat down')+'">'+tot.toFixed(1)+'% per year</span>, turning $10,000 into about <b>$'+Math.round(10000*wealth).toLocaleString()+'</b>. Stretch the years and watch the crowd\u2019s engine shrink: that shrinkage is why only this horizon is honest.';
+    }
+    [Y,G,P0,P1,T].forEach(function(el){el.addEventListener('input',draw);});
+    function boot(){ctx=fit(c);draw();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+})();
+</script>
+</body>
+</html>

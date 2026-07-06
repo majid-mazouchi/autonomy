@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading the Crowd</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --paper:#FBF9F3;
+    --paper-2:#F0EBDF;
+    --ink:#221E1A;
+    --ink-soft:#5C544A;
+    --ink-faint:#8C8275;
+    --rule:#D9D1C0;
+    --rust:#B04A2F;
+    --rust-soft:#D98E76;
+    --teal:#2F6F6B;
+    --teal-soft:#7FB0AC;
+    --ochre:#C2912F;
+    --ochre-soft:#E2C588;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Spectral',Georgia,serif;
+    font-size:19px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  /* ---- Masthead ---- */
+  header.top{
+    border-bottom:2px solid var(--ink);
+    padding:46px 0 30px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(34px,7vw,58px);
+    line-height:1.04;
+    letter-spacing:-.015em;
+    margin:0 0 18px;
+  }
+  .standfirst{
+    font-size:clamp(18px,2.4vw,21px);
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .byline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    color:var(--ink-faint);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+
+  /* ---- Sections ---- */
+  section{padding:34px 0;border-bottom:1px solid var(--rule)}
+  .secnum{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--ochre);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:10px;
+  }
+  h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,4.4vw,36px);
+    line-height:1.1;
+    letter-spacing:-.01em;
+    margin:0 0 16px;
+  }
+  h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:30px 0 8px;
+  }
+  p{margin:0 0 18px}
+  a{color:var(--rust)}
+  strong{font-weight:600}
+  .lead{font-size:20px}
+  .term{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    color:var(--rust);
+  }
+
+  /* ---- Definition cards ---- */
+  .cards{display:grid;gap:14px;margin:22px 0}
+  @media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+  .card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--teal);
+    border-radius:3px;
+    padding:16px 18px;
+  }
+  .card .word{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .card .pron{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:.04em;
+    margin-left:6px;
+  }
+  .card p{font-size:16.5px;line-height:1.5;margin:0;color:var(--ink-soft)}
+  .card.rustline{border-left-color:var(--rust)}
+  .card.ochreline{border-left-color:var(--ochre)}
+
+  /* ---- Interactive panels ---- */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:5px;
+    padding:20px;
+    margin:24px 0;
+    box-shadow:0 1px 0 rgba(34,30,26,.03);
+  }
+  .panel .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 14px;
+  }
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  button.btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border:1.5px solid var(--ink);
+    background:var(--cream);
+    color:var(--ink);
+    padding:9px 15px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button.btn:hover{background:var(--ink);color:var(--cream)}
+  button.btn:focus-visible{outline:3px solid var(--ochre-soft);outline-offset:2px}
+  button.btn.on{background:var(--ink);color:var(--cream)}
+  button.btn.bull.on{background:var(--teal);border-color:var(--teal)}
+  button.btn.bear.on{background:var(--rust);border-color:var(--rust)}
+  canvas{display:block;width:100%;border-radius:4px;background:var(--paper-2);touch-action:none}
+  .readout{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    min-height:1.4em;
+    line-height:1.5;
+  }
+  .readout b{color:var(--ink)}
+  .stat{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--teal);
+    font-weight:600;
+  }
+  .stat.down{color:var(--rust)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:5px;border-radius:3px;
+    background:var(--paper-2);outline:none;margin:6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+  }
+  select{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;
+    background:var(--cream);color:var(--ink);
+  }
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--rule);
+    background:var(--cream);color:var(--ink-soft);cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pill.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* ---- candlestick svg ---- */
+  .candle-stage{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+  .candle-stage svg{flex:0 0 auto}
+  .candle-parts{flex:1 1 220px;min-width:200px}
+  .ckey{
+    display:block;padding:10px 12px;margin:0 0 8px;border-radius:4px;
+    border:1px solid var(--rule);background:var(--cream);cursor:pointer;
+    font-size:15px;line-height:1.4;transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ckey b{font-family:'Fraunces',serif;display:block;font-size:15.5px}
+  .ckey.active{background:var(--ochre-soft);border-color:var(--ochre)}
+  .cpart{transition:opacity .15s ease}
+  .cpart.dim{opacity:.22}
+
+  /* ---- rules ---- */
+  .rule-item{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule);
+    align-items:baseline;
+  }
+  .rule-item:last-child{border-bottom:none}
+  .rule-n{
+    font-family:'Fraunces',serif;font-weight:700;font-size:30px;
+    color:var(--rust);flex:0 0 44px;line-height:1;
+  }
+  .rule-item h3{margin:0 0 4px;font-size:18px}
+  .rule-item p{margin:0;font-size:16.5px;color:var(--ink-soft)}
+
+  /* ---- callout ---- */
+  .note{
+    background:var(--paper-2);
+    border-radius:4px;
+    padding:14px 18px;
+    margin:20px 0;
+    font-size:16.5px;
+    color:var(--ink-soft);
+    border-left:3px solid var(--ochre);
+  }
+  .note b{color:var(--ink)}
+
+  /* ---- glossary ---- */
+  .glossary dt{
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;
+    margin-top:14px;color:var(--ink);
+  }
+  .glossary dd{margin:2px 0 0;color:var(--ink-soft);font-size:16px;line-height:1.5}
+
+  footer{padding:40px 0 70px;text-align:center}
+  footer p{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--ink-faint);letter-spacing:.03em;line-height:1.7;
+  }
+
+  /* ---- part two divider ---- */
+  section.partbreak{border-bottom:none;text-align:center;padding:56px 0 8px}
+  .partbreak .ptlabel{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--rust);
+  }
+  .partbreak h2{margin:12px 0 10px}
+  .partbreak p{color:var(--ink-soft);max-width:58ch;margin:0 auto}
+  .partbreak .dash{width:46px;height:3px;background:var(--ink);margin:22px auto 0;border-radius:2px}
+
+  /* ---- phone order ticket ---- */
+  .phone{max-width:340px;margin:0 auto;background:var(--ink);border-radius:28px;padding:11px;box-shadow:0 10px 34px rgba(34,30,26,.20)}
+  .phone-screen{background:var(--cream);border-radius:20px;padding:18px 16px}
+  .app-head{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:14px}
+  .app-tkr{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--ink)}
+  .app-name{font-size:12px;color:var(--ink-faint);margin-left:8px}
+  .app-quote{font-family:'Fraunces',serif;font-weight:600;font-size:34px;line-height:1.15;margin-top:8px}
+  .app-chg{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)}
+  .app-chg.down{color:var(--rust)}
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden}
+  .seg.small{border-color:var(--rule)}
+  .seg-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 6px;background:var(--cream);color:var(--ink);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .seg-btn.on{background:var(--ink);color:var(--cream)}
+  .seg-btn.on[data-side="buy"]{background:var(--teal)}
+  .seg-btn.on[data-side="sell"]{background:var(--rust)}
+  .ticket-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:13px 0}
+  .ticket-row > label{font-size:14px;color:var(--ink-soft);flex:0 0 auto}
+  .ticket-row select,.ticket-row input[type=number]{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:7px 9px;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);max-width:130px}
+  .step{font-family:'IBM Plex Mono',monospace;width:30px;height:30px;border:1.5px solid var(--rule);background:var(--cream);color:var(--ink);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;-webkit-tap-highlight-color:transparent}
+  .ticket-meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin:8px 0 14px;text-align:center}
+  .btn.wide{width:100%;text-align:center;justify-content:center}
+  .bp{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:center;margin-top:13px}
+  .review-box{background:var(--paper-2);border-radius:10px;padding:14px;margin-top:12px}
+  .review-box .rl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:3px 0;color:var(--ink-soft)}
+  .review-box .rl b{color:var(--ink)}
+  .review-actions{display:flex;gap:8px;margin-top:12px}
+  .holdings{margin-top:18px;display:grid;gap:9px}
+  .hold-card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.5}
+  .hold-card .ht{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:.04em}
+  .badge.work{background:var(--ochre-soft);color:#6b4e16}
+  .badge.filled{background:var(--teal-soft);color:#143f3c}
+  .pl-pos{color:var(--teal);font-weight:600}
+  .pl-neg{color:var(--rust);font-weight:600}
+
+  /* ---- checklist ---- */
+  .checklist{list-style:none;padding:0;margin:6px 0 0}
+  .checklist li{border-bottom:1px solid var(--rule)}
+  .checklist li:last-child{border-bottom:none}
+  .checklist label{display:flex;gap:13px;align-items:flex-start;padding:13px 2px;cursor:pointer;font-size:16.5px}
+  .checklist input{margin-top:5px;width:18px;height:18px;accent-color:var(--teal);flex:0 0 auto}
+  .ck-prog{height:6px;background:var(--paper-2);border-radius:4px;margin:18px 0 10px;overflow:hidden}
+  .ck-fill{height:100%;width:0;background:var(--teal);transition:width .25s ease}
+
+  /* ---- table of contents ---- */
+  .toc{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;margin:28px 0 6px}
+  .toc h2{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 6px}
+  .toc-part{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);margin:16px 0 8px}
+  .toc ol{list-style:none;margin:0;padding:0;columns:2;column-gap:26px}
+  .toc li{margin:0 0 8px;break-inside:avoid;-webkit-column-break-inside:avoid}
+  .toc a{color:var(--ink);text-decoration:none;display:flex;gap:9px;align-items:baseline;font-size:15px;line-height:1.3}
+  .toc a:hover{color:var(--rust)}
+  .toc a:hover .tn{color:var(--rust)}
+  .toc .tn{font-family:'IBM Plex Mono',monospace;color:var(--ink-faint);font-size:12px;flex:0 0 22px}
+  @media(max-width:560px){.toc ol{columns:1}}
+  html{scroll-behavior:smooth}
+  section[id]{scroll-margin-top:16px}
+  .series{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.9}
+  .series a{color:var(--ink-soft);text-decoration:none;border-bottom:1px dotted var(--rule)}
+  .series b{color:var(--rust)}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<p class="eyebrow">Volume Nine · The Human Layer</p>
+<h1>Reading the Crowd</h1>
+<p class="standfirst">Who is on the other side of your trade, what panic and euphoria look like on the tape, why selling mechanically begets selling, and how a calm participant acts in every kind of market weather.</p>
+<p class="byline">By Majid Mazouchi · Drafted with Claude · Volume 9 of the series</p>
+<p class="series">In this series: <a href="stock-jargon.html">1 Foundations</a> · <a href="02-what-moves-prices.html">2 What Moves Prices</a> · <a href="03-practice-room.html">3 Practice Room</a> · <a href="04-reading-a-company.html">4 Reading a Company</a> · <a href="05-dangerous-aisle.html">5 The Dangerous Aisle</a> · <a href="06-building-your-portfolio.html">6 Your Portfolio</a> · <a href="08-case-study.html">7 Case Study</a> · <a href="09-analyst-toolkit.html">8 The Toolkit</a> · <b>9 Crowd Psychology</b> · <a href="11-crash-anatomy.html">10 Crashes</a> · <a href="12-forecasting.html">11 Forecasting</a> · <a href="07-cheat-sheet.html">Cheat Sheet</a></p>
+</div></header>
+<main class="wrap">
+  <section>
+    <span class="secnum">01 · The Crowd Is Readable</span>
+    <h2>Emotions leave fingerprints on the tape</h2>
+    <p class="lead">You cannot see other traders’ minds, but you can see what their minds do to <strong>price, volume, and volatility</strong>. Fear and greed are not invisible forces; they print measurable signatures on every chart, and those signatures repeat because human wiring does not change.</p>
+    <p>This volume is a field guide to those signatures: who the players are, what normal looks like, what panic and euphoria look like, <em>why</em> panics feed themselves mechanically, and, most practically, how a calm participant behaves in each kind of weather. The goal is not to predict the crowd. It is to recognize which crowd you are standing in.</p>
+  </section>
+
+  <section>
+    <span class="secnum">02 · The Cast of Characters</span>
+    <h2>Who is actually on the other side of your trade</h2>
+    <p class="lead">A price move means something different depending on <strong>who</strong> is driving it. The market is not one crowd but several, each with different clocks, constraints, and panic triggers.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Retail investors</p><p>Individuals like you. Emotional at extremes, chase performance, cluster in famous names. Retail volume records are themselves a euphoria signal.</p></div>
+      <div class="card"><p class="word">Institutions</p><p>Funds and pensions moving sizes that take days to fill. They leave footprints: steady, repeated buying (accumulation) or persistent selling into every rally (distribution).</p></div>
+      <div class="card"><p class="word">Passive index funds</p><p>They buy whatever receives inflows, at any price, valuation-blind. They amplify trends in both directions and never panic, but their investors do.</p></div>
+      <div class="card"><p class="word">Quants and market makers</p><p>Machines trading in milliseconds. They supply liquidity in calm and withdraw it in storms, which is why spreads gap wide exactly when you most want to trade.</p></div>
+      <div class="card rustline"><p class="word">Forced traders</p><p>The most important group in a crisis: margin calls, fund redemptions, risk-model limits, and options hedging all <em>compel</em> selling regardless of opinion. Their trades carry no information about value, only about their own pain.</p></div>
+      <div class="card"><p class="word">Insiders and buyback desks</p><p>Executives and the company itself. Clusters of insider buying during despair are one of the few genuinely bullish crowd signals.</p></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> Before reacting to any dramatic move, ask: is this crowd <b>choosing</b> to sell, or <b>forced</b> to sell? Chosen selling reflects a view worth weighing. Forced selling reflects leverage being unwound, and it routinely pushes prices past any sensible value.</div>
+  </section>
+
+  <section>
+    <span class="secnum">03 · Vital Signs</span>
+    <h2>What normal looks like, so you can spot abnormal</h2>
+    <p class="lead">A doctor cannot recognize illness without knowing healthy vitals. Five gauges tell you the market’s state at a glance.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Price action</p><p>Healthy: two-way trade, orderly pullbacks, closes near highs on up days. Sick: gaps, one-way cascades, closes at the lows.</p></div>
+      <div class="card"><p class="word">Volume</p><p>Healthy: rises on advances, dries up on dips. Sick: explodes on declines. Volume is conviction made visible; a move without it is a rumor.</p></div>
+      <div class="card"><p class="word">Breadth</p><p>How many stocks participate. Healthy rallies lift most boats. A market at highs carried by five giant names while everything else sinks is hollow, and hollow markets crack.</p></div>
+      <div class="card"><p class="word">The VIX</p><p>Below ~15: calm, sometimes complacent. 20 to 30: worry. Above 35 to 40: genuine fear. Extreme spikes have historically clustered near bottoms, not starts, of panics.</p></div>
+      <div class="card ochreline"><p class="word">Reaction to news</p><p>The master gauge. A market that rallies on bad news is strong (the sellers are exhausted). A market that sells off on good news is weak (rallies are being used as exits). The reaction outranks the news itself, always.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">04 · The Herding Machine</span>
+    <h2>How rational people manufacture irrational markets</h2>
+    <p class="lead">No individual has to be crazy for a crowd to go mad. Each trader watches the others: rising prices recruit buyers, whose buying raises prices, which recruits more buyers. The same loop runs in reverse on the way down. Psychologists call it an <span class="term">information cascade</span>; traders call it <span class="term">herding</span>.</p>
+    <p>Even professionals herd, for a rational reason: a fund manager who fails conventionally keeps her job, while one who fails alone loses it. So everyone hugs the crowd, and the crowd hugs itself. The simulator below has only two forces: a pull toward fair value, and a dial for how much traders copy each other. Watch what the dial alone does.</p>
+    <div class="panel">
+      <p class="label">Fair value is the dashed line. Traders copy each other this much:</p>
+      <input type="range" id="hdW" min="0" max="100" value="30" aria-label="Herding strength">
+      <div class="controls" style="margin-top:8px"><button class="btn" id="hdNew">Run a new market ↻</button></div>
+      <canvas id="hdc" height="220" aria-label="Herding simulator"></canvas>
+      <div class="readout" id="hdo"></div>
+    </div>
+    <div class="note"><b>What to take from it.</b> Bubbles and crashes need no villain and no news. Copying alone manufactures them. This is why “but everyone is buying” is a description of risk, not a reason to join, and why the crowd is trustworthy about direction in the middle of a trend and untrustworthy at both extremes.</div>
+  </section>
+
+  <section>
+    <span class="secnum">05 · The Beauty Contest</span>
+    <h2>The game that explains short-term trading</h2>
+    <p class="lead">Keynes described markets with a newspaper game: readers judge a beauty contest, and the prize goes to whoever picks the face <em>most others</em> pick. Winning is not about your taste; it is about guessing everyone else’s guess about everyone else’s guess.</p>
+    <p>Economists run it as a number game. Everyone picks 0 to 100; the winner is closest to <strong>two-thirds of the average</strong>. Naive players say 50. One step of thinking says: if the average is 50, pick 33. Two steps: if everyone picks 33, pick 22. Perfect logic spirals all the way to zero, but you are not playing logicians, you are playing a crowd. Try it against 200 simulated players of mixed depth.</p>
+    <div class="panel">
+      <p class="label">Pick a number. Closest to two-thirds of the crowd’s average wins.</p>
+      <div class="ticket-row"><label for="bcN">Your guess</label><span style="display:flex;align-items:center;gap:10px"><input id="bcN" type="range" min="0" max="100" value="33" style="width:150px"><span id="bcNV" class="stat">33</span></span></div>
+      <div class="controls"><button class="btn" id="bcGo">Play →</button></div>
+      <canvas id="bcc" height="190" aria-label="Crowd guesses histogram"></canvas>
+      <div class="readout" id="bco">Slide, then play. The gray bars will show where the crowd guessed.</div>
+    </div>
+    <div class="note"><b>Why this is trading.</b> A stock’s short-term price is not what it is worth; it is the crowd’s guess of the crowd’s guess of what it is worth. When a famous newspaper ran this game with thousands of readers, the winning number landed in the low teens: people think one or two steps, rarely more. Second-level thinking wins; tenth-level thinking loses to reality. And in the long run, Volume 2’s weighing machine ends the game: earnings eventually grade every guess.</div>
+  </section>
+
+  <section>
+    <span class="secnum">06 · The Randomness Illusion</span>
+    <h2>Your brain finds patterns that are not there</h2>
+    <p class="lead">Humans evolved to spot patterns; markets serve them noise. The collision produces two famous illusions: the <span class="term">gambler’s fallacy</span> (a streak must end soon) and the <span class="term">hot hand</span> (a streak must continue). Both read intention into fair coins.</p>
+    <div class="panel">
+      <p class="label">This chart is 120 days of pure coin flips. No trend, no news, no meaning.</p>
+      <div class="controls"><button class="btn" id="rnNew">Flip a new market ↻</button></div>
+      <canvas id="rnc" height="200" aria-label="Pure random walk"></canvas>
+      <div class="readout" id="rno"></div>
+    </div>
+    <p>See the trends? The support level? Maybe a head and shoulders? Fair coins drew all of it. Real prices do contain some structure, but far less than your eyes report, which is why Volume 1’s rule stands: patterns are suggestions to be confirmed by volume and levels, never proof.</p>
+    <div class="panel">
+      <p class="label" id="gfQ">A fair coin lands heads 5 times in a row. The next flip is...</p>
+      <div id="gfB">
+        <button class="scen-opt" data-k="0">More likely tails, a streak must balance out</button>
+        <button class="scen-opt" data-k="1">More likely heads, the streak is hot</button>
+        <button class="scen-opt" data-k="2">Exactly 50/50, the coin has no memory</button>
+      </div>
+      <div class="readout" id="gfO"></div>
+    </div>
+    <div class="note"><b>Practical notes.</b> In 100 fair flips the longest streak is usually 6 to 8, far longer than intuition expects, so streaks of red days or winning trades mean much less than they feel. Never size up because you are “hot”, never expect a bounce because a stock is “due”, and treat any pattern you spot in five minutes of chart-staring as your pattern detector idling, not the market speaking.</div>
+  </section>
+
+  <section>
+    <span class="secnum">07 · The Mechanics of Panic</span>
+    <h2>Why selling begets selling, precisely</h2>
+    <p class="lead">Panic is not just emotion. Below the surface, machinery converts falling prices into <em>mandatory</em> further selling, which is why crashes overshoot every sensible estimate of value.</p>
+    <div class="cards">
+      <div class="card rustline"><p class="word">Margin calls</p><p>Falling prices shrink leveraged traders’ equity until brokers force-sell their positions, at market, pushing prices lower, triggering the next trader’s call.</p></div>
+      <div class="card rustline"><p class="word">Stop-loss cascades</p><p>Clusters of stops below obvious levels become a chain of automatic sell orders. Each one triggered fires the next. Traders even hunt these clusters.</p></div>
+      <div class="card rustline"><p class="word">Fund redemptions</p><p>Scared investors pull money from funds, which must sell holdings to pay them, regardless of what managers believe. Selling to meet withdrawals knows nothing about value.</p></div>
+      <div class="card rustline"><p class="word">Risk models and hedging</p><p>Volatility spikes force risk-targeting funds to shrink positions, and options dealers to sell as markets fall. The models are prudent individually and a doom loop collectively.</p></div>
+    </div>
+    <p>Slide the leverage in the system and watch the same modest shock become a cascade. The gap between the bottom and fair value is the forced sellers’ gift to whoever still has un-forced cash.</p>
+    <div class="panel">
+      <p class="label">A shock hits. How much leverage was in the system?</p>
+      <input type="range" id="fsL" min="0" max="100" value="55" aria-label="System leverage">
+      <div class="controls" style="margin-top:8px"><button class="btn" id="fsNew">New shock ↻</button></div>
+      <canvas id="fsc" height="220" aria-label="Forced selling cascade"></canvas>
+      <div class="readout" id="fso"></div>
+    </div>
+    <div class="note"><b>The strategic core of this whole volume.</b> In a panic, prices are being set by people who <b>must</b> sell, not people who <b>want</b> to. That is why panic lows overshoot, why they rebound, and why the only durable edge a small investor has is being un-forced: no leverage, no money needed soon, and therefore no seat on that conveyor belt.</div>
+  </section>
+
+  <section>
+    <span class="secnum">08 · The Fingerprints of Euphoria</span>
+    <h2>What a top-heavy crowd looks like</h2>
+    <p class="lead">Greed has signatures as distinct as fear’s. None calls the top on a date; together they say the crowd is standing on tiptoe.</p>
+    <div class="cards">
+      <div class="card ochreline"><p class="word">Parabolic price curves</p><p>The chart bends from rising to vertical. Verticals are unstable by construction: they need accelerating new money forever.</p></div>
+      <div class="card ochreline"><p class="word">Bad companies moon hardest</p><p>When the lowest-quality, most-shorted names lead, the buying is about excitement, not analysis.</p></div>
+      <div class="card ochreline"><p class="word">Records in retail activity</p><p>Account openings, call-option buying, and trading-app downloads peaking together mark maximum recruitment. Who is left to convert?</p></div>
+      <div class="card ochreline"><p class="word">“This time is different”</p><p>The four costliest words in markets. Every mania invents a reason the old rules of valuation stopped applying. They never have.</p></div>
+      <div class="card ochreline"><p class="word">Leverage records</p><p>Margin debt at all-time highs is fuel stacked for the reversal: every borrowed dollar is a future forced seller.</p></div>
+      <div class="card ochreline"><p class="word">Bad news stops mattering, then good news stops working</p><p>The first is euphoria in bloom. The second, rallies fading on great headlines, is the crowd quietly leaving through the exits while cheering.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">09 · Narratives and Meme Manias</span>
+    <h2>Stories move money faster than spreadsheets</h2>
+    <p class="lead">Nobel laureate Robert Shiller’s insight: market-moving ideas spread like epidemics, carried by <strong>stories</strong>, not statistics. “AI changes everything”, “housing never falls”, “the little guys versus the hedge funds”: each is a narrative, and narratives are contagious in a way earnings tables never are.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Why stories win</p><p>Brains are built to remember and retell narratives, not numbers. A story with a villain and a hero recruits buyers a valuation model never could.</p></div>
+      <div class="card ochreline"><p class="word">Anatomy of a meme squeeze</p><p>The recurring recipe: a small, heavily shorted stock, a David-versus-Goliath story, a social swarm buying together, a short squeeze going vertical, then, always, the long collapse in which latecomers hold the bags. Crowd psychology in fast-forward, start to finish in weeks.</p></div>
+      <div class="card"><p class="word">True story, wrong price</p><p>The trap is subtle: the narrative is often <em>correct</em>. The internet did change everything; the dot-com prices were still absurd. Judge the story and the price separately, because manias are usually a true story wearing an impossible price.</p></div>
+      <div class="card"><p class="word">How to use narratives</p><p>For any big move, name the story driving it in one sentence, then ask two questions: what evidence would break this story, and how much of it is already in the price? A move whose story you cannot name is a move you do not understand.</p></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> When a stock becomes a symbol, of a movement, a revolution, or a fight, its price has left the world of cash flows and entered the world of stories. Trade symbols only with money you can afford to donate to the narrative.</div>
+  </section>
+
+  <section>
+    <span class="secnum">10 · Diagnose the Crowd</span>
+    <h2>Five market moods, one drill</h2>
+    <p class="lead">Here are the vital signs of a market. Name the crowd’s state, then read the strategy that fits it.</p>
+    <div class="panel">
+      <p class="label">Read the vitals, name the mood</p>
+      <div class="cards" id="cdT" style="grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px"></div>
+      <div id="cdO" style="margin-top:12px"></div>
+      <div class="readout" id="cdR"></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">11 · The Playbook by Weather</span>
+    <h2>How a calm participant acts in each environment</h2>
+    <p class="lead">You cannot control the weather, only your clothing. Same investor, different behavior per season.</p>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Calm uptrend: do less</h3><p>The trend is the crowd being right. Keep contributing, keep positions, resist the itch to be clever. Most damage in good markets is self-inflicted overtrading.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Euphoria: trim, never chase, do not short yet</h3><p>Rebalance by rule (it sells euphoria automatically), tighten stops on trades, and refuse verticals. But manias outlast reason; betting against them early is how bears go broke while being right.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Ordinary pullback: shop from a list you wrote earlier</h3><p>Light-volume dips in uptrends are restocking events. Buy in tranches at levels you chose in advance, when you were calm.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Panic: protect your seat off the conveyor belt</h3><p>If you hold quality without leverage, your job is refusal: refuse to sell into forced-seller prices. Deploy spare cash only in small planned slices, never all at once, and never borrowed. Do not catch the first knife; let volume climax and a base form.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>Despair and the bottom: buy boredom</h3><p>Bottoms are processes, not days: a capitulation flush, a failed retest, then bad news that stops working. Accumulate quality on a schedule while it feels pointless. It always feels pointless.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Recovery: climb the wall of worry with the market</h3><p>Early recoveries are hated and disbelieved; headlines stay awful while prices rise. Waiting for the all-clear means buying the top of the recovery. The plan, not the news, decides.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">12 · The Event Playbook</span>
+    <h2>Crowd behavior around scheduled and unscheduled events</h2>
+    <div class="cards">
+      <div class="card"><p class="word">Scheduled: earnings, Fed, CPI</p><p>The crowd positions <em>before</em> the event, which is why “buy the rumor, sell the news” works: the anticipation was the trade. Expect violent whipsaws in the first minutes; on Fed days especially, the first move frequently reverses once the press conference starts. Beginners should simply not trade the release window.</p></div>
+      <div class="card"><p class="word">Shocks: wars, crises, blowups</p><p>The repeating shape: a gap down on the headline, days of forced-selling waves, a churning base as sellers exhaust, then a retest of the low that holds on quieter volume. Buying the first headline is early; buying the quiet retest has historically been the higher-odds entry.</p></div>
+      <div class="card"><p class="word">The overreaction pattern</p><p>Crowds overreact to dramatic, vivid news (a scary headline) and underreact to slow, boring news (a gradual margin decline). Dramatic moves tend to partially reverse; boring trends tend to persist. Weight your responses accordingly.</p></div>
+      <div class="card"><p class="word">When the reaction disagrees with the news</p><p>A stock that falls on a great report, or a market that rallies on terrible data, is telling you what was already priced in. Trust the reaction over the headline. It is the crowd’s confession.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">13 · Contrarian Discipline</span>
+    <h2>When to fade the crowd, and when the crowd is right</h2>
+    <p class="lead">“Be contrarian” is half a sentence. The crowd is <strong>right during trends</strong>, that is what a trend is, and <strong>wrong at extremes</strong>, that is what an extreme is. The skill is telling the middle from the edge.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Extreme meters</p><p>Put/call ratios at records, fund flows all one direction, sentiment surveys unanimous, magazine covers declaring a new era or the death of equities. Any one is noise; several at once mark an edge of the cycle.</p></div>
+      <div class="card"><p class="word">Extremes are zones, not dates</p><p>Markets can stay euphoric or despairing far longer than feels possible. Contrarian positions need a trigger (the reaction test, a failed high, a held retest), never just a feeling that “this is too much.”</p></div>
+      <div class="card"><p class="word">Being early is being wrong</p><p>The graveyard of contrarians is full of people correct about the destination and dead before arrival, usually via leverage. Fade extremes only with time-insensitive money.</p></div>
+      <div class="card"><p class="word">Your real edge</p><p>You cannot out-analyze the institutions or outrun the machines. You can out-<em>wait</em> both, because you have no clients, no benchmarks, and no margin clerk. Patience is the retail investor’s only structural advantage. Protect it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">14 · Tilt: When the Irrational Trader Is You</span>
+    <h2>Self-regulation, borrowed from poker</h2>
+    <p class="lead">Poker players call it <span class="term">tilt</span>: the state after a loss (or a win) where emotion takes the controls while you still feel perfectly rational. Every crowd signature in this volume prints in your own body first, as cortisol, adrenaline, and an itchy thumb.</p>
+    <div class="cards">
+      <div class="card rustline"><p class="word">Loser’s tilt: revenge trading</p><p>After a loss, the urge to “make it back” immediately, usually bigger and sloppier. The market does not know you are owed; the next trade is not connected to the last one.</p></div>
+      <div class="card rustline"><p class="word">Winner’s tilt: streak overconfidence</p><p>Three wins in a row and sizing creeps up, checklists get skipped, and “I’m seeing it clearly now.” Random streaks feel like skill; the market collects the tuition later.</p></div>
+      <div class="card rustline"><p class="word">The checking compulsion</p><p>Refreshing the app dozens of times a day is not monitoring, it is a slot machine loop. Each check invites an emotional decision the plan never asked for.</p></div>
+      <div class="card"><p class="word">Decision fatigue</p><p>Judgment degrades across a day of choices. The sloppy trades cluster late in the session and late at night, which is exactly when apps are most available.</p></div>
+      <div class="card"><p class="word">The body keeps the score</p><p>Risk-taking runs on hormones: winning streaks flood traders with confidence chemicals, losses with stress ones. You are never trading a chart; you are trading your own chemistry looking at a chart.</p></div>
+      <div class="card"><p class="word">Pre-commitment beats willpower</p><p>Stops, daily loss limits, position-size rules, and the 24-hour rule for big decisions all exist because past-you was calm and present-you may not be. Automate what you can, delay the rest.</p></div>
+    </div>
+    <p>The pilots’ solution works for traders: a pre-flight check. Before any trade, be honest below. Every box you tick is a warning light.</p>
+    <div class="panel">
+      <ul class="checklist" id="ttL">
+        <li><label><input type="checkbox"> I lost money today and want it back</label></li>
+        <li><label><input type="checkbox"> I have won several trades in a row and feel unusually sharp</label></li>
+        <li><label><input type="checkbox"> I have checked the app more than a few times in the last hour</label></li>
+        <li><label><input type="checkbox"> I am tired, hungry, angry, or stressed about something else</label></li>
+        <li><label><input type="checkbox"> This trade feels urgent, like it cannot wait until tomorrow</label></li>
+        <li><label><input type="checkbox"> I would be embarrassed to write my reason for this trade in the journal</label></li>
+      </ul>
+      <div class="ck-prog"><div class="ck-fill" id="ttF" style="background:var(--rust)"></div></div>
+      <div class="readout" id="ttO"></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">15 · Rules of Thumb</span>
+    <h2>The crowd-reading survival kit</h2>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>The reaction outranks the news</h3><p>Rallying on bad news is strength; sinking on good news is weakness. This one rule replaces most punditry.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Volume validates</h3><p>Breakouts, breakdowns, and bottoms all mean more on heavy volume and less on light. No volume, no conviction, no trust.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Ask who is selling: choosing or forced?</h3><p>Forced sellers set panic prices, and panic prices are the only sale rack the market ever runs.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Never catch the first knife; buy the base or the retest</h3><p>The first bounce in a crash is usually dead-cat. Exhaustion, a base, and a held retest are the crowd’s surrender papers.</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>When everyone agrees, the surprise is the other way</h3><p>Unanimity means everyone who could act on the view already has. The fuel is spent.</p></div></div>
+    <div class="rule-item"><div class="rule-n">6</div><div><h3>Urgency is the tell</h3><p>The moment a trade feels like it cannot wait, it is emotion executing, not you. Planned trades survive a night’s sleep.</p></div></div>
+    <div class="rule-item"><div class="rule-n">7</div><div><h3>Trim euphoria in slices, buy despair in slices</h3><p>Never all at once in either direction, because extremes extend. Tranches turn an impossible timing problem into an average.</p></div></div>
+    <div class="rule-item"><div class="rule-n">8</div><div><h3>Write the plan before the event</h3><p>Decisions made inside fear or greed belong to the fear or greed. Only pre-written rules belong to you.</p></div></div>
+    <div class="rule-item"><div class="rule-n">9</div><div><h3>Stay off the conveyor belt</h3><p>No leverage and no soon-needed money in the market. Every panic transfers wealth from the forced to the patient; choose your side in advance.</p></div></div>
+    <div class="rule-item"><div class="rule-n">10</div><div><h3>You are the crowd too</h3><p>Every signature on this page prints in your own chest first. The journal from Volume 3 is your personal sentiment gauge; read it like you read the VIX.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">16 · Practical Notes and Further Reading</span>
+    <h2>Where to go deeper</h2>
+    <p class="lead">Crowd psychology is the oldest literature in finance, and the classics have aged frighteningly well.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Thinking, Fast and Slow · Daniel Kahneman</p><p>The Nobel-winning map of the biases underneath everything on this page: loss aversion, anchoring, overreaction, and the machinery of snap judgment.</p></div>
+      <div class="card"><p class="word">Extraordinary Popular Delusions · Charles Mackay</p><p>Written in 1841 about tulip mania and bubble companies. Change the asset names and it reads like last decade.</p></div>
+      <div class="card"><p class="word">Misbehaving · Richard Thaler</p><p>The founding story of behavioral economics: how real humans, not rational models, set prices, by another Nobel laureate.</p></div>
+      <div class="card"><p class="word">The Art of Contrary Thinking · Humphrey Neill</p><p>The original discipline of fading crowds, including the crucial warning that the crowd is right during trends.</p></div><div class="card"><p class="word">Narrative Economics · Robert Shiller</p><p>How stories spread like epidemics and drive booms, busts, and everything the meme era proved on schedule.</p></div><div class="card"><p class="word">The Hour Between Dog and Wolf · John Coates</p><p>A former trader turned neuroscientist on the biology of risk: what winning and losing streaks do to your hormones, and through them, your judgment.</p></div>
+    </div>
+    <div class="note"><b>Free gauges to watch.</b> The VIX and put/call ratios publish free on CBOE’s site (cboe.com). Fund-flow and sentiment-survey summaries circulate freely in financial media. And the cheapest gauge of all: your own urge to check the app, which spikes at exactly the moments this volume warns about.</div>
+  </section>
+
+</main>
+<footer><div class="wrap"><p>By Majid Mazouchi · Drafted with Claude</p><p>Educational primer only. Nothing here is financial advice. Markets carry real risk of loss.</p></div></footer>
+<script>
+(function(){
+  "use strict";
+  window.PALETTE={cream:'#F4F1EA',paper2:'#F0EBDF',ink:'#221E1A',inkSoft:'#5C544A',inkFaint:'#8C8275',rule:'#D9D1C0',rust:'#B04A2F',rustSoft:'#D98E76',teal:'#2F6F6B',tealSoft:'#7FB0AC',ochre:'#C2912F',ochreSoft:'#E2C588'};
+  window.reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.fit=function(canvas){var dpr=window.devicePixelRatio||1;var w=canvas.clientWidth||canvas.parentNode.clientWidth;var h=canvas._h||parseInt(canvas.getAttribute('height'),10)||canvas.clientHeight;canvas._h=h;canvas.style.height=h+'px';canvas.width=w*dpr;canvas.height=h*dpr;var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);canvas._w=w;return ctx;};
+  window.hexA=function(hex,a){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';};
+})();
+(function(){
+"use strict";
+
+  /* W1 HERDING */
+  (function(){
+    var c=document.getElementById('hdc'); if(!c) return;
+    var W=document.getElementById('hdW'),nw=document.getElementById('hdNew'),out=document.getElementById('hdo'),ctx,seedRuns=0;
+    function sim(){
+      var herd=(+W.value)/100, N=260, P=100, S=0, px=[];
+      for(var t=0;t<N;t++){
+        var noise=(Math.random()-0.5)*0.9;
+        S = 0.55*S + herd*1.15*Math.tanh(1.4*S) + noise - (1.05-herd)*0.09*(P-100)/10 - 0.0022*(P-100);
+        S = Math.max(-4,Math.min(4,S));
+        P += S; P=Math.max(35,Math.min(260,P));
+        px.push(P);
+      }
+      return px;
+    }
+    var px;
+    function draw(){
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=18,gw=w-pad*2,gh=h-pad*2,N=px.length;
+      var lo=Math.min(90,Math.min.apply(null,px))-5,hi=Math.max(110,Math.max.apply(null,px))+5;
+      function X(i){return pad+gw*i/(N-1);} function Y(v){return pad+gh*(1-(v-lo)/(hi-lo));}
+      ctx.strokeStyle=PALETTE.rule;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(pad,Y(100));ctx.lineTo(w-pad,Y(100));ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=PALETTE.inkFaint;ctx.font='600 10px IBM Plex Mono';ctx.textAlign='left';
+      ctx.fillText('fair value',pad+2,Y(100)-5);
+      ctx.beginPath();for(var i=0;i<N;i++){i?ctx.lineTo(X(i),Y(px[i])):ctx.moveTo(X(i),Y(px[i]));}
+      ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+      var maxDev=0;for(i=0;i<N;i++)maxDev=Math.max(maxDev,Math.abs(px[i]-100));
+      var herd=+W.value;
+      var m = herd<30?'<b>Low copying.</b> Prices wobble around fair value. Disagreement is the market\u2019s immune system: someone always takes the other side.':
+        herd<65?'<b>Moderate copying.</b> Waves form: trends stretch further and snap back harder. Recognizable, survivable, normal.':
+        '<b>Heavy copying.</b> The same rules now manufacture booms and crashes with no news at all. Everyone following everyone leaves no one to take the other side, until gravity does.';
+      out.innerHTML='Copying strength '+herd+'/100. Widest departure from fair value this run: <span class="'+(maxDev>35?'stat down':'stat')+'">'+maxDev.toFixed(0)+' points</span>. '+m;
+    }
+    function run(){px=sim();draw();}
+    W.addEventListener('input',run);nw.addEventListener('click',run);
+    function boot(){ctx=fit(c);run();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* W2 FORCED SELLING CASCADE */
+  (function(){
+    var c=document.getElementById('fsc'); if(!c) return;
+    var L=document.getElementById('fsL'),nw=document.getElementById('fsNew'),out=document.getElementById('fso'),ctx,px,lev;
+    function sim(){
+      lev=(+L.value)/100;
+      var N=160,P=100,pressure=0,px_=[],levels=[],hit={};
+      for(var k=0;k<10;k++)levels.push(94-k*3.5);
+      for(var t=0;t<N;t++){
+        var shock = t<35? -0.35 : 0;
+        var recover = t>=35? 0.06*(100-P)/10 + 0.18 : 0;
+        for(k=0;k<levels.length;k++){
+          if(!hit[k] && P<=levels[k]){ hit[k]=1; pressure += lev*3.4; }
+        }
+        P += shock + recover - pressure*0.22 + (Math.random()-0.5)*0.9;
+        pressure*=0.85;
+        P=Math.max(25,P);
+        px_.push(P);
+      }
+      return px_;
+    }
+    function draw(){
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=18,gw=w-pad*2,gh=h-pad*2,N=px.length;
+      var lo=Math.min.apply(null,px)-5,hi=106;
+      function X(i){return pad+gw*i/(N-1);} function Y(v){return pad+gh*(1-(v-lo)/(hi-lo));}
+      ctx.strokeStyle=PALETTE.teal;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(pad,Y(100));ctx.lineTo(w-pad,Y(100));ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=PALETTE.teal;ctx.font='600 10px IBM Plex Mono';ctx.textAlign='left';
+      ctx.fillText('fair value (unchanged!)',pad+2,Y(100)-5);
+      // shade below fair
+      ctx.beginPath();ctx.moveTo(X(0),Y(Math.min(px[0],100)));
+      for(var i=0;i<N;i++)ctx.lineTo(X(i),Y(Math.min(px[i],100)));
+      ctx.lineTo(X(N-1),Y(100));ctx.lineTo(X(0),Y(100));ctx.closePath();
+      ctx.fillStyle=hexA(PALETTE.rust,0.10);ctx.fill();
+      ctx.beginPath();for(i=0;i<N;i++){i?ctx.lineTo(X(i),Y(px[i])):ctx.moveTo(X(i),Y(px[i]));}
+      ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+      var tmin=0;for(i=0;i<N;i++)if(px[i]<px[tmin])tmin=i;
+      ctx.fillStyle=PALETTE.rust;ctx.beginPath();ctx.arc(X(tmin),Y(px[tmin]),5,0,7);ctx.fill();
+      var depth=100-px[tmin];
+      ctx.font='600 10px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('-'+depth.toFixed(0)+'%',X(tmin),Y(px[tmin])+16);
+      var base=12; // shock-only depth approx
+      var extra=Math.max(0,depth-base);
+      out.innerHTML='The shock itself justified roughly a '+base+'% dip. With leverage at '+(+L.value)+'/100, the cascade bottomed <span class="stat down">'+depth.toFixed(0)+'% down</span>, about <b>'+extra.toFixed(0)+' extra points</b> of decline supplied purely by margin calls and stop cascades, sellers with no view, only obligations. That shaded overshoot below fair value is the un-forced buyer\u2019s entire opportunity, and it exists <em>because</em> others were forced.';
+    }
+    function run(){px=sim();draw();}
+    L.addEventListener('input',run);nw.addEventListener('click',run);
+    function boot(){ctx=fit(c);run();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* W3 CROWD DIAGNOSER */
+  (function(){
+    var tiles=document.getElementById('cdT'); if(!tiles) return;
+    var opts=document.getElementById('cdO'),out=document.getElementById('cdR');
+    var CASES=[
+      {name:'Calm uptrend',v:{'1-month move':'+4%','Volume':'normal','VIX':'14','Breadth':'72% rising','Good news':'rallies'},
+       why:'Orderly gains, broad participation, calm volatility, and news working normally. The crowd is right and unbothered. Strategy: stay invested, keep contributing, do nothing clever.'},
+      {name:'Euphoria',v:{'1-month move':'+18% vertical','Volume':'retail records','VIX':'12 but call-frenzy','Breadth':'88% rising','Bad news':'ignored'},
+       why:'A vertical chart, record retail activity, and bad news bouncing off: the crowd is on tiptoe and fully recruited. Strategy: rebalance and trim in slices, tighten trade stops, chase nothing, and do not short a mania on a feeling.'},
+      {name:'Healthy pullback',v:{'1-month move':'\u22126%','Volume':'light on the dip','VIX':'18','Breadth':'55%','Good news':'stabilizes it'},
+       why:'A quiet dip on shrinking volume inside an uptrend: holders resting, not fleeing. Strategy: buy from the shopping list you wrote earlier, in tranches at your pre-chosen levels.'},
+      {name:'Panic',v:{'1-month move':'\u221214% in days','Volume':'3\u00d7 average','VIX':'42 and spiking','Breadth':'12%','Good news':'sold anyway'},
+       why:'One-way cascades, exploding volume, fear off the scale, and even good news getting sold: forced sellers own the tape. Strategy: refuse to join them, protect your no-leverage seat, deploy only small planned slices, and wait for a base before anything bold.'},
+      {name:'Capitulation bottom',v:{'1-month move':'\u221225% total','Volume':'5\u00d7 climax + reversal','VIX':'peaked, now falling','Breadth':'6%, improving','Bad news':'stops working'},
+       why:'A volume climax with an intraday reversal, fear cresting then easing, and terrible headlines that no longer push prices down: the sellers are spent. Strategy: begin scheduled buying of quality, still without leverage, while it feels most pointless.'}
+    ];
+    var cur;
+    function show(){
+      cur=CASES[Math.floor(Math.random()*CASES.length)];
+      var h='';
+      for(var k in cur.v){
+        h+='<div class="card" style="padding:10px 12px"><p class="word" style="font-size:12px;margin-bottom:2px">'+k+'</p><p style="font-family:IBM Plex Mono,monospace;font-weight:600;font-size:13px;color:var(--ink-soft)">'+cur.v[k]+'</p></div>';}
+      tiles.innerHTML=h;
+      var pool=CASES.map(function(x){return x.name;}).sort(function(){return Math.random()-0.5;});
+      var oh='';for(var i=0;i<pool.length;i++)oh+='<button class="qopt" data-n="'+pool[i]+'">'+pool[i]+'</button>';
+      opts.innerHTML=oh; out.innerHTML='';
+      var bs=opts.querySelectorAll('.qopt');
+      for(var b=0;b<bs.length;b++)bs[b].addEventListener('click',pick);
+    }
+    function pick(e){
+      var n=e.currentTarget.getAttribute('data-n');
+      var bs=opts.querySelectorAll('.qopt');
+      for(var b=0;b<bs.length;b++){bs[b].disabled=true;
+        if(bs[b].getAttribute('data-n')===cur.name)bs[b].classList.add('right');
+        else if(bs[b].getAttribute('data-n')===n)bs[b].classList.add('wrong');}
+      out.innerHTML=(n===cur.name?'<b>Exactly.</b> ':'<b>It was: '+cur.name+'.</b> ')+cur.why+' <button class="btn" id="cdN">New market \u21bb</button>';
+      document.getElementById('cdN').addEventListener('click',show);
+    }
+    show();
+  })();
+
+
+  /* BEAUTY CONTEST */
+  (function(){
+    var c=document.getElementById('bcc'); if(!c) return;
+    var N=document.getElementById('bcN'),Nv=document.getElementById('bcNV'),go=document.getElementById('bcGo'),out=document.getElementById('bco'),ctx;
+    var last=null;
+    N.addEventListener('input',function(){Nv.textContent=N.value;});
+    function play(){
+      var guesses=[];
+      function gauss(m,s){return m+s*(Math.random()+Math.random()+Math.random()-1.5);}
+      for(var i=0;i<200;i++){
+        var r=Math.random(),g;
+        if(r<0.40)g=Math.random()*100;
+        else if(r<0.70)g=gauss(33,8);
+        else if(r<0.90)g=gauss(22,6);
+        else g=gauss(14,5);
+        guesses.push(Math.max(0,Math.min(100,g)));
+      }
+      var you=+N.value;
+      var all=guesses.concat([you]);
+      var avg=all.reduce(function(a,b){return a+b;},0)/all.length;
+      var target=avg*2/3;
+      last={guesses:guesses,you:you,target:target,avg:avg};
+      draw();
+      var dist=Math.abs(you-target);
+      var better=guesses.filter(function(g){return Math.abs(g-target)<dist;}).length;
+      var verdict=dist<3?'<b>Excellent read of the crowd.</b>':dist<8?'<b>Close.</b> You out-thought most of the room.':you>target?'<b>You under-thought the crowd:</b> guessing high assumes a naive room, but most people reason a step or two deeper than that.':'<b>You over-thought it:</b> you played against perfect logicians, but real crowds only think a step or two.';
+      out.innerHTML='Crowd average <b>'+avg.toFixed(1)+'</b>, so the winning target was <span class="stat">'+target.toFixed(1)+'</span>. Your '+you+' was '+dist.toFixed(1)+' away; '+better+' of 200 players beat you. '+verdict+' The lesson survives every round: winning means modeling <em>actual</em> people, not perfect ones.';
+    }
+    function draw(){
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      if(!last)return;
+      var pad=20,gw=w-pad*2,gh=h-pad*2-16;
+      var bins=new Array(20).fill(0);
+      for(var i=0;i<last.guesses.length;i++)bins[Math.min(19,Math.floor(last.guesses[i]/5))]++;
+      var mx=Math.max.apply(null,bins);
+      for(i=0;i<20;i++){var bh=gh*bins[i]/mx,x=pad+gw*i/20;
+        ctx.fillStyle=hexA(PALETTE.inkFaint,0.5);ctx.fillRect(x+1,pad+gh-bh,gw/20-2,bh);}
+      function X(v){return pad+gw*v/100;}
+      ctx.strokeStyle=PALETTE.ochre;ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(X(last.target),pad);ctx.lineTo(X(last.target),pad+gh);ctx.stroke();
+      ctx.fillStyle=PALETTE.ochre;ctx.font='600 11px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('target '+last.target.toFixed(0),Math.max(pad+26,Math.min(w-pad-26,X(last.target))),pad-6);
+      ctx.strokeStyle=PALETTE.teal;
+      ctx.beginPath();ctx.moveTo(X(last.you),pad);ctx.lineTo(X(last.you),pad+gh);ctx.stroke();
+      ctx.fillStyle=PALETTE.teal;
+      ctx.fillText('you '+last.you,Math.max(pad+18,Math.min(w-pad-18,X(last.you))),pad+gh+14);
+      ctx.fillStyle=PALETTE.inkFaint;ctx.font='10px IBM Plex Mono';ctx.textAlign='left';
+      ctx.fillText('0',pad,pad+gh+14);ctx.textAlign='right';ctx.fillText('100',w-pad,pad+gh+14);
+    }
+    go.addEventListener('click',play);
+    function boot(){ctx=fit(c);draw();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* RANDOMNESS MACHINE */
+  (function(){
+    var c=document.getElementById('rnc'); if(!c) return;
+    var nw=document.getElementById('rnNew'),out=document.getElementById('rno'),ctx,px;
+    function gen(){var a=[100],v=100;for(var i=1;i<120;i++){v+=(Math.random()<0.5?-1:1)*1.5;a.push(v);}return a;}
+    function draw(){
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=18,gw=w-pad*2,gh=h-pad*2,N=px.length;
+      var lo=Math.min.apply(null,px)-3,hi=Math.max.apply(null,px)+3;
+      function X(i){return pad+gw*i/(N-1);} function Y(v){return pad+gh*(1-(v-lo)/(hi-lo));}
+      ctx.strokeStyle=PALETTE.rule;ctx.lineWidth=1;
+      for(var g=0;g<=3;g++){var yy=pad+gh*g/3;ctx.beginPath();ctx.moveTo(pad,yy);ctx.lineTo(w-pad,yy);ctx.stroke();}
+      ctx.beginPath();for(var i=0;i<N;i++){i?ctx.lineTo(X(i),Y(px[i])):ctx.moveTo(X(i),Y(px[i]));}
+      ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+      var longest=1,cur=1;
+      for(i=2;i<N;i++){var d1=px[i]>px[i-1],d0=px[i-1]>px[i-2];
+        if(d1===d0){cur++;longest=Math.max(longest,cur);}else cur=1;}
+      var trend=((px[N-1]-px[0])/px[0]*100);
+      var mx=Math.max.apply(null,px),mn=Math.min.apply(null,px);
+      out.innerHTML='Longest streak of same-direction days: <b>'+longest+'</b>. Net \u201ctrend\u201d: <span class="'+(trend>=0?'stat':'stat down')+'">'+(trend>0?'+':'')+trend.toFixed(1)+'%</span>, with a '+((mx-mn)/px[0]*100).toFixed(0)+'% range top to bottom. Every bit of it: fair coin flips. Whatever setup you just spotted, the coin drew it.';
+    }
+    function run(){px=gen();draw();}
+    nw.addEventListener('click',run);
+    function boot(){ctx=fit(c);run();}
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* GAMBLERS FALLACY DRILL */
+  (function(){
+    var wrap=document.getElementById('gfB'); if(!wrap) return;
+    var out=document.getElementById('gfO');
+    var bs=wrap.querySelectorAll('.scen-opt');
+    for(var i=0;i<bs.length;i++)bs[i].addEventListener('click',function(e){
+      var k=+e.currentTarget.getAttribute('data-k');
+      for(var b=0;b<bs.length;b++){bs[b].disabled=true;bs[b].style.opacity=bs[b]===e.currentTarget?'1':'0.45';
+        if(bs[b].getAttribute('data-k')==='2')bs[b].style.borderColor='#2F6F6B';}
+      out.innerHTML=(k===2?'<b>Correct.</b> ':'<b>The coin disagrees.</b> ')+
+        'A fair coin has no memory: 50/50, always. Expecting balance is the <b>gambler\u2019s fallacy</b>; expecting continuation is the <b>hot hand</b>. Both feel obvious and both are your pattern detector talking to itself. Stocks are not fair coins, but after five red days, \u201cit is due for a bounce\u201d is exactly this reflex wearing a suit.';
+    });
+  })();
+
+  /* TILT CHECKLIST */
+  (function(){
+    var list=document.getElementById('ttL'); if(!list) return;
+    var boxes=list.querySelectorAll('input[type=checkbox]');
+    var fill=document.getElementById('ttF'),out=document.getElementById('ttO');
+    function upd(){
+      var n=0;for(var i=0;i<boxes.length;i++)if(boxes[i].checked)n++;
+      fill.style.width=(n/boxes.length*100)+'%';
+      out.innerHTML = n===0?'<b>Clear.</b> No warning lights. If the trade also passes Volume 1\u2019s checklist, proceed.':
+        n===1?'<b>One light on.</b> Pause. Reread your reason, halve the size, or better, sleep on it.':
+        '<b>'+n+' lights on. You are on tilt.</b> The single most profitable trade available right now is closing the app. The market reopens tomorrow; tilt trades compound into the losses that end beginners.';
+    }
+    for(var i=0;i<boxes.length;i++)boxes[i].addEventListener('change',upd);
+    upd();
+  })();
+
+})();
+</script>
+</body>
+</html>

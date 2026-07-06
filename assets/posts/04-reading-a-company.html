@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading a Company</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --paper:#FBF9F3;
+    --paper-2:#F0EBDF;
+    --ink:#221E1A;
+    --ink-soft:#5C544A;
+    --ink-faint:#8C8275;
+    --rule:#D9D1C0;
+    --rust:#B04A2F;
+    --rust-soft:#D98E76;
+    --teal:#2F6F6B;
+    --teal-soft:#7FB0AC;
+    --ochre:#C2912F;
+    --ochre-soft:#E2C588;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Spectral',Georgia,serif;
+    font-size:19px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  /* ---- Masthead ---- */
+  header.top{
+    border-bottom:2px solid var(--ink);
+    padding:46px 0 30px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(34px,7vw,58px);
+    line-height:1.04;
+    letter-spacing:-.015em;
+    margin:0 0 18px;
+  }
+  .standfirst{
+    font-size:clamp(18px,2.4vw,21px);
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .byline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    color:var(--ink-faint);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+
+  /* ---- Sections ---- */
+  section{padding:34px 0;border-bottom:1px solid var(--rule)}
+  .secnum{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--ochre);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:10px;
+  }
+  h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,4.4vw,36px);
+    line-height:1.1;
+    letter-spacing:-.01em;
+    margin:0 0 16px;
+  }
+  h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:30px 0 8px;
+  }
+  p{margin:0 0 18px}
+  a{color:var(--rust)}
+  strong{font-weight:600}
+  .lead{font-size:20px}
+  .term{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    color:var(--rust);
+  }
+
+  /* ---- Definition cards ---- */
+  .cards{display:grid;gap:14px;margin:22px 0}
+  @media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+  .card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--teal);
+    border-radius:3px;
+    padding:16px 18px;
+  }
+  .card .word{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .card .pron{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:.04em;
+    margin-left:6px;
+  }
+  .card p{font-size:16.5px;line-height:1.5;margin:0;color:var(--ink-soft)}
+  .card.rustline{border-left-color:var(--rust)}
+  .card.ochreline{border-left-color:var(--ochre)}
+
+  /* ---- Interactive panels ---- */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:5px;
+    padding:20px;
+    margin:24px 0;
+    box-shadow:0 1px 0 rgba(34,30,26,.03);
+  }
+  .panel .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 14px;
+  }
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  button.btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border:1.5px solid var(--ink);
+    background:var(--cream);
+    color:var(--ink);
+    padding:9px 15px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button.btn:hover{background:var(--ink);color:var(--cream)}
+  button.btn:focus-visible{outline:3px solid var(--ochre-soft);outline-offset:2px}
+  button.btn.on{background:var(--ink);color:var(--cream)}
+  button.btn.bull.on{background:var(--teal);border-color:var(--teal)}
+  button.btn.bear.on{background:var(--rust);border-color:var(--rust)}
+  canvas{display:block;width:100%;border-radius:4px;background:var(--paper-2);touch-action:none}
+  .readout{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    min-height:1.4em;
+    line-height:1.5;
+  }
+  .readout b{color:var(--ink)}
+  .stat{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--teal);
+    font-weight:600;
+  }
+  .stat.down{color:var(--rust)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:5px;border-radius:3px;
+    background:var(--paper-2);outline:none;margin:6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:3px solid var(--paper);
+  }
+  select{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;
+    background:var(--cream);color:var(--ink);
+  }
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--rule);
+    background:var(--cream);color:var(--ink-soft);cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pill.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* ---- candlestick svg ---- */
+  .candle-stage{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+  .candle-stage svg{flex:0 0 auto}
+  .candle-parts{flex:1 1 220px;min-width:200px}
+  .ckey{
+    display:block;padding:10px 12px;margin:0 0 8px;border-radius:4px;
+    border:1px solid var(--rule);background:var(--cream);cursor:pointer;
+    font-size:15px;line-height:1.4;transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ckey b{font-family:'Fraunces',serif;display:block;font-size:15.5px}
+  .ckey.active{background:var(--ochre-soft);border-color:var(--ochre)}
+  .cpart{transition:opacity .15s ease}
+  .cpart.dim{opacity:.22}
+
+  /* ---- rules ---- */
+  .rule-item{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule);
+    align-items:baseline;
+  }
+  .rule-item:last-child{border-bottom:none}
+  .rule-n{
+    font-family:'Fraunces',serif;font-weight:700;font-size:30px;
+    color:var(--rust);flex:0 0 44px;line-height:1;
+  }
+  .rule-item h3{margin:0 0 4px;font-size:18px}
+  .rule-item p{margin:0;font-size:16.5px;color:var(--ink-soft)}
+
+  /* ---- callout ---- */
+  .note{
+    background:var(--paper-2);
+    border-radius:4px;
+    padding:14px 18px;
+    margin:20px 0;
+    font-size:16.5px;
+    color:var(--ink-soft);
+    border-left:3px solid var(--ochre);
+  }
+  .note b{color:var(--ink)}
+
+  /* ---- glossary ---- */
+  .glossary dt{
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;
+    margin-top:14px;color:var(--ink);
+  }
+  .glossary dd{margin:2px 0 0;color:var(--ink-soft);font-size:16px;line-height:1.5}
+
+  footer{padding:40px 0 70px;text-align:center}
+  footer p{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--ink-faint);letter-spacing:.03em;line-height:1.7;
+  }
+
+  /* ---- part two divider ---- */
+  section.partbreak{border-bottom:none;text-align:center;padding:56px 0 8px}
+  .partbreak .ptlabel{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--rust);
+  }
+  .partbreak h2{margin:12px 0 10px}
+  .partbreak p{color:var(--ink-soft);max-width:58ch;margin:0 auto}
+  .partbreak .dash{width:46px;height:3px;background:var(--ink);margin:22px auto 0;border-radius:2px}
+
+  /* ---- phone order ticket ---- */
+  .phone{max-width:340px;margin:0 auto;background:var(--ink);border-radius:28px;padding:11px;box-shadow:0 10px 34px rgba(34,30,26,.20)}
+  .phone-screen{background:var(--cream);border-radius:20px;padding:18px 16px}
+  .app-head{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:14px}
+  .app-tkr{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--ink)}
+  .app-name{font-size:12px;color:var(--ink-faint);margin-left:8px}
+  .app-quote{font-family:'Fraunces',serif;font-weight:600;font-size:34px;line-height:1.15;margin-top:8px}
+  .app-chg{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)}
+  .app-chg.down{color:var(--rust)}
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden}
+  .seg.small{border-color:var(--rule)}
+  .seg-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 6px;background:var(--cream);color:var(--ink);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .seg-btn.on{background:var(--ink);color:var(--cream)}
+  .seg-btn.on[data-side="buy"]{background:var(--teal)}
+  .seg-btn.on[data-side="sell"]{background:var(--rust)}
+  .ticket-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:13px 0}
+  .ticket-row > label{font-size:14px;color:var(--ink-soft);flex:0 0 auto}
+  .ticket-row select,.ticket-row input[type=number]{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:7px 9px;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);max-width:130px}
+  .step{font-family:'IBM Plex Mono',monospace;width:30px;height:30px;border:1.5px solid var(--rule);background:var(--cream);color:var(--ink);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;-webkit-tap-highlight-color:transparent}
+  .ticket-meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);margin:8px 0 14px;text-align:center}
+  .btn.wide{width:100%;text-align:center;justify-content:center}
+  .bp{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:center;margin-top:13px}
+  .review-box{background:var(--paper-2);border-radius:10px;padding:14px;margin-top:12px}
+  .review-box .rl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:3px 0;color:var(--ink-soft)}
+  .review-box .rl b{color:var(--ink)}
+  .review-actions{display:flex;gap:8px;margin-top:12px}
+  .holdings{margin-top:18px;display:grid;gap:9px}
+  .hold-card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.5}
+  .hold-card .ht{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:.04em}
+  .badge.work{background:var(--ochre-soft);color:#6b4e16}
+  .badge.filled{background:var(--teal-soft);color:#143f3c}
+  .pl-pos{color:var(--teal);font-weight:600}
+  .pl-neg{color:var(--rust);font-weight:600}
+
+  /* ---- checklist ---- */
+  .checklist{list-style:none;padding:0;margin:6px 0 0}
+  .checklist li{border-bottom:1px solid var(--rule)}
+  .checklist li:last-child{border-bottom:none}
+  .checklist label{display:flex;gap:13px;align-items:flex-start;padding:13px 2px;cursor:pointer;font-size:16.5px}
+  .checklist input{margin-top:5px;width:18px;height:18px;accent-color:var(--teal);flex:0 0 auto}
+  .ck-prog{height:6px;background:var(--paper-2);border-radius:4px;margin:18px 0 10px;overflow:hidden}
+  .ck-fill{height:100%;width:0;background:var(--teal);transition:width .25s ease}
+
+  /* ---- table of contents ---- */
+  .toc{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;margin:28px 0 6px}
+  .toc h2{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 6px}
+  .toc-part{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);margin:16px 0 8px}
+  .toc ol{list-style:none;margin:0;padding:0;columns:2;column-gap:26px}
+  .toc li{margin:0 0 8px;break-inside:avoid;-webkit-column-break-inside:avoid}
+  .toc a{color:var(--ink);text-decoration:none;display:flex;gap:9px;align-items:baseline;font-size:15px;line-height:1.3}
+  .toc a:hover{color:var(--rust)}
+  .toc a:hover .tn{color:var(--rust)}
+  .toc .tn{font-family:'IBM Plex Mono',monospace;color:var(--ink-faint);font-size:12px;flex:0 0 22px}
+  @media(max-width:560px){.toc ol{columns:1}}
+  html{scroll-behavior:smooth}
+  section[id]{scroll-margin-top:16px}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+
+  /* series nav + practice extras */
+  .series{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.9}
+  .series a{color:var(--ink-soft);text-decoration:none;border-bottom:1px dotted var(--rule)}
+  .series b{color:var(--rust)}
+  .qopt{display:block;width:100%;text-align:left;font-family:'Spectral',serif;font-size:16px;padding:11px 14px;margin:8px 0;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .qopt.right{background:var(--teal);border-color:var(--teal);color:#fff}
+  .qopt.wrong{background:var(--rust);border-color:var(--rust);color:#fff}
+  .qopt:disabled{cursor:default;opacity:.92}
+  .scen-opt{display:block;width:100%;text-align:left;font-family:'Spectral',serif;font-size:16px;padding:12px 14px;margin:8px 0;border:1.5px solid var(--ink);border-radius:6px;background:var(--cream);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .jform label{display:block;font-size:14px;color:var(--ink-soft);margin:12px 0 4px}
+  .jform input,.jform select,.jform textarea{width:100%;font-family:'Spectral',serif;font-size:15px;padding:9px 11px;border:1.5px solid var(--rule);border-radius:6px;background:var(--cream);color:var(--ink);box-sizing:border-box}
+  .jform textarea{min-height:64px;resize:vertical}
+  .jout{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;min-height:130px;margin-top:12px;padding:12px;border:1.5px dashed var(--rule);border-radius:6px;background:var(--paper-2);box-sizing:border-box;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<p class="eyebrow">Volume Four · The Books</p>
+<h1>Reading a Company</h1>
+<p class="standfirst">The income statement, balance sheet, and cash flow, made visual. Five questions that tell you in minutes whether a business is healthy, and the red flags hiding in the numbers.</p>
+<p class="byline">By Majid Mazouchi · Drafted with Claude · Volume 4 of the series</p>
+<p class="series">In this series: <a href="stock-jargon.html">1 Foundations</a> · <a href="02-what-moves-prices.html">2 What Moves Prices</a> · <a href="03-practice-room.html">3 Practice Room</a> · <b>4 Reading a Company</b> · <a href="05-dangerous-aisle.html">5 The Dangerous Aisle</a> · <a href="06-building-your-portfolio.html">6 Your Portfolio</a> · <a href="08-case-study.html">7 Case Study</a> · <a href="09-analyst-toolkit.html">8 The Toolkit</a> · <a href="10-market-psychology.html">9 Crowd Psychology</a> · <a href="11-crash-anatomy.html">10 Crashes</a> · <a href="12-forecasting.html">11 Forecasting</a> · <a href="07-cheat-sheet.html">Cheat Sheet</a></p>
+</div></header>
+<main class="wrap">
+
+  <section>
+    <span class="secnum">01 · The Three Statements</span>
+    <h2>A company in three documents</h2>
+    <p class="lead">Every public company files three core statements. Together they answer three questions: is it selling and profiting (<span class="term">income statement</span>), what does it own and owe (<span class="term">balance sheet</span>), and where is the cash actually going (<span class="term">cash flow statement</span>).</p>
+    <p>You can read all three free in any company’s quarterly (10-Q) and annual (10-K) filings, and your app summarizes the highlights. You only need the shape of each, not an accounting degree.</p>
+  </section>
+
+  <section>
+    <span class="secnum">02 · The Income Statement</span>
+    <h2>From sales to profit, one waterfall</h2>
+    <p class="lead">Money enters as <span class="term">revenue</span> at the top, costs eat it in stages, and whatever survives at the bottom is <span class="term">net income</span>, the famous bottom line.</p>
+    <div class="panel">
+      <p class="label">Slide the costs and watch the profit survive, or not</p>
+      <div class="ticket-row"><label for="isCogs">Cost of goods</label><span style="display:flex;align-items:center;gap:10px"><input id="isCogs" type="range" min="10" max="70" value="40" style="width:130px"><span id="isCogsV" class="stat down">40%</span></span></div>
+      <div class="ticket-row"><label for="isOpex">Operating costs</label><span style="display:flex;align-items:center;gap:10px"><input id="isOpex" type="range" min="5" max="50" value="30" style="width:130px"><span id="isOpexV" class="stat down">30%</span></span></div>
+      <canvas id="isCanvas" height="210" aria-label="Income statement waterfall"></canvas>
+      <div class="readout" id="isOut"></div>
+    </div>
+    <p>The stages have names. Revenue minus cost of goods is <span class="term">gross profit</span>. Minus operating costs (salaries, rent, marketing, research) is <span class="term">operating profit</span>. Minus interest and tax is net income. Each stage divided by revenue is a <span class="term">margin</span>, and healthy companies keep margins steady or growing.</p>
+  </section>
+
+  <section>
+    <span class="secnum">03 · The Balance Sheet</span>
+    <h2>What it owns minus what it owes</h2>
+    <p class="lead">A snapshot on one day: <span class="term">assets</span> (cash, factories, inventory) on one side, <span class="term">liabilities</span> (debt, bills) on the other. The difference belongs to shareholders: <span class="term">equity</span>.</p>
+    <div class="panel">
+      <p class="label">Assets are fixed at $100. Slide the debt and watch equity get squeezed.</p>
+      <input type="range" id="bsDebt" min="0" max="95" value="40" aria-label="Debt level">
+      <canvas id="bsCanvas" height="150" aria-label="Balance sheet bar"></canvas>
+      <div class="readout" id="bsOut"></div>
+    </div>
+    <p>A little debt is normal fuel. A lot makes the company fragile: interest must be paid in good years and bad, and in a downturn the equity slice is what shrinks first. That slice is what your shares are a claim on.</p>
+  </section>
+
+  <section>
+    <span class="secnum">04 · The Cash Flow Statement</span>
+    <h2>Profit is an opinion, cash is a fact</h2>
+    <p class="lead">Accounting profit involves estimates and timing. The cash flow statement ignores all that and tracks actual money moving, in three buckets.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Operating cash flow</p><p>Cash generated by the actual business. The healthiest companies gush it, quarter after quarter.</p></div>
+      <div class="card"><p class="word">Investing cash flow</p><p>Cash spent on factories, equipment, acquisitions. Usually negative, and that is fine, it is building the future.</p></div>
+      <div class="card"><p class="word">Financing cash flow</p><p>Cash from issuing shares or debt, or spent on dividends and buybacks. Shows who is funding whom.</p></div>
+      <div class="card ochreline"><p class="word">Free cash flow</p><p>Operating cash minus the investment needed to keep running. The purest measure of what a business truly throws off.</p></div>
+    </div>
+    <div class="note"><b>Rule of thumb.</b> A company reporting profits while operating cash flow stays negative year after year deserves deep suspicion. Real businesses eventually produce real cash.</div>
+  </section>
+
+  <section>
+    <span class="secnum">05 · Anatomy of an Earnings Report</span>
+    <h2>What to read, in what order</h2>
+    <div class="rule-item"><div class="rule-n">1</div><div><h3>Revenue and EPS vs estimates</h3><p>The headline. Beat, meet, or miss sets the immediate tone.</p></div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div><h3>Guidance</h3><p>What management expects next quarter and year. Usually moves the stock more than the results.</p></div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div><h3>Margins</h3><p>Growing sales with shrinking margins can mean buying growth with discounts. Check both.</p></div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div><h3>Cash flow and share count</h3><p>Is cash following profit, and is the share count stable or quietly ballooning?</p></div></div>
+    <div class="rule-item"><div class="rule-n">5</div><div><h3>The call, not just the numbers</h3><p>On the earnings call, listen for what management dodges. Evasive answers move stocks.</p></div></div>
+  </section>
+
+  <section>
+    <span class="secnum">06 · The Earnings Call</span>
+    <h2>Listening to management, and between the lines</h2>
+    <p class="lead">After the report drops, executives host a public <span class="term">earnings call</span>: prepared remarks, then a Q&amp;A with analysts. Anyone can listen live or read the transcript free on the company’s investor relations page. The numbers say what happened; the call says how management thinks.</p>
+    <div class="cards">
+      <div class="card"><p class="word">Guidance specifics</p><p>Confident teams give numbers and reasons. Vague, hedge-everything guidance after years of precision is a tell.</p></div>
+      <div class="card"><p class="word">The Q&amp;A is the show</p><p>Prepared remarks are rehearsed. Watch which analyst questions get answered directly and which get talked around. Dodges move stocks.</p></div>
+      <div class="card ochreline"><p class="word">One-time excuses, every time</p><p>Weather, currency, a tough comparison, a timing shift. Any one is plausible. A new excuse every quarter is a pattern wearing a costume.</p></div>
+      <div class="card"><p class="word">Tone drift</p><p>Compare against last quarter’s call. A shift from "demand is strong" to "we are cautiously monitoring" is guidance in disguise.</p></div>
+      <div class="card"><p class="word">Beat and raise</p><p>The healthiest rhythm: beat this quarter, raise the next forecast, repeatedly. Its breakdown often marks the top of a stock’s run.</p></div>
+      <div class="card rustline"><p class="word">Blaming shorts and doubters</p><p>Management attacking short sellers or analysts instead of answering them is historically a glowing red flag.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">07 · Does the Price Make Sense?</span>
+    <h2>Connecting the report to the price tag</h2>
+    <p class="lead">You have the earnings and the growth. The last step is the sanity check: what is a reasonable price for that combination? A rough old heuristic, popularized by Peter Lynch: a fair P/E is roughly the growth rate, with a floor around 10 for slow growers.</p>
+    <div class="panel">
+      <p class="label">Set what the report told you, then judge the price</p>
+      <div class="ticket-row"><label for="fvEps">Earnings per share</label><span style="display:flex;align-items:center;gap:10px"><input id="fvEps" type="range" min="1" max="15" step="0.5" value="5" style="width:130px"><span id="fvEpsV" class="stat">$5.0</span></span></div>
+      <div class="ticket-row"><label for="fvGr">Expected yearly growth</label><span style="display:flex;align-items:center;gap:10px"><input id="fvGr" type="range" min="0" max="30" step="1" value="12" style="width:130px"><span id="fvGrV" class="stat">12%</span></span></div>
+      <div class="ticket-row"><label for="fvPx">Current stock price</label><span style="display:flex;align-items:center;gap:10px"><input id="fvPx" type="range" min="10" max="400" step="5" value="100" style="width:130px"><span id="fvPxV" class="stat">$100</span></span></div>
+      <canvas id="fvCanvas" height="150" aria-label="Fair price band"></canvas>
+      <div class="readout" id="fvOut"></div>
+    </div>
+    <div class="note"><b>Handle with care.</b> This is a napkin sketch, not a valuation. Interest rates, business quality, debt, and moats all shift what "fair" means, and professionals disagree using far fancier math. Its real use is catching absurdity: when a price needs decades of perfection to justify, the napkin is enough to tell you.</div>
+  </section>
+
+  <section>
+    <span class="secnum">08 · Financial Red Flags</span>
+    <h2>Numbers that whisper trouble</h2>
+    <div class="cards">
+      <div class="card rustline"><p class="word">Revenue up, cash down</p><p>Sales grow but operating cash sinks. The growth may be on paper, or bought with terms customers will not honor.</p></div>
+      <div class="card rustline"><p class="word">Receivables outracing sales</p><p>Money owed by customers growing much faster than revenue can mean sales are being stuffed to look good.</p></div>
+      <div class="card rustline"><p class="word">Margins in steady decline</p><p>Each dollar of sales earning less, year after year, means the moat is draining.</p></div>
+      <div class="card rustline"><p class="word">Debt piling while profits stall</p><p>Borrowing to stand still. Interest costs then eat whatever profit remains.</p></div>
+      <div class="card rustline"><p class="word">Endless one-off items</p><p>"Adjusted" profits that always exclude bad news. Real companies have real costs every year.</p></div>
+      <div class="card rustline"><p class="word">Ballooning share count</p><p>Constant new shares dilute your slice. Your percent of the pie shrinks even if the pie grows.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secnum">09 · A Worked Example</span>
+    <h2>Judging a fictional company in five minutes</h2>
+    <p class="lead">Acme Robotics reports: revenue $10B, up 12%. Gross margin 55%, flat. Net income $1.4B, up 9%. Operating cash flow $1.8B. Debt modest, share count flat, guidance nudged higher.</p>
+    <p>The read: real growth, margins holding, cash exceeding profit (a good sign, the profit is real), no dilution, and a confident forecast. Nothing spectacular, everything healthy. Whether to buy then becomes purely a question of <strong>price</strong>: at a P/E of 18 that health is reasonably priced; at 60, years of perfection are already paid for.</p>
+    <div class="note"><b>The habit.</b> Growth real? Margins holding? Cash confirming profit? Share count stable? Guidance honest? Five questions, five minutes, and you already know more than most people holding the stock.</div>
+  </section>
+
+  <section>
+    <span class="secnum">10 · Practical Notes and Further Reading</span>
+    <h2>Where to go deeper</h2>
+    <p class="lead">The skills on this page are learnable from a handful of classics, and practiced free on real filings.</p>
+    <div class="cards"><div class="card"><p class="word">The Intelligent Investor · Benjamin Graham</p><p>The foundation: price versus value, margin of safety, and the market as a moody business partner.</p></div><div class="card"><p class="word">One Up on Wall Street · Peter Lynch</p><p>A legendary fund manager on evaluating ordinary companies with common sense, and the P/E-vs-growth rule used above.</p></div><div class="card"><p class="word">Financial Statements · Thomas Ittelson</p><p>The gentlest walkthrough of the three statements ever written for non-accountants.</p></div><div class="card"><p class="word">Damodaran on valuation</p><p>Professor Aswath Damodaran of NYU publishes his full valuation courses and spreadsheets free online. The serious next step.</p></div></div>
+    <div class="note"><b>Free official sources.</b> Every US public company’s real 10-K and 10-Q filings are free on the SEC’s EDGAR database at sec.gov. Earnings call recordings and transcripts live on each company’s investor relations page. Practice on a company you know.</div>
+  </section>
+
+</main>
+<footer><div class="wrap"><p>By Majid Mazouchi · Drafted with Claude</p><p>Educational primer only. Nothing here is financial advice. Markets carry real risk of loss.</p></div></footer>
+<script>
+(function(){
+  "use strict";
+  window.PALETTE={cream:'#F4F1EA',paper2:'#F0EBDF',ink:'#221E1A',inkSoft:'#5C544A',inkFaint:'#8C8275',rule:'#D9D1C0',rust:'#B04A2F',rustSoft:'#D98E76',teal:'#2F6F6B',tealSoft:'#7FB0AC',ochre:'#C2912F',ochreSoft:'#E2C588'};
+  window.reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.fit=function(canvas){var dpr=window.devicePixelRatio||1;var w=canvas.clientWidth||canvas.parentNode.clientWidth;var h=canvas._h||parseInt(canvas.getAttribute('height'),10)||canvas.clientHeight;canvas._h=h;canvas.style.height=h+'px';canvas.width=w*dpr;canvas.height=h*dpr;var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);canvas._w=w;return ctx;};
+  window.hexA=function(hex,a){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';};
+})();
+(function(){
+"use strict";
+
+  /* INCOME WATERFALL */
+  (function(){
+    var c=document.getElementById('isCanvas'); if(!c) return;
+    var cg=document.getElementById('isCogs'),op=document.getElementById('isOpex');
+    var cgv=document.getElementById('isCogsV'),opv=document.getElementById('isOpexV');
+    var out=document.getElementById('isOut'),ctx;
+    function draw(){
+      var cogs=+cg.value,opex=+op.value;cgv.textContent=cogs+'%';opv.textContent=opex+'%';
+      var rev=100,gross=rev-cogs,tax=8,net=gross-opex-tax;
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=14,bw=Math.min(74,(w-pad*2)/4-12),gap=((w-pad*2)-bw*4)/3,base=h-34,maxH=h-64;
+      function bar(i,val,col,lbl){
+        var x=pad+i*(bw+gap),bh=Math.max(0,maxH*val/100);
+        ctx.fillStyle=val<0?PALETTE.rust:col;ctx.fillRect(x,base-Math.abs(bh),bw,Math.abs(bh));
+        ctx.fillStyle=PALETTE.ink;ctx.font='600 11px IBM Plex Mono';ctx.textAlign='center';
+        ctx.fillText('$'+val,x+bw/2,base-Math.abs(bh)-6);
+        ctx.fillStyle=PALETTE.inkFaint;ctx.font='10px IBM Plex Mono';
+        var words=lbl.split(' ');
+        for(var k=0;k<words.length;k++) ctx.fillText(words[k],x+bw/2,base+13+k*11);
+      }
+      bar(0,rev,PALETTE.teal,'revenue');
+      bar(1,gross,PALETTE.tealSoft,'gross profit');
+      bar(2,gross-opex,PALETTE.ochre,'operating profit');
+      bar(3,net,net>=0?PALETTE.ochreSoft:PALETTE.rust,'net income');
+      var msg;
+      if(net<=0) msg='<b>Underwater.</b> Costs plus tax exceed revenue: a net loss of <span class="stat down">$'+Math.abs(net)+'</span> per $100 of sales. Companies can run like this for a while on investors\u2019 money, not forever.';
+      else if(net<8) msg='Barely profitable: a <span class="stat">'+net+'%</span> net margin. One bad quarter or price war away from losses.';
+      else if(net<20) msg='A healthy <span class="stat">'+net+'%</span> net margin, in the range of most solid businesses.';
+      else msg='A fat <span class="stat">'+net+'%</span> net margin. Software-like economics; expect competitors to come hunting it.';
+      out.innerHTML='Per $100 of revenue: $'+cogs+' making the product, $'+opex+' running the company, about $'+tax+' tax. '+msg;
+    }
+    function boot(){ctx=fit(c);draw();}
+    cg.addEventListener('input',draw);op.addEventListener('input',draw);
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+  /* BALANCE SHEET BAR */
+  (function(){
+    var c=document.getElementById('bsCanvas'); if(!c) return;
+    var r=document.getElementById('bsDebt'),out=document.getElementById('bsOut'),ctx;
+    function draw(){
+      var debt=+r.value,eq=100-debt,w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=16,bw=w-pad*2,bh=44,y=h/2-bh/2;
+      ctx.fillStyle=PALETTE.rust;ctx.fillRect(pad,y,bw*debt/100,bh);
+      ctx.fillStyle=PALETTE.teal;ctx.fillRect(pad+bw*debt/100,y,bw*eq/100,bh);
+      ctx.font='600 12px IBM Plex Mono';ctx.textAlign='center';ctx.fillStyle='#fff';
+      if(debt>12)ctx.fillText('debt $'+debt,pad+bw*debt/200,y+bh/2+4);
+      if(eq>12)ctx.fillText('equity $'+eq,pad+bw*debt/100+bw*eq/200,y+bh/2+4);
+      ctx.fillStyle=PALETTE.inkFaint;ctx.font='10px IBM Plex Mono';
+      ctx.fillText('assets $100, split between what is owed and what is owned',w/2,y+bh+20);
+      var msg = debt<30?'<b>Conservative.</b> Small obligations, a thick equity cushion. Boring and sturdy.'
+        : debt<60?'<b>Typical leverage.</b> Manageable in good times; interest costs start to matter in bad ones.'
+        : debt<85?'<b>Heavily indebted.</b> A modest drop in asset values or profits hits equity hard. Fragile.'
+        : '<b>On the edge.</b> Equity is a sliver. A small shock and shareholders can be wiped out while lenders take the rest.';
+      out.innerHTML='Debt $'+debt+' \u00b7 equity <span class="'+(eq>40?'stat':'stat down')+'">$'+eq+'</span>. '+msg;
+    }
+    function boot(){ctx=fit(c);draw();}
+    r.addEventListener('input',draw);
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+
+  /* FAIR PRICE SANITY CHECK */
+  (function(){
+    var c=document.getElementById('fvCanvas'); if(!c) return;
+    var E=document.getElementById('fvEps'),G=document.getElementById('fvGr'),P=document.getElementById('fvPx');
+    var Ev=document.getElementById('fvEpsV'),Gv=document.getElementById('fvGrV'),Pv=document.getElementById('fvPxV');
+    var out=document.getElementById('fvOut'),ctx;
+    function draw(){
+      var eps=+E.value,gr=+G.value,px=+P.value;
+      Ev.textContent='$'+eps.toFixed(1);Gv.textContent=gr+'%';Pv.textContent='$'+px;
+      var fairPE=Math.max(10,gr),fair=eps*fairPE,lo=fair*0.75,hi=fair*1.25;
+      var maxP=Math.max(hi*1.6,px*1.15,60);
+      var w=c._w,h=c._h;ctx.clearRect(0,0,w,h);
+      var pad=20,bw=w-pad*2,by=h/2,bh=26;
+      function X(v){return pad+bw*v/maxP;}
+      ctx.fillStyle=PALETTE.paper2==='#F0EBDF'?'#E4DECF':'#E4DECF';ctx.fillRect(pad,by-bh/2,bw,bh);
+      ctx.fillStyle=hexA(PALETTE.teal,0.55);ctx.fillRect(X(lo),by-bh/2,X(hi)-X(lo),bh);
+      ctx.fillStyle=PALETTE.teal;ctx.font='600 10px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('fair-ish $'+lo.toFixed(0)+' to $'+hi.toFixed(0),(X(lo)+X(hi))/2,by-bh/2-8);
+      var mx=X(px);
+      ctx.fillStyle=PALETTE.ink;
+      ctx.beginPath();ctx.moveTo(mx,by+bh/2+4);ctx.lineTo(mx-7,by+bh/2+16);ctx.lineTo(mx+7,by+bh/2+16);ctx.closePath();ctx.fill();
+      ctx.font='600 13px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('price $'+px,Math.max(pad+30,Math.min(w-pad-30,mx)),by+bh/2+32);
+      var pe=px/eps, verdict, cls;
+      if(px<lo){verdict='The market is pricing in <b>less</b> than that growth. Either you found a bargain, or the crowd knows something the report hides. Check the red flags section before celebrating.';cls='stat';}
+      else if(px<=hi){verdict='Price and story roughly agree. From here the decision is about the business quality and your patience, not the math.';cls='stat';}
+      else if(px<=hi*1.8){verdict='You are paying for <b>years of good news in advance</b>. Fine businesses can still be poor investments from this price; any stumble gets punished twice.';cls='stat down';}
+      else{verdict='Priced for near perfection. At this level the stock needs growth well beyond '+gr+'% to make sense, and the napkin says the crowd is dreaming.';cls='stat down';}
+      out.innerHTML='Fair P/E \u2248 <b>'+fairPE+'</b> for '+gr+'% growth, so a fair-ish price is about <b>$'+fair.toFixed(0)+'</b>. The actual price of $'+px+' is a P/E of <span class="'+cls+'">'+pe.toFixed(0)+'</span>. '+verdict;
+    }
+    function boot(){ctx=fit(c);draw();}
+    [E,G,P].forEach(function(el){el.addEventListener('input',draw);});
+    window.addEventListener('resize',function(){ctx=fit(c);draw();});
+    boot();
+  })();
+
+})();
+</script>
+</body>
+</html>
