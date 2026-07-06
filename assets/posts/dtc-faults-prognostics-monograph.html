@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading the Fault: From DTCs to Prognostics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA;--paper-2:#ECE7DB;--ink:#23201B;--ink-soft:#4A453C;
+    --rust:#A0431E;--rust-deep:#7E3216;--teal:#1F6F78;--teal-deep:#13525A;
+    --ochre:#C8932A;--ochre-deep:#9E7012;--line:#D8D0C0;--line-strong:#BCB09A;
+    --ok:#2E7D4F;--warn:#C8932A;--bad:#A0431E;--shadow:rgba(35,32,27,0.10);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.66;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;line-height:1.12;color:var(--ink);font-weight:600}
+  h2{font-size:2.0rem;font-weight:900;margin:0 0 .2em;letter-spacing:-.01em}
+  h3{font-size:1.35rem;margin:2.2em 0 .5em}
+  h4{font-size:1.08rem;margin:1.6em 0 .3em;font-weight:600}
+  p{margin:0 0 1.1em}
+  a{color:var(--teal-deep);text-decoration-thickness:1px;text-underline-offset:2px}
+  strong{font-weight:600;color:var(--ink)}
+  code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.92em}
+  code{background:var(--paper-2);border:1px solid var(--line);border-radius:4px;padding:.06em .35em}
+  .lede{font-size:1.22rem;color:var(--ink-soft);line-height:1.55}
+
+  .hero{padding:84px 0 40px;border-bottom:2px solid var(--ink)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.74rem;letter-spacing:.28em;text-transform:uppercase;color:var(--rust);margin:0 0 1.4em}
+  .hero h1{font-size:clamp(2.6rem,7vw,4.4rem);font-weight:900;letter-spacing:-.02em;margin:0 0 .35em}
+  .hero h1 em{font-style:italic;font-weight:400;color:var(--rust)}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:.82rem;color:var(--ink-soft);letter-spacing:.04em;margin-top:1.8em}
+  .hero .lede{margin-top:1.2em;max-width:42em}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line)}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:.78rem;letter-spacing:.22em;color:var(--teal);text-transform:uppercase;display:block;margin-bottom:.5em}
+
+  .part{padding:70px 0 0;border-top:3px solid var(--ink);border-bottom:none;margin-top:24px}
+  .part .pn{font-family:"IBM Plex Mono",monospace;font-size:.78rem;letter-spacing:.3em;text-transform:uppercase;color:var(--rust)}
+  .part h2{font-size:clamp(2rem,5vw,3rem);margin:.2em 0 .1em}
+  .part .psub{font-size:1.08rem;color:var(--ink-soft);font-style:italic;max-width:40em}
+
+  .note{background:var(--paper-2);border-left:3px solid var(--teal);padding:16px 20px;margin:1.6em 0;border-radius:0 6px 6px 0;font-size:.97rem}
+  .note .tag{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--teal-deep);display:block;margin-bottom:.4em}
+  .field{border-left-color:var(--rust)}.field .tag{color:var(--rust-deep)}
+  .pitfall{border-left-color:var(--ochre-deep);background:#F3ECD9}.pitfall .tag{color:var(--ochre-deep)}
+
+  .defgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:1.4em 0}
+  .defcard{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+  .defcard h4{margin:0 0 .25em;color:var(--rust)}
+  .defcard p{margin:0;font-size:.95rem;color:var(--ink-soft)}
+  .defcard .ic{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.12em;color:var(--teal);text-transform:uppercase;display:block;margin-bottom:.3em}
+
+  .lab{background:#FBF9F3;border:1px solid var(--line-strong);border-radius:12px;padding:22px;margin:1.8em 0;box-shadow:0 1px 0 var(--shadow)}
+  .lab-title{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--rust);margin:0 0 .2em;display:flex;align-items:center;gap:.6em}
+  .lab-title::before{content:"";width:8px;height:8px;background:var(--rust);border-radius:50%;display:inline-block}
+  .lab h4{margin:.1em 0 1em;font-size:1.15rem}
+  .lab .intro{font-size:.95rem;color:var(--ink-soft);margin-bottom:1em}
+  .controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin:1em 0}
+  .ctrl{display:flex;flex-direction:column;gap:5px;min-width:130px}
+  .ctrl label{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.05em;color:var(--ink-soft);text-transform:uppercase}
+  .ctrl .val{color:var(--rust-deep);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--teal);cursor:pointer}
+  button{font-family:"IBM Plex Mono",monospace;font-size:.8rem;letter-spacing:.04em;background:var(--ink);color:var(--paper);border:none;border-radius:6px;padding:9px 16px;cursor:pointer;transition:background .15s}
+  button:hover{background:var(--teal-deep)}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
+  button.ghost:hover{background:var(--paper-2)}
+  select,input[type=text]{font-family:"IBM Plex Mono",monospace;font-size:.9rem;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;color:var(--ink)}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:.8rem;cursor:pointer;user-select:none;background:var(--paper-2);border:1px solid var(--line-strong);border-radius:20px;padding:6px 14px;transition:.15s}
+  .toggle input{display:none}
+  .toggle .dot{width:11px;height:11px;border-radius:50%;background:var(--line-strong);transition:.15s}
+  .toggle.on{background:#E4F0EC;border-color:var(--teal)}.toggle.on .dot{background:var(--ok)}
+  canvas{display:block;width:100%;border-radius:8px;background:#FBF9F3;border:1px solid var(--line)}
+
+  .readout{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:.78rem;padding:7px 12px;border-radius:6px;border:1px solid var(--line-strong);background:#fff;display:flex;gap:8px;align-items:center}
+  .chip .k{color:var(--ink-soft)}.chip .v{font-weight:600}
+  .chip.state-pass{background:#E7F2EB;border-color:#9CC9AC}.chip.state-pass .v{color:var(--ok)}
+  .chip.state-pend{background:#F6EED7;border-color:#E0C886}.chip.state-pend .v{color:var(--ochre-deep)}
+  .chip.state-conf{background:#F4E1D7;border-color:#D9A88E}.chip.state-conf .v{color:var(--rust-deep)}
+
+  .mil{display:inline-flex;align-items:center;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:.8rem}
+  .lamp{width:30px;height:22px;border-radius:4px;border:2px solid var(--ink-soft);background:#D8D0C0;position:relative;transition:.2s}
+  .lamp.on{background:var(--ochre);border-color:var(--ochre-deep);box-shadow:0 0 14px var(--ochre)}
+  .lamp.flash{animation:flash .5s steps(1) infinite}
+  @keyframes flash{50%{background:#D8D0C0;box-shadow:none}}
+
+  .dtc-display{display:flex;gap:6px;justify-content:center;margin:26px 0 18px}
+  .dtc-char{font-family:"IBM Plex Mono",monospace;font-size:2.4rem;font-weight:600;width:62px;height:78px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#fff;border:2px solid var(--line-strong);position:relative}
+  .dtc-char .pos{position:absolute;top:-22px;left:0;right:0;font-size:.6rem;letter-spacing:.1em;color:var(--teal);text-align:center}
+  .dtc-char.c0{border-color:var(--rust);color:var(--rust)}
+  .dtc-char.c1{border-color:var(--teal);color:var(--teal-deep)}
+  .dtc-char.c2{border-color:var(--ochre-deep);color:var(--ochre-deep)}
+  .dtc-mean{margin-top:26px}
+  .dtc-mean .row{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .dtc-mean .row b{font-family:"IBM Plex Mono",monospace;font-size:.82rem}
+
+  .bits{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+  .bit{flex:1;min-width:88px;text-align:center;border:1px solid var(--line-strong);border-radius:8px;padding:10px 6px;cursor:pointer;background:#fff;transition:.12s}
+  .bit:hover{border-color:var(--teal)}
+  .bit.set{background:var(--rust);color:#fff;border-color:var(--rust-deep)}
+  .bit .b{font-family:"IBM Plex Mono",monospace;font-size:1.5rem;font-weight:600;line-height:1}
+  .bit .n{font-size:.62rem;letter-spacing:.02em;margin-top:5px;line-height:1.15;font-family:"IBM Plex Mono"}
+  .bitval{font-family:"IBM Plex Mono",monospace;font-size:1.1rem;text-align:center;margin:8px 0;color:var(--rust-deep);font-weight:600}
+
+  table{width:100%;border-collapse:collapse;margin:1.3em 0;font-size:.92rem}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-deep);background:var(--paper-2)}
+  td code{font-size:.86em}
+  tr:hover td{background:#FBF9F3}
+
+  figure{margin:1.8em 0;padding:0}
+  figure svg{width:100%;height:auto;background:#FBF9F3;border:1px solid var(--line);border-radius:10px}
+  figcaption{font-size:.85rem;color:var(--ink-soft);font-style:italic;margin-top:.7em;text-align:center}
+  .fig-no{font-family:"IBM Plex Mono",monospace;font-style:normal;color:var(--teal);letter-spacing:.05em;font-size:.8rem;margin-right:.5em}
+
+  .ladder{display:flex;flex-direction:column;gap:0;margin:1.2em 0}
+  .rung{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:14px 16px;border-left:4px solid;align-items:center}
+  .rung .lvl{font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:600}
+  .rung p{margin:0;font-size:.94rem}
+  .r0{border-color:var(--ok);background:#EAF3EC}.r1{border-color:var(--ochre);background:#F6EED7}
+  .r2{border-color:var(--rust);background:#F4E1D7}.r3{border-color:var(--rust-deep);background:#EFD7CC}
+
+  /* graph nodes */
+  .gnode{cursor:pointer}
+  .gnode:hover .gbox{stroke-width:2.5}
+
+  /* terminal */
+  .term{background:var(--ink);color:#E8E2D4;font-family:"IBM Plex Mono",monospace;border-radius:10px;padding:14px 16px;height:280px;overflow-y:auto;font-size:.8rem;line-height:1.55;border:1px solid var(--rust-deep)}
+  .term .l{white-space:pre-wrap;word-break:break-word}
+  .term .req{color:var(--ochre)}
+  .term .res{color:#A9D3D8}
+  .term .note2{color:#B7AE9C;font-style:italic}
+  .term .err{color:#E0A38A}
+  .term-btns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .term-btns button{font-size:.74rem;padding:7px 11px}
+  .term-in{display:flex;gap:8px;margin-top:6px}
+  .term-in input{flex:1}
+
+  /* readiness grid */
+  .mongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:1em 0}
+  .moncell{border:1px solid var(--line-strong);border-radius:8px;padding:10px 12px;background:#fff;font-family:"IBM Plex Mono",monospace;font-size:.76rem;display:flex;align-items:center;gap:8px;transition:.18s}
+  .moncell .d{width:10px;height:10px;border-radius:50%;background:var(--line-strong);flex:none}
+  .moncell.rdy{background:#EAF3EC;border-color:#9CC9AC}.moncell.rdy .d{background:var(--ok)}
+
+  /* glossary */
+  .gloss{margin:1.2em 0}
+  .gloss dt{font-family:"IBM Plex Mono",monospace;font-size:.92rem;color:var(--rust-deep);font-weight:600;margin-top:1em}
+  .gloss dd{margin:.2em 0 0;font-size:.96rem;color:var(--ink-soft)}
+
+  .refs{font-size:.9rem;color:var(--ink-soft)}
+  .refs ol{padding-left:1.4em}.refs li{margin-bottom:.6em}
+
+  nav.toc{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin:2em 0}
+  nav.toc .tt{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);margin-bottom:.4em}
+  nav.toc .grp{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-deep);margin:.9em 0 .2em}
+  nav.toc ol{margin:0;padding-left:1.3em}
+  nav.toc li{margin-bottom:.3em;font-size:.93rem}
+  nav.toc a{text-decoration:none;color:var(--ink)}
+  nav.toc a:hover{color:var(--rust);text-decoration:underline}
+  .toc-cols{columns:2;column-gap:34px}
+
+  footer{padding:50px 0 80px;text-align:center;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:.78rem;letter-spacing:.04em}
+
+  @media (max-width:680px){
+    body{font-size:17px}
+    .defgrid{grid-template-columns:1fr}
+    .toc-cols{columns:1}
+    .rung{grid-template-columns:1fr}
+    .dtc-char{width:46px;height:62px;font-size:1.8rem}
+    .controls{gap:12px 16px}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Vehicle Health Management &middot; A Practical Monograph</p>
+    <h1>Reading the <em>Fault</em></h1>
+    <p class="lede">How a vehicle decides something is wrong, writes it down, lights a lamp, protects itself, and how that same machinery becomes the foundation for predicting failures before they happen. A plain-language tour from diagnostic trouble codes through residual-based detection, fault propagation, functional safety, and prognostics.</p>
+    <p class="byline">By Majid Mazouchi &middot; Drafted with Claude</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <div class="tt">Contents</div>
+  <div class="toc-cols">
+    <div class="grp">Part One &middot; Naming the fault</div>
+    <ol>
+      <li><a href="#words">The four words that get confused</a></li>
+      <li><a href="#anatomy">Anatomy of a DTC</a></li>
+      <li><a href="#status">The status byte</a></li>
+    </ol>
+    <div class="grp">Part Two &middot; How a monitor decides</div>
+    <ol start="4">
+      <li><a href="#taxonomy">Four ways to catch a fault</a></li>
+      <li><a href="#lifecycle">Life of a monitor</a></li>
+      <li><a href="#enabling">Enabling conditions</a></li>
+      <li><a href="#demcounter">The Dem fault counter</a></li>
+      <li><a href="#residual">Residuals and model-based detection</a></li>
+      <li><a href="#freeze">Freeze frame</a></li>
+      <li><a href="#propagation">Fault propagation</a></li>
+    </ol>
+    <div class="grp">Part Three &middot; Reacting to the fault</div>
+    <ol start="11">
+      <li><a href="#arch">How the software is wired</a></li>
+      <li><a href="#console">Talking to the car</a></li>
+      <li><a href="#readiness">Drive cycles and readiness</a></li>
+      <li><a href="#limp">Limp mode</a></li>
+      <li><a href="#safety">Limp as a safe state</a></li>
+      <li><a href="#ev">EV-specific diagnostics</a></li>
+    </ol>
+    <div class="grp">Part Four &middot; Beyond the code</div>
+    <ol start="17">
+      <li><a href="#prognostics">From detection to prognostics</a></li>
+      <li><a href="#examples">Worked examples</a></li>
+      <li><a href="#field">Field notes</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </div>
+</nav>
+
+<div class="part" id="part1">
+  <span class="pn">Part One</span>
+  <h2>Naming the fault</h2>
+  <p class="psub">Before any algorithm, the vocabulary and the shape of the code itself.</p>
+</div>
+
+<section id="words">
+  <span class="sec-no">01 / Vocabulary</span>
+  <h2>The four words that get confused</h2>
+  <p>Four ideas need separating, because using them interchangeably is the source of most bad diagnoses. Walk a problem backward through these and the real story usually appears.</p>
+  <div class="defgrid">
+    <div class="defcard"><h4>Fault</h4><p>The root abnormal condition. A cracked connector, a stuck valve, a sensor drifting out of physical range. The thing actually wrong.</p></div>
+    <div class="defcard"><h4>Failure</h4><p>A loss of the ability to perform a required function. A fault may sit quietly long before it produces a failure anyone notices.</p></div>
+    <div class="defcard"><h4>Symptom</h4><p>What you can observe. Rough idle, a lamp, reduced power, a smell. Symptoms point toward faults but rarely name them.</p></div>
+    <div class="defcard"><h4>DTC</h4><p>A Diagnostic Trouble Code. The label an ECU stores when a monitor decides a fault is real. Evidence, not the disease.</p></div>
+  </div>
+  <p>The chain runs left to right: a <strong>fault</strong> exists, it may cause a <strong>failure</strong>, the failure produces a <strong>symptom</strong>, and a monitor translates the evidence into a <strong>DTC</strong>. A code is a hypothesis the car formed about itself. Your job is to confirm or reject it.</p>
+  <figure>
+    <svg viewBox="0 0 820 200" role="img" aria-label="Chain from fault to DTC">
+      <defs><marker id="ah" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A453C"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="14">
+        <rect x="20" y="70" width="150" height="60" rx="8" fill="#F4E1D7" stroke="#A0431E" stroke-width="1.5"/><text x="95" y="95" text-anchor="middle" font-weight="600" fill="#7E3216">FAULT</text><text x="95" y="115" text-anchor="middle" font-size="10" fill="#4A453C">root cause</text>
+        <line x1="172" y1="100" x2="208" y2="100" stroke="#4A453C" stroke-width="1.5" marker-end="url(#ah)"/>
+        <rect x="212" y="70" width="150" height="60" rx="8" fill="#F6EED7" stroke="#C8932A" stroke-width="1.5"/><text x="287" y="95" text-anchor="middle" font-weight="600" fill="#9E7012">FAILURE</text><text x="287" y="115" text-anchor="middle" font-size="10" fill="#4A453C">lost function</text>
+        <line x1="364" y1="100" x2="400" y2="100" stroke="#4A453C" stroke-width="1.5" marker-end="url(#ah)"/>
+        <rect x="404" y="70" width="150" height="60" rx="8" fill="#E4F0EC" stroke="#1F6F78" stroke-width="1.5"/><text x="479" y="95" text-anchor="middle" font-weight="600" fill="#13525A">SYMPTOM</text><text x="479" y="115" text-anchor="middle" font-size="10" fill="#4A453C">observable</text>
+        <line x1="556" y1="100" x2="592" y2="100" stroke="#4A453C" stroke-width="1.5" marker-end="url(#ah)"/>
+        <rect x="596" y="70" width="150" height="60" rx="8" fill="#23201B"/><text x="671" y="95" text-anchor="middle" font-weight="600" fill="#F4F1EA">DTC</text><text x="671" y="115" text-anchor="middle" font-size="10" fill="#D8D0C0">logged code</text>
+        <text x="671" y="162" text-anchor="middle" font-size="11" fill="#A0431E">diagnosis works the other way</text>
+        <line x1="640" y1="150" x2="120" y2="150" stroke="#A0431E" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+      </g>
+    </svg>
+    <figcaption><span class="fig-no">Fig. 1</span>The car builds the chain forward. The technician reads it backward.</figcaption>
+  </figure>
+  <div class="note field"><span class="tag">Field note</span>A DTC names where a monitor lost confidence, not what broke. <code>P0420</code> says the catalyst monitor is unhappy, but the cause might be an aging oxygen sensor feeding it bad data, an exhaust leak, or a genuinely dead catalyst. The code starts the investigation.</div>
+</section>
+
+<section id="anatomy">
+  <span class="sec-no">02 / Structure</span>
+  <h2>Anatomy of a DTC</h2>
+  <p>The familiar five-character code (think <code>P0301</code>) comes from the OBD-II standard in SAE J2012 and ISO 15031. Every position carries meaning, and once you can read the positions, an unfamiliar code stops being random.</p>
+  <table>
+    <tr><th>Position</th><th>Meaning</th><th>Values</th></tr>
+    <tr><td><b>1st</b> (letter)</td><td>System group</td><td><code>P</code> powertrain, <code>C</code> chassis, <code>B</code> body, <code>U</code> network</td></tr>
+    <tr><td><b>2nd</b></td><td>Who defined it</td><td><code>0</code> generic (SAE), <code>1</code> manufacturer specific, <code>2</code>/<code>3</code> reserved or joint</td></tr>
+    <tr><td><b>3rd</b></td><td>Subsystem</td><td>fuel/air, ignition, emissions, speed/idle, computer, transmission, and so on</td></tr>
+    <tr><td><b>4th &amp; 5th</b></td><td>Specific fault index</td><td>the particular condition within that subsystem</td></tr>
+  </table>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>DTC decoder</h4>
+    <p class="intro">Pick a code or type your own five characters. Each position lights up with what it means.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:170px"><label>Example codes</label>
+        <select id="dtcPreset">
+          <option value="P0301">P0301 cylinder 1 misfire</option>
+          <option value="P0420">P0420 catalyst efficiency</option>
+          <option value="P0128">P0128 coolant thermostat</option>
+          <option value="P0171">P0171 system too lean</option>
+          <option value="P0700">P0700 transmission control</option>
+          <option value="C0035">C0035 wheel speed sensor</option>
+          <option value="U0100">U0100 lost comms with ECM</option>
+          <option value="B1000">B1000 body, mfr defined</option>
+        </select>
+      </div>
+      <div class="ctrl" style="min-width:140px"><label>Or type a code</label><input type="text" id="dtcInput" maxlength="5" value="P0301" style="text-transform:uppercase"></div>
+    </div>
+    <div class="dtc-display" id="dtcDisplay"></div>
+    <div class="dtc-mean" id="dtcMean"></div>
+  </div>
+  <div class="note"><span class="tag">Plain words</span>A second digit of <code>0</code> means the code is part of the shared OBD-II catalogue every maker must honor. A <code>1</code> means the carmaker invented it for their own ECU, so you need their service data to interpret it. That single digit decides whether a generic reader can help.</div>
+  <p>Controllers that speak UDS (Unified Diagnostic Services, ISO 14229) often show the five-character code on the surface but store a richer three-byte DTC underneath, plus a <strong>failure type byte</strong> that says how the circuit failed: shorted to ground, open, signal too high, stuck. The next section unpacks the byte that travels with every code.</p>
+</section>
+
+<section id="status">
+  <span class="sec-no">03 / State</span>
+  <h2>The status byte</h2>
+  <p>A DTC is never simply present or absent. In UDS, each code carries an eight-bit <strong>status byte</strong> recording its history: failing right now, failed at all this drive, confirmed, lamp requested. A scan tool reads these bits to tell a live problem from a memory of an old one.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>Status byte explorer</h4>
+    <p class="intro">Click bits to toggle them, or step through a realistic scenario. The hex value updates the way a scan tool would show it.</p>
+    <div class="bits" id="bitRow"></div>
+    <div class="bitval" id="bitHex">Status: 0x00</div>
+    <div class="controls"><button id="scenStep">Step through a real fault</button><button class="ghost" id="scenReset">Reset</button></div>
+    <p id="scenText" style="font-size:.92rem;color:var(--ink-soft);min-height:2.4em;margin-top:.8em"></p>
+  </div>
+  <div class="note field"><span class="tag">Field note</span>The two bits worth memorizing are <code>bit0 testFailed</code> (failing as you watch) and <code>bit3 confirmedDTC</code> (matured into stored memory). A code with bit3 set but bit0 clear is an old confirmed fault that is not active now. That difference decides whether you chase a live problem or an intermittent one.</div>
+</section>
+
+<div class="part" id="part2">
+  <span class="pn">Part Two</span>
+  <h2>How a monitor decides</h2>
+  <p class="psub">The mechanics inside the ECU: what it measures, when it is allowed to look, how it accumulates evidence, and how a model sharpens the judgement.</p>
+</div>
+
+<section id="taxonomy">
+  <span class="sec-no">04 / Detection methods</span>
+  <h2>Four ways to catch a fault</h2>
+  <p>Monitors are not all the same. Underneath the variety, almost every one belongs to one of four families. Knowing which family a monitor uses tells you what it can and cannot see, and why a clever fault sometimes slips past a simple check.</p>
+  <div class="defgrid">
+    <div class="defcard"><span class="ic">Family 1</span><h4>Range and rate</h4><p>Is the signal physically possible, and is it changing at a believable speed? A coolant sensor reading minus 40 C on a hot engine, or a temperature jumping 80 degrees in one sample, is impossible. Cheap, fast, catches gross electrical faults.</p></div>
+    <div class="defcard"><span class="ic">Family 2</span><h4>Plausibility</h4><p>Do two or more signals agree? Throttle position versus airflow, two redundant pedal sensors, modeled torque versus measured acceleration. Catches faults that are in range individually but inconsistent together.</p></div>
+    <div class="defcard"><span class="ic">Family 3</span><h4>Active test</h4><p>The ECU intrudes: it commands an actuator and checks the response. Pulse the EGR valve and watch manifold pressure, seal the evap system and watch for a pressure decay. Catches faults that hide during passive observation.</p></div>
+    <div class="defcard"><span class="ic">Family 4</span><h4>Model based</h4><p>A model predicts what a signal should be; the difference (the residual) is watched. Observers, parity equations, and physics or data driven models live here. The most sensitive family, and the bridge to prognostics.</p></div>
+  </div>
+  <figure>
+    <svg viewBox="0 0 820 230" role="img" aria-label="Detection method sensitivity ladder">
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <text x="20" y="26" fill="#4A453C" font-size="11">simpler, cheaper, less sensitive</text>
+        <text x="800" y="26" text-anchor="end" fill="#4A453C" font-size="11">richer, costlier, more sensitive</text>
+        <defs><linearGradient id="grad1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E4F0EC"/><stop offset="1" stop-color="#F4E1D7"/></linearGradient></defs>
+        <rect x="20" y="40" width="780" height="14" rx="7" fill="url(#grad1)" stroke="#BCB09A"/>
+        <g>
+          <rect x="30" y="80" width="170" height="110" rx="8" fill="#FBF9F3" stroke="#1F6F78"/><text x="115" y="108" text-anchor="middle" fill="#13525A" font-weight="600">range / rate</text><text x="115" y="132" text-anchor="middle" font-size="10" fill="#4A453C">is it possible?</text><text x="115" y="150" text-anchor="middle" font-size="10" fill="#4A453C">one signal</text><text x="115" y="174" text-anchor="middle" font-size="22">&#9633;</text>
+          <rect x="220" y="80" width="170" height="110" rx="8" fill="#FBF9F3" stroke="#1F6F78"/><text x="305" y="108" text-anchor="middle" fill="#13525A" font-weight="600">plausibility</text><text x="305" y="132" text-anchor="middle" font-size="10" fill="#4A453C">do signals agree?</text><text x="305" y="150" text-anchor="middle" font-size="10" fill="#4A453C">two or more signals</text><text x="305" y="174" text-anchor="middle" font-size="22">&#8651;</text>
+          <rect x="410" y="80" width="170" height="110" rx="8" fill="#FBF9F3" stroke="#C8932A"/><text x="495" y="108" text-anchor="middle" fill="#9E7012" font-weight="600">active test</text><text x="495" y="132" text-anchor="middle" font-size="10" fill="#4A453C">command + observe</text><text x="495" y="150" text-anchor="middle" font-size="10" fill="#4A453C">intrusive</text><text x="495" y="174" text-anchor="middle" font-size="22">&#8635;</text>
+          <rect x="600" y="80" width="200" height="110" rx="8" fill="#FBF9F3" stroke="#A0431E"/><text x="700" y="108" text-anchor="middle" fill="#7E3216" font-weight="600">model based</text><text x="700" y="132" text-anchor="middle" font-size="10" fill="#4A453C">predict, take residual</text><text x="700" y="150" text-anchor="middle" font-size="10" fill="#4A453C">observers, parity</text><text x="700" y="174" text-anchor="middle" font-size="22">&#8767;</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption><span class="fig-no">Fig. 2</span>The four families along a sensitivity ladder. Real ECUs mix all four.</figcaption>
+  </figure>
+  <div class="note"><span class="tag">Plain words</span>A simple range check never cries wolf but misses subtle drift. A model based residual catches drift early but needs a good model and careful thresholds, or it cries wolf constantly. Most of diagnostic engineering is choosing the right family for each fault and tuning where it draws the line.</div>
+</section>
+
+<section id="lifecycle">
+  <span class="sec-no">05 / Lifecycle</span>
+  <h2>Life of a monitor</h2>
+  <p>Inside the ECU a <strong>monitor</strong> watches one thing: a circuit, a plausibility relationship, the result of an active test. Its life follows a loop. It runs only when allowed, it does not believe a single bad reading, it waits for evidence to accumulate, and it heals when the evidence goes away.</p>
+  <figure>
+    <svg viewBox="0 0 820 360" role="img" aria-label="Monitor state machine">
+      <defs><marker id="ah2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A453C"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="13">
+        <rect x="40" y="150" width="140" height="56" rx="28" fill="#ECE7DB" stroke="#1F6F78" stroke-width="1.5"/><text x="110" y="175" text-anchor="middle" font-weight="600" fill="#13525A">DISABLED</text><text x="110" y="192" text-anchor="middle" font-size="10" fill="#4A453C">conditions not met</text>
+        <rect x="250" y="150" width="140" height="56" rx="10" fill="#E4F0EC" stroke="#1F6F78" stroke-width="1.5"/><text x="320" y="175" text-anchor="middle" font-weight="600" fill="#13525A">RUNNING</text><text x="320" y="192" text-anchor="middle" font-size="10" fill="#4A453C">test active, passing</text>
+        <rect x="460" y="150" width="140" height="56" rx="10" fill="#F6EED7" stroke="#C8932A" stroke-width="1.5"/><text x="530" y="175" text-anchor="middle" font-weight="600" fill="#9E7012">PENDING</text><text x="530" y="192" text-anchor="middle" font-size="10" fill="#4A453C">failing, debouncing</text>
+        <rect x="660" y="150" width="140" height="56" rx="10" fill="#F4E1D7" stroke="#A0431E" stroke-width="1.5"/><text x="730" y="175" text-anchor="middle" font-weight="600" fill="#7E3216">CONFIRMED</text><text x="730" y="192" text-anchor="middle" font-size="10" fill="#4A453C">stored, lamp on</text>
+        <rect x="460" y="280" width="140" height="50" rx="10" fill="#EAF3EC" stroke="#2E7D4F" stroke-width="1.5"/><text x="530" y="305" text-anchor="middle" font-weight="600" fill="#2E7D4F">HEALING</text><text x="530" y="320" text-anchor="middle" font-size="10" fill="#4A453C">passes again</text>
+        <line x1="180" y1="178" x2="246" y2="178" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah2)"/><text x="213" y="168" text-anchor="middle" font-size="10" fill="#1F6F78">enable</text>
+        <line x1="246" y1="196" x2="184" y2="196" stroke="#4A453C" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#ah2)"/><text x="213" y="214" text-anchor="middle" font-size="10" fill="#4A453C">disable</text>
+        <line x1="390" y1="178" x2="456" y2="178" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah2)"/><text x="423" y="168" text-anchor="middle" font-size="10" fill="#C8932A">fail</text>
+        <line x1="600" y1="178" x2="656" y2="178" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah2)"/><text x="628" y="168" text-anchor="middle" font-size="10" fill="#A0431E">matures</text>
+        <path d="M500,150 Q470,90 360,90 Q320,90 320,144" fill="none" stroke="#2E7D4F" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#ah2)"/><text x="405" y="84" text-anchor="middle" font-size="10" fill="#2E7D4F">passes before maturing</text>
+        <line x1="700" y1="206" x2="580" y2="278" stroke="#2E7D4F" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#ah2)"/><text x="660" y="250" text-anchor="middle" font-size="10" fill="#2E7D4F">passes</text>
+        <path d="M460,300 Q360,300 330,210" fill="none" stroke="#2E7D4F" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#ah2)"/><text x="370" y="270" text-anchor="middle" font-size="10" fill="#2E7D4F">heal cycles</text>
+      </g>
+    </svg>
+    <figcaption><span class="fig-no">Fig. 3</span>The monitor state machine. Solid arrows are the fault path, dashed arrows recovery.</figcaption>
+  </figure>
+  <p>Two choices in this loop protect the driver from nuisance and the workshop from chasing ghosts: the monitor refuses to run unless its <strong>enabling conditions</strong> hold, and it refuses to act on a single sample, instead <strong>debouncing</strong> the evidence. The next sections give a working model of each.</p>
+</section>
+
+<section id="enabling">
+  <span class="sec-no">06 / Enabling conditions</span>
+  <h2>Enabling conditions: when a monitor is allowed to look</h2>
+  <p>A monitor that ran all the time would constantly cry wolf. A catalyst check is meaningless on a cold engine; an evap leak test cannot run with the cap off. So every monitor carries <strong>enabling conditions</strong>, preconditions that must all be true before the test evaluates. Until they are met the monitor reports <em>not ready</em>, and no pass or fail is produced.</p>
+  <p>Common conditions: a stable running engine, coolant in a band, speed in a range, healthy battery voltage, enough time since start, and crucially <strong>no conflicting fault present</strong>. That last one is fault dependency: a downstream monitor is inhibited when an upstream sensor it relies on is faulted, so the car does not stack misleading codes on top of one real one.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>Enabling gate</h4>
+    <p class="intro">This models the catalyst efficiency monitor. Set the operating conditions. The monitor runs only when every condition is satisfied at once.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:200px"><label>Coolant temp <span class="val" id="vCool">85</span> &deg;C <span style="color:var(--ink-soft)">(need 70 to 110)</span></label><input type="range" id="cool" min="20" max="120" value="85"></div>
+      <div class="ctrl" style="min-width:200px"><label>Vehicle speed <span class="val" id="vSpd">60</span> km/h <span style="color:var(--ink-soft)">(need 30 to 120)</span></label><input type="range" id="spd" min="0" max="160" value="60"></div>
+      <div class="ctrl" style="min-width:200px"><label>Battery <span class="val" id="vBat">13.8</span> V <span style="color:var(--ink-soft)">(need 11 to 15)</span></label><input type="range" id="bat" min="90" max="160" value="138"></div>
+    </div>
+    <div class="controls">
+      <label class="toggle on" id="tEng"><input type="checkbox" checked><span class="dot"></span>Engine running</label>
+      <label class="toggle on" id="tWarm"><input type="checkbox" checked><span class="dot"></span>Warm-up complete</label>
+      <label class="toggle" id="tConf"><input type="checkbox"><span class="dot"></span>Upstream O2 sensor fault present</label>
+    </div>
+    <figure style="margin:1.4em 0 0"><svg viewBox="0 0 760 220" id="gateSvg" role="img" aria-label="Enabling condition gate"></svg></figure>
+    <div class="readout" id="gateOut"></div>
+  </div>
+  <div class="note pitfall"><span class="tag">Common pitfall</span>A customer says the lamp will not come back after a repair, or an emissions test reports monitors <em>not ready</em>. Usually nothing is broken. Clearing codes reset readiness and the right drive cycle has not happened yet. The fix is driving, not diagnosis.</div>
+  <div class="note field"><span class="tag">Field note</span>Fault dependency is why order matters. If you see ten codes, find the one upstream sensor or network fault that inhibits or misleads the rest. Repair it, clear everything, let the car re-run its monitors. Most of the pile often does not return.</div>
+</section>
+
+<section id="demcounter">
+  <span class="sec-no">07 / Debounce</span>
+  <h2>The Dem fault counter</h2>
+  <p>Sensors are noisy and the world is bumpy. If a monitor set a code on the first bad sample, every car would be a Christmas tree. So the monitor <strong>debounces</strong>: it accumulates evidence before it commits. The mechanism standardized in the AUTOSAR Diagnostic Event Manager is a <strong>signed fault detection counter</strong>, an eight-bit value running from minus 128 to plus 127.</p>
+  <p>Each failed evaluation steps the counter up; each passed evaluation steps it down. When it reaches the positive <strong>confirm threshold</strong> the fault matures from pending to confirmed and the lamp can light. When it falls to the negative <strong>heal threshold</strong> the fault is considered passed and begins to clear. The two thresholds are separate on purpose, so a fault confirms decisively but only heals after convincing recovery.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive simulation</p><h4>Signed counter, live</h4>
+    <p class="intro">A noisy sensor signal (teal) drifts toward a fault threshold (dashed). The signed counter (right) climbs on failing samples and falls on passing ones. The DTC confirms when the counter tops out and heals when it bottoms out. Drag the level, the noise, and the thresholds.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:180px"><label>True signal level <span class="val" id="vLvl">0.45</span></label><input type="range" id="lvl" min="0" max="100" value="45"></div>
+      <div class="ctrl" style="min-width:180px"><label>Noise amount <span class="val" id="vNz">0.18</span></label><input type="range" id="nz" min="0" max="50" value="18"></div>
+      <div class="ctrl" style="min-width:170px"><label>Confirm at <span class="val" id="vConfT">20</span></label><input type="range" id="confT" min="5" max="80" value="20"></div>
+      <div class="ctrl" style="min-width:170px"><label>Heal at <span class="val" id="vHealT">-12</span></label><input type="range" id="healT" min="-60" max="-3" value="-12"></div>
+      <div class="ctrl" style="justify-content:flex-end"><button id="demToggle">Pause</button></div>
+    </div>
+    <canvas id="demCanvas" width="800" height="300"></canvas>
+    <div class="readout">
+      <span class="chip"><span class="k">counter</span><span class="v" id="demVal">0</span></span>
+      <span class="chip" id="demStateChip"><span class="k">state</span><span class="v" id="demState">PASS</span></span>
+      <span class="mil" style="margin-left:auto"><span class="lamp" id="demLamp"></span><span id="demLampTxt">lamp off</span></span>
+    </div>
+  </div>
+  <div class="note"><span class="tag">Plain words</span>Think of the counter as the monitor's patience. A brief glitch barely moves it and the next good sample pulls it back. A real, persistent fault keeps pushing the same way until patience runs out and the code is committed. Healing is patience being rebuilt, which is why a fixed car does not always clear its lamp at once.</div>
+  <p>Real strategies vary: simple step counters as above, fixed time above threshold, pass and fail ratios, all layered across counted drive cycles and warm-up cycles. A confirmed code typically needs several consecutive clean cycles to leave memory, with a full erase after roughly forty warm-up cycles.</p>
+</section>
+
+<section id="residual">
+  <span class="sec-no">08 / Model-based detection</span>
+  <h2>Residuals: when the car carries a model of itself</h2>
+  <p>The most sensitive monitors do not threshold a raw signal at all. They run a <strong>model</strong> of the system in parallel with the real hardware, predict what a measurement should be, and watch the difference. That difference is the <strong>residual</strong>. In a healthy system the residual hovers near zero, carrying only noise. When a fault appears, the residual departs from zero in a way the raw signal alone may not reveal.</p>
+  <p>The classic model is a state observer. A Luenberger observer runs the system equations and corrects its own estimate using the measurement through a gain. The residual is measured minus estimated. The art is the threshold: a <strong>fixed</strong> band must sit high enough to clear honest transients during aggressive driving, which dulls it to small faults; an <strong>adaptive</strong> band tightens when the system is quiet and widens when it is working hard, catching a small fault during steady operation that a fixed band would sleep through.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive simulation</p><h4>Observer and residual</h4>
+    <p class="intro">A first-order plant is driven by an input that alternates calm and aggressive phases. An observer tracks it and forms the residual (rust). Inject a sensor fault and switch the threshold strategy. Watch a small fault during a calm phase trip the adaptive band while slipping under the fixed band.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:180px"><label>Observer gain L <span class="val" id="vL">2.0</span></label><input type="range" id="obsGain" min="5" max="60" value="20"></div>
+      <div class="ctrl" style="min-width:180px"><label>Fault magnitude <span class="val" id="vFm">0.00</span></label><input type="range" id="faultMag" min="0" max="100" value="0"></div>
+      <div class="ctrl" style="min-width:190px"><label>Threshold</label>
+        <select id="threshMode"><option value="fixed">Fixed band</option><option value="adaptive">Adaptive band</option></select></div>
+      <div class="ctrl" style="justify-content:flex-end"><button id="resToggle">Pause</button></div>
+    </div>
+    <canvas id="resCanvas" width="800" height="300"></canvas>
+    <div class="readout">
+      <span class="chip"><span class="k">residual</span><span class="v" id="resVal">0.00</span></span>
+      <span class="chip"><span class="k">threshold</span><span class="v" id="resThr">0.50</span></span>
+      <span class="chip" id="resDetChip"><span class="k">detector</span><span class="v" id="resDet">clear</span></span>
+      <span class="chip"><span class="k">phase</span><span class="v" id="resPhase">calm</span></span>
+    </div>
+  </div>
+  <div class="note field"><span class="tag">Field note</span>This is where diagnostics meets the rest of vehicle health management. The same observers and parity relations that raise a DTC also produce a continuous health signal, and that signal is what prognostics extrapolates toward a remaining useful life. A residual is a fault detector and a degradation sensor at the same time. Part Four returns to this.</div>
+  <div class="note"><span class="tag">Plain words</span>Raise the observer gain and the estimate chases the measurement harder, so the residual is quieter but a slow fault can be partly absorbed into the estimate. Lower it and the residual is livelier and more sensitive but noisier. Threshold design and observer gain are two halves of one tradeoff between missed faults and false alarms.</div>
+</section>
+
+<section id="freeze">
+  <span class="sec-no">09 / Snapshot</span>
+  <h2>Freeze frame: the photograph of the moment</h2>
+  <p>When a DTC matures, the ECU saves a <strong>freeze frame</strong>: a small record of operating conditions at the instant the fault confirmed. Engine speed, load, coolant and intake temperature, vehicle speed, fuel trim, throttle. The car photographing the scene of the crime.</p>
+  <p>This is often the most useful data in the diagnosis, because an intermittent fault you cannot reproduce in the bay still left a fingerprint. If the snapshot shows a misfire confirmed at high load, cold, low speed, you know where to drive to reproduce it. UDS extends this with multiple snapshot and extended data records per DTC, including occurrence and aging counters.</p>
+  <table>
+    <tr><th>Freeze frame field</th><th>Example</th><th>Why it helps</th></tr>
+    <tr><td>Engine speed</td><td><code>1850 rpm</code></td><td>Idle, cruise, or hard acceleration?</td></tr>
+    <tr><td>Calculated load</td><td><code>78 %</code></td><td>High load points to demand-related faults</td></tr>
+    <tr><td>Coolant temp</td><td><code>41 &deg;C</code></td><td>Cold faults behave differently than hot ones</td></tr>
+    <tr><td>Vehicle speed</td><td><code>52 km/h</code></td><td>Locates the event in the drive</td></tr>
+    <tr><td>Short term fuel trim</td><td><code>+18 %</code></td><td>Reveals the ECU compensating for a lean condition</td></tr>
+    <tr><td>Occurrence counter</td><td><code>3</code></td><td>Distinguishes a one-off from a recurring problem</td></tr>
+  </table>
+</section>
+
+<section id="propagation">
+  <span class="sec-no">10 / System view</span>
+  <h2>Fault propagation: why codes arrive in crowds</h2>
+  <p>No monitor is an island. Sensors feed monitors, monitors feed other monitors, and a shared resource like the battery or the data bus feeds nearly everything. So a single root fault rarely sets a single code. It propagates: it corrupts the signals downstream of it, trips the monitors that depend on those signals, and inhibits the ones that were wisely told to stand down when their inputs cannot be trusted.</p>
+  <p>This is exactly the structure a fault propagation graph captures, and it is why a knowledge graph of subsystem dependencies is such a natural tool in vehicle health management. Read the graph and the crowd of codes resolves into one cause with a wake behind it.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>Propagation graph</h4>
+    <p class="intro">Click any node to inject a fault there. The fault flows along the dependency edges: the source turns red, everything downstream that it corrupts or inhibits turns amber. Read off which codes are real and which are merely consequences. Click the same node again, or reset, to clear.</p>
+    <figure style="margin:1em 0 0"><svg viewBox="0 0 760 360" id="propSvg" role="img" aria-label="Fault propagation graph"></svg></figure>
+    <div class="readout" id="propOut"></div>
+    <div class="controls"><button class="ghost" id="propReset">Clear fault</button></div>
+  </div>
+  <div class="note"><span class="tag">Plain words</span>Sensors on the left supply signals; monitors on the right consume them. A fault at a sensor spreads rightward to every monitor that drinks from it. The lesson is the field note from earlier made visual: fix the upstream node first, and the downstream crowd usually clears itself.</div>
+</section>
+
+<div class="part" id="part3">
+  <span class="pn">Part Three</span>
+  <h2>Reacting to the fault</h2>
+  <p class="psub">From the software that holds the codes, to the tool that reads them, to the degraded behavior that protects the car and the safe state behind it.</p>
+</div>
+
+<section id="arch">
+  <span class="sec-no">11 / Architecture</span>
+  <h2>How the software is wired</h2>
+  <p>In a modern ECU on the AUTOSAR standard, the pieces above live in named components, and the names make service documentation readable. A monitor reports a pass or fail as a <strong>diagnostic event</strong>. The <strong>Diagnostic Event Manager (Dem)</strong> owns the debounce counters, the DTC memory, the status byte, and the freeze frames. The <strong>Function Inhibition Manager (FiM)</strong> turns a confirmed event into a degraded-operation request, where limp mode begins. The <strong>Diagnostic Communication Manager (Dcm)</strong> answers the scan tool over UDS.</p>
+  <figure>
+    <svg viewBox="0 0 820 380" role="img" aria-label="AUTOSAR diagnostic architecture">
+      <defs><marker id="ah3" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A453C"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace">
+        <rect x="30" y="40" width="170" height="300" rx="10" fill="#FBF9F3" stroke="#D8D0C0"/><text x="115" y="62" text-anchor="middle" font-size="11" fill="#1F6F78" font-weight="600">MONITORS</text>
+        <rect x="50" y="80" width="130" height="44" rx="6" fill="#E4F0EC" stroke="#1F6F78"/><text x="115" y="107" text-anchor="middle" font-size="11" fill="#13525A">misfire</text>
+        <rect x="50" y="134" width="130" height="44" rx="6" fill="#E4F0EC" stroke="#1F6F78"/><text x="115" y="161" text-anchor="middle" font-size="11" fill="#13525A">O2 plausibility</text>
+        <rect x="50" y="188" width="130" height="44" rx="6" fill="#E4F0EC" stroke="#1F6F78"/><text x="115" y="215" text-anchor="middle" font-size="11" fill="#13525A">circuit check</text>
+        <rect x="50" y="242" width="130" height="44" rx="6" fill="#E4F0EC" stroke="#1F6F78"/><text x="115" y="269" text-anchor="middle" font-size="11" fill="#13525A">observer residual</text>
+        <text x="115" y="320" text-anchor="middle" font-size="9.5" fill="#4A453C">report pass / fail</text>
+        <rect x="300" y="60" width="210" height="260" rx="12" fill="#F4E1D7" stroke="#A0431E" stroke-width="1.5"/><text x="405" y="86" text-anchor="middle" font-size="13" fill="#7E3216" font-weight="600">Dem</text><text x="405" y="102" text-anchor="middle" font-size="9" fill="#4A453C">Diagnostic Event Manager</text>
+        <rect x="320" y="116" width="170" height="36" rx="6" fill="#fff" stroke="#D9A88E"/><text x="405" y="139" text-anchor="middle" font-size="10.5" fill="#7E3216">debounce counters</text>
+        <rect x="320" y="158" width="170" height="36" rx="6" fill="#fff" stroke="#D9A88E"/><text x="405" y="181" text-anchor="middle" font-size="10.5" fill="#7E3216">DTC + status byte</text>
+        <rect x="320" y="200" width="170" height="36" rx="6" fill="#fff" stroke="#D9A88E"/><text x="405" y="223" text-anchor="middle" font-size="10.5" fill="#7E3216">freeze frame store</text>
+        <rect x="320" y="242" width="170" height="36" rx="6" fill="#fff" stroke="#D9A88E"/><text x="405" y="265" text-anchor="middle" font-size="10.5" fill="#7E3216">aging / healing</text>
+        <rect x="600" y="60" width="190" height="120" rx="12" fill="#F6EED7" stroke="#C8932A" stroke-width="1.5"/><text x="695" y="86" text-anchor="middle" font-size="13" fill="#9E7012" font-weight="600">FiM</text><text x="695" y="102" text-anchor="middle" font-size="9" fill="#4A453C">Function Inhibition Mgr</text><text x="695" y="130" text-anchor="middle" font-size="10.5" fill="#9E7012">inhibit functions,</text><text x="695" y="146" text-anchor="middle" font-size="10.5" fill="#9E7012">request derate</text><text x="695" y="166" text-anchor="middle" font-size="9.5" fill="#A0431E">to limp mode</text>
+        <rect x="600" y="200" width="190" height="120" rx="12" fill="#E4F0EC" stroke="#1F6F78" stroke-width="1.5"/><text x="695" y="226" text-anchor="middle" font-size="13" fill="#13525A" font-weight="600">Dcm</text><text x="695" y="242" text-anchor="middle" font-size="9" fill="#4A453C">Diagnostic Comm Mgr</text><text x="695" y="270" text-anchor="middle" font-size="10.5" fill="#13525A">answers scan tool</text><text x="695" y="286" text-anchor="middle" font-size="10.5" fill="#13525A">over UDS / OBD</text><text x="695" y="306" text-anchor="middle" font-size="9.5" fill="#1F6F78">read DTCs, snapshots</text>
+        <line x1="200" y1="190" x2="296" y2="190" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah3)"/>
+        <line x1="510" y1="120" x2="596" y2="120" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah3)"/>
+        <line x1="510" y1="260" x2="596" y2="260" stroke="#4A453C" stroke-width="1.4" marker-end="url(#ah3)"/>
+      </g>
+    </svg>
+    <figcaption><span class="fig-no">Fig. 4</span>The AUTOSAR diagnostic stack. Monitors feed the Dem, which feeds degradation (FiM) and the scan tool (Dcm).</figcaption>
+  </figure>
+  <div class="note"><span class="tag">Plain words</span>You do not need AUTOSAR to understand a car, but the names appear everywhere in supplier documentation. When a spec says an event triggers <code>FiM</code> inhibition, it means a confirmed fault asked the car to stop trusting a function. That request is the seed of limp mode.</div>
+</section>
+
+<section id="console">
+  <span class="sec-no">12 / Protocol</span>
+  <h2>Talking to the car: a scan-tool console</h2>
+  <p>The scan tool speaks to the Dcm in UDS services, each a numbered request. The big one for diagnostics is <code>0x19 ReadDTCInformation</code>, with subfunctions to list codes by status mask, fetch a snapshot, or count them. <code>0x14</code> clears, <code>0x85</code> turns DTC logging on or off, and emissions-world Mode 06 returns the raw monitor test results behind the pass or fail.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>UDS console</h4>
+    <p class="intro">Send requests with the buttons or type raw hex. The console replies the way a controller would. Note that clearing does not remove a permanent DTC, and that the malfunction lamp follows two-trip logic for most emissions monitors.</p>
+    <div class="term-btns">
+      <button data-cmd="19 02 2F">Read confirmed DTCs</button>
+      <button data-cmd="19 0A">Read all DTCs</button>
+      <button data-cmd="19 04 P0301">Snapshot P0301</button>
+      <button data-cmd="06">Mode 06 results</button>
+      <button data-cmd="85 02">DTC logging off</button>
+      <button data-cmd="85 01">DTC logging on</button>
+      <button data-cmd="14 FFFFFF">Clear codes</button>
+      <button class="ghost" data-cmd="reset">Restore demo car</button>
+    </div>
+    <div class="term" id="term"></div>
+    <div class="term-in"><input type="text" id="termIn" placeholder="type a request, e.g.  19 02 2F"><button id="termSend">Send</button></div>
+  </div>
+  <div class="note field"><span class="tag">Field note</span>Permanent DTCs exist so a quick battery disconnect cannot fool an emissions test. They live in non-volatile memory and clear only when the relevant monitor runs and passes. A flashing malfunction lamp is its own message: a misfire severe enough to damage the catalyst, which calls for stopping, not finishing the drive cycle.</div>
+  <div class="note"><span class="tag">Plain words</span>Modern high-speed controllers increasingly carry these same UDS services over automotive Ethernet using DoIP (Diagnostics over Internet Protocol, ISO 13400) instead of CAN, but the service numbers and the meaning of the status byte are unchanged. The conversation is the same; only the wire is faster.</div>
+</section>
+
+<section id="readiness">
+  <span class="sec-no">13 / Readiness</span>
+  <h2>Drive cycles and readiness</h2>
+  <p>Because monitors need their enabling conditions, and because clearing codes resets them all to <em>not ready</em>, a freshly cleared car cannot immediately prove it is healthy. It must complete a <strong>drive cycle</strong>: a sequence of operating phases that, between them, satisfy every monitor's conditions at least once. Continuous monitors (misfire, fuel, the comprehensive component checks) go ready almost immediately; the non-continuous ones each wait for their moment.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>Drive a cycle, watch readiness</h4>
+    <p class="intro">Step through a trip. Each phase satisfies the enabling conditions for some monitors, and they flip to ready. The evaporative monitor is usually the stubborn one, needing a cold start and a quiet soak. The car is emissions-test ready only when every monitor has run.</p>
+    <div class="controls">
+      <button id="driveStep">Next phase</button>
+      <button class="ghost" id="driveClear">Clear codes (reset readiness)</button>
+      <span class="chip" style="margin-left:auto"><span class="k">phase</span><span class="v" id="drivePhase">key off</span></span>
+    </div>
+    <div class="mongrid" id="monGrid"></div>
+    <div class="readout"><span class="chip" id="readyChip"><span class="k">emissions test</span><span class="v" id="readyTxt">not ready</span></span></div>
+  </div>
+  <div class="note pitfall"><span class="tag">Common pitfall</span>The lamp staying off after a repair does not prove the fix worked. It may only mean the monitor has not run again yet. Confirm the repair by completing a proper drive cycle and re-reading status, not by the absence of a lamp on the way out of the bay.</div>
+</section>
+
+<section id="limp">
+  <span class="sec-no">14 / Limp mode</span>
+  <h2>Limp mode: the car catching itself</h2>
+  <p>When a serious fault confirms, the controller does not merely record it. It changes how the vehicle behaves to protect the driver, the hardware, or the emissions system. Limp mode, limp home, failure mode management, derate: the names differ, the principle does not. Trade performance for survival and get the car home or safely stopped without making things worse.</p>
+  <p>Degradation is graded by severity, not by the mere existence of a code.</p>
+  <div class="ladder">
+    <div class="rung r0"><span class="lvl">Level 0<br>monitor</span><p>Fault logged, no driver impact. Full capability, code quietly stored. Many emissions codes live here.</p></div>
+    <div class="rung r1"><span class="lvl">Level 1<br>warn + soft derate</span><p>Lamp on, mild limit. Reduced boost, slightly capped torque, raised idle. A little less punch.</p></div>
+    <div class="rung r2"><span class="lvl">Level 2<br>hard derate</span><p>Significant power limit, a transmission may lock a safe gear, speed capped. The classic limp home: enough to reach a shop.</p></div>
+    <div class="rung r3"><span class="lvl">Level 3<br>protective shutdown</span><p>The affected system is disabled to prevent damage or hazard. An EV may command turtle mode then a controlled stop.</p></div>
+  </div>
+  <div class="lab">
+    <p class="lab-title">Interactive simulation</p><h4>Severity to derate</h4>
+    <p class="intro">Set a fault severity. The reaction manager maps it to a torque limit and a degradation level. The torque curve shows the driver-available envelope being clipped, the way a derate feels from the seat.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:240px"><label>Fault severity <span class="val" id="vSev">25</span> %</label><input type="range" id="sev" min="0" max="100" value="25"></div>
+      <div class="ctrl" style="min-width:200px"><label>Fault type</label><select id="faultType"><option value="power">Powertrain (torque limit)</option><option value="thermal">Thermal (protect hardware)</option><option value="ev">EV isolation (safety)</option></select></div>
+    </div>
+    <canvas id="limpCanvas" width="800" height="260"></canvas>
+    <div class="readout" id="limpOut"></div>
+  </div>
+  <div class="note field"><span class="tag">Field note</span>A car that suddenly feels gutless and will not rev past a low limit is usually in a derate, not mechanically dying. Read the codes before assuming the worst. Often a single sensor or a boost leak triggered the protection, and the dramatic symptom is the car behaving correctly in response to a small fault.</div>
+</section>
+
+<section id="safety">
+  <span class="sec-no">15 / Functional safety</span>
+  <h2>Limp as a safe state</h2>
+  <p>Limp mode is not only convenience. For safety-relevant functions it is the controlled transition into a <strong>safe state</strong>, the central idea of the automotive functional safety standard ISO 26262. The reasoning is a budget of time. From the moment a fault occurs, the system has a <strong>fault tolerant time interval</strong> to detect it and reach a safe state before the fault could lead to a hazard. Detection time plus reaction time must fit inside that budget.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>The time budget</h4>
+    <p class="intro">The fault occurs at zero. Detection takes some time (debounce counts, observer settling), then the reaction takes more (entering the safe state). If the total fits inside the fault tolerant time interval, the system is safe. Push detection or reaction too slow and the budget is blown.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:220px"><label>Detection time <span class="val" id="vDet">90</span> ms</label><input type="range" id="detT" min="10" max="260" value="90"></div>
+      <div class="ctrl" style="min-width:220px"><label>Reaction time <span class="val" id="vReact">70</span> ms</label><input type="range" id="reactT" min="10" max="260" value="70"></div>
+    </div>
+    <figure style="margin:1em 0 0"><svg viewBox="0 0 760 170" id="fttiSvg" role="img" aria-label="Fault tolerant time interval"></svg></figure>
+    <div class="readout" id="fttiOut"></div>
+  </div>
+  <div class="note"><span class="tag">Plain words</span>This is why a higher safety integrity level (a higher ASIL) forces faster, more thorough monitoring. The more severe the hazard and the harder it is for a driver to control, the shorter the time budget, and the more the diagnostic has to detect quickly and react decisively. The derate you feel is the last step of a chain that started with a stopwatch.</div>
+</section>
+
+<section id="ev">
+  <span class="sec-no">16 / Electric vehicles</span>
+  <h2>EV-specific diagnostics</h2>
+  <p>Electric and hybrid vehicles keep all of the above and add a high-voltage world with its own monitors, where the stakes are electrical safety rather than emissions. Three families dominate.</p>
+  <div class="defgrid">
+    <div class="defcard"><span class="ic">Safety critical</span><h4>Isolation monitoring</h4><p>The high-voltage bus must stay electrically isolated from the chassis. An isolation monitor continuously measures the resistance from each HV rail to ground, expressed in ohms per volt. A drop signals insulation breakdown, water ingress, or a chafed cable, and a severe drop opens the contactors at once.</p></div>
+    <div class="defcard"><span class="ic">Contactors</span><h4>Contactor and precharge</h4><p>The contactors connect the pack to the drive system. They are checked for welded-closed and stuck-open faults, and a precharge circuit limits inrush before the main contactor closes. A failed precharge or a welded contactor is a no-start or a refusal to shut down cleanly.</p></div>
+    <div class="defcard"><span class="ic">Thermal</span><h4>Cell and thermal limits</h4><p>The battery management system watches cell voltages, temperatures, and their spread. Out-of-band conditions derate charge and discharge power, and a thermal-runaway precursor commands the most aggressive safe state the vehicle has, isolating the pack and warning occupants.</p></div>
+  </div>
+  <div class="lab">
+    <p class="lab-title">Interactive</p><h4>Isolation monitor</h4>
+    <p class="intro">Drag the measured isolation resistance. The monitor maps it to a warning, a power derate, or an immediate contactor open. The bar shows the margin to the safety limit.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:280px"><label>Isolation resistance <span class="val" id="vRiso">800</span> &#8486;/V</label><input type="range" id="riso" min="0" max="1000" value="800"></div>
+    </div>
+    <figure style="margin:1em 0 0"><svg viewBox="0 0 760 150" id="isoSvg" role="img" aria-label="Isolation resistance status"></svg></figure>
+    <div class="readout" id="isoOut"></div>
+  </div>
+  <div class="note field"><span class="tag">Field note</span>Never treat an HV isolation code as a routine drivability fault. Until the resistance is restored and verified, the safe assumption is that a path to the chassis exists. The contactors opening is the system protecting the people around it, and the diagnosis happens with the right equipment and procedures, not a generic scan tool alone.</div>
+</section>
+
+<div class="part" id="part4">
+  <span class="pn">Part Four</span>
+  <h2>Beyond the code</h2>
+  <p class="psub">A DTC tells you it failed. Vehicle health management asks when it will, and how to act before it does.</p>
+</div>
+
+<section id="prognostics">
+  <span class="sec-no">17 / Prognostics</span>
+  <h2>From detection to prognostics</h2>
+  <p>Everything so far answers one question: has a fault occurred? That is <strong>diagnostics</strong>, and a DTC is its output. But a confirmed code usually fires late, when degradation has already crossed a failure-level threshold. By then the planning options are gone. <strong>Prognostics</strong> asks the more valuable question: given the trend, when will this fail, and how much useful life remains?</p>
+  <p>The raw material is the same health signal a residual produces. Instead of waiting for it to cross an alarm line, prognostics fits its trajectory and projects it forward to the failure threshold. The gap between now and that projected crossing is the <strong>remaining useful life</strong>, and the spread of the projection is its uncertainty.</p>
+  <div class="lab">
+    <p class="lab-title">Interactive simulation</p><h4>Degradation, the late DTC, and the RUL estimate</h4>
+    <p class="intro">A health indicator degrades over cycles (teal points). A DTC fires only when it crosses the high alarm line, near the end. Prognostics fits the trend (rust) and projects it to the failure threshold, estimating remaining life with a confidence band well before the code would ever set. Change the degradation rate and the measurement noise.</p>
+    <div class="controls">
+      <div class="ctrl" style="min-width:200px"><label>Degradation rate <span class="val" id="vRate">1.0</span></label><input type="range" id="degRate" min="40" max="200" value="100"></div>
+      <div class="ctrl" style="min-width:200px"><label>Measurement noise <span class="val" id="vNoise">0.05</span></label><input type="range" id="degNoise" min="0" max="20" value="5"></div>
+    </div>
+    <canvas id="rulCanvas" width="800" height="300"></canvas>
+    <div class="readout" id="rulOut"></div>
+  </div>
+  <p>Which faults deserve this treatment is a question the older discipline of <strong>FMEA</strong> already answers. The AIAG-VDA Action Priority logic ranks each failure mode by the severity of its effect, how often it occurs, and how well it can be detected, and returns a priority of high, medium, or low. The pattern rhymes with everything in this monograph: a high-severity, hard-to-detect failure is precisely the one where a late DTC is not good enough and a prognostic signal earns its keep.</p>
+  <table>
+    <tr><th>Severity of effect</th><th>Occurrence</th><th>Detection</th><th>Action priority</th></tr>
+    <tr><td>High (safety, no warning)</td><td>any</td><td>hard to detect</td><td><strong>High</strong>: act first, prognostics valuable</td></tr>
+    <tr><td>Moderate</td><td>frequent</td><td>moderate</td><td><strong>Medium</strong>: monitor, plan maintenance</td></tr>
+    <tr><td>Low (minor annoyance)</td><td>rare</td><td>easily detected</td><td><strong>Low</strong>: a DTC at failure is fine</td></tr>
+  </table>
+  <div class="note field"><span class="tag">Field note</span>The arc of this whole document is a single signal seen at increasing depth. Range and rate checks ask if a number is sane. Residuals ask if it matches a model. Prognostics asks where the model says it is heading. A fleet that logs residual trajectories instead of only final codes is a fleet that schedules repairs on its own terms rather than at the roadside.</div>
+</section>
+
+<section id="examples">
+  <span class="sec-no">18 / Examples</span>
+  <h2>Worked examples</h2>
+  <p>Four codes, read the way this monograph teaches: structure, enabling conditions, debounce, reaction.</p>
+  <h3>P0301, cylinder 1 misfire</h3>
+  <p>The misfire monitor watches crankshaft acceleration between firings and detects when one cylinder fails to contribute. <strong>Enabling:</strong> running above a minimum speed, warm enough, no rough road (a bump mimics a misfire). <strong>Debounce:</strong> counts misfire events over a window of revolutions; a high rate that risks the catalyst flashes the lamp, a slower rate sets a steady code. <strong>Reaction:</strong> may cut fuel to the dead cylinder to protect the catalyst, felt as a soft derate.</p>
+  <h3>P0420, catalyst efficiency below threshold</h3>
+  <p>Compares the downstream oxygen sensor to the upstream one. <strong>Enabling:</strong> fully warmed, steady cruise, no oxygen sensor fault present (fault dependency, since a bad sensor makes the comparison meaningless). <strong>Debounce:</strong> averaged over a long, stable window across drive cycles. <strong>Reaction:</strong> usually monitor only, lamp on, full power. An emissions concern, not a drivability one.</p>
+  <h3>P0128, coolant below thermostat regulating temperature</h3>
+  <p>A model-based monitor. It estimates how warm the engine should be after a given run at a given load and compares to measured coolant. <strong>Enabling:</strong> a cold start, minimum drive time and airflow accumulated. <strong>Debounce:</strong> a single clean comparison after the window. <strong>Reaction:</strong> monitor only, but points cleanly at a stuck-open thermostat. A textbook residual check.</p>
+  <h3>P0700, transmission control system</h3>
+  <p>A pointer code. The engine controller sets it to say the transmission controller has a stored fault of its own; read the transmission module for the specific code. <strong>Reaction:</strong> the transmission often enters its own limp, locking a fixed gear so the car still drives while protecting the gearbox. A textbook Level 2 derate and a small example of fault propagation across modules.</p>
+  <div class="note field"><span class="tag">Field note</span>Notice the pattern. Every code resolves into the same four questions: what is the monitor measuring, what had to be true for it to look, how much evidence did it need, and what did the car do about it. Answer those and you have read the fault properly.</div>
+</section>
+
+<section id="field">
+  <span class="sec-no">19 / Practice</span>
+  <h2>Field notes, collected</h2>
+  <p>A handful of habits that save time once the mechanism is clear.</p>
+  <div class="note"><span class="tag">Read status, not just presence</span>Always check whether a code is currently failing or merely confirmed in memory. A confirmed-but-inactive code is history; a currently-failing one is your live problem.</div>
+  <div class="note"><span class="tag">Find the upstream code first</span>When codes pile up, fault dependency means one upstream sensor or network fault often inhibits or corrupts the rest. Fix it, clear all, let the monitors re-run before judging what remains.</div>
+  <div class="note"><span class="tag">Use the freeze frame to reproduce</span>The snapshot gives the load, temperature, and speed at confirmation. Recreate those conditions to make an intermittent fault appear on demand.</div>
+  <div class="note"><span class="tag">Respect the derate</span>Limp mode is the car doing its job, often a safe-state transition with a time budget behind it. Diagnose the cause rather than clearing the code to chase the symptom away.</div>
+  <div class="note"><span class="tag">Mind readiness after a clear</span>Clearing codes resets monitor readiness. A dark lamp does not prove a repair worked; complete a drive cycle, then re-check.</div>
+  <div class="note"><span class="tag">Trend the residual, do not just wait for the code</span>If you can log a health signal, watch its trajectory. The DTC is the last and least informative point on a curve you could have been reading all along.</div>
+</section>
+
+<section id="glossary">
+  <span class="sec-no">20 / Reference</span>
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <dt>DTC</dt><dd>Diagnostic Trouble Code. The stored label a monitor produces when a fault is confirmed.</dd>
+    <dt>Monitor</dt><dd>A piece of ECU logic that tests one thing and reports pass or fail.</dd>
+    <dt>Enabling conditions</dt><dd>The preconditions that must all hold before a monitor is allowed to evaluate.</dd>
+    <dt>Debounce</dt><dd>Accumulating evidence over time, typically with a counter, before committing to a fault.</dd>
+    <dt>Status byte</dt><dd>The eight-bit UDS field recording a DTC's history: failing now, this cycle, confirmed, lamp requested, and so on.</dd>
+    <dt>Freeze frame</dt><dd>A snapshot of operating conditions saved at the moment a DTC confirmed.</dd>
+    <dt>Residual</dt><dd>Measured value minus model-predicted value. Near zero when healthy, departing when faulted.</dd>
+    <dt>Observer</dt><dd>A model that estimates a system's internal state from its inputs and measurements, correcting itself through a gain.</dd>
+    <dt>Readiness</dt><dd>Whether a monitor has run since the last clear. Reset to not-ready when codes are cleared.</dd>
+    <dt>Limp mode</dt><dd>Degraded operation entered to protect the driver, hardware, or emissions after a serious fault.</dd>
+    <dt>FTTI</dt><dd>Fault tolerant time interval. The time from fault occurrence to a possible hazard, the budget for detect-plus-react.</dd>
+    <dt>Permanent DTC</dt><dd>An emissions DTC in non-volatile memory that a clear cannot erase; it leaves only when its monitor passes.</dd>
+    <dt>Prognostics</dt><dd>Estimating remaining useful life by projecting a degradation trend to a failure threshold.</dd>
+    <dt>RUL</dt><dd>Remaining useful life. The estimated time or cycles from now until failure.</dd>
+    <dt>Dem / FiM / Dcm</dt><dd>The AUTOSAR diagnostic event manager, function inhibition manager, and diagnostic communication manager.</dd>
+  </dl>
+</section>
+
+<section id="refs" class="refs">
+  <span class="sec-no">21 / Sources</span>
+  <h2>References and further reading</h2>
+  <ol>
+    <li>SAE J2012, <em>Diagnostic Trouble Code Definitions</em>. The five-character DTC format, system letters, and the standardized OBD-II code list.</li>
+    <li>ISO 15031, <em>Communication between vehicle and external equipment for emissions-related diagnostics</em>. The international counterpart for OBD DTCs and data.</li>
+    <li>ISO 14229 (UDS), <em>Unified Diagnostic Services</em>. Services such as ReadDTCInformation and the DTC status byte bit definitions.</li>
+    <li>ISO 15765 and ISO 13400 (DoIP), diagnostic transport over CAN and over automotive Ethernet.</li>
+    <li>AUTOSAR, <em>Specification of Diagnostic Event Manager (Dem)</em> and <em>Function Inhibition Manager (FiM)</em>. The architecture behind debounce counters, DTC memory, freeze frames, and degradation.</li>
+    <li>US EPA and CARB OBD-II regulations. Monitor readiness, drive cycles, warm-up counting, permanent DTCs, and MIL behavior.</li>
+    <li>ISO 26262, <em>Road vehicles, functional safety</em>. ASIL, safe states, and the fault tolerant time interval.</li>
+    <li>AIAG and VDA, <em>FMEA Handbook</em>. The Action Priority method ranking severity, occurrence, and detection.</li>
+    <li>Isermann, R., <em>Fault-Diagnosis Systems</em>, and Ding, S. X., <em>Model-Based Fault Diagnosis Techniques</em>. Observers, parity equations, and residual generation.</li>
+    <li>ISO 13374 and the OSA-CBM framework for condition monitoring and prognostics data processing.</li>
+  </ol>
+  <p style="margin-top:1.6em;font-style:italic">The simulations on this page implement simplified versions of the real logic for teaching. Production monitors layer many more conditions, calibrated thresholds, and cross-checks than shown here.</p>
+</section>
+
+</div>
+
+<footer>Reading the Fault &middot; By Majid Mazouchi &middot; Drafted with Claude</footer>
+
+<script>
+"use strict";
+(function(){
+
+  /* ============ DTC DECODER ============ */
+  var groupNames={P:"Powertrain (engine, transmission)",C:"Chassis (brakes, steering, suspension)",B:"Body (interior, comfort, safety)",U:"Network (communication bus)"};
+  var defWho={"0":"Generic, defined by SAE/ISO (every maker shares it)","1":"Manufacturer specific (need maker service data)","2":"Manufacturer or joint defined","3":"Reserved / joint defined"};
+  var subsysP={"0":"Fuel and air metering / auxiliary emission","1":"Fuel and air metering","2":"Fuel and air metering (injector circuit)","3":"Ignition system or misfire","4":"Auxiliary emission controls","5":"Vehicle speed, idle control, inputs","6":"Computer and output circuits","7":"Transmission","8":"Transmission","9":"Transmission / control modules","A":"Hybrid propulsion","B":"Hybrid propulsion"};
+  function classFor(i){return i===0?"c0":(i===1?"c1":(i===2?"c2":""));}
+  function renderDTC(code){
+    code=(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,5);
+    var disp=document.getElementById("dtcDisplay"),mean=document.getElementById("dtcMean");
+    disp.innerHTML="";
+    var posLabels=["group","defined by","subsystem","index","index"];
+    for(var i=0;i<5;i++){
+      var ch=code[i]||"";
+      var d=document.createElement("div");d.className="dtc-char "+classFor(i);
+      d.innerHTML='<span class="pos">'+posLabels[i]+'</span>'+(ch||"&middot;");
+      disp.appendChild(d);
+    }
+    var rows=[],g=code[0];
+    if(g&&groupNames[g])rows.push(["1st",g,groupNames[g]]);else if(g)rows.push(["1st",g,"Unknown group letter"]);
+    var w=code[1];if(w&&defWho[w])rows.push(["2nd",w,defWho[w]]);
+    var s=code[2];if(s){if(g==="P"&&subsysP[s])rows.push(["3rd",s,subsysP[s]]);else rows.push(["3rd",s,"Subsystem index within "+(groupNames[g]?g:"group")]);}
+    if(code.length>=5)rows.push(["4th-5th",code.slice(3,5),"Specific fault index inside that subsystem"]);
+    var html="";for(var r=0;r<rows.length;r++){html+='<div class="row"><b>'+rows[r][0]+' &middot; '+rows[r][1]+'</b><span>'+rows[r][2]+'</span></div>';}
+    mean.innerHTML=html;
+  }
+  var dtcInput=document.getElementById("dtcInput"),dtcPreset=document.getElementById("dtcPreset");
+  dtcPreset.addEventListener("change",function(){dtcInput.value=this.value;renderDTC(this.value);});
+  dtcInput.addEventListener("input",function(){renderDTC(this.value);});
+  renderDTC("P0301");
+
+  /* ============ STATUS BYTE EXPLORER ============ */
+  var bitDefs=[{n:"testFailed",d:"failing right now"},{n:"testFailedThisOpCycle",d:"failed at least once this drive"},{n:"pendingDTC",d:"failed this or last cycle"},{n:"confirmedDTC",d:"matured and stored"},{n:"testNotCompletedSinceClear",d:"not run since last clear"},{n:"testFailedSinceClear",d:"failed since last clear"},{n:"testNotCompletedThisOpCycle",d:"not yet run this drive"},{n:"warningIndicatorReq",d:"lamp requested"}];
+  var bitState=0x00,bitRow=document.getElementById("bitRow");
+  function renderBits(){
+    bitRow.innerHTML="";
+    for(var i=7;i>=0;i--){
+      var on=(bitState>>i)&1,el=document.createElement("div");
+      el.className="bit"+(on?" set":"");el.setAttribute("data-bit",i);
+      el.innerHTML='<div class="b">'+on+'</div><div class="n">bit'+i+'<br>'+bitDefs[i].n+'</div>';el.title=bitDefs[i].d;
+      bitRow.appendChild(el);
+    }
+    document.getElementById("bitHex").textContent="Status: 0x"+("0"+(bitState&0xFF).toString(16).toUpperCase()).slice(-2);
+  }
+  bitRow.addEventListener("click",function(e){
+    var t=e.target.closest(".bit");if(!t)return;
+    var b=parseInt(t.getAttribute("data-bit"),10);bitState^=(1<<b);renderBits();
+    document.getElementById("scenText").textContent="Manual toggle. bit"+b+" is "+(((bitState>>b)&1)?"set":"clear")+": "+bitDefs[b].d+".";
+  });
+  renderBits();
+  var scenario=[{mask:0x00,t:"Engine starts. The monitor has not run yet this drive, so its test is incomplete. Nothing is flagged."},{mask:0x40,t:"bit6 set: test not completed this operation cycle. The car has not had a chance to evaluate this monitor."},{mask:0x05,t:"The monitor runs and fails. bit0 testFailed and bit2 pendingDTC set. A pending code exists, but the lamp stays off while it debounces."},{mask:0x0F,t:"The fault persists and confirms. bit3 confirmedDTC joins the failing bits. The code is now stored in memory."},{mask:0x8F,t:"bit7 warningIndicatorRequested set: the controller turns on the malfunction lamp. The driver sees it now."},{mask:0x0E,t:"Repair done, engine restarted. bit0 clears (no longer failing) but bit3 confirmed remains. An old, inactive stored fault."},{mask:0x10,t:"Codes cleared. bit4 testNotCompletedSinceClear set, history wiped. Readiness reset; the monitor must run again to prove the fix."}];
+  var scenIdx=-1;
+  document.getElementById("scenStep").addEventListener("click",function(){scenIdx=(scenIdx+1)%scenario.length;bitState=scenario[scenIdx].mask;renderBits();document.getElementById("scenText").textContent="Step "+(scenIdx+1)+" of "+scenario.length+". "+scenario[scenIdx].t;});
+  document.getElementById("scenReset").addEventListener("click",function(){scenIdx=-1;bitState=0x00;renderBits();document.getElementById("scenText").textContent="";});
+
+  /* ============ ENABLING GATE ============ */
+  function setupToggle(id){var el=document.getElementById(id);el.addEventListener("click",function(){var inp=el.querySelector("input");setTimeout(function(){el.classList.toggle("on",inp.checked);drawGate();},0);});return el;}
+  var tEng=setupToggle("tEng"),tWarm=setupToggle("tWarm"),tConf=setupToggle("tConf");
+  var cool=document.getElementById("cool"),spd=document.getElementById("spd"),bat=document.getElementById("bat");
+  function gateConditions(){var c=+cool.value,s=+spd.value,b=(+bat.value)/10;return [{label:"Engine running",ok:tEng.querySelector("input").checked},{label:"Coolant 70 to 110 C",ok:(c>=70&&c<=110)},{label:"Speed 30 to 120 km/h",ok:(s>=30&&s<=120)},{label:"Battery 11 to 15 V",ok:(b>=11&&b<=15)},{label:"Warm-up complete",ok:tWarm.querySelector("input").checked},{label:"No conflicting O2 fault",ok:!tConf.querySelector("input").checked}];}
+  function drawGate(){
+    document.getElementById("vCool").textContent=cool.value;
+    document.getElementById("vSpd").textContent=spd.value;
+    document.getElementById("vBat").textContent=((+bat.value)/10).toFixed(1);
+    var conds=gateConditions(),allOk=conds.every(function(c){return c.ok;}),svg=document.getElementById("gateSvg");
+    var n=conds.length,x0=24,boxW=210,rowH=200/n,parts=['<g font-family="IBM Plex Mono, monospace" font-size="12">'];
+    parts.push('<defs><marker id="gmk" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A453C"/></marker></defs>');
+    for(var i=0;i<n;i++){
+      var cy=14+i*rowH+rowH/2,col=conds[i].ok?"#2E7D4F":"#A0431E",bg=conds[i].ok?"#EAF3EC":"#F4E1D7";
+      parts.push('<rect x="'+x0+'" y="'+(cy-14)+'" width="'+boxW+'" height="28" rx="6" fill="'+bg+'" stroke="'+col+'"/>');
+      parts.push('<text x="'+(x0+10)+'" y="'+(cy+4)+'" fill="'+col+'">'+(conds[i].ok?"&#10003;":"&#10007;")+' '+conds[i].label+'</text>');
+      parts.push('<line x1="'+(x0+boxW)+'" y1="'+cy+'" x2="470" y2="110" stroke="'+(conds[i].ok?"#9CC9AC":"#D9A88E")+'" stroke-width="1.2"/>');
+    }
+    var gcol=allOk?"#2E7D4F":"#A0431E";
+    parts.push('<path d="M470,70 L470,150 L510,150 A40,40 0 0,0 510,70 Z" fill="#FBF9F3" stroke="'+gcol+'" stroke-width="2"/>');
+    parts.push('<text x="495" y="115" text-anchor="middle" font-size="12" fill="'+gcol+'">AND</text>');
+    parts.push('<line x1="550" y1="110" x2="600" y2="110" stroke="#4A453C" stroke-width="1.6" marker-end="url(#gmk)"/>');
+    var oc=allOk?"#2E7D4F":"#A0431E",obg=allOk?"#EAF3EC":"#F4E1D7";
+    parts.push('<rect x="604" y="84" width="140" height="52" rx="8" fill="'+obg+'" stroke="'+oc+'" stroke-width="1.5"/>');
+    parts.push('<text x="674" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="'+oc+'">'+(allOk?"MONITOR RUNS":"NOT READY")+'</text>');
+    parts.push('<text x="674" y="124" text-anchor="middle" font-size="9" fill="#4A453C">'+(allOk?"evaluating pass/fail":"test inhibited")+'</text>');
+    parts.push('</g>');svg.innerHTML=parts.join("");
+    var out=document.getElementById("gateOut"),failing=conds.filter(function(c){return !c.ok;}).map(function(c){return c.label;});
+    out.innerHTML='<span class="chip '+(allOk?"state-pass":"state-conf")+'"><span class="k">result</span><span class="v">'+(allOk?"monitor enabled":"inhibited")+'</span></span>'+(allOk?'':'<span class="chip"><span class="k">blocked by</span><span class="v">'+failing.join(", ")+'</span></span>');
+  }
+  [cool,spd,bat].forEach(function(el){el.addEventListener("input",drawGate);});
+  drawGate();
+
+  /* ============ LIMP / DERATE ============ */
+  var limpCanvas=document.getElementById("limpCanvas"),lctx=limpCanvas.getContext("2d");
+  var sev=document.getElementById("sev"),faultType=document.getElementById("faultType");
+  function limpLevel(s){if(s<15)return 0;if(s<45)return 1;if(s<80)return 2;return 3;}
+  function torqueCap(s,type){if(type==="ev"){if(s>=80)return 0.10;return 1-(s/100)*0.85;}if(type==="thermal"){return Math.max(0.2,1-Math.pow(s/100,1.4)*0.85);}return Math.max(0.15,1-(s/100)*0.85);}
+  function drawLimp(){
+    var s=+sev.value,type=faultType.value;document.getElementById("vSev").textContent=s;
+    var W=limpCanvas.width,H=limpCanvas.height;lctx.clearRect(0,0,W,H);
+    var padL=52,padR=20,padT=18,padB=34,pw=W-padL-padR,ph=H-padT-padB;
+    lctx.strokeStyle="#D8D0C0";lctx.lineWidth=1;lctx.strokeRect(padL,padT,pw,ph);
+    function fullT(x){return 0.35+0.6*Math.sin(Math.PI*Math.min(x*1.05,1))*0.95+0.05*x;}
+    var cap=torqueCap(s,type);
+    lctx.fillStyle="rgba(31,111,120,0.12)";lctx.beginPath();lctx.moveTo(padL,padT+ph);
+    for(var i=0;i<=100;i++){var x=i/100,t=fullT(x),tt=Math.min(t,cap*1.15),px=padL+pw*x,py=padT+ph*(1-Math.min(tt,1));lctx.lineTo(px,py);}
+    lctx.lineTo(padL+pw,padT+ph);lctx.closePath();lctx.fill();
+    lctx.strokeStyle="#1F6F78";lctx.lineWidth=1.6;lctx.setLineDash([4,4]);lctx.beginPath();
+    for(var j=0;j<=100;j++){var x2=j/100,py2=padT+ph*(1-Math.min(fullT(x2),1)),px2=padL+pw*x2;if(j===0)lctx.moveTo(px2,py2);else lctx.lineTo(px2,py2);}
+    lctx.stroke();lctx.setLineDash([]);
+    var capY=padT+ph*(1-Math.min(cap,1));
+    lctx.strokeStyle="#A0431E";lctx.lineWidth=2;lctx.beginPath();lctx.moveTo(padL,capY);lctx.lineTo(padL+pw,capY);lctx.stroke();
+    lctx.fillStyle="#A0431E";lctx.font='11px "IBM Plex Mono", monospace';lctx.fillText("torque limit "+Math.round(cap*100)+"%",padL+8,capY-7);
+    lctx.fillStyle="#4A453C";lctx.font='10px "IBM Plex Mono", monospace';lctx.fillText("torque",10,padT+ph/2);lctx.fillText("engine / motor speed",padL+pw/2-50,padT+ph+24);lctx.fillText("full",padL+6,padT+12);
+    var lvlN=limpLevel(s),names=["monitor only","warn + soft derate","hard derate (limp home)","protective shutdown"],stCls=["state-pass","state-pend","state-conf","state-conf"],typeMsg={power:"engine torque clipped",thermal:"power held back to shed heat",ev:"propulsion cut for isolation safety"};
+    document.getElementById("limpOut").innerHTML='<span class="chip '+stCls[lvlN]+'"><span class="k">level</span><span class="v">'+lvlN+' &middot; '+names[lvlN]+'</span></span><span class="chip"><span class="k">torque available</span><span class="v">'+Math.round(cap*100)+'%</span></span><span class="chip"><span class="k">action</span><span class="v">'+typeMsg[type]+'</span></span>';
+  }
+  sev.addEventListener("input",drawLimp);faultType.addEventListener("change",drawLimp);drawLimp();
+
+  /* ============ DEM SIGNED COUNTER ============ */
+  var demCanvas=document.getElementById("demCanvas"),dctx=demCanvas.getContext("2d");
+  var lvl=document.getElementById("lvl"),nz=document.getElementById("nz"),confT=document.getElementById("confT"),healT=document.getElementById("healT"),demToggle=document.getElementById("demToggle");
+  var demRunning=true,demHist=[],demMax=160,demC=0,demConfirmed=false,demThr=0.65;
+  function demLabels(){document.getElementById("vLvl").textContent=((+lvl.value)/100).toFixed(2);document.getElementById("vNz").textContent=((+nz.value)/100).toFixed(2);document.getElementById("vConfT").textContent=confT.value;document.getElementById("vHealT").textContent=healT.value;}
+  [lvl,nz,confT,healT].forEach(function(el){el.addEventListener("input",demLabels);});demLabels();
+  demToggle.addEventListener("click",function(){demRunning=!demRunning;demToggle.textContent=demRunning?"Pause":"Resume";});
+  function demStep(){
+    var L=(+lvl.value)/100,N=(+nz.value)/100,CT=+confT.value,HT=+healT.value;
+    var noise=(Math.random()+Math.random()+Math.random()-1.5)*N*1.2,sample=L+noise;
+    if(sample<0)sample=0;if(sample>1)sample=1;
+    demHist.push(sample);if(demHist.length>demMax)demHist.shift();
+    if(sample>demThr)demC+=1;else demC-=1;
+    if(demC>127)demC=127;if(demC<-128)demC=-128;
+    if(demC>=CT)demConfirmed=true;
+    if(demC<=HT)demConfirmed=false;
+    var state=demConfirmed?"CONFIRMED":(demC>0?"PENDING":(demC<=HT?"HEALED":"PASS"));
+    document.getElementById("demVal").textContent=demC;
+    var sv=document.getElementById("demState");sv.textContent=state;
+    document.getElementById("demStateChip").className="chip "+(state==="CONFIRMED"?"state-conf":(state==="PENDING"?"state-pend":"state-pass"));
+    var lamp=document.getElementById("demLamp");lamp.classList.toggle("on",demConfirmed);
+    document.getElementById("demLampTxt").textContent=demConfirmed?"lamp ON (confirmed)":"lamp off";
+  }
+  function demDraw(){
+    var W=demCanvas.width,H=demCanvas.height;dctx.clearRect(0,0,W,H);
+    var padL=44,padR=150,padT=16,padB=22,pw=W-padL-padR,ph=H-padT-padB;
+    dctx.strokeStyle="#D8D0C0";dctx.lineWidth=1;dctx.strokeRect(padL,padT,pw,ph);
+    var ty=padT+ph*(1-demThr);
+    dctx.setLineDash([6,5]);dctx.strokeStyle="#A0431E";dctx.lineWidth=1.4;dctx.beginPath();dctx.moveTo(padL,ty);dctx.lineTo(padL+pw,ty);dctx.stroke();dctx.setLineDash([]);
+    dctx.fillStyle="#A0431E";dctx.font='11px "IBM Plex Mono", monospace';dctx.fillText("fault threshold",padL+6,ty-6);
+    dctx.strokeStyle="#1F6F78";dctx.lineWidth=1.8;dctx.beginPath();
+    for(var i=0;i<demHist.length;i++){var x=padL+pw*(i/(demMax-1)),y=padT+ph*(1-demHist[i]);if(i===0)dctx.moveTo(x,y);else dctx.lineTo(x,y);}
+    dctx.stroke();
+    if(demHist.length){var lx=padL+pw*((demHist.length-1)/(demMax-1)),ly=padT+ph*(1-demHist[demHist.length-1]);dctx.fillStyle=(demHist[demHist.length-1]>demThr)?"#A0431E":"#1F6F78";dctx.beginPath();dctx.arc(lx,ly,4,0,Math.PI*2);dctx.fill();}
+    dctx.fillStyle="#4A453C";dctx.font='10px "IBM Plex Mono", monospace';dctx.fillText("1.0",8,padT+4);dctx.fillText("0.0",8,padT+ph);dctx.fillText("sensor",8,padT+ph/2);
+    // signed counter bar
+    var CT=+confT.value,HT=+healT.value,barX=padL+pw+44,barW=46,barTop=padT,barH=ph;
+    var lo=-128,hi=127;function mapY(v){return barTop+barH*(1-(v-lo)/(hi-lo));}
+    dctx.strokeStyle="#BCB09A";dctx.strokeRect(barX,barTop,barW,barH);
+    var zeroY=mapY(0);dctx.strokeStyle="#4A453C";dctx.lineWidth=1;dctx.beginPath();dctx.moveTo(barX,zeroY);dctx.lineTo(barX+barW,zeroY);dctx.stroke();
+    var ctY=mapY(CT),htY=mapY(HT);
+    dctx.strokeStyle="#A0431E";dctx.setLineDash([4,3]);dctx.beginPath();dctx.moveTo(barX,ctY);dctx.lineTo(barX+barW,ctY);dctx.stroke();
+    dctx.strokeStyle="#2E7D4F";dctx.beginPath();dctx.moveTo(barX,htY);dctx.lineTo(barX+barW,htY);dctx.stroke();dctx.setLineDash([]);
+    var cY=mapY(demC);
+    if(demC>=0){dctx.fillStyle="#C8932A";dctx.fillRect(barX,cY,barW,zeroY-cY);}else{dctx.fillStyle="#2E7D4F";dctx.fillRect(barX,zeroY,barW,cY-zeroY);}
+    dctx.fillStyle="#A0431E";dctx.font='9px "IBM Plex Mono", monospace';dctx.fillText("confirm "+CT,barX-2,ctY-3);
+    dctx.fillStyle="#2E7D4F";dctx.fillText("heal "+HT,barX-2,htY+11);
+    dctx.fillStyle="#4A453C";dctx.fillText("+127",barX+barW+4,barTop+8);dctx.fillText("0",barX+barW+4,zeroY+3);dctx.fillText("-128",barX+barW+4,barTop+barH);
+    dctx.font='10px "IBM Plex Mono", monospace';dctx.fillText("Dem counter",barX-6,barTop-4);
+  }
+  for(var dp=0;dp<demMax;dp++)demHist.push(0.45);
+  var demAcc=0,demLast=performance.now();
+  function demLoop(now){var dt=now-demLast;demLast=now;if(demRunning){demAcc+=dt;while(demAcc>=55){demStep();demAcc-=55;}}demDraw();requestAnimationFrame(demLoop);}
+  requestAnimationFrame(demLoop);
+
+  /* ============ OBSERVER / RESIDUAL ============ */
+  var resCanvas=document.getElementById("resCanvas"),rctx=resCanvas.getContext("2d");
+  var obsGain=document.getElementById("obsGain"),faultMag=document.getElementById("faultMag"),threshMode=document.getElementById("threshMode"),resToggle=document.getElementById("resToggle");
+  var resRunning=true,resHist=[],thrHist=[],resMax=200,xState=0.4,xhat=0.4,tSim=0,resDetCount=0;
+  function resLabels(){document.getElementById("vL").textContent=((+obsGain.value)/10).toFixed(1);document.getElementById("vFm").textContent=((+faultMag.value)/100*0.6).toFixed(2);}
+  [obsGain,faultMag].forEach(function(el){el.addEventListener("input",resLabels);});resLabels();
+  resToggle.addEventListener("click",function(){resRunning=!resRunning;resToggle.textContent=resRunning?"Pause":"Resume";});
+  function inputU(t){var phase=Math.floor(t/60)%2;return phase===1?(1.5+0.2*Math.sin(t*0.6)):(0.2+0.05*Math.sin(t*0.3));}
+  function isCalm(t){return (Math.floor(t/60)%2)===0;}
+  function resStep(){
+    var L=(+obsGain.value)/10,fm=(+faultMag.value)/100*0.6,dt=0.1,a=-0.6,b=1.0;
+    var u=inputU(tSim);
+    xState+=dt*(a*xState+b*u)+(Math.random()-0.5)*0.01;
+    var meas=xState+(Math.random()-0.5)*0.04+fm;
+    xhat+=dt*(a*xhat+b*u)+L*dt*(meas-xhat);
+    var r=meas-xhat;
+    var thr;
+    if(threshMode.value==="fixed"){thr=0.5;}else{thr=0.12+0.30*Math.abs(u);}
+    resHist.push(r);thrHist.push(thr);if(resHist.length>resMax){resHist.shift();thrHist.shift();}
+    var over=Math.abs(r)>thr;
+    if(over)resDetCount+=1;else resDetCount-=1;
+    if(resDetCount<0)resDetCount=0;if(resDetCount>8)resDetCount=8;
+    var det=resDetCount>=4;
+    document.getElementById("resVal").textContent=r.toFixed(2);
+    document.getElementById("resThr").textContent=thr.toFixed(2);
+    var dc=document.getElementById("resDetChip");document.getElementById("resDet").textContent=det?"FAULT":"clear";
+    dc.className="chip "+(det?"state-conf":"state-pass");
+    document.getElementById("resPhase").textContent=isCalm(tSim)?"calm":"aggressive";
+    tSim+=1;
+  }
+  function resDraw(){
+    var W=resCanvas.width,H=resCanvas.height;rctx.clearRect(0,0,W,H);
+    var padL=44,padR=16,padT=16,padB=22,pw=W-padL-padR,ph=H-padT-padB;
+    rctx.strokeStyle="#D8D0C0";rctx.lineWidth=1;rctx.strokeRect(padL,padT,pw,ph);
+    var lo=-1.2,hi=1.2;function mapY(v){return padT+ph*(1-(v-lo)/(hi-lo));}
+    var zeroY=mapY(0);rctx.strokeStyle="#BCB09A";rctx.lineWidth=1;rctx.beginPath();rctx.moveTo(padL,zeroY);rctx.lineTo(padL+pw,zeroY);rctx.stroke();
+    // threshold band
+    rctx.fillStyle="rgba(160,67,30,0.10)";rctx.beginPath();
+    for(var i=0;i<thrHist.length;i++){var x=padL+pw*(i/(resMax-1));if(i===0)rctx.moveTo(x,mapY(thrHist[i]));else rctx.lineTo(x,mapY(thrHist[i]));}
+    for(var k=thrHist.length-1;k>=0;k--){var x2=padL+pw*(k/(resMax-1));rctx.lineTo(x2,mapY(-thrHist[k]));}
+    rctx.closePath();rctx.fill();
+    // threshold outlines
+    rctx.strokeStyle="#A0431E";rctx.lineWidth=1;rctx.setLineDash([4,3]);
+    [1,-1].forEach(function(sgn){rctx.beginPath();for(var i=0;i<thrHist.length;i++){var x=padL+pw*(i/(resMax-1)),y=mapY(sgn*thrHist[i]);if(i===0)rctx.moveTo(x,y);else rctx.lineTo(x,y);}rctx.stroke();});
+    rctx.setLineDash([]);
+    // residual
+    rctx.strokeStyle="#7E3216";rctx.lineWidth=1.8;rctx.beginPath();
+    for(var j=0;j<resHist.length;j++){var xx=padL+pw*(j/(resMax-1)),yy=mapY(resHist[j]);if(j===0)rctx.moveTo(xx,yy);else rctx.lineTo(xx,yy);}
+    rctx.stroke();
+    rctx.fillStyle="#4A453C";rctx.font='10px "IBM Plex Mono", monospace';rctx.fillText("+1.2",6,padT+8);rctx.fillText("0",6,zeroY+3);rctx.fillText("-1.2",6,padT+ph);rctx.fillText("residual r = y - x_hat",padL+pw/2-60,padT+ph+18);
+  }
+  for(var rp=0;rp<resMax;rp++){resHist.push(0);thrHist.push(0.5);}
+  var resAcc=0,resLast=performance.now();
+  function resLoop(now){var dt=now-resLast;resLast=now;if(resRunning){resAcc+=dt;while(resAcc>=45){resStep();resAcc-=45;}}resDraw();requestAnimationFrame(resLoop);}
+  requestAnimationFrame(resLoop);
+
+  /* ============ FAULT PROPAGATION GRAPH ============ */
+  var propNodes={
+    BATT:{x:90,y:60,label:"12V battery",kind:"src"},
+    CAN:{x:90,y:160,label:"CAN bus",kind:"src"},
+    ECT:{x:90,y:270,label:"coolant temp",kind:"src"},
+    MAF:{x:300,y:90,label:"airflow (MAF)",kind:"src"},
+    O2UP:{x:300,y:190,label:"O2 upstream",kind:"src"},
+    O2DN:{x:300,y:290,label:"O2 downstream",kind:"src"},
+    FUEL:{x:510,y:150,label:"fuel trim mon.",kind:"mon"},
+    CAT:{x:680,y:220,label:"catalyst mon.",kind:"mon"}
+  };
+  var propEdges=[["BATT","MAF"],["BATT","O2UP"],["BATT","O2DN"],["CAN","FUEL"],["ECT","FUEL"],["ECT","CAT"],["MAF","FUEL"],["O2UP","FUEL"],["O2UP","CAT"],["O2DN","CAT"],["FUEL","CAT"]];
+  var propAdj={};for(var pk in propNodes)propAdj[pk]=[];propEdges.forEach(function(e){propAdj[e[0]].push(e[1]);});
+  var propFault=null;
+  function downstreamOf(start){var seen={},q=[start];while(q.length){var n=q.shift();propAdj[n].forEach(function(m){if(!seen[m]){seen[m]=true;q.push(m);}});}return seen;}
+  function drawProp(){
+    var svg=document.getElementById("propSvg");
+    var affected=propFault?downstreamOf(propFault):{};
+    var parts=['<defs><marker id="pmk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9b9484"/></marker><marker id="pmkR" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#A0431E"/></marker></defs>','<g font-family="IBM Plex Mono, monospace" font-size="11">'];
+    propEdges.forEach(function(e){
+      var a=propNodes[e[0]],b=propNodes[e[1]];
+      var hot=(propFault===e[0]||affected[e[0]])&&(affected[e[1]]);
+      var col=hot?"#A0431E":"#C9C0AE",wid=hot?2:1.2,mk=hot?"pmkR":"pmk";
+      parts.push('<line x1="'+(a.x+58)+'" y1="'+a.y+'" x2="'+(b.x-58)+'" y2="'+b.y+'" stroke="'+col+'" stroke-width="'+wid+'" marker-end="url(#'+mk+')"/>');
+    });
+    for(var id in propNodes){
+      var nd=propNodes[id],isFault=(propFault===id),isAff=affected[id];
+      var fill="#E4F0EC",stroke="#1F6F78",tcol="#13525A";
+      if(nd.kind==="mon"){fill="#ECE7DB";stroke="#9E7012";tcol="#9E7012";}
+      if(isAff){fill="#F6EED7";stroke="#C8932A";tcol="#9E7012";}
+      if(isFault){fill="#F4E1D7";stroke="#A0431E";tcol="#7E3216";}
+      parts.push('<g class="gnode" data-id="'+id+'">');
+      parts.push('<rect class="gbox" x="'+(nd.x-58)+'" y="'+(nd.y-22)+'" width="116" height="44" rx="9" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.6"/>');
+      parts.push('<text x="'+nd.x+'" y="'+(nd.y-3)+'" text-anchor="middle" fill="'+tcol+'" font-weight="600">'+nd.label+'</text>');
+      parts.push('<text x="'+nd.x+'" y="'+(nd.y+13)+'" text-anchor="middle" font-size="8.5" fill="#4A453C">'+(isFault?"FAULT SOURCE":(isAff?"affected":(nd.kind==="mon"?"monitor":"sensor")))+'</text>');
+      parts.push('</g>');
+    }
+    parts.push('</g>');svg.innerHTML=parts.join("");
+    var out=document.getElementById("propOut");
+    if(!propFault){out.innerHTML='<span class="chip"><span class="k">status</span><span class="v">healthy, click a node to inject a fault</span></span>';}
+    else{var list=Object.keys(affected).map(function(k){return propNodes[k].label;});out.innerHTML='<span class="chip state-conf"><span class="k">fault at</span><span class="v">'+propNodes[propFault].label+'</span></span><span class="chip state-pend"><span class="k">propagates to</span><span class="v">'+(list.length?list.join(", "):"nothing downstream")+'</span></span>';}
+  }
+  document.getElementById("propSvg").addEventListener("click",function(e){var g=e.target.closest(".gnode");if(!g)return;var id=g.getAttribute("data-id");propFault=(propFault===id)?null:id;drawProp();});
+  document.getElementById("propReset").addEventListener("click",function(){propFault=null;drawProp();});
+  drawProp();
+
+  /* ============ SCAN-TOOL UDS CONSOLE ============ */
+  var demoCar=function(){return [
+    {code:"P0420",status:0x2F,perm:true,ff:{rpm:2100,load:45,ect:89,vss:70,stft:9}},
+    {code:"P0301",status:0x0F,perm:false,ff:{rpm:1850,load:78,ect:41,vss:52,stft:18}},
+    {code:"P0700",status:0x09,perm:false,ff:{rpm:0,load:0,ect:86,vss:0,stft:0}}
+  ];};
+  var dtcs=demoCar(),dtcSetting=true,term=document.getElementById("term");
+  function tline(cls,txt){var d=document.createElement("div");d.className="l "+cls;d.textContent=txt;term.appendChild(d);term.scrollTop=term.scrollHeight;}
+  function statusDesc(s){var p=[];if(s&0x01)p.push("failing now");if(s&0x04)p.push("pending");if(s&0x08)p.push("confirmed");if(s&0x80)p.push("lamp");return p.length?p.join(", "):"history only";}
+  function hx(n){return "0x"+("0"+(n&0xFF).toString(16).toUpperCase()).slice(-2);}
+  function runCmd(raw){
+    var cmd=(raw||"").trim().toUpperCase().replace(/\s+/g," ");
+    if(!cmd)return;
+    tline("req","> "+cmd);
+    if(cmd==="RESET"){dtcs=demoCar();dtcSetting=true;tline("note2","Demo car restored: P0420 (permanent), P0301, P0700.");return;}
+    var tk=cmd.split(" ");
+    if(tk[0]==="19"){
+      var sub=tk[1];
+      if(sub==="02"){
+        var mask=tk[2]!==undefined?parseInt(tk[2],16):0xFF;if(isNaN(mask))mask=0xFF;
+        var match=dtcs.filter(function(d){return (d.status&mask)!==0;});
+        tline("res","59 02 "+hx(mask)+"   ReadDTCByStatusMask, mask "+hx(mask));
+        if(!match.length){tline("res","   (no DTCs match this mask)");}
+        match.forEach(function(d){tline("res","   "+d.code+"   status "+hx(d.status)+"   ["+statusDesc(d.status)+"]"+(d.perm?"   PERMANENT":""));});
+      }else if(sub==="0A"){
+        tline("res","59 0A   report all stored DTCs");
+        dtcs.forEach(function(d){tline("res","   "+d.code+"   status "+hx(d.status)+"   ["+statusDesc(d.status)+"]"+(d.perm?"   PERMANENT":""));});
+        if(!dtcs.length)tline("res","   (memory empty)");
+      }else if(sub==="04"){
+        var code=tk[2],d=dtcs.filter(function(x){return x.code===code;})[0];
+        if(!d){tline("err","   no stored DTC "+(code||"")+", no snapshot available");}
+        else{tline("res","59 04 "+d.code+"   snapshot / freeze frame:");
+          tline("res","   engine speed   "+d.ff.rpm+" rpm");
+          tline("res","   calc load      "+d.ff.load+" %");
+          tline("res","   coolant        "+d.ff.ect+" C");
+          tline("res","   vehicle speed  "+d.ff.vss+" km/h");
+          tline("res","   short fuel trim "+(d.ff.stft>=0?"+":"")+d.ff.stft+" %");}
+      }else{tline("err","   subfunction "+(sub||"?")+" not supported in this demo (try 02, 04, 0A)");}
+    }else if(tk[0]==="14"){
+      var before=dtcs.length;dtcs=dtcs.filter(function(d){return d.perm;});
+      tline("res","54   ClearDiagnosticInformation, positive response");
+      tline("note2","   cleared "+(before-dtcs.length)+" code(s). "+(dtcs.length?dtcs.length+" PERMANENT DTC(s) remain, a clear cannot erase them.":"memory now empty."));
+      tline("note2","   readiness monitors reset to not-ready.");
+    }else if(tk[0]==="85"){
+      if(tk[1]==="02"){dtcSetting=false;tline("res","C5 02   ControlDTCSetting OFF, DTC updates suspended");}
+      else if(tk[1]==="01"){dtcSetting=true;tline("res","C5 01   ControlDTCSetting ON, DTC updates resumed");}
+      else tline("err","   use 85 01 (on) or 85 02 (off)");
+    }else if(tk[0]==="06"){
+      tline("res","46   Mode 06 on-board monitoring test results:");
+      tline("res","   TID 21 catalyst B1   value 0.42   limit 0.75   PASS (marginal)");
+      tline("res","   TID 01 O2 sensor B1S1 value 1.13   limit 1.50   PASS");
+      tline("res","   TID 39 EVAP 0.090     value ----   limit ----   not run");
+      tline("note2","   raw results behind each monitor's pass/fail decision.");
+    }else if(tk[0]==="10"){
+      tline("res","50 "+(tk[1]||"03")+"   diagnostic session started");
+    }else{
+      tline("err","   unknown service "+tk[0]+". Try the buttons, or 19 / 14 / 85 / 06.");
+    }
+  }
+  tline("note2","UDS console ready. Demo car has 3 stored DTCs. Try the buttons above.");
+  Array.prototype.forEach.call(document.querySelectorAll(".term-btns button"),function(b){b.addEventListener("click",function(){runCmd(b.getAttribute("data-cmd"));});});
+  document.getElementById("termSend").addEventListener("click",function(){var inp=document.getElementById("termIn");runCmd(inp.value);inp.value="";});
+  document.getElementById("termIn").addEventListener("keydown",function(e){if(e.key==="Enter"){runCmd(this.value);this.value="";}});
+
+  /* ============ READINESS / DRIVE CYCLE ============ */
+  var phaseNames=["key off","cold idle","warm-up","steady cruise","decel / idle","highway cruise","off (soak)"];
+  var monitors=[
+    {name:"misfire (cont.)",ph:1},{name:"fuel system (cont.)",ph:1},{name:"comprehensive (cont.)",ph:1},
+    {name:"O2 heater",ph:2},{name:"oxygen sensor",ph:3},{name:"EGR / VVT",ph:4},
+    {name:"catalyst",ph:5},{name:"evaporative",ph:6}
+  ];
+  var phaseIdx=0,monGrid=document.getElementById("monGrid");
+  function renderReady(){
+    document.getElementById("drivePhase").textContent=phaseNames[phaseIdx];
+    monGrid.innerHTML="";var allRdy=true;
+    monitors.forEach(function(m){
+      var rdy=phaseIdx>=m.ph;if(!rdy)allRdy=false;
+      var c=document.createElement("div");c.className="moncell"+(rdy?" rdy":"");
+      c.innerHTML='<span class="d"></span>'+m.name+" &middot; "+(rdy?"ready":"not ready");
+      monGrid.appendChild(c);
+    });
+    var chip=document.getElementById("readyChip"),txt=document.getElementById("readyTxt");
+    txt.textContent=allRdy?"READY":"not ready";chip.className="chip "+(allRdy?"state-pass":"state-pend");
+  }
+  document.getElementById("driveStep").addEventListener("click",function(){if(phaseIdx<phaseNames.length-1)phaseIdx++;renderReady();});
+  document.getElementById("driveClear").addEventListener("click",function(){phaseIdx=0;renderReady();});
+  renderReady();
+
+  /* ============ FTTI SAFETY BUDGET ============ */
+  var detT=document.getElementById("detT"),reactT=document.getElementById("reactT"),FTTI=300;
+  function drawFtti(){
+    var det=+detT.value,react=+reactT.value,total=det+react,safe=total<=FTTI;
+    document.getElementById("vDet").textContent=det;document.getElementById("vReact").textContent=react;
+    var svg=document.getElementById("fttiSvg"),W=760,maxMs=380,x0=46,xw=W-x0-20;
+    function X(ms){return x0+xw*(ms/maxMs);}
+    var p=['<g font-family="IBM Plex Mono, monospace" font-size="11">'];
+    p.push('<line x1="'+x0+'" y1="60" x2="'+(x0+xw)+'" y2="60" stroke="#BCB09A"/>');
+    // detection segment
+    p.push('<rect x="'+X(0)+'" y="46" width="'+(X(det)-X(0))+'" height="28" fill="#E4F0EC" stroke="#1F6F78"/>');
+    p.push('<text x="'+((X(0)+X(det))/2)+'" y="64" text-anchor="middle" fill="#13525A">detect</text>');
+    // reaction segment
+    p.push('<rect x="'+X(det)+'" y="46" width="'+(X(total)-X(det))+'" height="28" fill="#F6EED7" stroke="#C8932A"/>');
+    p.push('<text x="'+((X(det)+X(total))/2)+'" y="64" text-anchor="middle" fill="#9E7012">react</text>');
+    // fault marker at 0
+    p.push('<line x1="'+X(0)+'" y1="30" x2="'+X(0)+'" y2="92" stroke="#A0431E" stroke-width="1.5"/>');
+    p.push('<text x="'+X(0)+'" y="24" text-anchor="middle" fill="#7E3216">fault</text>');
+    // safe-state marker
+    var safeCol=safe?"#2E7D4F":"#A0431E";
+    p.push('<line x1="'+X(total)+'" y1="30" x2="'+X(total)+'" y2="92" stroke="'+safeCol+'" stroke-width="1.5"/>');
+    p.push('<text x="'+X(total)+'" y="108" text-anchor="middle" fill="'+safeCol+'">safe state @ '+total+'ms</text>');
+    // FTTI deadline
+    p.push('<line x1="'+X(FTTI)+'" y1="20" x2="'+X(FTTI)+'" y2="100" stroke="#23201B" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    p.push('<text x="'+X(FTTI)+'" y="16" text-anchor="middle" fill="#23201B">FTTI '+FTTI+'ms</text>');
+    if(!safe){p.push('<rect x="'+X(FTTI)+'" y="46" width="'+(X(total)-X(FTTI))+'" height="28" fill="rgba(160,67,30,0.18)"/>');}
+    p.push('</g>');svg.innerHTML=p.join("");
+    document.getElementById("fttiOut").innerHTML='<span class="chip"><span class="k">total</span><span class="v">'+total+' ms</span></span><span class="chip"><span class="k">budget</span><span class="v">'+FTTI+' ms</span></span><span class="chip '+(safe?"state-pass":"state-conf")+'"><span class="k">verdict</span><span class="v">'+(safe?"safe, within budget":"HAZARD, budget blown")+'</span></span>';
+  }
+  detT.addEventListener("input",drawFtti);reactT.addEventListener("input",drawFtti);drawFtti();
+
+  /* ============ EV ISOLATION MONITOR ============ */
+  var riso=document.getElementById("riso");
+  function drawIso(){
+    var r=+riso.value;document.getElementById("vRiso").textContent=r;
+    var status,col,bg,contact,power;
+    if(r>=500){status="OK";col="#2E7D4F";bg="state-pass";contact="closed";power="full";}
+    else if(r>=100){status="WARNING, derate";col="#9E7012";bg="state-pend";contact="closed";power="reduced";}
+    else{status="FAULT, isolation lost";col="#A0431E";bg="state-conf";contact="OPEN";power="cut";}
+    var svg=document.getElementById("isoSvg"),W=760,x0=40,xw=W-x0-120,maxR=1000;
+    function X(v){return x0+xw*(Math.min(v,maxR)/maxR);}
+    var p=['<g font-family="IBM Plex Mono, monospace" font-size="11">'];
+    p.push('<rect x="'+x0+'" y="50" width="'+(X(100)-x0)+'" height="26" fill="#F4E1D7"/>');
+    p.push('<rect x="'+X(100)+'" y="50" width="'+(X(500)-X(100))+'" height="26" fill="#F6EED7"/>');
+    p.push('<rect x="'+X(500)+'" y="50" width="'+(x0+xw-X(500))+'" height="26" fill="#EAF3EC"/>');
+    p.push('<rect x="'+x0+'" y="50" width="'+xw+'" height="26" fill="none" stroke="#BCB09A"/>');
+    p.push('<line x1="'+X(100)+'" y1="44" x2="'+X(100)+'" y2="82" stroke="#A0431E"/><text x="'+X(100)+'" y="96" text-anchor="middle" fill="#7E3216">100</text>');
+    p.push('<line x1="'+X(500)+'" y1="44" x2="'+X(500)+'" y2="82" stroke="#2E7D4F"/><text x="'+X(500)+'" y="96" text-anchor="middle" fill="#2E7D4F">500</text>');
+    p.push('<polygon points="'+X(r)+',38 '+(X(r)-7)+',26 '+(X(r)+7)+',26" fill="'+col+'"/>');
+    p.push('<line x1="'+X(r)+'" y1="38" x2="'+X(r)+'" y2="78" stroke="'+col+'" stroke-width="2"/>');
+    p.push('<text x="'+x0+'" y="20" fill="#4A453C">isolation resistance, ohm per volt</text>');
+    // contactor icon
+    var cx=x0+xw+24;
+    p.push('<text x="'+cx+'" y="30" fill="#4A453C">contactors</text>');
+    p.push('<rect x="'+cx+'" y="40" width="18" height="18" rx="3" fill="#fff" stroke="#4A453C"/>');
+    p.push('<rect x="'+(cx+52)+'" y="40" width="18" height="18" rx="3" fill="#fff" stroke="#4A453C"/>');
+    if(contact==="closed"){p.push('<line x1="'+(cx+18)+'" y1="49" x2="'+(cx+52)+'" y2="49" stroke="#2E7D4F" stroke-width="2.5"/>');}
+    else{p.push('<line x1="'+(cx+18)+'" y1="49" x2="'+(cx+40)+'" y2="38" stroke="#A0431E" stroke-width="2.5"/>');}
+    p.push('<text x="'+(cx+35)+'" y="74" text-anchor="middle" fill="'+col+'">'+contact+'</text>');
+    p.push('</g>');svg.innerHTML=p.join("");
+    document.getElementById("isoOut").innerHTML='<span class="chip '+bg+'"><span class="k">status</span><span class="v">'+status+'</span></span><span class="chip"><span class="k">contactors</span><span class="v">'+contact+'</span></span><span class="chip"><span class="k">propulsion</span><span class="v">'+power+'</span></span>';
+  }
+  riso.addEventListener("input",drawIso);drawIso();
+
+  /* ============ PROGNOSTICS / RUL ============ */
+  var rulCanvas=document.getElementById("rulCanvas"),pctx=rulCanvas.getContext("2d");
+  var degRate=document.getElementById("degRate"),degNoise=document.getElementById("degNoise");
+  function gauss(){return (Math.random()+Math.random()+Math.random()-1.5);}
+  function drawRul(){
+    var rate=(+degRate.value)/100,noise=(+degNoise.value)/100;
+    document.getElementById("vRate").textContent=rate.toFixed(1);
+    document.getElementById("vNoise").textContent=noise.toFixed(2);
+    var F=1.0,alarm=0.9,p=1.3;
+    function trueHI(t){return rate*Math.pow(t/100,p);}
+    var tFail=100*Math.pow(1/rate,1/p);
+    var tDTC=100*Math.pow(alarm/rate,1/p);
+    var now=Math.max(8,Math.round(0.55*tFail));
+    // observations up to now
+    var pts=[],step=Math.max(1,Math.round(now/20));
+    for(var t=0;t<=now;t+=step){var v=trueHI(t)+noise*gauss();if(v<0)v=0;pts.push([t,v]);}
+    // linear regression
+    var n=pts.length,sx=0,sy=0,sxx=0,sxy=0;
+    for(var i=0;i<n;i++){sx+=pts[i][0];sy+=pts[i][1];sxx+=pts[i][0]*pts[i][0];sxy+=pts[i][0]*pts[i][1];}
+    var denom=(n*sxx-sx*sx),m=denom!==0?(n*sxy-sx*sy)/denom:0,c=(sy-m*sx)/n;
+    var predFail=m>1e-6?(F-c)/m:tFail*3;
+    var rul=predFail-now;
+    // residual std
+    var ss=0;for(var j=0;j<n;j++){var e=pts[j][1]-(m*pts[j][0]+c);ss+=e*e;}
+    var sd=Math.sqrt(ss/Math.max(1,n-2));
+    var horiz=m>1e-6?(2*sd/m):20;
+    var predLo=predFail-horiz,predHi=predFail+horiz;
+    // plot scaling
+    var maxX=Math.max(predHi,tFail)*1.08;
+    var W=rulCanvas.width,H=rulCanvas.height,padL=46,padR=18,padT=16,padB=30,pw=W-padL-padR,ph=H-padT-padB;
+    pctx.clearRect(0,0,W,H);pctx.strokeStyle="#D8D0C0";pctx.lineWidth=1;pctx.strokeRect(padL,padT,pw,ph);
+    function PX(t){return padL+pw*(t/maxX);}function PY(v){return padT+ph*(1-Math.min(v,1.2)/1.2);}
+    // failure + alarm lines
+    pctx.strokeStyle="#A0431E";pctx.lineWidth=1.4;pctx.beginPath();pctx.moveTo(padL,PY(F));pctx.lineTo(padL+pw,PY(F));pctx.stroke();
+    pctx.fillStyle="#A0431E";pctx.font='10px "IBM Plex Mono", monospace';pctx.fillText("failure threshold",padL+6,PY(F)-5);
+    pctx.strokeStyle="#C8932A";pctx.setLineDash([5,4]);pctx.beginPath();pctx.moveTo(padL,PY(alarm));pctx.lineTo(padL+pw,PY(alarm));pctx.stroke();pctx.setLineDash([]);
+    pctx.fillStyle="#9E7012";pctx.fillText("DTC alarm (fires here, late)",padL+6,PY(alarm)-5);
+    // confidence band near crossing
+    if(predHi>predLo&&predLo>0){pctx.fillStyle="rgba(126,50,22,0.10)";pctx.fillRect(PX(predLo),padT,PX(predHi)-PX(predLo),ph);}
+    // true curve faint
+    pctx.strokeStyle="rgba(31,111,120,0.35)";pctx.lineWidth=1.2;pctx.beginPath();
+    for(var tt=0;tt<=maxX;tt+=maxX/120){var yy=PY(trueHI(tt));if(tt===0)pctx.moveTo(PX(tt),yy);else pctx.lineTo(PX(tt),yy);}pctx.stroke();
+    // observed points
+    pctx.fillStyle="#1F6F78";for(var k=0;k<n;k++){pctx.beginPath();pctx.arc(PX(pts[k][0]),PY(pts[k][1]),3,0,Math.PI*2);pctx.fill();}
+    // fitted line over observed
+    pctx.strokeStyle="#7E3216";pctx.lineWidth=2;pctx.beginPath();pctx.moveTo(PX(0),PY(c));pctx.lineTo(PX(now),PY(m*now+c));pctx.stroke();
+    // projection dashed to failure
+    pctx.setLineDash([6,5]);pctx.beginPath();pctx.moveTo(PX(now),PY(m*now+c));pctx.lineTo(PX(predFail),PY(F));pctx.stroke();pctx.setLineDash([]);
+    // now marker
+    pctx.strokeStyle="#23201B";pctx.lineWidth=1.3;pctx.beginPath();pctx.moveTo(PX(now),padT);pctx.lineTo(PX(now),padT+ph);pctx.stroke();
+    pctx.fillStyle="#23201B";pctx.fillText("now",PX(now)-9,padT+ph+18);
+    // predicted failure marker
+    if(predFail<maxX){pctx.fillStyle="#A0431E";pctx.beginPath();pctx.arc(PX(predFail),PY(F),4.5,0,Math.PI*2);pctx.fill();pctx.fillText("predicted",PX(predFail)-22,padT+ph+18);}
+    pctx.fillStyle="#4A453C";pctx.fillText("health indicator",6,padT+ph/2);pctx.fillText("cycles",padL+pw/2-16,padT+ph+18);
+    document.getElementById("rulOut").innerHTML='<span class="chip state-pass"><span class="k">RUL estimate</span><span class="v">'+Math.max(0,Math.round(rul))+' cycles</span></span><span class="chip"><span class="k">predicted failure</span><span class="v">cycle '+Math.round(predFail)+' &plusmn;'+Math.round(horiz)+'</span></span><span class="chip state-pend"><span class="k">DTC would fire</span><span class="v">cycle '+Math.round(tDTC)+'</span></span>';
+  }
+  degRate.addEventListener("input",drawRul);degNoise.addEventListener("input",drawRul);drawRul();
+
+})();
+</script>
+</body>
+</html>
