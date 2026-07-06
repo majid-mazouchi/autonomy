@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Neural Networks in the Vehicle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA;
+    --paper-2:#ECE7DB;
+    --ink:#24211C;
+    --ink-soft:#4A4639;
+    --rust:#B4502E;
+    --teal:#2E6E6A;
+    --ochre:#C68A28;
+    --line:#D8D0BE;
+    --hair:#CFC6B2;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Spectral",Georgia,serif;
+    font-size:19px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:64px 28px 120px;}
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(38px,7vw,62px);
+    line-height:1.04;
+    letter-spacing:-0.015em;
+    margin:0 0 22px;
+  }
+  .lede{
+    font-size:21px;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+  .byline{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    letter-spacing:0.04em;
+    margin:34px 0 0;
+    padding-top:22px;
+    border-top:1px solid var(--hair);
+  }
+  h2{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(26px,4.5vw,36px);
+    letter-spacing:-0.01em;
+    margin:64px 0 8px;
+  }
+  h2 .num{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:14px;
+    color:var(--ochre);
+    vertical-align:super;
+    margin-right:12px;
+    letter-spacing:0.05em;
+  }
+  h3{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:22px;
+    margin:38px 0 6px;
+  }
+  p{margin:14px 0;}
+  strong{font-weight:600;color:var(--ink);}
+  em{color:var(--teal);font-style:italic;}
+  a{color:var(--rust);}
+  code{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:0.86em;
+    background:var(--paper-2);
+    padding:1px 6px;
+    border-radius:4px;
+    border:1px solid var(--line);
+  }
+  .rule{
+    height:1px;background:var(--hair);
+    border:0;margin:8px 0 0;
+  }
+  .callout{
+    background:var(--paper-2);
+    border-left:3px solid var(--teal);
+    padding:18px 22px;
+    margin:26px 0;
+    border-radius:0 8px 8px 0;
+  }
+  .callout .tag{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;
+    color:var(--teal);display:block;margin-bottom:6px;
+  }
+  figure{margin:34px 0;}
+  figcaption{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  figcaption b{color:var(--rust);font-weight:500;}
+  .frame{
+    background:#FBF9F3;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:26px 20px;
+  }
+  svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  .demo{
+    background:#FBF9F3;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:24px 22px 28px;
+    margin:30px 0;
+  }
+  .demo h4{
+    font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin:0 0 4px;
+  }
+  .demo .hint{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
+  button{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13.5px;
+    letter-spacing:0.03em;
+    background:var(--rust);
+    color:#FBF9F3;
+    border:0;
+    padding:10px 18px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:transform .08s ease,background .15s ease;
+  }
+  button:hover{background:#9c4427;}
+  button:active{transform:translateY(1px);}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  button.ghost:hover{background:var(--paper-2);}
+  button.on{background:var(--teal);}
+  button.on:hover{background:#255b57;}
+  .layerbadge{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;
+    color:var(--teal);margin-left:auto;
+  }
+  .legend{
+    display:flex;gap:18px;flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);
+    margin-top:14px;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  table.simple{
+    width:100%;border-collapse:collapse;margin:24px 0;font-size:16px;
+  }
+  table.simple th,table.simple td{
+    text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;
+  }
+  table.simple th{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:0.08em;
+    text-transform:uppercase;color:var(--ink-soft);font-weight:500;
+  }
+  table.simple td:first-child{font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--rust);white-space:nowrap;}
+  ul.clean{margin:14px 0;padding-left:22px;}
+  ul.clean li{margin:8px 0;}
+  .eq{
+    font-family:"IBM Plex Mono",monospace;
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 18px;
+    font-size:15px;
+    margin:18px 0;
+    overflow-x:auto;
+  }
+  .toc{
+    font-family:"IBM Plex Mono",monospace;font-size:13.5px;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    padding:18px 22px;margin:36px 0 10px;
+  }
+  .toc a{color:var(--ink);text-decoration:none;display:block;padding:3px 0;}
+  .toc a:hover{color:var(--rust);}
+  .callout.warn{border-left-color:var(--rust);}
+  .callout.warn .tag{color:var(--rust);}
+  dl.glossary{margin:22px 0;}
+  dl.glossary dt{
+    font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--rust);
+    font-weight:500;margin-top:18px;
+  }
+  dl.glossary dd{margin:4px 0 0;padding:0;color:var(--ink-soft);}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;}
+  .seg button{background:transparent;color:var(--ink);border:0;border-right:1px solid var(--line);padding:9px 14px;border-radius:0;font-size:12.5px;}
+  .seg button:last-child{border-right:0;}
+  .seg button:hover{background:var(--paper-2);}
+  .seg button.active{background:var(--teal);color:#FBF9F3;}
+  .seg button.active:hover{background:#255b57;}
+  .seglabel{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin:18px 0 8px;letter-spacing:0.06em;text-transform:uppercase;}
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;}
+    html{scroll-behavior:auto;}
+  }
+  @media(max-width:560px){
+    body{font-size:18px;}
+    .wrap{padding:44px 20px 90px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">A Plain-Language Monograph · Automotive Companion</p>
+  <h1>Graph Neural Networks in the Vehicle</h1>
+  <p class="lede">A car is not one machine. It is a moving negotiation between dozens of parts, a stream of sensors talking over a network, and a single agent surrounded by other agents who all have their own plans. Every one of those is a graph, and that is why Graph Neural Networks have quietly become an automotive workhorse.</p>
+  <p class="byline">By Majid Mazouchi · Drafted with Claude.</p>
+
+  <div class="callout">
+    <span class="tag">Reading this with the companion</span>
+    This page assumes you already know the basics, message passing, aggregation, readout, from the first monograph (<em>Graph Neural Networks, Explained Simply</em>). Here we put that machinery to work entirely inside the world of vehicles.
+  </div>
+
+  <nav class="toc">
+    <a href="#three">01 · Why a car is secretly several graphs</a>
+    <a href="#scene">02 · The scene as a graph (interactive)</a>
+    <a href="#hand">03 · The same idea, worked by hand</a>
+    <a href="#map">04 · The map is a graph too</a>
+    <a href="#ee">05 · The car as its own network</a>
+    <a href="#battery">06 · The battery pack as a graph</a>
+    <a href="#physics">07 · Raising the fidelity: graphs that obey physics</a>
+    <a href="#mech">08 · Mechanics: a suspension as a graph of forces</a>
+    <a href="#health">09 · Predicting failure before it happens</a>
+    <a href="#fleet">10 · Beyond one car: fleets and traffic</a>
+    <a href="#fit">11 · Why GNNs fit vehicles so well</a>
+    <a href="#catch">12 · The catch: doing this in a moving car</a>
+  </nav>
+
+  <h2 id="three"><span class="num">01</span>Why a car is secretly several graphs</h2>
+  <p>The word "graph" sounds abstract until you notice the car is already full of them. There are three worth separating, because each one supports a different kind of GNN and a different automotive problem.</p>
+
+  <figure>
+    <div class="frame">
+      <svg width="560" height="210" viewBox="0 0 560 210" role="img" aria-label="Three kinds of graphs a vehicle lives with">
+        <g font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">
+          <!-- Panel A: scene graph -->
+          <text x="93" y="22" fill="#B4502E" font-size="12">THE CAR SEES</text>
+          <g stroke="#CFC6B2" stroke-width="2">
+            <line x1="93" y1="95" x2="45" y2="60"/>
+            <line x1="93" y1="95" x2="145" y2="62"/>
+            <line x1="93" y1="95" x2="55" y2="140"/>
+            <line x1="93" y1="95" x2="140" y2="135"/>
+          </g>
+          <circle cx="45" cy="60" r="13" fill="#2E6E6A"/>
+          <circle cx="145" cy="62" r="13" fill="#2E6E6A"/>
+          <circle cx="55" cy="140" r="13" fill="#C68A28"/>
+          <circle cx="140" cy="135" r="13" fill="#2E6E6A"/>
+          <circle cx="93" cy="95" r="16" fill="#B4502E"/>
+          <text x="93" y="99" fill="#FBF9F3" font-size="10">ego</text>
+          <text x="93" y="180" fill="#4A4639">other road users</text>
+
+          <!-- Panel B: internal network -->
+          <text x="280" y="22" fill="#B4502E" font-size="12">THE CAR IS</text>
+          <g stroke="#CFC6B2" stroke-width="2">
+            <line x1="240" y1="60" x2="320" y2="60"/>
+            <line x1="280" y1="60" x2="280" y2="100"/>
+            <line x1="240" y1="140" x2="280" y2="100"/>
+            <line x1="320" y1="140" x2="280" y2="100"/>
+            <line x1="240" y1="60" x2="240" y2="140"/>
+            <line x1="320" y1="60" x2="320" y2="140"/>
+          </g>
+          <g fill="#2E6E6A">
+            <rect x="227" y="50" width="26" height="20" rx="4"/>
+            <rect x="307" y="50" width="26" height="20" rx="4"/>
+            <rect x="227" y="130" width="26" height="20" rx="4"/>
+            <rect x="307" y="130" width="26" height="20" rx="4"/>
+          </g>
+          <circle cx="280" cy="100" r="15" fill="#B4502E"/>
+          <text x="280" y="104" fill="#FBF9F3" font-size="9">gway</text>
+          <text x="280" y="180" fill="#4A4639">sensors and ECUs</text>
+
+          <!-- Panel C: road network -->
+          <text x="467" y="22" fill="#B4502E" font-size="12">THE CAR IS IN</text>
+          <g stroke="#CFC6B2" stroke-width="2">
+            <line x1="420" y1="55" x2="467" y2="80"/>
+            <line x1="467" y1="80" x2="515" y2="55"/>
+            <line x1="420" y1="55" x2="430" y2="130"/>
+            <line x1="467" y1="80" x2="465" y2="135"/>
+            <line x1="515" y1="55" x2="510" y2="130"/>
+            <line x1="430" y1="130" x2="465" y2="135"/>
+            <line x1="465" y1="135" x2="510" y2="130"/>
+          </g>
+          <g fill="#2E6E6A">
+            <circle cx="420" cy="55" r="11"/>
+            <circle cx="515" cy="55" r="11"/>
+            <circle cx="430" cy="130" r="11"/>
+            <circle cx="510" cy="130" r="11"/>
+          </g>
+          <circle cx="467" cy="80" r="13" fill="#B4502E"/>
+          <text x="467" y="180" fill="#4A4639">roads and other cars</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1.</b> Three graphs, one vehicle. <b>The car sees</b> a scene graph of surrounding road users. <b>The car is</b> an internal network of sensors and control units. <b>The car is in</b> a road and fleet network. Rust marks the ego vehicle or its hub in each view. The rest of this page walks through what a GNN does with each.</figcaption>
+  </figure>
+
+  <h2 id="scene"><span class="num">02</span>The scene as a graph (interactive)</h2>
+  <p>This is the flagship automotive use of GNNs, and it lives in self-driving and driver-assistance stacks: <strong>predicting what every road user will do next.</strong> The setup is exactly the message passing you already know. Each agent (your car, other cars, pedestrians) is a node. An edge connects two agents that are close enough to affect each other. The features on a node are things like position, speed, and heading.</p>
+  <p>Why a graph and not a simple list? Because driving is interactive. What the car ahead does depends on the pedestrian it sees, and what you should do depends on that car. A model that predicts each agent in isolation will happily forecast two cars driving through the same point at the same instant. Message passing fixes this by letting every agent's prediction be informed by its neighbors, and by its neighbors' neighbors.</p>
+
+  <p>Below is a frozen intersection seen from above. Your car (rust) is approaching from the south behind a lead car (teal). A pedestrian (ochre) is stepping into the lead car's path. Press <strong>Run interaction round</strong> and watch the predicted paths (the dotted rays) update. Then toggle the pedestrian off and run it again to see how much the ego's own prediction depended on someone two cars ahead.</p>
+
+  <div class="demo">
+    <h4>Trajectory prediction by message passing</h4>
+    <p class="hint">Faint dotted line = naive prediction (ignore everyone). Solid dotted ray = prediction after accounting for neighbors. Thin gray links = the interaction graph.</p>
+    <svg id="scene" width="560" height="380" viewBox="0 0 560 380" role="img" aria-label="Top-down intersection with predicted vehicle paths"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:#B4502E"></i> ego (you)</span>
+      <span><i class="dot" style="background:#2E6E6A"></i> other vehicle</span>
+      <span><i class="dot" style="background:#C68A28"></i> pedestrian</span>
+    </div>
+    <div class="controls">
+      <button id="round">Run interaction round</button>
+      <button id="settle" class="ghost">Settle (4 rounds)</button>
+      <button id="ped" class="on">Pedestrian: on</button>
+      <button id="sreset" class="ghost">Reset</button>
+      <span class="layerbadge" id="sbadge">Round 0</span>
+    </div>
+  </div>
+
+  <p>Here is the lesson hiding in that demo. With the pedestrian on, the first round makes the <em>lead</em> car brake hard, since it is the pedestrian's direct neighbor. Your <em>ego</em> car eases off only on the next round, once that slowdown reaches it: the message had to travel one extra hop, pedestrian to lead car, then lead car to you. You end up easing for a hazard you may not even be able to see, purely because information propagated through the graph. Turn the pedestrian off and the lead car keeps full speed, so your car holds its ordinary following prediction and barely changes from round to round. That two-hop reach is the receptive field idea from the first monograph, now keeping you from rear-ending the car ahead.</p>
+
+  <div class="callout">
+    <span class="tag">The real systems</span>
+    Production motion-forecasting models work this way. Influential designs represent each agent and each lane segment as nodes in a graph and pass messages between them, so the same network reasons about agent-to-agent and agent-to-road interactions at once. The hand-tuned nudges in the demo are replaced by learned functions, but the wiring is identical.
+  </div>
+
+  <h2 id="hand"><span class="num">03</span>The same idea, worked by hand</h2>
+  <p>Strip the geometry away and the negotiation becomes simple arithmetic, the vehicle version of the worked example from the first page. Two cars approach a merge. Each outputs a single <em>go</em> value between 0 (yield) and 1 (proceed). Your car is a little more committed, so it starts at <code>0.9</code>; the merging car starts at <code>0.8</code>.</p>
+  <p>The message-passing rule says: lower your own intent in proportion to how strongly your one conflicting neighbor also intends to go.</p>
+  <div class="eq">new_go(me) = own_go(me)  -  0.5 &times; go(neighbor)</div>
+  <p>Round one, both cars look at each other's starting intent:</p>
+  <div class="eq">ego:   0.9 - 0.5 &times; 0.8 = 0.50
+merge: 0.8 - 0.5 &times; 0.9 = 0.35</div>
+  <p>Round two, each uses the other's <em>updated</em> value (the new message):</p>
+  <div class="eq">ego:   0.9 - 0.5 &times; 0.35 = 0.73
+merge: 0.8 - 0.5 &times; 0.50 = 0.55</div>
+  <p>After a couple of rounds the values settle into a stable, consistent decision: the ego (which started keener) ends up clearly higher and proceeds, while the merging car settles lower and yields. Notice that no central referee decided this. The outcome emerged from the two nodes exchanging messages until they agreed, which is precisely what a GNN layer does across a whole scene of agents at once.</p>
+
+  <h2 id="map"><span class="num">04</span>The map is a graph too</h2>
+  <p>The road itself is naturally a graph, and modern self-driving stacks treat it as one rather than as a picture. A high-definition map is broken into short <em>lane segments</em>. Each segment is a node, and edges encode the relationships that matter for driving: this lane continues into that one, this lane is left-adjacent to that one, this lane yields to that one at a junction.</p>
+  <p>Running a GNN over this lane graph gives two things at once. The connectivity edges support routing and lane-level planning (which sequence of lanes actually gets you there). The adjacency and conflict edges support behavior prediction (a car in a left-turn-only lane is probably turning left). Crucially, the lane graph and the agent scene graph from section 02 can be fused into one combined graph, so an agent's predicted path is shaped by both the cars around it and the road geometry it is constrained to follow.</p>
+
+  <h2 id="ee"><span class="num">05</span>The car as its own network</h2>
+  <p>Shift from the world outside to the wiring inside. A modern vehicle is a network of electronic control units (ECUs) and sensors talking over buses like CAN and automotive Ethernet. That is a graph whether you model it as one or not: nodes are the controllers and sensors, edges are the communication links between them.</p>
+
+  <figure>
+    <div class="frame">
+      <svg width="560" height="280" viewBox="0 0 560 280" role="img" aria-label="In-vehicle electronic network as a graph">
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="middle">
+          <!-- edges -->
+          <g stroke="#CFC6B2" stroke-width="2">
+            <line x1="280" y1="140" x2="120" y2="60"/>
+            <line x1="280" y1="140" x2="280" y2="55"/>
+            <line x1="280" y1="140" x2="440" y2="60"/>
+            <line x1="280" y1="140" x2="110" y2="160"/>
+            <line x1="280" y1="140" x2="450" y2="160"/>
+            <line x1="280" y1="140" x2="160" y2="235"/>
+            <line x1="280" y1="140" x2="400" y2="235"/>
+          </g>
+          <!-- intrusion edge highlighted -->
+          <line x1="280" y1="140" x2="450" y2="160" stroke="#B4502E" stroke-width="2.6" stroke-dasharray="5 4"/>
+          <!-- nodes -->
+          <g>
+            <g><rect x="88" y="48" width="64" height="26" rx="6" fill="#2E6E6A"/><text x="120" y="65" fill="#FBF9F3">Camera</text></g>
+            <g><rect x="250" y="42" width="60" height="26" rx="6" fill="#2E6E6A"/><text x="280" y="59" fill="#FBF9F3">Radar</text></g>
+            <g><rect x="406" y="48" width="68" height="26" rx="6" fill="#2E6E6A"/><text x="440" y="65" fill="#FBF9F3">Lidar</text></g>
+            <g><rect x="74" y="147" width="72" height="26" rx="6" fill="#2E6E6A"/><text x="110" y="164" fill="#FBF9F3">Brake ECU</text></g>
+            <g><rect x="410" y="147" width="80" height="26" rx="6" fill="#C68A28"/><text x="450" y="164" fill="#FBF9F3">Telematics</text></g>
+            <g><rect x="116" y="222" width="88" height="26" rx="6" fill="#2E6E6A"/><text x="160" y="239" fill="#FBF9F3">Steering ECU</text></g>
+            <g><rect x="350" y="222" width="100" height="26" rx="6" fill="#2E6E6A"/><text x="400" y="239" fill="#FBF9F3">Powertrain ECU</text></g>
+            <circle cx="280" cy="140" r="22" fill="#B4502E"/>
+            <text x="280" y="137" fill="#FBF9F3">Gate</text>
+            <text x="280" y="149" fill="#FBF9F3">way</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 2.</b> A simplified in-vehicle network. Sensors and control units are nodes; the central gateway routes between them. A GNN reads the normal pattern of who-talks-to-whom and how. The dashed rust link flags an anomaly: the externally connected <b>telematics</b> node suddenly behaving like a safety-critical controller, the signature of an intrusion.</figcaption>
+  </figure>
+
+  <p>Because the legitimate traffic on this network follows learnable patterns (which node talks to which, how often, with what timing and payloads), a GNN can learn what "healthy" looks like and flag deviations. This is the basis of graph-based <strong>intrusion detection</strong> for the CAN bus: a spoofed or injected message shows up as an edge or a node behaving unlike anything in the learned normal graph. The same structural view also helps diagnostics, tracing which controller is the likely source when a fault cascades across the bus.</p>
+
+  <h2 id="battery"><span class="num">06</span>The battery pack as a graph</h2>
+  <p>For an electric vehicle, the traction battery is its own graph and a high-value one. A pack is hundreds or thousands of cells arranged in modules. Each cell is a node; edges follow the electrical series-parallel wiring and the physical neighbors a cell exchanges heat with.</p>
+  <p>That structure is exactly what you need for two hard problems. First, <em>state estimation</em>: a cell's true state of charge and state of health depend on its neighbors, because current and temperature are shared along the connections, so a GNN can estimate per-cell condition more accurately than treating cells independently. Second, and more safety-critical, <em>thermal propagation</em>: if one cell overheats, the risk to the rest of the pack travels along the thermal-neighbor edges. A GNN that respects the pack's physical layout can predict how a local hot spot would spread, which is the difference between flagging one warm cell and anticipating a pack-level event.</p>
+
+  <h2 id="physics"><span class="num">07</span>Raising the fidelity: graphs that obey physics</h2>
+  <p>So far the graphs have carried statistics. The real prize, for engineering work, is letting them carry <em>physics</em>. The key observation is that message passing and physical coupling are the same operation seen from two directions. When heat flows between touching cells, each cell's temperature changes in proportion to the difference with its neighbors, which is exactly a sum-over-neighbors message. When two masses are linked by a spring, the force each feels depends on the other's position, which is again a message along an edge. The graph Laplacian that a GNN applies <em>is</em> the discrete diffusion operator, and a round of message passing <em>is</em> a force exchange.</p>
+  <p>That equivalence is why GNNs make such natural high-fidelity surrogates. Two levers raise the fidelity:</p>
+  <ul class="clean">
+    <li><strong>Build the graph from the true topology.</strong> Wire the nodes the way the physics actually couples them (the pack's thermal neighbors, the drivetrain's real connections), so the model cannot learn interactions that violate the layout.</li>
+    <li><strong>Add a physics residual to the loss.</strong> Beyond matching measured data, penalize the network whenever its prediction breaks the governing equation (a heat balance, Newton's law, a conservation law). This is the physics-informed idea applied on a graph, and it lets the model stay accurate with far less data and refuse to drift into unphysical states.</li>
+  </ul>
+
+  <figure>
+    <div class="frame">
+      <svg width="720" height="300" viewBox="0 0 720 300" role="img" aria-label="Block diagram of a physics-informed graph neural network">
+        <defs>
+          <marker id="ar3" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A4639"/></marker>
+          <marker id="ar3r" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#B4502E"/></marker>
+        </defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="11.5" text-anchor="middle">
+          <!-- top pipeline -->
+          <rect x="14" y="60" width="120" height="64" rx="9" fill="#ECE7DB" stroke="#CFC6B2"/>
+          <text x="74" y="86" fill="#24211C">graph +</text>
+          <text x="74" y="104" fill="#24211C">features</text>
+
+          <rect x="160" y="60" width="110" height="64" rx="9" fill="#FBF9F3" stroke="#2E6E6A" stroke-width="1.8"/>
+          <text x="215" y="96" fill="#2E6E6A">encoder</text>
+
+          <rect x="296" y="60" width="140" height="64" rx="9" fill="#FBF9F3" stroke="#B4502E" stroke-width="2"/>
+          <text x="366" y="88" fill="#B4502E">processor</text>
+          <text x="366" y="106" fill="#4A4639" font-size="10">M message rounds</text>
+
+          <rect x="462" y="60" width="110" height="64" rx="9" fill="#FBF9F3" stroke="#2E6E6A" stroke-width="1.8"/>
+          <text x="517" y="96" fill="#2E6E6A">decoder</text>
+
+          <rect x="598" y="60" width="108" height="64" rx="9" fill="#ECE7DB" stroke="#CFC6B2"/>
+          <text x="652" y="86" fill="#24211C">predicted</text>
+          <text x="652" y="104" fill="#24211C">next state</text>
+
+          <!-- loss row -->
+          <rect x="470" y="196" width="110" height="58" rx="9" fill="#ECE7DB" stroke="#CFC6B2"/>
+          <text x="525" y="221" fill="#24211C">data loss</text>
+          <text x="525" y="239" fill="#4A4639" font-size="10">match sensors</text>
+
+          <rect x="598" y="196" width="108" height="58" rx="9" fill="#FBF9F3" stroke="#B4502E" stroke-width="2"/>
+          <text x="652" y="217" fill="#B4502E">physics</text>
+          <text x="652" y="233" fill="#B4502E">residual</text>
+          <text x="652" y="248" fill="#4A4639" font-size="9.5">obey the equation</text>
+
+          <!-- arrows -->
+          <g stroke="#4A4639" stroke-width="2" marker-end="url(#ar3)" fill="none">
+            <line x1="134" y1="92" x2="156" y2="92"/>
+            <line x1="270" y1="92" x2="292" y2="92"/>
+            <line x1="436" y1="92" x2="458" y2="92"/>
+            <line x1="572" y1="92" x2="594" y2="92"/>
+            <line x1="652" y1="124" x2="652" y2="192"/>
+            <line x1="630" y1="124" x2="540" y2="192"/>
+          </g>
+          <!-- training feedback -->
+          <g stroke="#B4502E" stroke-width="2" marker-end="url(#ar3r)" fill="none">
+            <path d="M470,225 L360,225 L360,128"/>
+          </g>
+          <text x="360" y="170" fill="#B4502E" font-size="10" text-anchor="middle">update weights</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 3.</b> A physics-informed GNN, in the encode, process, decode shape used by learned simulators. The novelty is the second loss term: the prediction is fed into the governing equation and penalized when it does not balance. <b>Data</b> keeps it honest to reality; <b>physics</b> keeps it honest to the laws, which is what raises fidelity and cuts the data you need.</figcaption>
+  </figure>
+
+  <h3>Simulation: heat moving through a battery pack</h3>
+  <p>Here is the diffusion idea made literal. Each square is a cell in a pack; edges join physical neighbors. Every time step applies the discrete heat equation, which is one message-passing layer: a cell warms or cools toward its neighbors, gains heat from any internal source, and loses heat to cooling. Click any cell to toggle it as a hot source (a shorted or aging cell), set the cooling level, and press play to watch the field evolve.</p>
+
+  <div class="demo">
+    <h4>Thermal diffusion on the pack graph</h4>
+    <p class="hint">Click cells to toggle a heat source (ringed). Each step = one Laplacian message-passing update.</p>
+    <svg id="pack" width="520" height="300" viewBox="0 0 520 300" role="img" aria-label="Battery pack heat map evolving over time"></svg>
+    <p class="seglabel">Cooling</p>
+    <div class="seg" id="coolseg">
+      <button data-h="0.04">off</button>
+      <button data-h="0.45" class="active">on</button>
+      <button data-h="1.5">strong</button>
+    </div>
+    <div class="controls">
+      <button id="pplay">Play</button>
+      <button id="pstep" class="ghost">Step</button>
+      <button id="preset" class="ghost">Reset</button>
+      <span class="layerbadge" id="pbadge">max 25&deg;C</span>
+    </div>
+  </div>
+  <p>Run it with cooling <em>strong</em> and the hot cell stays a contained spot: heat in roughly equals heat out. Switch cooling to <em>off</em> and the same source bleeds into its neighbors, then theirs, until a wide region climbs together. That spreading front is thermal propagation, and predicting it is a safety problem. A physics-informed GNN trained on this operator can run the prediction in a single fast pass instead of a slow finite-element solve, while the residual term keeps its forecast obeying the heat balance, so it stays trustworthy outside the exact conditions it was trained on.</p>
+
+  <h2 id="mech"><span class="num">08</span>Mechanics: a suspension as a graph of forces</h2>
+  <p>Diffusion is one kind of physics on a graph; Newtonian mechanics is another, and it covers the parts of a vehicle that move. Take one corner of the car, the classic quarter-car model. It is a tiny graph of three nodes: the body mass, the wheel mass, and the road. Two edges carry forces: the suspension spring and damper between body and wheel, and the tire between wheel and road. Solving the dynamics means repeatedly passing forces along those edges, which is message passing with Newton's second law as the update rule.</p>
+  <p>The simulation below integrates the real coupled equations of motion. Hit a bump and watch the force travel up from the road, through the tire into the wheel, then through the suspension into the body. The trace on the right plots how the body settles. Change the damper setting and feel the trade every chassis engineer knows: soft rides smooth but floats, firm controls the body but transmits more of the road.</p>
+
+  <div class="demo">
+    <h4>Quarter-car dynamics on a three-node graph</h4>
+    <p class="hint">Forces pass along edges (suspension, tire). The link glows when its force is large.</p>
+    <svg id="susp" width="520" height="340" viewBox="0 0 520 340" role="img" aria-label="Quarter-car suspension responding to a road bump"></svg>
+    <p class="seglabel">Damper</p>
+    <div class="seg" id="dampseg">
+      <button data-c="1200">comfort</button>
+      <button data-c="2500" class="active">sport</button>
+      <button data-c="4500">firm</button>
+    </div>
+    <div class="controls">
+      <button id="bump">Hit a bump</button>
+      <button id="splay" class="ghost">Pause</button>
+      <button id="qreset" class="ghost">Reset</button>
+      <span class="layerbadge" id="qbadge">body 0.0 cm</span>
+    </div>
+  </div>
+
+  <p>Now scale that picture up. A full vehicle is the same graph repeated: a sprung body node coupled through four suspension edges to four wheel nodes, each tied to the road, with the body's pitch and roll linking the corners. That is a 7 degree-of-freedom graph, and richer multibody or finite-element models are simply larger graphs with more nodes. The reason this matters for fidelity is that a GNN trained to predict the per-node accelerations becomes a <em>learned simulator</em>: it can stand in for an expensive solver, run in milliseconds, and, because it operates on the graph, generalize to a new suspension layout or a different vehicle variant without being rebuilt from scratch.</p>
+
+  <figure>
+    <div class="frame">
+      <svg width="600" height="220" viewBox="0 0 600 220" role="img" aria-label="Block diagram of a learned simulator rollout loop">
+        <defs>
+          <marker id="ar4" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4A4639"/></marker>
+          <marker id="ar4r" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#B4502E"/></marker>
+        </defs>
+        <g font-family="IBM Plex Mono, monospace" font-size="11.5" text-anchor="middle">
+          <rect x="20" y="70" width="120" height="60" rx="9" fill="#ECE7DB" stroke="#CFC6B2"/>
+          <text x="80" y="96" fill="#24211C">state at t</text>
+          <text x="80" y="114" fill="#4A4639" font-size="10">pos, vel</text>
+
+          <rect x="172" y="70" width="130" height="60" rx="9" fill="#FBF9F3" stroke="#B4502E" stroke-width="2"/>
+          <text x="237" y="96" fill="#B4502E">GNN step</text>
+          <text x="237" y="114" fill="#4A4639" font-size="10">forces on edges</text>
+
+          <rect x="334" y="70" width="120" height="60" rx="9" fill="#FBF9F3" stroke="#2E6E6A" stroke-width="1.8"/>
+          <text x="394" y="96" fill="#2E6E6A">integrate</text>
+          <text x="394" y="114" fill="#4A4639" font-size="10">a to v to x</text>
+
+          <rect x="486" y="70" width="100" height="60" rx="9" fill="#ECE7DB" stroke="#CFC6B2"/>
+          <text x="536" y="96" fill="#24211C">state at</text>
+          <text x="536" y="114" fill="#24211C">t + 1</text>
+
+          <g stroke="#4A4639" stroke-width="2" marker-end="url(#ar4)" fill="none">
+            <line x1="140" y1="100" x2="168" y2="100"/>
+            <line x1="302" y1="100" x2="330" y2="100"/>
+            <line x1="454" y1="100" x2="482" y2="100"/>
+          </g>
+          <!-- rollback loop -->
+          <g stroke="#B4502E" stroke-width="2" marker-end="url(#ar4r)" fill="none">
+            <path d="M536,130 L536,180 L80,180 L80,132"/>
+          </g>
+          <text x="300" y="172" fill="#B4502E" font-size="10.5">feed the new state back, one timestep at a time</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 4.</b> A learned simulator rollout. One message-passing step plays the role of one physics timestep: the GNN predicts the forces, an integrator turns them into the next positions and velocities, and the loop repeats. Train it once against a high-fidelity solver and it becomes a fast, reusable surrogate for that physics.</figcaption>
+  </figure>
+
+  <h2 id="health"><span class="num">09</span>Predicting failure before it happens</h2>
+  <p>This is the prognostics and health management view, and it is where the graph picture earns its keep on the powertrain. Model the drivetrain as a graph: components (battery, inverter, motor, gearing, bearings) and their sensors (current, vibration, temperature, resolver) are nodes, and edges encode physical and signal coupling, who directly influences whom.</p>
+  <p>A fault rarely announces itself cleanly at one sensor. Bearing wear, for example, shows first as vibration, then leaves a fingerprint in the motor current as drag changes the load, then slowly raises temperature through friction. Looked at one channel at a time, these are three weak, separate anomalies that are easy to dismiss. A GNN reads the whole neighborhood at once and recognizes the joint pattern as a single root cause. From there, a graph-level readout can pool the component embeddings into one number: a health index or an estimate of remaining useful life.</p>
+
+  <div class="callout">
+    <span class="tag">Covered in depth elsewhere</span>
+    The companion monograph works this powertrain fault-propagation example step by step, with its own figure. If prognostics is your main interest, that section pairs directly with this one.
+  </div>
+
+  <h2 id="fleet"><span class="num">10</span>Beyond one car: fleets and traffic</h2>
+  <p>Zoom out past the single vehicle and the graphs only get larger. A city's road network is the obvious one: intersections or road sensors are nodes, road segments are edges, and the quantity flowing is traffic. Predicting congestion is then a <strong>spatio-temporal</strong> GNN problem, because the state at each node depends both on its neighbors in space (upstream traffic) and on its own recent history in time. This is how modern travel-time and congestion forecasts are produced over road graphs.</p>
+  <p>Two more fit the same mold. A <em>fleet</em> of vehicles sharing a model of normal behavior is a graph where one unit's emerging fault pattern can be recognized faster because the fleet has seen it before, which connects directly to the inductive learning idea: train across many vehicles, deploy on a new one. And <em>vehicle-to-everything</em> (V2X) communication literally builds a live graph of nearby vehicles and infrastructure exchanging messages, a real network on which cooperative perception and coordination can run.</p>
+
+  <h2 id="fit"><span class="num">11</span>Why GNNs fit vehicles so well</h2>
+  <p>It is worth naming why this keeps working across such different problems. Three properties of GNNs line up unusually well with vehicles.</p>
+  <ul class="clean">
+    <li><strong>They handle a changing number of things.</strong> A scene might have two other cars or twenty; a pack might have a cell removed. Because the aggregation step does not care about count or order, the same trained model copes with all of them. A fixed-input network cannot.</li>
+    <li><strong>They respect structure you already know.</strong> You know the wiring of the powertrain, the layout of the battery, the topology of the road. A GNN lets you bake that known structure in rather than forcing the model to rediscover it from scratch.</li>
+    <li><strong>They transfer.</strong> A model trained to aggregate from a neighborhood, not to memorize fixed positions, can move to a new vehicle, a new pack, or an unseen intersection. For an industry that builds many variants of the same architecture, that reuse is the whole point.</li>
+  </ul>
+
+  <h2 id="catch"><span class="num">12</span>The catch: doing this in a moving car</h2>
+  <p>None of this is free, and the honest engineering constraints are worth stating plainly.</p>
+  <div class="callout warn">
+    <span class="tag">Latency and compute</span>
+    A trajectory prediction that arrives 300 milliseconds late is useless. Running message passing fast enough on automotive-grade hardware, within a tight power and thermal budget, is a real constraint that shapes how many layers and how large a graph you can afford.
+  </div>
+  <div class="callout warn">
+    <span class="tag">Safety and assurance</span>
+    Anything touching steering, braking, or thermal safety lives under functional-safety expectations (the ASIL framework). A learned model that is hard to fully verify sits uneasily there, so GNNs are often paired with deterministic checks and fallbacks rather than trusted blindly.
+  </div>
+  <div class="callout warn">
+    <span class="tag">Building the graph is a design decision</span>
+    A GNN only ever reasons over the edges you give it. Choosing the interaction radius for a scene, or which couplings count in a powertrain, is a modeling choice that quietly determines what the model can and cannot notice. Get the graph wrong and the cleverest architecture cannot recover.
+  </div>
+
+  <p style="margin-top:40px;">Seen together, the through-line is simple. A vehicle is surrounded by things that influence each other, built from parts that influence each other, and embedded in a network of roads and other vehicles that influence each other. Influence flowing along connections is the one thing a Graph Neural Network is built to read, which is why, from the perception stack to the battery pack to the service bay, it keeps turning out to be the right tool.</p>
+
+  <hr class="rule" style="margin-top:56px;">
+  <p class="byline" style="border-top:0;padding-top:18px;">By Majid Mazouchi · Drafted with Claude.</p>
+
+</div>
+
+<script>
+/* surface any script error visibly, so a blank demo is never silent */
+window.addEventListener("error", function(ev){
+  var el=document.getElementById("demo-error");
+  if(!el){
+    el=document.createElement("div"); el.id="demo-error";
+    el.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#B4502E;color:#FBF9F3;"+
+      "font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.4;padding:10px 16px;z-index:9999;";
+    (document.body||document.documentElement).appendChild(el);
+  }
+  el.textContent="Demo error: "+(ev.message||(ev.error&&ev.error.message)||"unknown")+
+    (ev.lineno?(" (line "+ev.lineno+")"):"");
+});
+</script>
+
+<script>
+(function(){
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("scene");
+  var badge = document.getElementById("sbadge");
+
+  // ---- scene definition (top-down, north = -y) ----
+  var R = 150;          // interaction radius
+  var MAXS = 3;         // reference top speed
+  var KREP = 2.2;       // separation strength
+  var KSLOW = 5.5;      // braking strength
+  var H = 6, DT = 6;    // rollout steps and step length (for drawing rays)
+
+  var base = [
+    {id:"ego",   x:288, y:332, ix:0,  iy:-3,   color:"#B4502E", kind:"car", label:"EGO"},
+    {id:"lead",  x:288, y:200, ix:0,  iy:-3,   color:"#2E6E6A", kind:"car", label:""},
+    {id:"cross", x:120, y:168, ix:3,  iy:0,    color:"#2E6E6A", kind:"car", label:""},
+    {id:"ped",   x:250, y:150, ix:1.2,iy:0,    color:"#C68A28", kind:"ped", label:""}
+  ];
+
+  var pedOn = true;
+  var round = 0;
+  var pv = {};   // current predicted velocity per active agent
+
+  function active(){ return base.filter(function(a){ return a.id!=="ped" || pedOn; }); }
+  function mag(vx,vy){ return Math.sqrt(vx*vx+vy*vy); }
+
+  function reset(){
+    pv = {};
+    active().forEach(function(a){ pv[a.id] = {x:a.ix, y:a.iy}; });
+    round = 0;
+    render();
+  }
+
+  function stepRound(){
+    var ag = active();
+    var next = {};
+    ag.forEach(function(i){
+      var ax=0, ay=0;
+      var ispd = mag(i.ix,i.iy) || 1;
+      var hx = i.ix/ispd, hy = i.iy/ispd;       // unit heading
+      ag.forEach(function(j){
+        if(j.id===i.id) return;
+        var dx=i.x-j.x, dy=i.y-j.y;
+        var d=Math.sqrt(dx*dx+dy*dy) || 1;
+        if(d>=R) return;
+        var close=(R-d)/R;                       // 0..1
+        // separation: push away from neighbor
+        ax += (dx/d)*close*KREP;
+        ay += (dy/d)*close*KREP;
+        // is j ahead of i along i's heading?
+        var tjx=(j.x-i.x)/d, tjy=(j.y-i.y)/d;
+        var ahead = hx*tjx + hy*tjy;
+        if(ahead>0.2){
+          var sj = mag(pv[j.id].x, pv[j.id].y);  // neighbor's predicted speed (the message)
+          var slowFrac = 1 - Math.min(sj/MAXS,1);
+          var brake = close*ahead*slowFrac*KSLOW;
+          ax += -hx*brake;
+          ay += -hy*brake;
+        }
+      });
+      var vx=i.ix+ax, vy=i.iy+ay;
+      // clamp magnitude to MAXS
+      var sp=mag(vx,vy);
+      if(sp>MAXS){ vx=vx/sp*MAXS; vy=vy/sp*MAXS; }
+      // no reversing past a stop: zero out negative along-heading component
+      var along = vx*hx+vy*hy;
+      var latx = vx-hx*along, laty = vy-hy*along;
+      if(along<0) along=0;
+      vx = hx*along+latx; vy = hy*along+laty;
+      next[i.id]={x:vx,y:vy};
+    });
+    pv=next;
+    round++;
+    render();
+  }
+
+  function settle(){ for(var k=0;k<4;k++) stepRound(); }
+
+  function line(x1,y1,x2,y2,stroke,w,dash){
+    var l=document.createElementNS(SVGNS,"line");
+    l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+    l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+    l.setAttribute("stroke",stroke); l.setAttribute("stroke-width",w);
+    if(dash) l.setAttribute("stroke-dasharray",dash);
+    l.setAttribute("stroke-linecap","round");
+    svg.appendChild(l);
+  }
+
+  function render(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox","0 0 560 380");
+
+    // ---- roads ----
+    var road=document.createElementNS(SVGNS,"rect");
+    road.setAttribute("x",244); road.setAttribute("y",0);
+    road.setAttribute("width",96); road.setAttribute("height",380);
+    road.setAttribute("fill","#E3DAC6"); svg.appendChild(road);
+    var road2=document.createElementNS(SVGNS,"rect");
+    road2.setAttribute("x",0); road2.setAttribute("y",136);
+    road2.setAttribute("width",560); road2.setAttribute("height",92);
+    road2.setAttribute("fill","#E3DAC6"); svg.appendChild(road2);
+    // lane center dashes
+    line(292,0,292,380,"#D8D0BE",2,"10 12");
+    line(0,182,560,182,"#D8D0BE",2,"10 12");
+    // crosswalk hint near lead's path
+    line(244,128,340,128,"#CFC6B2",2,"4 5");
+
+    var ag = active();
+
+    // ---- interaction edges ----
+    for(var a=0;a<ag.length;a++){
+      for(var b=a+1;b<ag.length;b++){
+        var i=ag[a], j=ag[b];
+        var d=Math.sqrt((i.x-j.x)*(i.x-j.x)+(i.y-j.y)*(i.y-j.y));
+        if(d<R) line(i.x,i.y,j.x,j.y,"#CBBfa6",1.4,"3 4");
+      }
+    }
+
+    // ---- naive rays (faint) for cars ----
+    ag.forEach(function(i){
+      if(i.kind!=="car") return;
+      line(i.x,i.y, i.x+i.ix*DT*H, i.y+i.iy*DT*H, "#D8D0BE",2,"2 6");
+    });
+
+    // ---- predicted rays ----
+    ag.forEach(function(i){
+      var v=pv[i.id];
+      var len=DT*H; // base
+      var ex=i.x+v.x*len, ey=i.y+v.y*len;
+      var col = (i.id==="ego") ? "#B4502E" : (i.kind==="ped" ? "#C68A28" : "#2E6E6A");
+      line(i.x,i.y,ex,ey,col,2.6,"1 6");
+      // arrowhead
+      var sp=mag(v.x,v.y);
+      if(sp>0.3){
+        var ux=v.x/sp, uy=v.y/sp;
+        var px=-uy, py=ux;
+        var hxp=ex, hyp=ey;
+        line(hxp,hyp, hxp-ux*8+px*5, hyp-uy*8+py*5, col,2.6);
+        line(hxp,hyp, hxp-ux*8-px*5, hyp-uy*8-py*5, col,2.6);
+      }
+    });
+
+    // ---- agents ----
+    ag.forEach(function(i){
+      if(i.kind==="ped"){
+        var c=document.createElementNS(SVGNS,"circle");
+        c.setAttribute("cx",i.x); c.setAttribute("cy",i.y); c.setAttribute("r",11);
+        c.setAttribute("fill",i.color); c.setAttribute("stroke","#FBF9F3"); c.setAttribute("stroke-width",2);
+        svg.appendChild(c);
+      } else {
+        var ang=Math.atan2(i.iy,i.ix)*180/Math.PI;
+        var g=document.createElementNS(SVGNS,"g");
+        g.setAttribute("transform","translate("+i.x+","+i.y+") rotate("+ang+")");
+        var r=document.createElementNS(SVGNS,"rect");
+        r.setAttribute("x",-15); r.setAttribute("y",-9);
+        r.setAttribute("width",30); r.setAttribute("height",18); r.setAttribute("rx",4);
+        r.setAttribute("fill",i.color);
+        r.style.transition="fill .3s ease";
+        g.appendChild(r);
+        // windshield hint
+        var w=document.createElementNS(SVGNS,"rect");
+        w.setAttribute("x",4); w.setAttribute("y",-7);
+        w.setAttribute("width",6); w.setAttribute("height",14); w.setAttribute("rx",2);
+        w.setAttribute("fill","#FBF9F3"); w.setAttribute("opacity","0.55");
+        g.appendChild(w);
+        svg.appendChild(g);
+      }
+      if(i.label){
+        var t=document.createElementNS(SVGNS,"text");
+        t.setAttribute("x",i.x); t.setAttribute("y",i.y+26);
+        t.setAttribute("text-anchor","middle");
+        t.setAttribute("font-family","IBM Plex Mono, monospace");
+        t.setAttribute("font-size","10"); t.setAttribute("fill","#4A4639");
+        t.textContent=i.label;
+        svg.appendChild(t);
+      }
+    });
+
+    badge.textContent="Round "+round;
+  }
+
+  document.getElementById("round").addEventListener("click", stepRound);
+  document.getElementById("settle").addEventListener("click", settle);
+  document.getElementById("sreset").addEventListener("click", reset);
+  var pedBtn=document.getElementById("ped");
+  pedBtn.addEventListener("click", function(){
+    pedOn=!pedOn;
+    pedBtn.textContent = "Pedestrian: " + (pedOn?"on":"off");
+    pedBtn.classList.toggle("on", pedOn);
+    reset();
+  });
+
+  reset();
+})();
+</script>
+
+<script>
+/* Simulation 1: battery pack thermal diffusion (graph heat equation) */
+(function(){
+  var SVGNS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById("pack");
+  var badge=document.getElementById("pbadge");
+  if(!svg) return;
+
+  var COLS=6, ROWS=4, N=COLS*ROWS;
+  var CW=70, CH=55, GX=8, GY=8;
+  var W=COLS*CW+(COLS-1)*GX, Hh=ROWS*CH+(ROWS-1)*GY;
+  var X0=(520-W)/2, Y0=(300-Hh)/2;
+
+  var TAMB=25, K=0.5, DT=0.05, QVAL=55;
+  var hCool=0.45;
+  var T=[], sources={};
+  var nbr=[];
+
+  for(var i=0;i<N;i++){
+    var r=Math.floor(i/COLS), c=i%COLS, list=[];
+    if(r>0) list.push(i-COLS);
+    if(r<ROWS-1) list.push(i+COLS);
+    if(c>0) list.push(i-1);
+    if(c<COLS-1) list.push(i+1);
+    nbr.push(list);
+  }
+
+  function reset(){
+    T=[]; for(var i=0;i<N;i++) T.push(TAMB);
+    sources={}; sources[8]=true;           // one interior source by default
+    render();
+  }
+  function stepT(){
+    var nx=new Array(N);
+    for(var i=0;i<N;i++){
+      var lap=0, list=nbr[i];
+      for(var j=0;j<list.length;j++) lap += (T[list[j]]-T[i]);
+      var q = sources[i] ? QVAL : 0;
+      var v = T[i] + DT*( K*lap + q - hCool*(T[i]-TAMB) );
+      if(v<TAMB) v=TAMB; if(v>180) v=180;
+      nx[i]=v;
+    }
+    T=nx;
+  }
+  function colorFor(t){
+    var f=(t-25)/(90-25); if(f<0)f=0; if(f>1)f=1;
+    var a,b,s;
+    if(f<0.5){ a=[46,110,106]; b=[198,138,40]; s=f/0.5; }   // teal -> ochre
+    else { a=[198,138,40]; b=[180,80,46]; s=(f-0.5)/0.5; }   // ochre -> rust
+    var R=Math.round(a[0]+(b[0]-a[0])*s);
+    var G=Math.round(a[1]+(b[1]-a[1])*s);
+    var B=Math.round(a[2]+(b[2]-a[2])*s);
+    return "rgb("+R+","+G+","+B+")";
+  }
+  function render(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox","0 0 520 300");
+    var maxT=TAMB;
+    for(var i=0;i<N;i++){
+      var r=Math.floor(i/COLS), c=i%COLS;
+      var x=X0+c*(CW+GX), y=Y0+r*(CH+GY);
+      if(T[i]>maxT) maxT=T[i];
+      var rect=document.createElementNS(SVGNS,"rect");
+      rect.setAttribute("x",x); rect.setAttribute("y",y);
+      rect.setAttribute("width",CW); rect.setAttribute("height",CH);
+      rect.setAttribute("rx",7); rect.setAttribute("fill",colorFor(T[i]));
+      rect.setAttribute("stroke", sources[i] ? "#24211C" : "#FBF9F3");
+      rect.setAttribute("stroke-width", sources[i] ? 2.4 : 1.2);
+      rect.style.cursor="pointer";
+      rect.style.transition="fill .12s linear";
+      (function(idx){ rect.addEventListener("click",function(){ sources[idx]=!sources[idx]; render(); }); })(i);
+      svg.appendChild(rect);
+      var tx=document.createElementNS(SVGNS,"text");
+      tx.setAttribute("x",x+CW/2); tx.setAttribute("y",y+CH/2+5);
+      tx.setAttribute("text-anchor","middle");
+      tx.setAttribute("font-family","IBM Plex Mono, monospace");
+      tx.setAttribute("font-size","13"); tx.setAttribute("fill","#FBF9F3");
+      tx.setAttribute("pointer-events","none");
+      tx.textContent=Math.round(T[i])+"\u00B0";
+      svg.appendChild(tx);
+    }
+    badge.textContent="max "+Math.round(maxT)+"\u00B0C";
+  }
+
+  var timer=null;
+  var playBtn=document.getElementById("pplay");
+  function play(){
+    if(timer) return;
+    playBtn.textContent="Pause"; playBtn.classList.add("on");
+    timer=setInterval(function(){ stepT(); stepT(); render(); },80);
+  }
+  function pause(){
+    if(timer){ clearInterval(timer); timer=null; }
+    playBtn.textContent="Play"; playBtn.classList.remove("on");
+  }
+  playBtn.addEventListener("click",function(){ timer?pause():play(); });
+  document.getElementById("pstep").addEventListener("click",function(){ stepT(); render(); });
+  document.getElementById("preset").addEventListener("click",function(){ pause(); reset(); });
+
+  var cool=document.getElementById("coolseg");
+  cool.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    hCool=parseFloat(b.getAttribute("data-h"));
+    Array.prototype.forEach.call(cool.querySelectorAll("button"),function(x){ x.classList.toggle("active",x===b); });
+  });
+
+  reset();
+})();
+</script>
+
+<script>
+/* Simulation 2: quarter-car suspension dynamics (Newtonian message passing) */
+(function(){
+  var SVGNS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById("susp");
+  var badge=document.getElementById("qbadge");
+  if(!svg) return;
+
+  var REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  // SI parameters
+  var ms=300, mu=40, ks=22000, kt=190000, ct=300, cs=2500;
+  var DT=0.0004, SUB=50;
+  var SCALE=600; // px per meter
+
+  // state
+  var zs,vs,zu,vu,t,bumpStart,bumpOn,zrPrev;
+  var trace=[];
+  var TRACE_N=150;
+
+  // layout
+  var SX=160;                 // schematic center x
+  var roadY=300, wheelY=212, bodyY=120;
+
+  function reset(){
+    zs=0; vs=0; zu=0; vu=0; t=0; bumpOn=false; bumpStart=0; zrPrev=0; trace=[];
+    render();
+  }
+  function roadProfile(time){
+    if(!bumpOn) return 0;
+    var tb=time-bumpStart, dur=0.12, A=0.045;
+    if(tb<0||tb>dur){ if(tb>dur) bumpOn=false; return 0; }
+    return A*Math.sin(Math.PI*tb/dur);
+  }
+  function physics(){
+    for(var s=0;s<SUB;s++){
+      var zr=roadProfile(t);
+      var zrdot=(zr-zrPrev)/DT; zrPrev=zr;
+      var Fs=ks*(zs-zu)+cs*(vs-vu);          // suspension force (edge message)
+      var Ft=kt*(zu-zr)+ct*(vu-zrdot);       // tire force (edge message)
+      var as=-Fs/ms;
+      var au=(Fs-Ft)/mu;
+      vs+=as*DT; vu+=au*DT;                  // semi-implicit Euler
+      zs+=vs*DT; zu+=vu*DT;
+      t+=DT;
+    }
+    trace.push(zs); if(trace.length>TRACE_N) trace.shift();
+  }
+  function curFs(){ return ks*(zs-zu)+cs*(vs-vu); }
+
+  function zig(x,y1,y2,coils,amp,color,w){
+    var pts=[], n=coils*2, dy=(y2-y1)/n;
+    for(var i=0;i<=n;i++){
+      var px=x; if(i>0&&i<n) px = x + ((i%2===1)?amp:-amp);
+      pts.push((px).toFixed(1)+","+(y1+dy*i).toFixed(1));
+    }
+    var p=document.createElementNS(SVGNS,"polyline");
+    p.setAttribute("points",pts.join(" "));
+    p.setAttribute("fill","none"); p.setAttribute("stroke",color); p.setAttribute("stroke-width",w);
+    svg.appendChild(p);
+  }
+  function rect(x,y,w,h,r,fill){
+    var e=document.createElementNS(SVGNS,"rect");
+    e.setAttribute("x",x); e.setAttribute("y",y); e.setAttribute("width",w); e.setAttribute("height",h);
+    e.setAttribute("rx",r); e.setAttribute("fill",fill); svg.appendChild(e); return e;
+  }
+  function line(x1,y1,x2,y2,color,w,dash){
+    var l=document.createElementNS(SVGNS,"line");
+    l.setAttribute("x1",x1);l.setAttribute("y1",y1);l.setAttribute("x2",x2);l.setAttribute("y2",y2);
+    l.setAttribute("stroke",color);l.setAttribute("stroke-width",w); if(dash) l.setAttribute("stroke-dasharray",dash);
+    l.setAttribute("stroke-linecap","round"); svg.appendChild(l); return l;
+  }
+  function txt(x,y,s,color,size,anchor){
+    var e=document.createElementNS(SVGNS,"text");
+    e.setAttribute("x",x);e.setAttribute("y",y);e.setAttribute("text-anchor",anchor||"middle");
+    e.setAttribute("font-family","IBM Plex Mono, monospace");e.setAttribute("font-size",size||11);
+    e.setAttribute("fill",color);e.textContent=s; svg.appendChild(e);
+  }
+
+  function render(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox","0 0 520 340");
+
+    var zr=roadProfile(t);
+    var by=bodyY - zs*SCALE;     // body top
+    var wy=wheelY - zu*SCALE;    // wheel center
+    var ry=roadY - zr*SCALE;     // road surface
+
+    // road
+    line(40,ry,290,ry,"#B4502E",3);
+    for(var hx=48;hx<286;hx+=22) line(hx,ry,hx-8,ry+10,"#CFC6B2",2);
+
+    // tire spring (road -> wheel bottom)
+    zig(SX, ry, wy+26, 5, 9, "#2E6E6A", 2.4);
+
+    // suspension: spring (left) + damper (right) between wheel top and body bottom
+    var Fs=curFs(), glow=Math.min(Math.abs(Fs)/3500,1);
+    var sCol = "rgb("+Math.round(46+(180-46)*glow)+","+Math.round(110+(80-110)*glow)+","+Math.round(106+(46-106)*glow)+")";
+    zig(SX-14, by+40, wy-26, 5, 8, sCol, 2.6);
+    // damper symbol (right strand)
+    line(SX+16, wy-26, SX+16, by+40, "#4A4639", 2);
+    rect(SX+9, (by+40+wy-26)/2-9, 14, 18, 2, "#4A4639");
+
+    // wheel
+    var wc=document.createElementNS(SVGNS,"circle");
+    wc.setAttribute("cx",SX);wc.setAttribute("cy",wy);wc.setAttribute("r",26);
+    wc.setAttribute("fill","#2E6E6A");wc.setAttribute("stroke","#FBF9F3");wc.setAttribute("stroke-width",2);
+    svg.appendChild(wc);
+    txt(SX,wy+4,"wheel","#FBF9F3",10);
+
+    // body
+    rect(SX-75, by, 150, 40, 7, "#B4502E");
+    txt(SX, by+25, "body (sprung mass)", "#FBF9F3", 11);
+
+    // labels
+    txt(SX, ry+26, "road", "#4A4639", 10);
+
+    // ---- trace plot ----
+    var px0=330, px1=502, pyc=150, ph=120;
+    line(px0,pyc,px1,pyc,"#D8D0BE",1);
+    txt(px0,80,"body motion","#4A4639",10,"start");
+    txt(px0,pyc+ph/2+18,"time","#4A4639",10,"start");
+    if(trace.length>1){
+      var pts=[];
+      for(var i=0;i<trace.length;i++){
+        var x=px0+(px1-px0)*(i/(TRACE_N-1));
+        var y=pyc - Math.max(-1,Math.min(1,trace[i]*SCALE/40))*(ph/2);
+        pts.push(x.toFixed(1)+","+y.toFixed(1));
+      }
+      var pl=document.createElementNS(SVGNS,"polyline");
+      pl.setAttribute("points",pts.join(" "));
+      pl.setAttribute("fill","none");pl.setAttribute("stroke","#B4502E");pl.setAttribute("stroke-width",2);
+      svg.appendChild(pl);
+    }
+
+    badge.textContent="body "+(zs*100).toFixed(1)+" cm";
+  }
+
+  var running=!REDUCE;
+  var playBtn=document.getElementById("splay");
+  playBtn.textContent = running ? "Pause" : "Play";
+  playBtn.classList.toggle("on", running);
+
+  var timer=setInterval(function(){
+    if(running) physics();
+    render();
+  },33);
+
+  playBtn.addEventListener("click",function(){
+    running=!running;
+    playBtn.textContent = running ? "Pause" : "Play";
+    playBtn.classList.toggle("on", running);
+  });
+  document.getElementById("bump").addEventListener("click",function(){
+    bumpOn=true; bumpStart=t; if(!running){ running=true; playBtn.textContent="Pause"; playBtn.classList.add("on"); }
+  });
+  document.getElementById("qreset").addEventListener("click", reset);
+
+  var damp=document.getElementById("dampseg");
+  damp.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    cs=parseFloat(b.getAttribute("data-c"));
+    Array.prototype.forEach.call(damp.querySelectorAll("button"),function(x){ x.classList.toggle("active",x===b); });
+  });
+
+  reset();
+})();
+</script>
+</body>
+</html>

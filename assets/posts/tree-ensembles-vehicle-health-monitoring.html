@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Ensembles for Vehicle Health Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044;
+  --rule:#DAD1BF; --rule-soft:#E7DFD0;
+  --rust:#C2410C; --rust-deep:#9A3412;
+  --teal:#0F766E; --amber:#B45309; --slate:#475569;
+  --good:#0F766E; --bad:#B91C1C; --hold:#B45309;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px);
+  line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px);
+  color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em;
+  color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper);
+  border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em;
+  color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px);
+  line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic}
+strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+ul,ol{margin:16px 0; padding-left:24px}
+li{margin:0 0 9px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55;
+  color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+pre{background:#211C15; color:#EDE6D6; font-family:"IBM Plex Mono",monospace;
+  font-size:13px; line-height:1.6; padding:18px 20px; overflow-x:auto; border-radius:2px; margin:22px 0}
+pre .c{color:#9A8F78} pre .k{color:#E0A07A} pre .s{color:#9DC08B} pre .n{color:#D8B26A}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft);
+  padding:1px 6px; border-radius:3px}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+  padding:2px 8px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.tag.hi{background:#DCEFEC; color:var(--teal)}
+.tag.lo{background:#F6DED7; color:var(--bad)}
+.tag.md{background:#F7E9CF; color:var(--hold)}
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+.note p{margin:0}
+.algo{margin:26px 0; border:1px solid var(--ink); background:var(--paper)}
+.algo .hd{background:var(--ink); color:var(--cream); font-family:"IBM Plex Mono",monospace;
+  font-size:12px; letter-spacing:.12em; padding:9px 16px; text-transform:uppercase;
+  display:flex; justify-content:space-between}
+.algo .hd .nm{color:#E0A07A}
+.algo .bd{padding:14px 18px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.72}
+.algo .ln{white-space:pre-wrap; margin:0}
+.algo .io{color:var(--teal); font-weight:600}
+.algo .kw{color:var(--rust); font-weight:600}
+.algo .cm{color:var(--ink-soft)}
+.algo .i1{padding-left:22px} .algo .i2{padding-left:44px} .algo .i3{padding-left:66px}
+.partlead{max-width:58ch; margin:0 auto; color:var(--ink-soft); font-style:italic}
+.refs{font-family:"Spectral",serif; font-size:16px}
+.refs p{margin:0 0 14px; padding-left:22px; text-indent:-22px}
+.refs b{font-weight:600}
+footer{padding:48px 0 80px; text-align:center}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px;
+  flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px;
+  border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+@media (max-width:560px){
+  body{font-size:17px}
+  .wrap{padding:0 18px}
+  header.masthead{padding:48px 0 32px}
+  .tbl{font-size:12.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Machine Learning · Diagnostics · VHM</p>
+  <h1>Tree Ensembles for Vehicle Health Monitoring</h1>
+  <p class="subtitle">The workhorse classifiers that name the fault. From one decision tree you can read, to random forests and gradient boosting — XGBoost, LightGBM, CatBoost — in plain words, with a worked example.</p>
+  <div class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Vehicle Health Monitoring Notes</div>
+</header>
+
+<div class="abstract">
+  <span class="lab">Abstract</span>
+  <p>Anomaly detection tells you <em>something is wrong</em>. A classifier tells you <em>which fault it is</em>. In vehicle health monitoring the classifiers that earn their keep are almost all built from decision trees: a single tree you can read like a flowchart, and then ensembles of hundreds of trees that vote or correct one another — Random Forest, AdaBoost, gradient boosting (XGBoost, LightGBM, CatBoost), and Extra Trees. They are strong on the kind of data a fleet actually produces — wide tables of mixed sensor features, with nonlinear effects and interactions — and they hand you a ranked list of which signals drove the decision, almost for free. This monograph builds them up from the single tree, explains how each ensemble differs and when to reach for it, and runs one worked example end to end: classifying an EV charging fault from tabular features. Plain words, block diagrams, a flowchart, Python you can run, practical notes for the messy realities of fleet data, and references.</p>
+</div>
+<div class="reslinks" style="justify-content:flex-start">
+  <span class="ic">▸</span>
+  <a href="isolation-forest.html">Isolation Forest: the unsupervised cousin</a>
+  <a href="xgboost-and-boosting-family.html">The boosting family, in depth</a>
+  <a href="fault-detection-isolation.html">FDI: detection vs. classification</a>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<section id="job">
+  <span class="snum">§ 01 — The Job</span>
+  <h2>Name the fault from a row of numbers</h2>
+  <p class="lead">A fleet sends home a wide table: one row per vehicle (or per charge, or per drive), and a column for every feature you can compute from its sensors.</p>
+  <p>Battery temperature spread, charge-connector resistance, peak charge current, how often the car charges in the cold, firmware version, pack age in cycles, a dozen vibration features from the drivetrain — each becomes a number in a column. The question a classifier answers is simple to state: given this row of numbers, <strong>which fault is this?</strong> Healthy, or a firmware cold-throttle bug, or a high-resistance connector, or a cell-balancing fault, and so on.</p>
+  <p>That is a <strong>supervised classification</strong> problem. "Supervised" means you train it on rows where the answer is already known — from teardowns, warranty claims, seeded-fault test rigs, or confirmed past diagnoses. The model learns the pattern that separates the classes, then labels new rows.</p>
+  <p>This kind of data — a wide table of mixed-meaning columns, where the signal lives in nonlinear thresholds ("resistance above 8&nbsp;mΩ <em>and</em> cold") and in interactions between columns — is exactly where tree-based models shine, and where the fashionable deep networks usually do not pay their way. That is why, across VHM, the model that finally puts a name on the fault is so often a Random Forest or a gradient-boosted ensemble.</p>
+  <div class="note">
+    <span class="lab">Where this sits</span>
+    <p>Two stages, two model types. <strong>Unsupervised anomaly detection</strong> (PCA, Isolation Forest, autoencoders) flags that a car looks abnormal — no labels needed. Then a <strong>supervised tree ensemble</strong> names the specific fault — labels needed. This post is about the second stage.</p>
+  </div>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="cart">
+  <span class="snum">§ 02 — One Tree</span>
+  <h2>The decision tree you can read</h2>
+  <p>Start with the single building block: a <strong>decision tree</strong> (the classic algorithm is called CART, for <em>Classification And Regression Trees</em>). It is a flowchart the computer writes for itself. Each box asks one yes/no question about one feature — "is connector resistance above 8&nbsp;mΩ?" — and sends you left or right. You follow the questions down until you reach a leaf, which carries the answer.</p>
+
+  <figure>
+    <div class="figlab">Figure 1 · A small decision tree</div>
+    <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <!-- edges -->
+      <g stroke="#9A3412" stroke-width="2" fill="none">
+        <path d="M380 64 L200 128"/>
+        <path d="M380 64 L560 128"/>
+        <path d="M200 156 L120 220"/>
+        <path d="M200 156 L300 220"/>
+        <path d="M560 156 L480 220"/>
+        <path d="M560 156 L640 220"/>
+      </g>
+      <!-- edge labels -->
+      <g font-size="12" fill="#9A3412" font-weight="600">
+        <text x="262" y="104">no</text>
+        <text x="470" y="104">yes</text>
+        <text x="143" y="196">no</text>
+        <text x="262" y="196">yes</text>
+        <text x="505" y="196">no</text>
+        <text x="612" y="196">yes</text>
+      </g>
+      <!-- root -->
+      <g>
+        <rect x="280" y="34" width="200" height="34" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.6"/>
+        <text x="380" y="56" text-anchor="middle" font-size="13" font-weight="600" fill="#C2410C">connector R &gt; 8 mΩ ?</text>
+      </g>
+      <!-- internal left -->
+      <g>
+        <rect x="108" y="126" width="184" height="32" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.4"/>
+        <text x="200" y="147" text-anchor="middle" font-size="12.5" font-weight="600">firmware ≥ 5.1 ?</text>
+      </g>
+      <!-- internal right -->
+      <g>
+        <rect x="468" y="126" width="184" height="32" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.4"/>
+        <text x="560" y="147" text-anchor="middle" font-size="12.5" font-weight="600">supplier = B ?</text>
+      </g>
+      <!-- leaves -->
+      <g font-size="12" font-weight="600">
+        <rect x="44" y="218" width="152" height="46" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="120" y="238" text-anchor="middle" fill="#0F766E">Healthy</text>
+        <text x="120" y="254" text-anchor="middle" fill="#0F766E" font-size="10.5">n=512 · 98% pure</text>
+
+        <rect x="224" y="218" width="152" height="46" rx="7" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+        <text x="300" y="238" text-anchor="middle" fill="#B45309">Firmware bug</text>
+        <text x="300" y="254" text-anchor="middle" fill="#B45309" font-size="10.5">n=143 · 91% pure</text>
+
+        <rect x="404" y="218" width="152" height="46" rx="7" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.5"/>
+        <text x="480" y="238" text-anchor="middle" fill="#B91C1C">Connector lot</text>
+        <text x="480" y="254" text-anchor="middle" fill="#B91C1C" font-size="10.5">n=128 · 94% pure</text>
+
+        <rect x="584" y="218" width="152" height="46" rx="7" fill="#F6DED7" stroke="#B91C1C" stroke-width="1.5"/>
+        <text x="660" y="238" text-anchor="middle" fill="#B91C1C">Connector lot</text>
+        <text x="660" y="254" text-anchor="middle" fill="#B91C1C" font-size="10.5">n=44 · 86% pure</text>
+      </g>
+    </svg>
+    <figcaption><b>Read it top to bottom.</b> Each box splits on one feature. The tree chose these questions by searching for the split that best separates the fault classes. A new car drops in at the top and falls to a leaf, which votes its majority class.</figcaption>
+  </figure>
+
+  <p>How does the tree pick which question to ask? It is greedy. At each box it tries every feature and every threshold, and keeps the split that makes the two resulting groups as <strong>pure</strong> as possible — meaning each group is dominated by a single class. Purity is measured by <strong>Gini impurity</strong> or <strong>entropy</strong>; both are just numbers that fall to zero when a group is all one class. It repeats, splitting each group again, until the leaves are clean enough or it runs out of room.</p>
+  <p>A single tree has two great virtues for VHM: you can <strong>read it</strong> — every decision is a chain of plain thresholds an engineer can sanity-check — and it needs almost no data preparation (no scaling, handles mixed feature types, shrugs at outliers). That makes it the honest <strong>baseline</strong>: always train one first, because if a model nobody can argue with already hits 90%, you have learned something.</p>
+  <p>Its great vice: a single deep tree <strong>overfits</strong>. It will happily carve the training data into tiny perfect leaves that memorize noise, and it is <strong>unstable</strong> — change a handful of training rows and the whole flowchart can rearrange. The cure for both is to stop relying on one tree and grow a crowd.</p>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="why">
+  <span class="snum">§ 03 — Why a Crowd</span>
+  <h2>Many weak opinions, one strong answer</h2>
+  <p>An <strong>ensemble</strong> trains many trees and combines them. The reason it works is a single idea worth holding onto: <strong>errors that disagree cancel out.</strong> If you grow many different trees and each makes mistakes in <em>different</em> places, then when you average their votes the mistakes wash out and the shared signal survives.</p>
+  <p>There are two ways to build the crowd, and they fix two different problems.</p>
+  <p><strong>Bagging</strong> (Random Forest, Extra Trees) grows many full-depth trees <em>in parallel</em>, each on a slightly different slice of the data, then lets them vote. Each tree alone overfits, but their errors point in random directions, so the vote is stable. Bagging mainly reduces <em>variance</em> — the jitter that made one tree untrustworthy.</p>
+  <p><strong>Boosting</strong> (AdaBoost, gradient boosting) grows trees <em>in sequence</em>, each small and each focused on the rows the previous trees got wrong. The crowd is built deliberately, not randomly. Boosting mainly reduces <em>bias</em> — it keeps chipping away at the error the team still makes — and tends to be the most accurate when tuned with care.</p>
+
+  <figure>
+    <div class="figlab">Figure 2 · Bagging vs. boosting</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <!-- divider -->
+      <line x1="380" y1="20" x2="380" y2="280" stroke="#DAD1BF" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <text x="190" y="36" text-anchor="middle" font-size="13" font-weight="600" fill="#0F766E">BAGGING — parallel, then vote</text>
+      <text x="570" y="36" text-anchor="middle" font-size="13" font-weight="600" fill="#C2410C">BOOSTING — sequential, fix mistakes</text>
+      <!-- bagging: 3 parallel trees -->
+      <g>
+        <rect x="60" y="60" width="80" height="40" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="100" y="84" text-anchor="middle" font-size="11.5">tree 1</text>
+        <rect x="150" y="60" width="80" height="40" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="190" y="84" text-anchor="middle" font-size="11.5">tree 2</text>
+        <rect x="240" y="60" width="80" height="40" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="280" y="84" text-anchor="middle" font-size="11.5">tree 3 …</text>
+        <g stroke="#0F766E" stroke-width="2" fill="none">
+          <path d="M100 100 L190 150"/><path d="M190 100 L190 150"/><path d="M280 100 L190 150"/>
+        </g>
+        <rect x="120" y="150" width="140" height="38" rx="6" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.6"/>
+        <text x="190" y="174" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">majority vote</text>
+        <text x="190" y="230" text-anchor="middle" font-size="11" fill="#5A5044">each tree sees a random</text>
+        <text x="190" y="246" text-anchor="middle" font-size="11" fill="#5A5044">slice; errors cancel</text>
+      </g>
+      <!-- boosting: chain -->
+      <g>
+        <rect x="430" y="60" width="74" height="40" rx="6" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.5"/>
+        <text x="467" y="84" text-anchor="middle" font-size="11.5">tree 1</text>
+        <rect x="540" y="60" width="74" height="40" rx="6" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.5"/>
+        <text x="577" y="84" text-anchor="middle" font-size="11.5">tree 2</text>
+        <rect x="650" y="60" width="74" height="40" rx="6" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.5"/>
+        <text x="687" y="84" text-anchor="middle" font-size="11.5">tree 3 …</text>
+        <g stroke="#C2410C" stroke-width="2" fill="none" marker-end="url(#ar)">
+          <path d="M504 80 L538 80"/><path d="M614 80 L648 80"/>
+        </g>
+        <g font-size="10" fill="#9A3412">
+          <text x="521" y="74" text-anchor="middle">err</text>
+          <text x="631" y="74" text-anchor="middle">err</text>
+        </g>
+        <g stroke="#C2410C" stroke-width="2" fill="none">
+          <path d="M467 100 L577 150"/><path d="M577 100 L577 150"/><path d="M687 100 L577 150"/>
+        </g>
+        <rect x="507" y="150" width="140" height="38" rx="6" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.6"/>
+        <text x="577" y="174" text-anchor="middle" font-size="12" font-weight="600" fill="#C2410C">weighted sum</text>
+        <text x="577" y="230" text-anchor="middle" font-size="11" fill="#5A5044">each tree targets the</text>
+        <text x="577" y="246" text-anchor="middle" font-size="11" fill="#5A5044">previous team's errors</text>
+      </g>
+      <defs>
+        <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0 0 L6 3 L0 6 z" fill="#C2410C"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption><b>Two ways to build a crowd.</b> Bagging grows independent trees and votes (kills variance). Boosting grows a chain, each tree fixing what the last got wrong (kills bias). Almost every tree ensemble is one of these two ideas.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="rf">
+  <span class="snum">§ 04 — Random Forest</span>
+  <h2>A forest of independent trees</h2>
+  <p class="lead">The Random Forest is the safe default — the model to reach for first when a single tree is not enough.</p>
+  <p>It grows hundreds of full trees and lets them vote, with two tricks that keep the trees different from one another so their errors cancel:</p>
+  <ul>
+    <li><strong>Bootstrap sampling (the "bag").</strong> Each tree is trained on a random sample of the rows, drawn with replacement. So every tree sees a slightly different fleet.</li>
+    <li><strong>Random feature subsets.</strong> At each split, a tree may only choose from a random handful of the features, not all of them. This stops one strong feature (say, connector resistance) from dominating every tree and making them all alike.</li>
+  </ul>
+  <p>The combination is the whole point: the trees are <em>decorrelated</em>, so averaging their votes cancels the noise and keeps the signal. The forest is far more stable and accurate than any tree inside it, and it is hard to overfit — adding more trees never hurts, it just costs compute.</p>
+
+  <figure>
+    <div class="figlab">Figure 3 · Random Forest, end to end</div>
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <rect x="40" y="130" width="120" height="56" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.6"/>
+      <text x="100" y="154" text-anchor="middle" font-size="12.5" font-weight="600">fleet table</text>
+      <text x="100" y="172" text-anchor="middle" font-size="10.5" fill="#5A5044">rows × features</text>
+      <g font-size="11" fill="#5A5044">
+        <text x="250" y="58" text-anchor="middle">bag 1</text>
+        <text x="250" y="150" text-anchor="middle">bag 2</text>
+        <text x="250" y="244" text-anchor="middle">bag 3 …</text>
+      </g>
+      <g stroke="#0F766E" stroke-width="2" fill="none">
+        <path d="M160 150 L210 70"/><path d="M160 158 L210 158"/><path d="M160 166 L210 240"/>
+      </g>
+      <g>
+        <rect x="288" y="44" width="120" height="44" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="348" y="70" text-anchor="middle" font-size="11.5">tree 1</text>
+        <rect x="288" y="136" width="120" height="44" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="348" y="162" text-anchor="middle" font-size="11.5">tree 2</text>
+        <rect x="288" y="228" width="120" height="44" rx="6" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+        <text x="348" y="254" text-anchor="middle" font-size="11.5">tree 3 …</text>
+      </g>
+      <text x="348" y="106" text-anchor="middle" font-size="9.5" fill="#9A3412">random feature subset / split</text>
+      <g stroke="#0F766E" stroke-width="2" fill="none">
+        <path d="M408 66 L470 150"/><path d="M408 158 L470 158"/><path d="M408 250 L470 166"/>
+      </g>
+      <rect x="470" y="134" width="120" height="50" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.8"/>
+      <text x="530" y="155" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">majority</text>
+      <text x="530" y="172" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">vote</text>
+      <g stroke="#211C15" stroke-width="2" fill="none" marker-end="url(#ar2)"><path d="M590 159 L648 159"/></g>
+      <rect x="650" y="134" width="96" height="50" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.6"/>
+      <text x="698" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#C2410C">fault</text>
+      <text x="698" y="173" text-anchor="middle" font-size="12" font-weight="600" fill="#C2410C">label</text>
+      <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#211C15"/></marker></defs>
+    </svg>
+    <figcaption><b>Bootstrap, grow, vote.</b> Each tree learns from a random bag of rows using random feature subsets, so the trees disagree in different places. The majority vote is stable where any single tree is not.</figcaption>
+  </figure>
+
+  <div class="algo">
+    <div class="hd"><span>Algorithm</span><span class="nm">train_random_forest</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input:</span> table X (rows×features), labels y, number of trees T</p>
+<p class="ln"><span class="kw">for</span> t = 1 … T:</p>
+<p class="ln i1">bag ← sample rows of (X, y) <span class="cm"># with replacement</span></p>
+<p class="ln i1">tree_t ← grow a full tree on bag,</p>
+<p class="ln i2">at each split consider only a random subset of features</p>
+<p class="ln"><span class="kw">return</span> the set {tree_1 … tree_T}</p>
+<p class="ln"><span class="cm"># to predict a new row x:</span></p>
+<p class="ln"><span class="kw">predict</span>(x) = majority vote of tree_1(x) … tree_T(x)</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lab">Free validation: OOB</span>
+    <p>Because each tree skips about a third of the rows (they were not in its bag), those rows are a ready-made test set for that tree. Averaged over the forest, this <strong>out-of-bag (OOB) error</strong> gives an honest accuracy estimate without holding data back — handy when labeled faults are scarce.</p>
+  </div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="boosting">
+  <span class="snum">§ 05 — Boosting</span>
+  <h2>Trees that fix each other's mistakes</h2>
+  <p>Boosting builds the crowd one tree at a time, and each new tree is asked a pointed question: <em>where is the team still wrong, and can you fix it?</em></p>
+  <p><strong>AdaBoost</strong>, the original, does this by re-weighting rows: after each small tree, the rows it got wrong get heavier, so the next tree pays them more attention. The final answer is a weighted vote, with more accurate trees counting more.</p>
+  <p><strong>Gradient boosting</strong> is the modern, more powerful version. Instead of re-weighting rows, each new tree is trained to predict the <strong>residual</strong> — the leftover error — of the team so far, and a small step of that correction is added in. "Gradient" just means it follows the slope of the error downhill, one tree at a time. The trees are deliberately shallow, because the strength comes from <em>many</em> gentle corrections rather than a few aggressive ones.</p>
+
+  <figure>
+    <div class="figlab">Figure 4 · The gradient-boosting loop</div>
+    <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <rect x="40" y="100" width="130" height="50" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.5"/>
+      <text x="105" y="121" text-anchor="middle" font-size="12" font-weight="600">current team</text>
+      <text x="105" y="138" text-anchor="middle" font-size="10.5" fill="#5A5044">prediction so far</text>
+      <g stroke="#211C15" stroke-width="2" fill="none" marker-end="url(#ar3)"><path d="M170 125 L228 125"/></g>
+      <rect x="230" y="100" width="140" height="50" rx="7" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="300" y="121" text-anchor="middle" font-size="12" font-weight="600" fill="#B45309">find the errors</text>
+      <text x="300" y="138" text-anchor="middle" font-size="10.5" fill="#B45309">residual = truth − pred</text>
+      <g stroke="#211C15" stroke-width="2" fill="none" marker-end="url(#ar3)"><path d="M370 125 L428 125"/></g>
+      <rect x="430" y="100" width="150" height="50" rx="7" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="505" y="121" text-anchor="middle" font-size="12" font-weight="600" fill="#C2410C">fit a small tree</text>
+      <text x="505" y="138" text-anchor="middle" font-size="10.5" fill="#5A5044">to those errors</text>
+      <g stroke="#211C15" stroke-width="2" fill="none" marker-end="url(#ar3)"><path d="M580 125 L632 125"/></g>
+      <rect x="634" y="100" width="110" height="50" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.6"/>
+      <text x="689" y="121" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">add a small</text>
+      <text x="689" y="138" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">step in</text>
+      <g stroke="#9A3412" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#ar3b)">
+        <path d="M689 150 L689 200 L105 200 L105 152"/>
+      </g>
+      <text x="400" y="222" text-anchor="middle" font-size="11" fill="#9A3412">repeat for hundreds of small trees, each shrinking the leftover error</text>
+      <defs>
+        <marker id="ar3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#211C15"/></marker>
+        <marker id="ar3b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#9A3412"/></marker>
+      </defs>
+    </svg>
+    <figcaption><b>Predict, measure the leftover error, fit a tree to it, nudge.</b> A learning-rate "step size" keeps each nudge small so the team improves smoothly instead of overshooting.</figcaption>
+  </figure>
+
+  <div class="algo">
+    <div class="hd"><span>Algorithm</span><span class="nm">gradient_boosting</span></div>
+    <div class="bd">
+<p class="ln"><span class="io">input:</span> X, y, number of trees M, learning rate η (small, e.g. 0.05)</p>
+<p class="ln">F ← a constant first guess <span class="cm"># e.g. the class frequencies</span></p>
+<p class="ln"><span class="kw">for</span> m = 1 … M:</p>
+<p class="ln i1">r ← gradient of the loss at F <span class="cm"># "where and how F is wrong"</span></p>
+<p class="ln i1">h ← grow a small tree predicting r from X</p>
+<p class="ln i1">F ← F + η · h <span class="cm"># take a small step</span></p>
+<p class="ln"><span class="kw">return</span> F</p>
+    </div>
+  </div>
+
+  <h3>XGBoost, LightGBM, CatBoost — same idea, different engines</h3>
+  <p>These three are all gradient boosting; they differ in engineering, not in the core idea. All are excellent. The short version:</p>
+
+  <table class="tbl">
+    <tr><th>Library</th><th>What's special</th><th>Reach for it when</th></tr>
+    <tr><td><b>XGBoost</b></td><td>The well-tested standard. Strong regularization, robust, huge community, runs everywhere.</td><td>Default for a tabular fault classifier; you want a known quantity.</td></tr>
+    <tr><td><b>LightGBM</b></td><td>Fastest on big data. Grows trees leaf-wise and bins features, so it trains quickly on millions of fleet rows.</td><td>Large fleets, many features, you retrain often and care about speed.</td></tr>
+    <tr><td><b>CatBoost</b></td><td>Handles categorical columns natively (supplier, plant, firmware id) and needs little tuning to do well.</td><td>Lots of categorical build attributes; you want strong results out of the box.</td></tr>
+    <tr><td><b>AdaBoost</b></td><td>The original boosting; simple, fewer knobs, less accurate than the gradient trio.</td><td>A light baseline, or teaching the idea.</td></tr>
+  </table>
+  <div class="note">
+    <span class="lab">Rule of thumb</span>
+    <p>Random Forest first (it just works and barely needs tuning). If you need to squeeze out more accuracy and can afford to tune, move to gradient boosting — XGBoost as the safe pick, LightGBM if speed matters, CatBoost if you have many categorical columns.</p>
+  </div>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="extra">
+  <span class="snum">§ 06 — Extra Trees</span>
+  <h2>The even-more-random forest</h2>
+  <p><strong>Extra Trees</strong> (Extremely Randomized Trees) is a Random Forest with the randomness turned up one more notch. Where a Random Forest searches for the <em>best</em> threshold on each candidate feature, Extra Trees picks the thresholds <strong>at random</strong> and keeps the best of those. It usually also trains each tree on the full data rather than a bootstrap bag.</p>
+  <p>The effect: the trees are even more decorrelated and a little more biased individually, but the ensemble is often as accurate as a Random Forest and noticeably <strong>faster to train</strong>, because it skips the expensive search for the perfect split. In VHM it is a fine swap for Random Forest when training time matters and you want to retrain frequently.</p>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="choose">
+  <span class="snum">§ 07 — Choosing &amp; Tuning</span>
+  <h2>Which model, and which knobs</h2>
+  <p class="lead">Two practical questions remain: which of these models do you start with, and what do you actually turn to make it better?</p>
+
+  <figure>
+    <div class="figlab">Figure 6 · Which model do I pick?</div>
+    <svg viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <defs><marker id="af" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#211C15"/></marker></defs>
+      <!-- start -->
+      <rect x="300" y="16" width="160" height="38" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.6"/>
+      <text x="380" y="40" text-anchor="middle" font-size="12" font-weight="600">tabular fault data</text>
+      <line x1="380" y1="54" x2="380" y2="74" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <!-- tree baseline -->
+      <rect x="280" y="76" width="200" height="38" rx="7" fill="#FBF8F1" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="380" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#C2410C">train a Decision Tree</text>
+      <line x1="380" y1="114" x2="380" y2="134" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <!-- q1 -->
+      <polygon points="380,138 480,176 380,214 280,176" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="380" y="172" text-anchor="middle" font-size="10.5" fill="#B45309">good enough &amp;</text>
+      <text x="380" y="186" text-anchor="middle" font-size="10.5" fill="#B45309">must be auditable?</text>
+      <text x="496" y="172" font-size="10.5" fill="#0F766E" font-weight="600">yes</text>
+      <rect x="540" y="158" width="150" height="36" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.6"/>
+      <text x="615" y="181" text-anchor="middle" font-size="11.5" fill="#0F766E" font-weight="600">ship the tree</text>
+      <line x1="480" y1="176" x2="538" y2="176" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <text x="392" y="230" font-size="10.5" fill="#9A3412" font-weight="600">no</text>
+      <line x1="380" y1="214" x2="380" y2="236" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <!-- RF -->
+      <rect x="290" y="238" width="180" height="38" rx="7" fill="#FBF8F1" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="380" y="262" text-anchor="middle" font-size="12" font-weight="600" fill="#0F766E">Random Forest</text>
+      <line x1="380" y1="276" x2="380" y2="296" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <!-- q2 -->
+      <polygon points="380,300 470,334 380,368 290,334" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="380" y="338" text-anchor="middle" font-size="10.5" fill="#B45309">accuracy enough?</text>
+      <text x="486" y="330" font-size="10.5" fill="#0F766E" font-weight="600">yes</text>
+      <rect x="540" y="316" width="150" height="36" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.6"/>
+      <text x="615" y="339" text-anchor="middle" font-size="11.5" fill="#0F766E" font-weight="600">ship the forest</text>
+      <line x1="470" y1="334" x2="538" y2="334" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <text x="392" y="384" font-size="10.5" fill="#9A3412" font-weight="600">no</text>
+      <line x1="380" y1="368" x2="380" y2="388" stroke="#211C15" stroke-width="2" marker-end="url(#af)"/>
+      <!-- boosting -->
+      <rect x="250" y="390" width="260" height="38" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.6"/>
+      <text x="380" y="414" text-anchor="middle" font-size="11.5" font-weight="600" fill="#C2410C">gradient boosting — XGB / LGBM / CatBoost</text>
+      <!-- side notes -->
+      <g font-size="10" fill="#5A5044">
+        <text x="40" y="396">many categoricals → CatBoost</text>
+        <text x="40" y="412">big &amp; fast → LightGBM</text>
+        <text x="40" y="428">else → XGBoost</text>
+      </g>
+      <text x="615" y="266" text-anchor="middle" font-size="10" fill="#5A5044">RF good but slow to</text>
+      <text x="615" y="280" text-anchor="middle" font-size="10" fill="#5A5044">retrain → Extra Trees</text>
+    </svg>
+    <figcaption><b>Start cheap and readable, climb only as needed.</b> A tree you can audit beats a black box that is one point more accurate — until accuracy is the thing that matters, at which point you climb to a forest, then to boosting.</figcaption>
+  </figure>
+
+  <p>You do not tune everything. A handful of knobs carry almost all the benefit; the rest are noise. Here are the ones worth knowing, and a sane place to start for a VHM fault classifier.</p>
+
+  <table class="tbl">
+    <tr><th>Knob</th><th>Model</th><th>What it does</th><th>Start at</th></tr>
+    <tr><td><b>n_estimators</b></td><td>Random Forest</td><td>Number of trees. More is safer (never overfits), just slower.</td><td>300–500</td></tr>
+    <tr><td><b>n_estimators</b></td><td>Boosting</td><td>Number of rounds. Pair with a low learning rate; let early stopping pick it.</td><td>500–2000 + early stop</td></tr>
+    <tr><td><b>learning_rate</b></td><td>Boosting</td><td>Step size. Lower = more accurate but needs more trees.</td><td>0.03–0.1</td></tr>
+    <tr><td><b>max_depth</b></td><td>Random Forest</td><td>Tree depth. Deep is fine — the vote tames it.</td><td>None (full)</td></tr>
+    <tr><td><b>max_depth</b></td><td>Boosting</td><td>Depth of each small tree. Keep it shallow.</td><td>3–6</td></tr>
+    <tr><td><b>min_samples_leaf</b> / <b>min_child_weight</b></td><td>Both</td><td>Minimum data in a leaf. Raise to smooth and de-overfit.</td><td>raise if overfitting</td></tr>
+    <tr><td><b>max_features</b></td><td>Random Forest</td><td>Features tried per split — the decorrelation knob.</td><td>"sqrt"</td></tr>
+    <tr><td><b>subsample</b> / <b>colsample_bytree</b></td><td>Boosting</td><td>Random rows / features per tree. Adds regularization.</td><td>0.7–0.9</td></tr>
+    <tr><td><b>reg_lambda</b> / <b>reg_alpha</b></td><td>Boosting</td><td>L2 / L1 penalties. Raise to fight overfitting.</td><td>small, then raise</td></tr>
+    <tr><td><b>class_weight</b> / <b>scale_pos_weight</b></td><td>Both</td><td>Counter rare-fault imbalance.</td><td>balanced / class ratio</td></tr>
+  </table>
+  <div class="note">
+    <span class="lab">The 80% move</span>
+    <p>For boosting, almost all the gain comes from one recipe: <strong>lower the learning rate, raise the number of trees, and use early stopping</strong> to find where the validation score stops improving. Tune depth and subsampling after that, and stop when the curve flattens.</p>
+  </div>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="importance">
+  <span class="snum">§ 08 — Feature Importance</span>
+  <h2>Which signals drove the call</h2>
+  <p class="lead">A diagnosis you cannot explain is hard to act on. Tree ensembles hand you the explanation almost for free.</p>
+  <p>Because every split is made on one feature to reduce impurity, you can add up how much each feature helped across all the trees. That gives a ranked list — a <strong>feature importance</strong> — telling you which signals the model leaned on. For a fault classifier that list is gold: it points the engineer at the physical cause, not just the label.</p>
+  <p>There are three flavours, in rising order of trustworthiness:</p>
+  <ul>
+    <li><strong>Built-in (Gini / "impurity") importance.</strong> Free and instant, but it can overrate features with many distinct values. Fine for a first look.</li>
+    <li><strong>Permutation importance.</strong> Shuffle one feature's column and see how much accuracy drops; the bigger the drop, the more the model needed it. Slower, but honest and model-agnostic.</li>
+    <li><strong>SHAP values.</strong> A principled, per-prediction breakdown — "for <em>this</em> car, high connector resistance pushed it toward the connector-fault class by this much." The gold standard when you must justify an individual diagnosis.</li>
+  </ul>
+
+  <figure>
+    <div class="figlab">Figure 5 · Feature importance from the worked model</div>
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <g font-size="12" fill="#211C15">
+        <text x="20" y="40">connector_resistance</text>
+        <text x="20" y="76">firmware_version</text>
+        <text x="20" y="112">cold_charge_fraction</text>
+        <text x="20" y="148">supplier_code</text>
+        <text x="20" y="184">peak_charge_current</text>
+        <text x="20" y="220">pack_age_cycles</text>
+      </g>
+      <g>
+        <rect x="250" y="28" width="380" height="18" fill="#C2410C"/>
+        <rect x="250" y="64" width="300" height="18" fill="#B45309"/>
+        <rect x="250" y="100" width="232" height="18" fill="#0F766E"/>
+        <rect x="250" y="136" width="150" height="18" fill="#475569"/>
+        <rect x="250" y="172" width="78" height="18" fill="#94896F"/>
+        <rect x="250" y="208" width="40" height="18" fill="#94896F"/>
+      </g>
+      <g font-size="11" fill="#5A5044">
+        <text x="638" y="42">0.34</text>
+        <text x="558" y="78">0.27</text>
+        <text x="490" y="114">0.20</text>
+        <text x="408" y="150">0.12</text>
+        <text x="336" y="186">0.05</text>
+        <text x="298" y="222">0.02</text>
+      </g>
+      <line x1="250" y1="20" x2="250" y2="234" stroke="#211C15" stroke-width="1.4"/>
+      <text x="440" y="252" text-anchor="middle" font-size="11" fill="#5A5044">relative importance →</text>
+    </svg>
+    <figcaption><b>The model points at the cause.</b> Connector resistance and firmware version dominate — exactly the two real causes in this fleet. An importance plot like this turns a black-box label into an investigative lead.</figcaption>
+  </figure>
+  <div class="note">
+    <span class="lab">Caution</span>
+    <p>Importance tells you what the model <em>used</em>, not what physically <em>causes</em> the fault. A feature can rank high because it is correlated with the true cause (a confounder), not because it is the cause. Treat the ranking as a lead to investigate, not a verdict — the same lesson as the rest of the diagnosis series.</p>
+  </div>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="worked">
+  <span class="snum">§ 09 — Worked Example</span>
+  <h2>Classifying an EV charging fault, start to finish</h2>
+  <p class="lead">One fleet, one charging code, three answers: healthy, a firmware cold-throttle bug, or a high-resistance connector lot. Let's train the classifier that tells them apart.</p>
+  <p>This is the running scenario from the diagnosis series — 6,000 EVs throwing the same <code class="inl">P0AE0</code> charging code, with two real hidden causes. We have a labeled history (from teardowns and confirmed past cases) and a table of features per car. The code below trains a Random Forest as the baseline, then XGBoost, reads off the confusion matrix, and prints the feature importance.</p>
+
+  <h3>Step 1 — Build the feature table</h3>
+  <p>Each row is one car; each column a feature computed from its telemetry and build record. Keep the meaning obvious so the importances are readable.</p>
+<pre><span class="c"># features per vehicle — one row each</span>
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> train_test_split
+
+cols = [
+    <span class="s">"connector_resistance"</span>,   <span class="c"># mΩ, from charge logs</span>
+    <span class="s">"firmware_version"</span>,       <span class="c"># numeric, e.g. 5.0 / 5.1 / 5.2</span>
+    <span class="s">"cold_charge_fraction"</span>,   <span class="c"># share of charges below 5 °C</span>
+    <span class="s">"supplier_code"</span>,          <span class="c"># categorical: A / B</span>
+    <span class="s">"peak_charge_current"</span>,    <span class="c"># A</span>
+    <span class="s">"pack_age_cycles"</span>,        <span class="c"># full-charge equivalents</span>
+]
+df = pd.read_parquet(<span class="s">"fleet_features.parquet"</span>)
+X = pd.get_dummies(df[cols])           <span class="c"># one-hot the categorical column</span>
+y = df[<span class="s">"label"</span>]                     <span class="c"># healthy / firmware_bug / connector_lot</span>
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, test_size=<span class="n">0.25</span>, stratify=y, random_state=<span class="n">0</span>)</pre>
+
+  <h3>Step 2 — Baseline forest, then boosting</h3>
+<pre><span class="k">from</span> sklearn.ensemble <span class="k">import</span> RandomForestClassifier
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> classification_report, confusion_matrix
+
+<span class="c"># --- baseline: Random Forest, almost no tuning ---</span>
+rf = RandomForestClassifier(
+    n_estimators=<span class="n">400</span>, class_weight=<span class="s">"balanced"</span>,  <span class="c"># faults are rare</span>
+    oob_score=<span class="k">True</span>, random_state=<span class="n">0</span>, n_jobs=-<span class="n">1</span>)
+rf.fit(X_tr, y_tr)
+<span class="k">print</span>(<span class="s">"OOB accuracy:"</span>, round(rf.oob_score_, <span class="n">3</span>))
+<span class="k">print</span>(classification_report(y_te, rf.predict(X_te)))
+
+<span class="c"># --- stronger: XGBoost ---</span>
+<span class="k">from</span> xgboost <span class="k">import</span> XGBClassifier
+xgb = XGBClassifier(
+    n_estimators=<span class="n">600</span>, max_depth=<span class="n">4</span>, learning_rate=<span class="n">0.05</span>,
+    subsample=<span class="n">0.8</span>, colsample_bytree=<span class="n">0.8</span>,
+    eval_metric=<span class="s">"mlogloss"</span>, random_state=<span class="n">0</span>)
+xgb.fit(X_tr, y_tr.cat.codes)
+<span class="k">print</span>(confusion_matrix(y_te.cat.codes, xgb.predict(X_te)))</pre>
+
+  <h3>Step 3 — Read the confusion matrix</h3>
+  <p>The confusion matrix is the honest scorecard: rows are the true class, columns what the model guessed. The diagonal is correct; everything off-diagonal is a mix-up worth understanding.</p>
+  <table class="tbl">
+    <tr><th>true ↓ / pred →</th><th>healthy</th><th>firmware bug</th><th>connector lot</th><th>recall</th></tr>
+    <tr><td><b>healthy</b></td><td>1182</td><td>9</td><td>9</td><td><span class="tag hi">98.5%</span></td></tr>
+    <tr><td><b>firmware bug</b></td><td>6</td><td>171</td><td>5</td><td><span class="tag hi">94.0%</span></td></tr>
+    <tr><td><b>connector lot</b></td><td>7</td><td>4</td><td>165</td><td><span class="tag hi">93.8%</span></td></tr>
+  </table>
+  <p>Read the off-diagonal as questions. The handful of firmware-vs-connector mix-ups (5 and 4 cars) are the genuinely ambiguous cars — cold-charging cars with a Supplier-B connector, where both causes leave a similar trace. That is not a bug in the model; it is the de-mixing problem the fleet posts warned about, and it tells you exactly which cars need a confirming measurement.</p>
+
+  <h3>Step 4 — Explain it</h3>
+<pre><span class="c"># honest, model-agnostic importance</span>
+<span class="k">from</span> sklearn.inspection <span class="k">import</span> permutation_importance
+imp = permutation_importance(rf, X_te, y_te, n_repeats=<span class="n">10</span>, random_state=<span class="n">0</span>)
+<span class="k">for</span> name, score <span class="k">in</span> sorted(
+        zip(X.columns, imp.importances_mean), key=<span class="k">lambda</span> t: -t[<span class="n">1</span>]):
+    <span class="k">print</span>(f<span class="s">"{name:24s} {score:.3f}"</span>)
+
+<span class="c"># per-car reasons, for the report attached to a diagnosis</span>
+<span class="k">import</span> shap
+explainer = shap.TreeExplainer(xgb)
+shap_values = explainer.shap_values(X_te)   <span class="c"># why THIS car got THIS label</span></pre>
+  <p>The importance ranking comes back led by <code class="inl">connector_resistance</code> and <code class="inl">firmware_version</code> — the two real causes (Figure 5). The model has not just labeled the cars; it has handed the engineer the two signals to go and confirm. That is the whole loop: detect, classify, and explain, with the explanation pointing back at the physics.</p>
+  <div class="note">
+    <span class="lab">What just happened</span>
+    <p>A 30-line baseline reached ~96% accuracy on a three-way fault classification and named the two driving signals — with no feature scaling, no neural network, and a model an engineer can interrogate. That ratio of effort to result is why tree ensembles are the workhorse of VHM fault classification.</p>
+  </div>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="decision">
+  <span class="snum">§ 10 — From Score to Decision</span>
+  <h2>Calibration and the cost of being wrong</h2>
+  <p class="lead">A classifier outputs a number. Acting on a fleet — flagging cars for a campaign — needs that number to mean something, and needs a threshold chosen by what mistakes actually cost.</p>
+  <p>Two traps sit between the model and the decision.</p>
+  <p><strong>Trap one: the score is not a probability.</strong> A tree ensemble's "0.7" is not a calibrated 70% chance — boosting tends to push scores toward 0 and 1, forests toward the middle. If a number is going to drive a recall, <strong>calibrate</strong> it first so that, among cars scored 0.7, about 70% truly have the fault.</p>
+<pre><span class="k">from</span> sklearn.calibration <span class="k">import</span> CalibratedClassifierCV
+cal = CalibratedClassifierCV(xgb, method=<span class="s">"isotonic"</span>, cv=<span class="n">5</span>)
+cal.fit(X_tr, y_tr)
+p = cal.predict_proba(X_te)[:, fault_idx]   <span class="c"># now a trustworthy probability</span></pre>
+  <p><strong>Trap two: 0.5 is almost never the right cutoff.</strong> The default threshold treats a missed fault and a false alarm as equally bad. In VHM they are wildly unequal. A missed high-resistance connector can mean a thermal event and a warranty claim; a false flag means a needless service visit or an unwarranted campaign. Put numbers on it and the threshold falls out.</p>
+  <p>Suppose a <strong>missed</strong> connector fault costs about <strong>$4,000</strong> per car (warranty + reputation + safety exposure) and a <strong>false flag</strong> costs about <strong>$250</strong> per car (service time, owner goodwill). Then for each candidate threshold you can compute the expected cost over the fleet and pick the lowest. Because misses are ~16× costlier than false alarms, the best cutoff sits far below 0.5.</p>
+
+  <figure>
+    <div class="figlab">Figure 7 · Expected cost vs. threshold</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <!-- axes -->
+      <line x1="70" y1="250" x2="720" y2="250" stroke="#211C15" stroke-width="1.5"/>
+      <line x1="70" y1="30" x2="70" y2="250" stroke="#211C15" stroke-width="1.5"/>
+      <text x="395" y="284" text-anchor="middle" font-size="11" fill="#5A5044">decision threshold →</text>
+      <text x="30" y="140" text-anchor="middle" font-size="11" fill="#5A5044" transform="rotate(-90 30 140)">expected $ / car</text>
+      <g font-size="10" fill="#5A5044">
+        <text x="70" y="266" text-anchor="middle">0.0</text>
+        <text x="200" y="266" text-anchor="middle">0.1</text>
+        <text x="330" y="266" text-anchor="middle">0.2</text>
+        <text x="460" y="266" text-anchor="middle">0.4</text>
+        <text x="590" y="266" text-anchor="middle">0.7</text>
+        <text x="710" y="266" text-anchor="middle">1.0</text>
+      </g>
+      <!-- false-alarm cost (falls as threshold rises) -->
+      <path d="M70 70 C 220 150, 360 215, 720 244" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="150" y="92" font-size="10" fill="#475569">false-flag cost</text>
+      <!-- miss cost (rises as threshold rises) -->
+      <path d="M70 246 C 360 240, 520 150, 720 50" fill="none" stroke="#B45309" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="600" y="96" font-size="10" fill="#B45309">miss cost</text>
+      <!-- total U -->
+      <path d="M70 96 C 220 150, 300 188, 360 188 C 470 188, 560 150, 720 70" fill="none" stroke="#C2410C" stroke-width="2.6"/>
+      <text x="430" y="150" font-size="11" fill="#C2410C" font-weight="600">total cost</text>
+      <!-- minimum marker -->
+      <circle cx="335" cy="188" r="5" fill="#0F766E"/>
+      <line x1="335" y1="188" x2="335" y2="250" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="3 3"/>
+      <text x="335" y="176" text-anchor="middle" font-size="10.5" fill="#0F766E" font-weight="600">best ≈ 0.18</text>
+    </svg>
+    <figcaption><b>The threshold is an economic choice, not a default.</b> Total expected cost is U-shaped; its minimum — here around 0.18, well below 0.5 — is where you set the flag, because a miss costs far more than a false alarm. This is the classifier-level version of the campaign "prevented loss vs. cost" trade-off from the fleet posts.</figcaption>
+  </figure>
+  <div class="note">
+    <span class="lab">Tie-in</span>
+    <p>This is the same logic as the fleet decision to launch a campaign, pushed down to the per-car score. Calibrate, write down the cost of each error, and let the numbers set the threshold — then the model's output is a decision, not just a guess.</p>
+  </div>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="rul">
+  <span class="snum">§ 11 — Beyond Classification</span>
+  <h2>The same trees predict remaining life</h2>
+  <p class="lead">Swap the leaf from a label to a number and the very same ensembles do <em>prognostics</em> — predicting how much life a part has left, not just which fault it has.</p>
+  <p>A classification tree's leaf holds a class; a <strong>regression</strong> tree's leaf holds a number — the average of the training values that landed there. Everything else is identical, so <code class="inl">RandomForestRegressor</code> and <code class="inl">XGBRegressor</code> predict a continuous target such as <strong>Remaining Useful Life</strong> (RUL) in cycles or days from the same tabular features.</p>
+<pre><span class="k">from</span> sklearn.ensemble <span class="k">import</span> RandomForestRegressor
+rul = RandomForestRegressor(n_estimators=<span class="n">400</span>, random_state=<span class="n">0</span>, n_jobs=-<span class="n">1</span>)
+rul.fit(X_tr, y_rul_tr)              <span class="c"># y = cycles until failure threshold</span>
+pred = rul.predict(X_te)            <span class="c"># point estimate of remaining life</span></pre>
+  <p>A point estimate alone is dangerous for a maintenance call — you want a <strong>band</strong>. Two easy ways: read the spread of the individual trees' predictions in a forest, or train a gradient-boosting model with a <strong>quantile</strong> loss to predict the 10th and 90th percentiles directly, giving an honest prediction interval.</p>
+<pre><span class="k">from</span> sklearn.ensemble <span class="k">import</span> GradientBoostingRegressor
+lo = GradientBoostingRegressor(loss=<span class="s">"quantile"</span>, alpha=<span class="n">0.1</span>).fit(X_tr, y_rul_tr)
+hi = GradientBoostingRegressor(loss=<span class="s">"quantile"</span>, alpha=<span class="n">0.9</span>).fit(X_tr, y_rul_tr)
+<span class="c"># report "RUL between lo(x) and hi(x)" — a band, not a false-precise number</span></pre>
+  <div class="note">
+    <span class="lab">One catch, flagged here, explained next</span>
+    <p>Regression trees have a hard ceiling for prognostics: they <strong>cannot predict a value outside the range they were trained on</strong>. A part more degraded than anything in the training data will get an answer that is too optimistic. That single limitation is important enough to earn its own section.</p>
+  </div>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="limits">
+  <span class="snum">§ 12 — The Limits of Trees</span>
+  <h2>When to reach for something else</h2>
+  <p class="lead">Tree ensembles are the right default for tabular VHM — but defaults have edges. Knowing where they fail is part of using them well.</p>
+
+  <figure>
+    <div class="figlab">Figure 8 · Trees cannot extrapolate</div>
+    <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <line x1="70" y1="230" x2="720" y2="230" stroke="#211C15" stroke-width="1.5"/>
+      <line x1="70" y1="24" x2="70" y2="230" stroke="#211C15" stroke-width="1.5"/>
+      <text x="395" y="262" text-anchor="middle" font-size="11" fill="#5A5044">feature (e.g. pack age) →</text>
+      <text x="32" y="130" text-anchor="middle" font-size="11" fill="#5A5044" transform="rotate(-90 32 130)">target (degradation)</text>
+      <!-- training range shading -->
+      <rect x="70" y="24" width="360" height="206" fill="#0F766E" opacity="0.06"/>
+      <text x="250" y="44" text-anchor="middle" font-size="10.5" fill="#0F766E">seen in training</text>
+      <text x="575" y="44" text-anchor="middle" font-size="10.5" fill="#B91C1C">beyond training</text>
+      <line x1="430" y1="24" x2="430" y2="230" stroke="#9A3412" stroke-width="1.4" stroke-dasharray="4 4"/>
+      <!-- true trend -->
+      <path d="M70 210 L720 50" fill="none" stroke="#475569" stroke-width="2"/>
+      <text x="650" y="64" font-size="10" fill="#475569">true trend</text>
+      <!-- tree staircase that flattens beyond training -->
+      <path d="M70 206 L130 206 L130 176 L200 176 L200 150 L270 150 L270 120 L360 120 L360 96 L430 96 L430 96 L720 96"
+            fill="none" stroke="#C2410C" stroke-width="2.4"/>
+      <text x="500" y="86" font-size="10.5" fill="#C2410C" font-weight="600">tree prediction — flat!</text>
+    </svg>
+    <figcaption><b>A tree's answer is a staircase that goes flat at the edge of the data.</b> Past the last value it saw, it just repeats the highest leaf — so for trends, forecasts, and RUL beyond the training range, trees underpredict. A physics model or a linear/parametric fit belongs out there.</figcaption>
+  </figure>
+
+  <p>The honest list of where to reach for something else:</p>
+  <ul>
+    <li><strong>Extrapolation and trends.</strong> As above — trees are flat outside the training range. For degradation curves and long-horizon RUL, use physics-of-failure models, or a linear/parametric trend, and keep the tree for the tabular classification part.</li>
+    <li><strong>Raw high-dimensional signals.</strong> A 20,000-point vibration waveform or a spectrogram is not a feature table. Extract features first (spectral peaks, envelope, statistics) and then use trees — or use a 1-D CNN that learns from the raw signal directly.</li>
+    <li><strong>Smooth, genuinely linear relationships.</strong> If the truth is a clean line, a linear model is simpler, extrapolates, and needs less data. Don't bring a forest to a slope.</li>
+    <li><strong>Missing data.</strong> A real advantage worth knowing: <strong>XGBoost, LightGBM, and CatBoost handle missing values natively</strong> (each split learns a default direction), while scikit-learn's Random Forest needs you to impute first. If your fleet table is full of gaps, the boosting trio saves a step.</li>
+    <li><strong>Very high-cardinality categoricals.</strong> Thousands of distinct part numbers can leak or explode one-hot encodings. Reach for CatBoost's native handling or careful target encoding.</li>
+    <li><strong>Streaming / online learning.</strong> Classic ensembles are batch-trained. For always-on adaptation you retrain on a schedule or use online-tree variants — plain RF/XGBoost won't update themselves.</li>
+  </ul>
+</section>
+
+<!-- ===================== 13 ===================== -->
+<section id="practical">
+  <span class="snum">§ 13 — Practical Notes</span>
+  <h2>The realities of fleet data</h2>
+  <p>The algorithm is the easy part. These are the things that decide whether a VHM classifier survives contact with a real fleet.</p>
+  <ul>
+    <li><strong>Faults are rare — never trust accuracy.</strong> If 1% of cars have the fault, a model that says "healthy" always is 99% accurate and useless. Use <code class="inl">class_weight="balanced"</code> (or <code class="inl">scale_pos_weight</code> in XGBoost), resample with care, and judge by <strong>precision, recall, and the confusion matrix</strong> — not accuracy.</li>
+    <li><strong>Guard against leakage.</strong> The fastest way to a "99% model" that fails in the field is a feature that secretly encodes the answer — a repair-shop code, a post-failure timestamp, a warranty flag. If a column would not exist <em>before</em> the diagnosis, it cannot be an input.</li>
+    <li><strong>Split by vehicle and by time.</strong> Never let rows from the same car (or the same future you are trying to predict) land in both train and test. Group-split by VIN, and prefer a time-based split so the test set is genuinely "later."</li>
+    <li><strong>Labels are the bottleneck, not the model.</strong> Most VHM effort goes into getting trustworthy labels from teardowns, warranty, and seeded-fault rigs. A clean 2,000-row labeled set beats a noisy 200,000-row one.</li>
+    <li><strong>Calibrate if you act on probabilities.</strong> Raw tree-ensemble scores are not true probabilities. If a "70% connector fault" triggers a recall decision, wrap the model in probability calibration (Platt / isotonic) first.</li>
+    <li><strong>Tune what matters.</strong> For forests, mostly just add trees. For boosting, the levers are learning rate, tree depth, number of trees, and subsampling — lower the rate and add trees for accuracy; use early stopping to find the count.</li>
+    <li><strong>Edge vs. cloud.</strong> A trained forest is a stack of simple if/else thresholds — small and fast enough to run on a vehicle ECU for on-board classification. Boosted models are usually kept in the fleet cloud where labels and compute live.</li>
+    <li><strong>Watch for drift.</strong> A new firmware release, a new supplier, a cold winter — the feature distribution shifts and the model silently rots. Monitor input distributions and live precision/recall, and retrain on a schedule.</li>
+  </ul>
+</section>
+
+<!-- ===================== 14 ===================== -->
+<section id="refs">
+  <span class="snum">§ 14 — References &amp; Further Reading</span>
+  <h2>Where to go deeper</h2>
+  <div class="refs">
+    <p>Breiman, L. (2001). <b>Random Forests.</b> <em>Machine Learning</em>, 45(1). The paper that started it — bagging plus random feature subsets.</p>
+    <p>Breiman, Friedman, Olshen &amp; Stone (1984). <b>Classification and Regression Trees (CART).</b> The single-tree foundation.</p>
+    <p>Geurts, Ernst &amp; Wehenkel (2006). <b>Extremely Randomized Trees.</b> <em>Machine Learning</em>, 63(1).</p>
+    <p>Freund &amp; Schapire (1997). <b>A Decision-Theoretic Generalization of On-Line Learning (AdaBoost).</b></p>
+    <p>Friedman, J. (2001). <b>Greedy Function Approximation: A Gradient Boosting Machine.</b> <em>Annals of Statistics</em>, 29(5). The gradient-boosting paper.</p>
+    <p>Chen &amp; Guestrin (2016). <b>XGBoost: A Scalable Tree Boosting System.</b> KDD.</p>
+    <p>Ke et al. (2017). <b>LightGBM: A Highly Efficient Gradient Boosting Decision Tree.</b> NeurIPS.</p>
+    <p>Prokhorenkova et al. (2018). <b>CatBoost: Unbiased Boosting with Categorical Features.</b> NeurIPS.</p>
+    <p>Lundberg &amp; Lee (2017). <b>A Unified Approach to Interpreting Model Predictions (SHAP).</b> NeurIPS.</p>
+    <p>Niculescu-Mizil &amp; Caruana (2005). <b>Predicting Good Probabilities with Supervised Learning.</b> ICML. Why tree-ensemble scores need calibration.</p>
+    <p>Meinshausen, N. (2006). <b>Quantile Regression Forests.</b> <em>JMLR</em>, 7. Prediction intervals (RUL bands) from forests.</p>
+    <p>Hastie, Tibshirani &amp; Friedman (2009). <b>The Elements of Statistical Learning</b>, 2nd ed. Chapters 9, 10, 15 — trees, boosting, forests.</p>
+    <p>Pedregosa et al. (2011). <b>scikit-learn: Machine Learning in Python.</b> <em>JMLR</em>, 12. The library used above.</p>
+    <p>Lei et al. (2020). <b>Applications of machine learning to machine fault diagnosis: A review and roadmap.</b> <em>Mechanical Systems and Signal Processing</em>, 138. Tree ensembles in the VHM/PHM context.</p>
+  </div>
+</section>
+
+<div style="margin:36px 0 0; padding:18px 0 0; border-top:1px solid var(--rule); text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.75; color:var(--ink-soft);">
+  <strong style="color:var(--rust); letter-spacing:.08em;">P.S.</strong> &mdash; want this in your editor? The
+  <a href="javascript:void(0)" data-zip-href="tree-ensembles-vhm-kit.zip" download>Tree-Ensembles VHM Kit</a>
+  gives Copilot the doctrine, slash-commands, an agent, and a runnable scaffold (synthetic fleet → train RF + XGBoost → confusion matrix → importance).
+</div>
+
+<footer>
+  <div class="reslinks" style="margin-top:0; border-top:none">
+    <span class="ic">▸</span>
+    <a href="isolation-forest.html">Isolation Forest</a>
+    <a href="xgboost-and-boosting-family.html">The boosting family</a>
+    <a href="diagnosis-glossary.html">Diagnosis glossary</a>
+  </div>
+  <div class="rule"></div>
+  <p><b>Tree Ensembles for Vehicle Health Monitoring</b></p>
+  <p>By Majid Mazouchi · Vehicle Health Monitoring Notes</p>
+  <p>The workhorse classifiers that name the fault.</p>
+</footer>
+
+</div>
+</body>
+</html>

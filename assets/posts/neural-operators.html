@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Operators: FNO and KNO in Plain Words</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA;
+    --paper-2:#FBF9F4;
+    --card:#EDE8DD;
+    --ink:#241F1A;
+    --ink-soft:#4A423A;
+    --rust:#A8442A;
+    --teal:#1F5C58;
+    --ochre:#C2902F;
+    --line:#D8D0C2;
+    --line-strong:#C4B9A6;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Spectral",Georgia,serif;
+    font-size:19px;
+    line-height:1.68;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 26px;}
+
+  /* ---- header ---- */
+  header.masthead{
+    padding:74px 0 30px;
+    border-bottom:2px solid var(--ink);
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--rust);margin:0 0 20px;
+  }
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;font-size:clamp(38px,7vw,62px);
+    line-height:1.03;letter-spacing:-.015em;margin:0 0 18px;
+  }
+  .standfirst{
+    font-size:21px;color:var(--ink-soft);font-style:italic;
+    max-width:620px;margin:0 0 26px;
+  }
+  .byline{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;letter-spacing:.04em;color:var(--ink-soft);
+    text-transform:uppercase;
+  }
+
+  /* ---- typography ---- */
+  h2{
+    font-family:"Fraunces",serif;font-weight:600;
+    font-size:clamp(27px,4.4vw,36px);letter-spacing:-.01em;
+    margin:64px 0 6px;line-height:1.1;
+  }
+  h2 .num{
+    font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:500;
+    color:var(--rust);display:block;letter-spacing:.18em;margin-bottom:10px;
+  }
+  h3{
+    font-family:"Fraunces",serif;font-weight:600;font-size:23px;
+    margin:38px 0 4px;letter-spacing:-.005em;
+  }
+  p{margin:16px 0;}
+  a{color:var(--teal);}
+  strong{font-weight:600;}
+  .lead{font-size:20.5px;}
+  em.term{font-style:normal;font-weight:600;color:var(--rust);}
+
+  section{padding-top:2px;}
+  .rule{height:1px;background:var(--line);margin:54px 0;border:0;}
+
+  /* ---- callout / aside ---- */
+  .aside{
+    background:var(--card);
+    border-left:3px solid var(--ochre);
+    padding:18px 22px;margin:26px 0;border-radius:0 6px 6px 0;
+    font-size:18px;
+  }
+  .aside .lbl{
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ochre);display:block;margin-bottom:6px;
+    font-weight:600;
+  }
+  .aside.teal{border-left-color:var(--teal);}
+  .aside.teal .lbl{color:var(--teal);}
+  .aside.rust{border-left-color:var(--rust);}
+  .aside.rust .lbl{color:var(--rust);}
+
+  /* ---- math-ish lines ---- */
+  .eq{
+    font-family:"IBM Plex Mono",monospace;font-size:16px;
+    background:var(--paper-2);border:1px solid var(--line);
+    padding:14px 18px;margin:20px 0;border-radius:6px;overflow-x:auto;
+    line-height:1.7;color:var(--ink);
+  }
+  .eq .c{color:var(--teal);}
+  .eq .r{color:var(--rust);}
+  .eq .o{color:var(--ochre);}
+  code{
+    font-family:"IBM Plex Mono",monospace;font-size:.86em;
+    background:var(--card);padding:1px 6px;border-radius:4px;
+  }
+
+  /* ---- figure frame ---- */
+  figure{
+    margin:34px 0;background:var(--paper-2);
+    border:1px solid var(--line);border-radius:10px;padding:24px 20px 14px;
+  }
+  figure svg{display:block;width:100%;height:auto;}
+  figcaption{
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);
+    margin-top:14px;text-align:center;letter-spacing:.01em;line-height:1.55;
+  }
+  figcaption b{color:var(--rust);font-weight:600;}
+
+  /* svg shared text */
+  .svg-box-label{font-family:"Fraunces",serif;font-weight:600;}
+  .svg-sub{font-family:"IBM Plex Mono",monospace;}
+
+  /* ---- comparison table ---- */
+  table{width:100%;border-collapse:collapse;margin:28px 0;font-size:17px;}
+  th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--ink);
+  }
+  tbody th{font-family:"Fraunces",serif;font-weight:600;color:var(--rust);font-size:17px;width:30%;}
+
+  /* ---- interactive demo ---- */
+  .demo{
+    background:var(--paper-2);border:1px solid var(--line-strong);
+    border-radius:12px;padding:24px 22px;margin:30px 0;
+  }
+  .demo h4{
+    font-family:"Fraunces",serif;font-weight:600;font-size:20px;margin:0 0 4px;
+  }
+  .demo .hint{font-size:15.5px;color:var(--ink-soft);margin:0 0 18px;}
+  .demo canvas{width:100%;height:auto;display:block;background:var(--paper);
+    border:1px solid var(--line);border-radius:8px;}
+  .controls{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap;}
+  .controls label{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.04em;color:var(--ink-soft);}
+  input[type=range]{flex:1;min-width:160px;accent-color:var(--rust);height:4px;}
+  .readout{
+    font-family:"IBM Plex Mono",monospace;font-size:14px;
+    display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;
+  }
+  .readout b{color:var(--teal);}
+  .legend{display:flex;gap:20px;margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .swatch{width:22px;height:3px;display:inline-block;border-radius:2px;}
+  .swatch.box{height:11px;width:14px;border-radius:2px;}
+  .demo .clab{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-soft);margin:18px 0 6px;}
+  .demo .verdict{font-family:"IBM Plex Mono",monospace;font-size:13.5px;margin-top:14px;
+    padding:10px 14px;border-radius:7px;background:var(--card);color:var(--ink);}
+  .demo .verdict b{color:var(--rust);}
+  sup{font-size:.72em;}
+
+  /* tradeoff cards for limitations */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:26px 0;}
+  .cardx{background:var(--paper-2);border:1px solid var(--line);border-top:3px solid var(--rust);
+    border-radius:8px;padding:16px 18px;}
+  .cardx.teal{border-top-color:var(--teal);}
+  .cardx h4{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin:0 0 6px;}
+  .cardx p{margin:6px 0 0;font-size:16.5px;}
+  .cardx .fix{font-size:14.5px;color:var(--teal);margin-top:8px;font-style:italic;}
+  @media(max-width:560px){.cards{grid-template-columns:1fr;}}
+
+  ul{margin:16px 0;padding-left:22px;}
+  li{margin:8px 0;}
+
+  footer{
+    margin-top:70px;border-top:2px solid var(--ink);
+    padding:26px 0 80px;font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;color:var(--ink-soft);letter-spacing:.03em;
+  }
+
+  @media(max-width:560px){
+    body{font-size:18px;}
+    .wrap{padding:0 18px;}
+    tbody th{width:auto;}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">Operator Learning / Scientific ML</p>
+    <h1>Neural Operators in Plain Words</h1>
+    <p class="standfirst">How FNO and KNO learn to map one whole function to another, so a trained network can replace a slow physics solver, and stay correct even when you change the grid.</p>
+    <p class="byline">By Majid Mazouchi &middot; Drafted with Claude</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============== 1. THE PROBLEM ============== -->
+<section>
+  <h2><span class="num">01 / THE IDEA</span>From numbers to functions</h2>
+
+  <p class="lead">A normal neural network learns a map between vectors of fixed size. Photo in, label out. The input is a fixed list of numbers, and the output is a fixed list of numbers.</p>
+
+  <p>A <em class="term">neural operator</em> learns something bigger: a map between two <strong>functions</strong>. You feed it a whole field, for example temperature across a metal plate, and it returns another whole field, for example that temperature one second later. The input is a function. The output is a function. The thing that turns one into the other is called an <strong>operator</strong>.</p>
+
+  <p>Why care? Because the laws of physics are written as partial differential equations (PDEs), and the solution of a PDE <em>is</em> exactly this kind of map: give it the starting condition and material properties (functions), and it produces the solution (a function). A classical solver computes that map slowly, step by step, on a fine mesh. A neural operator learns the map once, then applies it in a single fast pass.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 240" role="img" aria-label="A function goes into a neural operator and a different function comes out">
+      <!-- input function -->
+      <text x="120" y="34" text-anchor="middle" class="svg-sub" font-size="13" fill="#4A423A">input function  a(x)</text>
+      <rect x="22" y="48" width="196" height="150" rx="8" fill="#FBF9F4" stroke="#C4B9A6"/>
+      <polyline points="34,170 60,120 86,150 112,80 138,135 164,100 190,160 206,130" fill="none" stroke="#1F5C58" stroke-width="3"/>
+      <line x1="34" y1="186" x2="206" y2="186" stroke="#D8D0C2"/>
+      <!-- operator box -->
+      <rect x="288" y="78" width="184" height="90" rx="12" fill="#A8442A"/>
+      <text x="380" y="118" text-anchor="middle" class="svg-box-label" font-size="20" fill="#F4F1EA">Neural</text>
+      <text x="380" y="144" text-anchor="middle" class="svg-box-label" font-size="20" fill="#F4F1EA">Operator</text>
+      <!-- arrows -->
+      <line x1="222" y1="123" x2="284" y2="123" stroke="#241F1A" stroke-width="2.5"/>
+      <polygon points="284,123 274,118 274,128" fill="#241F1A"/>
+      <line x1="476" y1="123" x2="538" y2="123" stroke="#241F1A" stroke-width="2.5"/>
+      <polygon points="538,123 528,118 528,128" fill="#241F1A"/>
+      <!-- output function -->
+      <text x="640" y="34" text-anchor="middle" class="svg-sub" font-size="13" fill="#4A423A">output function  u(x)</text>
+      <rect x="542" y="48" width="196" height="150" rx="8" fill="#FBF9F4" stroke="#C4B9A6"/>
+      <polyline points="554,150 580,140 606,110 632,118 658,70 684,96 710,88 726,120" fill="none" stroke="#C2902F" stroke-width="3"/>
+      <line x1="554" y1="186" x2="726" y2="186" stroke="#D8D0C2"/>
+    </svg>
+    <figcaption>The whole game: a <b>function</b> enters, a <b>function</b> leaves. The operator is what we learn.</figcaption>
+  </figure>
+
+  <div class="aside teal">
+    <span class="lbl">The headline property</span>
+    Because the operator works on functions, not on a fixed grid, you can train it on a coarse 64&times;64 mesh and then evaluate it on a fine 256&times;256 mesh. The same learned operator still works. This is called <strong>discretization invariance</strong>, and ordinary CNNs do not have it.
+  </div>
+
+  <p>But there is an honest catch worth seeing up front. The grid only stays harmless if it is fine enough to actually resolve the wiggles in your function. Sample too coarsely and a fast feature disguises itself as a slow one. This is <strong>aliasing</strong>, and it is the real limit behind every grid based method.</p>
+
+  <div class="demo">
+    <h4>Try it: when a coarse grid lies to you</h4>
+    <p class="hint">The teal curve is the true function (seven full cycles). The dots are the samples a grid actually sees, joined by straight lines in rust. Slide down toward few samples and watch the rust reconstruction collapse into a completely wrong slow wave.</p>
+    <canvas id="aliasCanvas" width="720" height="240"></canvas>
+    <div class="legend">
+      <span><i class="swatch" style="background:#1F5C58"></i> true function</span>
+      <span><i class="swatch" style="background:#A8442A"></i> what the grid reconstructs</span>
+    </div>
+    <div class="controls">
+      <label for="sampleSlider">samples on the grid</label>
+      <input type="range" id="sampleSlider" min="8" max="80" value="60">
+    </div>
+    <div class="readout">
+      <span>samples: <b id="sampVal">60</b></span>
+      <span>samples per cycle: <b id="perCycle">--</b></span>
+    </div>
+    <div class="verdict" id="aliasVerdict"></div>
+  </div>
+  <p class="mini">The rule of thumb (Nyquist): you need more than two samples per cycle to capture a feature at all. Below that line, no method recovers the truth, and a neural operator is only invariant across grids that both clear this bar. Above it, the operator genuinely does not care which grid you used.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============== 2. GENERAL RECIPE ============== -->
+<section>
+  <h2><span class="num">02 / THE RECIPE</span>What every neural operator shares</h2>
+
+  <p>FNO and KNO are two flavors of the same skeleton. Almost every neural operator is built from three moves:</p>
+
+  <ul>
+    <li><strong>Lift.</strong> At every point in space, take the small input value (say, 1 number) and push it into a wider feature space (say, 32 or 64 channels). This is a tiny per point linear layer, like a 1&times;1 convolution.</li>
+    <li><strong>Mix, several times.</strong> Apply a stack of operator layers. Each layer does two things in parallel and adds them: a <strong>global mixing</strong> step that lets every point feel every other point, plus a <strong>local</strong> step at each point. Then a nonlinearity. The global step is where the flavors differ.</li>
+    <li><strong>Project.</strong> Collapse the wide feature space back down to the output value you actually want.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 760 200" role="img" aria-label="Block diagram: input, lift, repeated operator layers, project, output">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- input -->
+      <text x="48" y="100" text-anchor="middle" class="svg-sub" font-size="13" fill="#4A423A">a(x)</text>
+      <line x1="70" y1="95" x2="104" y2="95" stroke="#241F1A" stroke-width="2" marker-end="url(#ar)"/>
+      <!-- lift -->
+      <rect x="108" y="62" width="92" height="66" rx="9" fill="#1F5C58"/>
+      <text x="154" y="92" text-anchor="middle" class="svg-box-label" font-size="16" fill="#F4F1EA">Lift</text>
+      <text x="154" y="111" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#cfe0de">P</text>
+      <line x1="200" y1="95" x2="234" y2="95" stroke="#241F1A" stroke-width="2" marker-end="url(#ar)"/>
+      <!-- layers stack -->
+      <rect x="276" y="50" width="120" height="90" rx="9" fill="#A8442A"/>
+      <rect x="266" y="58" width="120" height="90" rx="9" fill="#bb5236"/>
+      <rect x="238" y="66" width="120" height="90" rx="9" fill="#A8442A"/>
+      <text x="298" y="104" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Operator</text>
+      <text x="298" y="124" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">layers &times;L</text>
+      <line x1="396" y1="111" x2="430" y2="111" stroke="#241F1A" stroke-width="2" marker-end="url(#ar)"/>
+      <!-- project -->
+      <rect x="434" y="78" width="92" height="66" rx="9" fill="#1F5C58"/>
+      <text x="480" y="108" text-anchor="middle" class="svg-box-label" font-size="16" fill="#F4F1EA">Project</text>
+      <text x="480" y="127" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#cfe0de">Q</text>
+      <line x1="526" y1="111" x2="560" y2="111" stroke="#241F1A" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="600" y="116" text-anchor="middle" class="svg-sub" font-size="13" fill="#4A423A">u(x)</text>
+      <!-- one layer detail -->
+      <text x="298" y="178" text-anchor="middle" class="svg-sub" font-size="11" fill="#A8442A">one layer: &#963;( W&middot;v + global mix )</text>
+    </svg>
+    <figcaption>The common skeleton. <b>Lift</b> widens, the <b>operator layers</b> mix globally and locally, <b>project</b> narrows. FNO and KNO only disagree on the <i>global mix</i> inside each layer.</figcaption>
+  </figure>
+
+  <p>Formally each layer updates the feature field <code>v</code> like this:</p>
+  <div class="eq">v<span class="r">&#8345;&#8330;&#8321;</span>(x) = &#963;( <span class="o">W&middot;v<span class="r">&#8345;</span>(x)</span>  +  <span class="c">(K&middot;v<span class="r">&#8345;</span>)(x)</span> )</div>
+  <p>Read it plainly: the new value at point <code>x</code> equals a nonlinearity <code>&#963;</code> applied to a <span class="o">local part</span> (just point <code>x</code>) plus a <span class="c">global part</span> <code>K</code> that gathers information from everywhere. <strong>What is <code>K</code>, and how do we make it cheap?</strong> That single question is the whole story of FNO and KNO.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============== 3. FNO ============== -->
+<section>
+  <h2><span class="num">03 / FNO</span>Fourier Neural Operator</h2>
+
+  <p class="lead">FNO answers the question with one clever trick: do the global mixing in <strong>frequency space</strong>.</p>
+
+  <p>The global part <code>K</code> is meant to be a convolution: blend each point with its neighbors using some learned blur pattern. Convolving directly over a big grid is expensive. But there is a famous shortcut, the <strong>convolution theorem</strong>:</p>
+
+  <div class="aside rust">
+    <span class="lbl">Convolution theorem, in one line</span>
+    A convolution in normal space is just a <strong>plain multiplication</strong> in Fourier (frequency) space. So instead of sliding a filter around, jump to frequency space, multiply, and jump back.
+  </div>
+
+  <h3>What one Fourier layer does</h3>
+  <p>Inside each layer, FNO takes the feature field and:</p>
+  <ul>
+    <li>runs a <strong>Fast Fourier Transform</strong> (FFT) to get its frequencies,</li>
+    <li><strong>keeps only the lowest few modes</strong> (say the first 12 or 16) and throws the rest away, because the smooth, large scale behavior of most physics lives in the low frequencies,</li>
+    <li>multiplies those kept modes by a <strong>learned weight</strong> <code>R</code> (this is the only thing trained in the global path),</li>
+    <li>runs an inverse FFT back to normal space,</li>
+    <li>adds a simple local term <code>W&middot;v</code> as a skip path, then applies the nonlinearity.</li>
+  </ul>
+
+  <div class="eq">v<span class="r">&#8345;&#8330;&#8321;</span>(x) = &#963;(  <span class="o">W&middot;v<span class="r">&#8345;</span>(x)</span>  +  <span class="c">IFFT( R &middot; FFT(v<span class="r">&#8345;</span>) )(x)</span>  )</div>
+
+  <figure>
+    <svg viewBox="0 0 760 250" role="img" aria-label="Block diagram of a single Fourier layer in FNO">
+      <defs>
+        <marker id="ar2" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- input node -->
+      <text x="40" y="120" text-anchor="middle" class="svg-sub" font-size="13" fill="#4A423A">v(x)</text>
+      <circle cx="74" cy="115" r="4" fill="#241F1A"/>
+      <!-- split up (fourier path) and down (local path) -->
+      <line x1="74" y1="115" x2="74" y2="64" stroke="#241F1A" stroke-width="2"/>
+      <line x1="74" y1="64" x2="118" y2="64" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="74" y1="115" x2="74" y2="186" stroke="#241F1A" stroke-width="2"/>
+      <line x1="74" y1="186" x2="118" y2="186" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <!-- FOURIER PATH -->
+      <rect x="122" y="40" width="74" height="48" rx="8" fill="#1F5C58"/>
+      <text x="159" y="61" text-anchor="middle" class="svg-box-label" font-size="14" fill="#F4F1EA">FFT</text>
+      <text x="159" y="78" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#cfe0de">to modes</text>
+      <line x1="196" y1="64" x2="226" y2="64" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <rect x="230" y="40" width="118" height="48" rx="8" fill="#C2902F"/>
+      <text x="289" y="60" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">keep low modes</text>
+      <text x="289" y="77" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#3a2f12">drop the rest</text>
+      <line x1="348" y1="64" x2="378" y2="64" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <rect x="382" y="40" width="92" height="48" rx="8" fill="#A8442A"/>
+      <text x="428" y="61" text-anchor="middle" class="svg-box-label" font-size="14" fill="#F4F1EA">&times; R</text>
+      <text x="428" y="78" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#f0d6cb">learned</text>
+      <line x1="474" y1="64" x2="504" y2="64" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <rect x="508" y="40" width="74" height="48" rx="8" fill="#1F5C58"/>
+      <text x="545" y="61" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">IFFT</text>
+      <text x="545" y="78" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#cfe0de">to space</text>
+
+      <!-- LOCAL PATH -->
+      <rect x="122" y="162" width="118" height="48" rx="8" fill="#bb5236"/>
+      <text x="181" y="183" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">local  W&middot;v</text>
+      <text x="181" y="200" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#f0d6cb">1&times;1 conv</text>
+
+      <!-- merge into plus -->
+      <line x1="582" y1="64" x2="636" y2="64" stroke="#241F1A" stroke-width="2"/>
+      <line x1="636" y1="64" x2="636" y2="110" stroke="#241F1A" stroke-width="2"/>
+      <line x1="240" y1="186" x2="636" y2="186" stroke="#241F1A" stroke-width="2"/>
+      <line x1="636" y1="186" x2="636" y2="138" stroke="#241F1A" stroke-width="2"/>
+      <circle cx="636" cy="124" r="15" fill="#FBF9F4" stroke="#241F1A" stroke-width="2"/>
+      <text x="636" y="130" text-anchor="middle" font-size="18" fill="#241F1A" font-family="IBM Plex Mono">+</text>
+      <!-- sigma -->
+      <line x1="651" y1="124" x2="678" y2="124" stroke="#241F1A" stroke-width="2" marker-end="url(#ar2)"/>
+      <circle cx="702" cy="124" r="18" fill="#241F1A"/>
+      <text x="702" y="130" text-anchor="middle" font-size="16" fill="#F4F1EA" font-family="Fraunces">&#963;</text>
+      <text x="702" y="162" text-anchor="middle" class="svg-sub" font-size="11" fill="#4A423A">out</text>
+    </svg>
+    <figcaption>One <b>Fourier layer</b>. Top path mixes globally and cheaply through frequency space; bottom path is the fast local skip. They add, then pass through <b>&#963;</b>.</figcaption>
+  </figure>
+
+  <h3>Why this is smart</h3>
+  <ul>
+    <li><strong>Global reach, low cost.</strong> One multiply in frequency space connects every point to every other point. The FFT costs only about <code>N&middot;log N</code>.</li>
+    <li><strong>Resolution free.</strong> Modes are a property of the function, not of the grid. Train on coarse data, run on fine data.</li>
+    <li><strong>Built in smoothing.</strong> Dropping high modes is a natural regularizer that matches how smooth most physical fields are.</li>
+  </ul>
+
+  <!-- INTERACTIVE -->
+  <div class="demo">
+    <h4>Try it: keeping only the low Fourier modes</h4>
+    <p class="hint">This is the exact move at the heart of FNO. Drag the slider to choose how many of the lowest frequency modes to keep. The teal curve is the true signal; the rust curve is what you can rebuild from just those modes.</p>
+    <canvas id="fourierCanvas" width="720" height="260"></canvas>
+    <p class="clab">energy in each frequency mode (kept modes glow, dropped modes fade)</p>
+    <canvas id="spectrumCanvas" width="720" height="150"></canvas>
+    <div class="legend">
+      <span><i class="swatch" style="background:#1F5C58"></i> true signal</span>
+      <span><i class="swatch" style="background:#A8442A"></i> rebuilt from kept modes</span>
+      <span><i class="swatch box" style="background:#A8442A"></i> kept mode</span>
+      <span><i class="swatch box" style="background:#C9C0B0"></i> dropped mode</span>
+    </div>
+    <div class="controls">
+      <label for="modeSlider">modes kept (k<sub>max</sub>)</label>
+      <input type="range" id="modeSlider" min="1" max="40" value="4">
+    </div>
+    <div class="readout">
+      <span>kept modes: <b id="modeVal">4</b> of 128</span>
+      <span>reconstruction error: <b id="errVal">--</b></span>
+    </div>
+  </div>
+  <p>Notice how just a handful of modes already capture the broad shape, and adding more only sharpens fine detail. FNO bets that for physics, the broad shape is most of the answer, so it keeps a small <code>k<sub>max</sub></code> and trains weights only on those.</p>
+
+  <div class="aside teal">
+    <span class="lbl">Worked example</span>
+    <strong>2D turbulent flow (Navier-Stokes).</strong> Give FNO the velocity field at a few early time steps. It learns the operator that rolls the flow forward and predicts the swirling field many steps ahead in one shot, often hundreds of times faster than a traditional CFD solver at comparable accuracy. The same trick handles Burgers and Darcy flow.
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ============== 4. FNO FLOWCHART ============== -->
+<section>
+  <h2><span class="num">04 / END TO END</span>FNO forward pass, as a flowchart</h2>
+  <p>Here is the full journey of one prediction, top to bottom.</p>
+
+  <figure>
+    <svg viewBox="0 0 420 560" role="img" aria-label="Flowchart of the FNO forward pass from input to output">
+      <defs>
+        <marker id="fa" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- start -->
+      <rect x="120" y="14" width="180" height="46" rx="23" fill="#241F1A"/>
+      <text x="210" y="42" text-anchor="middle" class="svg-box-label" font-size="14" fill="#F4F1EA">input field a(x) + grid</text>
+      <line x1="210" y1="60" x2="210" y2="84" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <!-- lift -->
+      <rect x="110" y="86" width="200" height="46" rx="8" fill="#1F5C58"/>
+      <text x="210" y="108" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">Lift to wide features</text>
+      <text x="210" y="124" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">1 channel &#8594; 32+ channels</text>
+      <line x1="210" y1="132" x2="210" y2="156" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <!-- loop label -->
+      <rect x="74" y="158" width="272" height="160" rx="10" fill="none" stroke="#C4B9A6" stroke-dasharray="5 4"/>
+      <text x="84" y="176" class="svg-sub" font-size="10.5" fill="#A8442A">repeat for L Fourier layers</text>
+      <!-- fft -->
+      <rect x="110" y="184" width="200" height="40" rx="8" fill="#FBF9F4" stroke="#C4B9A6"/>
+      <text x="210" y="209" text-anchor="middle" class="svg-sub" font-size="12" fill="#241F1A">FFT &#8594; keep low modes &#8594; &times;R</text>
+      <line x1="210" y1="224" x2="210" y2="240" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <rect x="110" y="242" width="200" height="34" rx="8" fill="#FBF9F4" stroke="#C4B9A6"/>
+      <text x="210" y="263" text-anchor="middle" class="svg-sub" font-size="12" fill="#241F1A">IFFT  +  local W&middot;v</text>
+      <line x1="210" y1="276" x2="210" y2="290" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <rect x="150" y="292" width="120" height="34" rx="8" fill="#241F1A"/>
+      <text x="210" y="313" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">apply &#963;</text>
+      <line x1="210" y1="326" x2="210" y2="350" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <!-- project -->
+      <rect x="110" y="352" width="200" height="46" rx="8" fill="#1F5C58"/>
+      <text x="210" y="374" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">Project to output</text>
+      <text x="210" y="390" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">32+ channels &#8594; 1 channel</text>
+      <line x1="210" y1="398" x2="210" y2="422" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <!-- output -->
+      <rect x="120" y="424" width="180" height="46" rx="23" fill="#A8442A"/>
+      <text x="210" y="452" text-anchor="middle" class="svg-box-label" font-size="14" fill="#F4F1EA">solution field u(x)</text>
+      <!-- evaluate at any resolution note -->
+      <line x1="210" y1="470" x2="210" y2="494" stroke="#241F1A" stroke-width="2" marker-end="url(#fa)"/>
+      <rect x="84" y="496" width="252" height="44" rx="8" fill="#EDE8DD" stroke="#C2902F"/>
+      <text x="210" y="517" text-anchor="middle" class="svg-sub" font-size="11.5" fill="#3a2f12">query at ANY resolution you like</text>
+      <text x="210" y="532" text-anchor="middle" class="svg-sub" font-size="10" fill="#6a5d48">same weights, finer or coarser grid</text>
+    </svg>
+    <figcaption>The complete FNO pass. Lift once, loop the Fourier layer <b>L</b> times, project once. The output can be sampled at any grid you ask for.</figcaption>
+  </figure>
+</section>
+
+<hr class="rule">
+
+<!-- ============== 5. KNO ============== -->
+<section>
+  <h2><span class="num">05 / KNO</span>Koopman Neural Operator</h2>
+
+  <p class="lead">KNO answers the global mixing question from a different angle: make the dynamics <strong>linear</strong>, then advancing in time is just repeated matrix multiplication.</p>
+
+  <p>Real systems are nonlinear and tangled, which is what makes them hard to predict far ahead. <strong>Koopman theory</strong> offers a beautiful escape hatch: even a wildly nonlinear system becomes a <em>linear</em> system if you stop watching the raw state and instead watch the right set of <strong>observables</strong>, that is, smart measurement functions of the state. The price is that this linear world can be very high dimensional. The reward is that linear systems are trivial to push forward in time.</p>
+
+  <div class="aside teal">
+    <span class="lbl">The Koopman bargain</span>
+    Find a coordinate change where the messy nonlinear dynamics turn into a simple linear step <code>z &#8594; K&middot;z</code>. Then forecasting <code>t</code> steps ahead is just applying the operator <code>t</code> times: <code>K&middot;K&middot;&middot;&middot;K</code>. No step by step nonlinear solver needed.
+  </div>
+
+  <h3>What KNO does, step by step</h3>
+  <p>KNO learns the coordinate change with a neural network and learns the linear step too:</p>
+  <ul>
+    <li><strong>Encoder.</strong> A network lifts the current state into observable coordinates <code>z</code>, the space where life is linear.</li>
+    <li><strong>Koopman operator <code>K</code>.</strong> A learned <strong>linear</strong> map advances <code>z</code> one step forward in time. To capture the natural oscillation modes efficiently, this step is often computed in frequency space, so a Fourier transform appears here too, but its job is to move the linear dynamics, not to do convolution like in FNO.</li>
+    <li><strong>Iterate.</strong> Apply <code>K</code> as many times as the number of future steps you want. Because it is linear, this is cheap and stable for long horizons.</li>
+    <li><strong>Decoder.</strong> A network maps the advanced observables back to the physical state you can read.</li>
+  </ul>
+
+  <div class="eq">u(t) = <span class="c">Decode</span>(  <span class="r">K<sup>t</sup></span> &middot; <span class="o">Encode</span>( u(0) )  )</div>
+
+  <figure>
+    <svg viewBox="0 0 760 240" role="img" aria-label="Block diagram of KNO: encoder, repeated linear Koopman operator, decoder">
+      <defs>
+        <marker id="ka" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- state in -->
+      <text x="52" y="100" text-anchor="middle" class="svg-sub" font-size="12.5" fill="#4A423A">state</text>
+      <text x="52" y="118" text-anchor="middle" class="svg-sub" font-size="12.5" fill="#4A423A">u(0)</text>
+      <line x1="84" y1="106" x2="116" y2="106" stroke="#241F1A" stroke-width="2" marker-end="url(#ka)"/>
+      <!-- encoder -->
+      <rect x="120" y="76" width="104" height="62" rx="9" fill="#1F5C58"/>
+      <text x="172" y="103" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Encoder</text>
+      <text x="172" y="122" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">&#8594; observables z</text>
+      <line x1="224" y1="106" x2="256" y2="106" stroke="#241F1A" stroke-width="2" marker-end="url(#ka)"/>
+      <!-- koopman linear box with loop -->
+      <rect x="260" y="70" width="184" height="74" rx="9" fill="#A8442A"/>
+      <text x="352" y="98" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Koopman K</text>
+      <text x="352" y="118" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#f0d6cb">LINEAR step, applied t&times;</text>
+      <text x="352" y="133" text-anchor="middle" class="svg-sub" font-size="9.5" fill="#f0d6cb">(modes via FFT)</text>
+      <!-- loop arrow -->
+      <path d="M 352 70 C 352 44, 300 44, 300 64" fill="none" stroke="#241F1A" stroke-width="2" marker-end="url(#ka)"/>
+      <text x="352" y="40" text-anchor="middle" class="svg-sub" font-size="10" fill="#4A423A">repeat in time</text>
+      <line x1="444" y1="106" x2="476" y2="106" stroke="#241F1A" stroke-width="2" marker-end="url(#ka)"/>
+      <!-- decoder -->
+      <rect x="480" y="76" width="104" height="62" rx="9" fill="#1F5C58"/>
+      <text x="532" y="103" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Decoder</text>
+      <text x="532" y="122" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">&#8594; back to state</text>
+      <line x1="584" y1="106" x2="616" y2="106" stroke="#241F1A" stroke-width="2" marker-end="url(#ka)"/>
+      <text x="668" y="100" text-anchor="middle" class="svg-sub" font-size="12.5" fill="#4A423A">future</text>
+      <text x="668" y="118" text-anchor="middle" class="svg-sub" font-size="12.5" fill="#4A423A">u(t)</text>
+      <!-- nonlinear vs linear band -->
+      <text x="172" y="172" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#1F5C58">nonlinear world</text>
+      <text x="352" y="172" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#A8442A">linear world (easy to march forward)</text>
+      <text x="532" y="172" text-anchor="middle" class="svg-sub" font-size="10.5" fill="#1F5C58">nonlinear world</text>
+    </svg>
+    <figcaption>KNO sandwiches a <b>linear</b> Koopman step between a learned encoder and decoder. Long forecasts are just repeated linear steps in the middle.</figcaption>
+  </figure>
+
+  <h3>Why the linear middle matters for long forecasts</h3>
+  <p>Here is the payoff, made visible. Both a Koopman style linear operator and an ordinary one step nonlinear predictor can be rolled forward in time. The difference is how their error behaves. A nonlinear predictor with a tiny gain error compounds it every step, so small mistakes snowball. A linear operator whose modes (eigenvalues) are pinned to the right place stays disciplined far longer.</p>
+
+  <div class="demo">
+    <h4>Try it: marching a forecast far into the future</h4>
+    <p class="hint">Teal is the true signal of a decaying oscillation. Rust is a Koopman style linear march; ochre is a nonlinear predictor that re-applies its own slightly imperfect step over and over. Drag the horizon and watch which one holds.</p>
+    <canvas id="koopmanCanvas" width="720" height="250"></canvas>
+    <div class="legend">
+      <span><i class="swatch" style="background:#1F5C58"></i> true</span>
+      <span><i class="swatch" style="background:#A8442A"></i> Koopman (linear march)</span>
+      <span><i class="swatch" style="background:#C2902F"></i> autoregressive (nonlinear rollout)</span>
+    </div>
+    <div class="controls">
+      <label for="horizonSlider">forecast horizon (steps)</label>
+      <input type="range" id="horizonSlider" min="20" max="260" value="120">
+    </div>
+    <div class="readout">
+      <span>horizon: <b id="horVal">120</b> steps</span>
+      <span>final error, Koopman: <b id="errK">--</b></span>
+      <span>final error, autoregressive: <b id="errA">--</b></span>
+    </div>
+    <div class="verdict" id="koopVerdict"></div>
+  </div>
+  <p class="mini">This is a toy, not a trained model, but the mechanism is real: the danger in long rollouts is compounding, and KNO fights it by fitting the spectrum of one linear operator instead of re-running a nonlinear step. The flip side, in the limitations section below, is what happens if those eigenvalues drift outside the safe zone.</p>
+
+  <div class="aside rust">
+    <span class="lbl">Worked example</span>
+    <strong>Long range forecasting of a chaotic field.</strong> For systems where you must predict many steps ahead, KNO encodes the field into observables, marches the linear operator forward step after step, and decodes. Because the middle is linear, errors grow more gently over long horizons than rolling a nonlinear predictor forward again and again. KNO is also mesh free: it works from sampled points, not a fixed grid.
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ============== DEEPONET ============== -->
+<section>
+  <h2><span class="num">06 / A THIRD FAMILY</span>DeepONet, the other founding idea</h2>
+
+  <p class="lead">FNO and KNO both transform a field as a whole. <em class="term">DeepONet</em> reaches the same goal from a different direction, by splitting the job into two small networks that meet at the end.</p>
+
+  <p>It rests on a classic result (the universal approximation theorem for operators): any operator can be written as a sum of products, one factor depending on the input function, the other on where you want to read the answer. DeepONet simply learns those two factors with two networks:</p>
+
+  <ul>
+    <li><strong>Branch net.</strong> Reads the input function, sampled at a fixed set of sensor points, and squeezes it into a list of coefficients. It answers: what is the input?</li>
+    <li><strong>Trunk net.</strong> Reads a single query location <code>y</code> (where you want the output) and produces a matching list of basis values. It answers: where are we asking?</li>
+    <li><strong>Dot product.</strong> Multiply the two lists and sum. That single number is the output at location <code>y</code>. Ask at many <code>y</code> and you rebuild the whole output function.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 760 250" role="img" aria-label="DeepONet block diagram: branch net and trunk net combine through a dot product">
+      <defs>
+        <marker id="da" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- branch input -->
+      <text x="78" y="44" text-anchor="middle" class="svg-sub" font-size="12" fill="#4A423A">input function</text>
+      <text x="78" y="60" text-anchor="middle" class="svg-sub" font-size="12" fill="#4A423A">at sensors</text>
+      <line x1="148" y1="70" x2="180" y2="70" stroke="#241F1A" stroke-width="2" marker-end="url(#da)"/>
+      <rect x="184" y="44" width="150" height="52" rx="9" fill="#1F5C58"/>
+      <text x="259" y="68" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Branch net</text>
+      <text x="259" y="86" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">&#8594; b&#8321;..b&#8345;</text>
+      <!-- trunk input -->
+      <text x="78" y="180" text-anchor="middle" class="svg-sub" font-size="12" fill="#4A423A">query point y</text>
+      <line x1="148" y1="186" x2="180" y2="186" stroke="#241F1A" stroke-width="2" marker-end="url(#da)"/>
+      <rect x="184" y="160" width="150" height="52" rx="9" fill="#A8442A"/>
+      <text x="259" y="184" text-anchor="middle" class="svg-box-label" font-size="15" fill="#F4F1EA">Trunk net</text>
+      <text x="259" y="202" text-anchor="middle" class="svg-sub" font-size="10" fill="#f0d6cb">&#8594; t&#8321;..t&#8345;</text>
+      <!-- dot product node -->
+      <line x1="334" y1="70" x2="470" y2="118" stroke="#241F1A" stroke-width="2"/>
+      <line x1="334" y1="186" x2="470" y2="138" stroke="#241F1A" stroke-width="2"/>
+      <circle cx="492" cy="128" r="28" fill="#FBF9F4" stroke="#241F1A" stroke-width="2"/>
+      <text x="492" y="124" text-anchor="middle" font-size="15" fill="#241F1A" font-family="IBM Plex Mono">&#931;</text>
+      <text x="492" y="142" text-anchor="middle" font-size="11" fill="#4A423A" font-family="IBM Plex Mono">b&middot;t</text>
+      <line x1="520" y1="128" x2="556" y2="128" stroke="#241F1A" stroke-width="2" marker-end="url(#da)"/>
+      <!-- output -->
+      <rect x="560" y="102" width="150" height="52" rx="9" fill="#C2902F"/>
+      <text x="635" y="126" text-anchor="middle" class="svg-box-label" font-size="14" fill="#241F1A">output u(y)</text>
+      <text x="635" y="144" text-anchor="middle" class="svg-sub" font-size="10" fill="#3a2f12">value at that point</text>
+    </svg>
+    <figcaption>DeepONet. The <b>branch</b> encodes the input function, the <b>trunk</b> encodes the asking location, and a dot product fuses them into the answer at that point.</figcaption>
+  </figure>
+
+  <p>The neat part is the trunk. Because it takes any location <code>y</code>, you can query the output anywhere, including points you never trained on. That is DeepONet's own route to being grid free. Its weak spot: the input has to be sampled at a fixed sensor layout, so unlike FNO it is not naturally invariant to changing the input resolution.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============== HOW THEY LEARN ============== -->
+<section>
+  <h2><span class="num">07 / TRAINING</span>Where the learned operator comes from</h2>
+
+  <p>None of this is magic. You teach a neural operator the same way you teach any network: show it examples and correct its mistakes. The only twist is that each example is a pair of <strong>functions</strong>.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 230" role="img" aria-label="Training loop: a slow solver makes input output pairs that train the operator with a function space loss">
+      <defs>
+        <marker id="ta" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- step 1 sample inputs -->
+      <rect x="20" y="40" width="150" height="58" rx="9" fill="#EDE8DD" stroke="#C4B9A6"/>
+      <text x="95" y="64" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">sample inputs</text>
+      <text x="95" y="82" text-anchor="middle" class="svg-sub" font-size="10" fill="#4A423A">many a(x)</text>
+      <line x1="170" y1="69" x2="200" y2="69" stroke="#241F1A" stroke-width="2" marker-end="url(#ta)"/>
+      <!-- step 2 run solver -->
+      <rect x="204" y="40" width="160" height="58" rx="9" fill="#1F5C58"/>
+      <text x="284" y="64" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">run real solver</text>
+      <text x="284" y="82" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">slow, but only once</text>
+      <line x1="364" y1="69" x2="394" y2="69" stroke="#241F1A" stroke-width="2" marker-end="url(#ta)"/>
+      <!-- step 3 pairs -->
+      <rect x="398" y="40" width="160" height="58" rx="9" fill="#EDE8DD" stroke="#C4B9A6"/>
+      <text x="478" y="64" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">pairs (a, u)</text>
+      <text x="478" y="82" text-anchor="middle" class="svg-sub" font-size="10" fill="#4A423A">input &#8594; true output</text>
+      <line x1="558" y1="69" x2="588" y2="69" stroke="#241F1A" stroke-width="2" marker-end="url(#ta)"/>
+      <!-- operator -->
+      <rect x="592" y="40" width="150" height="58" rx="9" fill="#A8442A"/>
+      <text x="667" y="64" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">operator</text>
+      <text x="667" y="82" text-anchor="middle" class="svg-sub" font-size="10" fill="#f0d6cb">predicts u&#770;</text>
+      <!-- loss feedback -->
+      <line x1="667" y1="98" x2="667" y2="150" stroke="#241F1A" stroke-width="2"/>
+      <rect x="500" y="150" width="334" height="46" rx="9" fill="#C2902F"/>
+      <text x="667" y="171" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">compare to true output: relative L2 loss</text>
+      <text x="667" y="188" text-anchor="middle" class="svg-sub" font-size="10" fill="#3a2f12">error measured over the whole field</text>
+      <line x1="500" y1="173" x2="240" y2="173" stroke="#241F1A" stroke-width="2"/>
+      <line x1="240" y1="173" x2="240" y2="102" stroke="#241F1A" stroke-width="2" marker-end="url(#ta)"/>
+      <text x="240" y="120" text-anchor="middle" class="svg-sub" font-size="10" fill="#A8442A">adjust weights</text>
+      <rect x="178" y="102" width="124" height="20" rx="4" fill="none"/>
+    </svg>
+    <figcaption>You pay for a slow solver <b>once</b> to generate input and output function pairs, then train the operator to match them. The loss compares whole fields, not single numbers.</figcaption>
+  </figure>
+
+  <p>Two details carry most of the weight. First, the loss is usually a <strong>relative L2 error</strong> over the entire output field, so the network is graded on the whole function at once. Second, the expensive solver runs only during data generation; at deployment the trained operator replaces it and runs in a single fast pass. That trade, slow once to fast forever, is the entire economic argument for operator learning.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============== 6. COMPARISON ============== -->
+<section>
+  <h2><span class="num">08 / SIDE BY SIDE</span>FNO, KNO and DeepONet</h2>
+  <p>Same goal, learn an operator. Different bet on what makes it cheap.</p>
+
+  <table>
+    <thead>
+      <tr><th>&nbsp;</th><th>FNO</th><th>KNO</th><th>DeepONet</th></tr>
+    </thead>
+    <tbody>
+      <tr><th>Core idea</th><td>Global convolution as a multiply in frequency space.</td><td>Lift to coordinates where dynamics are linear, then iterate.</td><td>Split into branch (input) and trunk (location), combine by dot product.</td></tr>
+      <tr><th>What is learned</th><td>Per mode weights <code>R</code>, plus lift, local, project.</td><td>Encoder, decoder, and the linear operator <code>K</code>.</td><td>Two networks: branch and trunk.</td></tr>
+      <tr><th>Best at</th><td>One shot field to field; spatial PDEs.</td><td>Long horizon time forecasting.</td><td>Flexible input to output maps; query anywhere.</td></tr>
+      <tr><th>Grid</th><td>Invariant across resolutions.</td><td>Mesh free, works from samples.</td><td>Output query free; input fixed at sensors.</td></tr>
+      <tr><th>One line</th><td>&#963;( Wv + IFFT(R&middot;FFT(v)) )</td><td>Decode( K<sup>t</sup>&middot;Encode(u) )</td><td>u(y) = &#931; b<sub>k</sub>(a)&middot;t<sub>k</sub>(y)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Speed, the actual reason to bother</h3>
+  <p>Costs are per forward solve on a grid of <code>N</code> points, for <code>L</code> layers or <code>T</code> time steps.</p>
+  <table>
+    <thead>
+      <tr><th>Method</th><th>Cost per solve</th><th>Resolution invariant</th><th>Mesh free</th></tr>
+    </thead>
+    <tbody>
+      <tr><th>Classical PDE solver</th><td>large, many iterations to converge</td><td>no</td><td>depends on mesh</td></tr>
+      <tr><th>FNO</th><td>about L &middot; N log N</td><td>yes</td><td>no (regular grid)</td></tr>
+      <tr><th>KNO</th><td>encode + T linear steps + decode</td><td>effectively</td><td>yes</td></tr>
+      <tr><th>DeepONet</th><td>one branch pass + one trunk pass per query</td><td>partly</td><td>output yes</td></tr>
+    </tbody>
+  </table>
+  <p class="mini">The headline is the same in every row: the heavy cost moves to a one time training stage, and each later prediction is cheap.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============== LIMITATIONS ============== -->
+<section>
+  <h2><span class="num">09 / THE FINE PRINT</span>Where these break</h2>
+  <p class="lead">A fair monograph names the failure modes, not just the wins. None of these are dealbreakers, but each one shapes when you reach for which tool.</p>
+
+  <div class="cards">
+    <div class="cardx">
+      <h4>FNO wants a tidy box</h4>
+      <p>The FFT assumes a regular grid and periodic boundaries. Real parts have holes, curved walls and irregular meshes.</p>
+      <p class="fix">Fix: Geo-FNO warps odd geometry into a regular grid; GINO adds a graph layer at the messy boundary.</p>
+    </div>
+    <div class="cardx">
+      <h4>Spectral bias toward smooth</h4>
+      <p>Keeping only low modes is also a blind spot. Sharp shocks, cracks and fine textures live in the high modes FNO throws away.</p>
+      <p class="fix">Fix: keep more modes where it matters, or add local layers that carry the fine detail.</p>
+    </div>
+    <div class="cardx teal">
+      <h4>KNO stability is not free</h4>
+      <p>The whole long horizon promise rests on the Koopman eigenvalues sitting inside the unit circle. If training nudges one outside, the linear march amplifies every step and the forecast blows up, exactly the ochre curve in the demo above.</p>
+      <p class="fix">Fix: constrain or regularize the spectrum so the operator stays stable.</p>
+    </div>
+    <div class="cardx teal">
+      <h4>Only as good as the data</h4>
+      <p>Every operator is trained on a family of inputs. Feed it a case far outside that family and it extrapolates poorly, often without warning.</p>
+      <p class="fix">Fix: cover the operating range when generating training pairs, and watch the residual at run time.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ============== PHM TIE-IN ============== -->
+<section>
+  <h2><span class="num">10 / IN PRACTICE</span>From operator to health monitor</h2>
+
+  <p class="lead">For vehicle and prognostics work, neural operators are not just a PDE curiosity. They are a fast surrogate for the physics inside a running system, which is exactly what a health monitor needs.</p>
+
+  <p>Three connections do most of the work:</p>
+
+  <ul>
+    <li><strong>The operator as a digital twin.</strong> A trained operator predicts how a field, a temperature map, a stress distribution, a flux pattern, should evolve given the current operating condition. It runs fast enough to sit alongside live telemetry rather than in an overnight batch.</li>
+    <li><strong>The residual is the signal.</strong> Subtract the operator's prediction from the measured field and you get a residual. When the hardware is healthy the residual is small noise. When a fault grows, the residual grows in a structured, often recognizable way. Reading that residual is the front door to fault detection.</li>
+    <li><strong>The linear forecast as a life estimate.</strong> KNO's strength, marching a linear operator forward in time, is a natural fit for prognostics. Project the degradation forward and the horizon at which it crosses a threshold is a remaining useful life estimate.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 760 200" role="img" aria-label="Health monitoring loop: sensors and operator prediction compared to form a residual that drives detection and life estimate">
+      <defs>
+        <marker id="ha" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#241F1A"/>
+        </marker>
+      </defs>
+      <!-- sensors -->
+      <rect x="20" y="30" width="150" height="48" rx="9" fill="#1F5C58"/>
+      <text x="95" y="52" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">live sensors</text>
+      <text x="95" y="69" text-anchor="middle" class="svg-sub" font-size="10" fill="#cfe0de">measured field</text>
+      <!-- operator -->
+      <rect x="20" y="120" width="150" height="48" rx="9" fill="#A8442A"/>
+      <text x="95" y="142" text-anchor="middle" class="svg-box-label" font-size="13" fill="#F4F1EA">operator</text>
+      <text x="95" y="159" text-anchor="middle" class="svg-sub" font-size="10" fill="#f0d6cb">predicted field</text>
+      <!-- minus node -->
+      <line x1="170" y1="54" x2="250" y2="90" stroke="#241F1A" stroke-width="2"/>
+      <line x1="170" y1="144" x2="250" y2="108" stroke="#241F1A" stroke-width="2"/>
+      <circle cx="272" cy="99" r="24" fill="#FBF9F4" stroke="#241F1A" stroke-width="2"/>
+      <text x="272" y="105" text-anchor="middle" font-size="20" fill="#241F1A" font-family="IBM Plex Mono">&#8722;</text>
+      <line x1="296" y1="99" x2="330" y2="99" stroke="#241F1A" stroke-width="2" marker-end="url(#ha)"/>
+      <!-- residual -->
+      <rect x="334" y="75" width="140" height="48" rx="9" fill="#C2902F"/>
+      <text x="404" y="97" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">residual</text>
+      <text x="404" y="114" text-anchor="middle" class="svg-sub" font-size="10" fill="#3a2f12">measured &#8722; predicted</text>
+      <!-- two outputs -->
+      <line x1="474" y1="90" x2="556" y2="58" stroke="#241F1A" stroke-width="2" marker-end="url(#ha)"/>
+      <line x1="474" y1="108" x2="556" y2="140" stroke="#241F1A" stroke-width="2" marker-end="url(#ha)"/>
+      <rect x="560" y="34" width="180" height="48" rx="9" fill="#EDE8DD" stroke="#C4B9A6"/>
+      <text x="650" y="56" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">fault detection</text>
+      <text x="650" y="73" text-anchor="middle" class="svg-sub" font-size="10" fill="#4A423A">structured residual?</text>
+      <rect x="560" y="116" width="180" height="48" rx="9" fill="#EDE8DD" stroke="#C4B9A6"/>
+      <text x="650" y="138" text-anchor="middle" class="svg-box-label" font-size="13" fill="#241F1A">remaining life</text>
+      <text x="650" y="155" text-anchor="middle" class="svg-sub" font-size="10" fill="#4A423A">forecast to threshold</text>
+    </svg>
+    <figcaption>The monitoring loop. The operator stands in for the physics, the <b>residual</b> exposes the fault, and a forward forecast turns it into a life estimate.</figcaption>
+  </figure>
+
+  <div class="aside teal">
+    <span class="lbl">Why it fits</span>
+    A classical solver is too slow to run beside a moving vehicle, and a pure black box predictor ignores the physics you already trust. A neural operator sits in between: physics shaped, but fast enough for the residual to be computed continuously.
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <h2><span class="num">11 / TAKEAWAY</span>The one paragraph version</h2>
+  <p>A neural operator learns a map from one whole function to another, which is exactly what solving a PDE asks for, and unlike a CNN it stays valid when you change the grid, as long as the grid clears the Nyquist bar. Every such network lifts, mixes globally and locally a few times, then projects. <strong>FNO</strong> makes the global mix cheap by jumping into frequency space, keeping a few low modes, multiplying by learned weights, and jumping back. <strong>KNO</strong> learns coordinates where the system is linear, then marches that linear operator forward in time. <strong>DeepONet</strong> splits the work into a branch and a trunk that meet at a dot product. All three pay for a slow solver once, then run fast forever, which is what lets a trained operator stand in as a physics surrogate, expose faults through its residual, and forecast remaining life.</p>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    NEURAL OPERATORS &middot; FNO &amp; KNO &middot; AN INTERACTIVE MONOGRAPH<br>
+    By Majid Mazouchi &middot; Drafted with Claude
+  </div>
+</footer>
+
+<script>
+(function(){
+  var canvas = document.getElementById('fourierCanvas');
+  var ctx = canvas.getContext('2d');
+  var spec = document.getElementById('spectrumCanvas');
+  var sctx = spec.getContext('2d');
+  var slider = document.getElementById('modeSlider');
+  var modeVal = document.getElementById('modeVal');
+  var errVal  = document.getElementById('errVal');
+
+  var N = 256;               // samples
+  var W = canvas.width, H = canvas.height;
+  var pad = 28;
+
+  // build a target signal: smooth part + a sharp bump, so high modes matter for detail
+  var sig = new Array(N);
+  for (var i=0;i<N;i++){
+    var t = i/N;
+    var v = 0.9*Math.sin(2*Math.PI*1*t)
+          + 0.45*Math.sin(2*Math.PI*3*t + 0.6)
+          + 0.25*Math.sin(2*Math.PI*6*t);
+    // a localized sharp feature (needs many modes)
+    var d = t-0.62;
+    v += 1.1*Math.exp(-(d*d)/0.0009);
+    sig[i] = v;
+  }
+
+  // naive real DFT
+  var re = new Array(N), im = new Array(N);
+  function computeDFT(){
+    for (var k=0;k<N;k++){
+      var sr=0, si=0;
+      for (var n=0;n<N;n++){
+        var ang = -2*Math.PI*k*n/N;
+        sr += sig[n]*Math.cos(ang);
+        si += sig[n]*Math.sin(ang);
+      }
+      re[k]=sr; im[k]=si;
+    }
+  }
+  computeDFT();
+
+  // reconstruct keeping lowest kmax modes (and their conjugate partners)
+  function reconstruct(kmax){
+    var out = new Array(N);
+    for (var n=0;n<N;n++){
+      var acc=0;
+      for (var k=0;k<N;k++){
+        // keep mode 0..kmax and mirror N-kmax..N-1
+        var keep = (k<=kmax) || (k>=N-kmax);
+        if(!keep) continue;
+        var ang = 2*Math.PI*k*n/N;
+        acc += (re[k]*Math.cos(ang) - im[k]*Math.sin(ang));
+      }
+      out[n]=acc/N;
+    }
+    return out;
+  }
+
+  function bounds(arr){
+    var mn=Infinity,mx=-Infinity;
+    for(var i=0;i<arr.length;i++){ if(arr[i]<mn)mn=arr[i]; if(arr[i]>mx)mx=arr[i]; }
+    return [mn,mx];
+  }
+  var b = bounds(sig);
+  var lo=b[0]-0.3, hi=b[1]+0.3;
+
+  function xPix(i){ return pad + (i/(N-1))*(W-2*pad); }
+  function yPix(v){ return H-pad - ((v-lo)/(hi-lo))*(H-2*pad); }
+
+  function drawCurve(arr,color,width){
+    ctx.beginPath();
+    for(var i=0;i<N;i++){
+      var x=xPix(i), y=yPix(arr[i]);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round';
+    ctx.stroke();
+  }
+
+  function drawSpectrum(kmax){
+    var SW=spec.width, SH=spec.height, sp=26;
+    sctx.clearRect(0,0,SW,SH);
+    var shown=42;
+    var mags=[];
+    var mx=0;
+    for(var k=0;k<shown;k++){
+      var m=Math.sqrt(re[k]*re[k]+im[k]*im[k]);
+      mags.push(m); if(m>mx)mx=m;
+    }
+    var bw=(SW-2*sp)/shown;
+    // baseline
+    sctx.strokeStyle='#D8D0C2'; sctx.lineWidth=1;
+    sctx.beginPath(); sctx.moveTo(sp,SH-sp); sctx.lineTo(SW-sp,SH-sp); sctx.stroke();
+    for(var k=0;k<shown;k++){
+      var h=(mags[k]/mx)*(SH-2*sp);
+      var x=sp+k*bw;
+      sctx.fillStyle = (k<=kmax) ? '#A8442A' : '#C9C0B0';
+      sctx.fillRect(x+1, SH-sp-h, bw-2, h);
+    }
+    // mode axis ticks
+    sctx.fillStyle='#4A423A';
+    sctx.font='10px "IBM Plex Mono", monospace';
+    sctx.textAlign='center';
+    [0,10,20,30,40].forEach(function(k){
+      sctx.fillText(k, sp+k*bw+bw/2, SH-sp+13);
+    });
+    // cutoff line
+    var cx=sp+(kmax+1)*bw;
+    sctx.strokeStyle='#241F1A'; sctx.lineWidth=1.5; sctx.setLineDash([4,3]);
+    sctx.beginPath(); sctx.moveTo(cx,sp-6); sctx.lineTo(cx,SH-sp); sctx.stroke();
+    sctx.setLineDash([]);
+    sctx.fillStyle='#241F1A'; sctx.textAlign='left';
+    sctx.fillText('cutoff', cx+4, sp);
+  }
+
+  function render(){
+    var kmax = parseInt(slider.value,10);
+    ctx.clearRect(0,0,W,H);
+    // baseline
+    ctx.strokeStyle='#D8D0C2'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,yPix(0)); ctx.lineTo(W-pad,yPix(0)); ctx.stroke();
+
+    var rec = reconstruct(kmax);
+    drawCurve(sig,'#1F5C58',2.6);
+    drawCurve(rec,'#A8442A',2.6);
+
+    // error (normalized RMS)
+    var se=0, en=0;
+    for(var i=0;i<N;i++){ var e=sig[i]-rec[i]; se+=e*e; en+=sig[i]*sig[i]; }
+    var rms = Math.sqrt(se/en)*100;
+
+    drawSpectrum(kmax);
+    modeVal.textContent = kmax;
+    errVal.textContent = rms.toFixed(1) + '%';
+  }
+
+  slider.addEventListener('input', render);
+  render();
+})();
+
+/* ---------- ALIASING DEMO ---------- */
+(function(){
+  var cv=document.getElementById('aliasCanvas');
+  if(!cv) return;
+  var ctx=cv.getContext('2d');
+  var sl=document.getElementById('sampleSlider');
+  var sampVal=document.getElementById('sampVal');
+  var perCycle=document.getElementById('perCycle');
+  var verdict=document.getElementById('aliasVerdict');
+  var W=cv.width,H=cv.height,pad=26;
+  var cycles=7;
+  function f(t){ return Math.sin(2*Math.PI*cycles*t); }
+  function xP(t){ return pad+t*(W-2*pad); }
+  function yP(v){ return H/2 - v*((H-2*pad)/2); }
+  function render(){
+    var N=parseInt(sl.value,10);
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#D8D0C2'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,yP(0)); ctx.lineTo(W-pad,yP(0)); ctx.stroke();
+    // true curve, finely sampled
+    ctx.beginPath();
+    for(var i=0;i<=600;i++){ var t=i/600; var x=xP(t),y=yP(f(t)); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.strokeStyle='#1F5C58'; ctx.lineWidth=2.4; ctx.stroke();
+    // sampled reconstruction
+    ctx.beginPath();
+    for(var k=0;k<N;k++){ var t=k/(N-1); var x=xP(t),y=yP(f(t)); if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.strokeStyle='#A8442A'; ctx.lineWidth=2.4; ctx.stroke();
+    // sample dots
+    ctx.fillStyle='#A8442A';
+    for(var k=0;k<N;k++){ var t=k/(N-1); ctx.beginPath(); ctx.arc(xP(t),yP(f(t)),3.2,0,2*Math.PI); ctx.fill(); }
+    var pc=N/cycles;
+    sampVal.textContent=N;
+    perCycle.textContent=pc.toFixed(1);
+    if(pc>=4){ verdict.innerHTML='<b>Safe.</b> Plenty of samples per cycle, the reconstruction tracks the truth. A neural operator trained here transfers across these grids freely.'; }
+    else if(pc>2){ verdict.innerHTML='<b>Marginal.</b> Just above the Nyquist limit of two per cycle, detail is fragile.'; }
+    else { verdict.innerHTML='<b>Aliased.</b> Fewer than two samples per cycle: the grid now shows a wrong slow wave that is not in the true signal. No operator can undo this.'; }
+  }
+  sl.addEventListener('input',render);
+  render();
+})();
+
+/* ---------- KOOPMAN ROLLOUT DEMO ---------- */
+(function(){
+  var cv=document.getElementById('koopmanCanvas');
+  if(!cv) return;
+  var ctx=cv.getContext('2d');
+  var sl=document.getElementById('horizonSlider');
+  var horVal=document.getElementById('horVal');
+  var errK=document.getElementById('errK');
+  var errA=document.getElementById('errA');
+  var verdict=document.getElementById('koopVerdict');
+  var W=cv.width,H=cv.height,pad=30;
+  var MAXT=260;
+  var decay=0.014, freq=0.30;
+  function truth(t){ return Math.exp(-decay*t)*Math.cos(freq*t); }
+  // Koopman: same decay, tiny frequency mismatch (phase drifts slowly, amplitude controlled)
+  function koop(t){ return Math.exp(-decay*t)*Math.cos((freq*1.012)*t); }
+  // Autoregressive: per-step gain error compounds -> envelope grows as (1+g)^t
+  function autoR(t){ return Math.exp(-decay*t)*Math.pow(1.0095,t)*Math.cos(freq*t); }
+  function xP(t,T){ return pad+(t/T)*(W-2*pad); }
+  function yP(v){ var lo=-2.4,hi=2.4; return H-pad-((v-lo)/(hi-lo))*(H-2*pad); }
+  function curve(fn,T,color,w){
+    ctx.beginPath();
+    for(var i=0;i<=600;i++){ var t=(i/600)*T; var x=xP(t,T),y=yP(fn(t)); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineJoin='round'; ctx.stroke();
+  }
+  function render(){
+    var T=parseInt(sl.value,10);
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#D8D0C2'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,yP(0)); ctx.lineTo(W-pad,yP(0)); ctx.stroke();
+    curve(truth,T,'#1F5C58',2.6);
+    curve(koop,T,'#A8442A',2.4);
+    curve(autoR,T,'#C2902F',2.4);
+    var ek=Math.abs(koop(T)-truth(T));
+    var ea=Math.abs(autoR(T)-truth(T));
+    horVal.textContent=T;
+    errK.textContent=ek.toFixed(2);
+    errA.textContent=ea.toFixed(2);
+    if(ea>1.2){ verdict.innerHTML='<b>Autoregressive has diverged.</b> Its compounding gain error overran the decay; the Koopman march is still near the truth.'; }
+    else if(T<60){ verdict.innerHTML='Short horizon: both look fine. The gap only opens as you push further out.'; }
+    else { verdict.innerHTML='The autoregressive curve is starting to drift while the linear march holds. Keep dragging right.'; }
+  }
+  sl.addEventListener('input',render);
+  render();
+})();
+</script>
+
+</body>
+</html>

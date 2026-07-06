@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Physics-Informed Neural Networks on the Vehicle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --paper-2:#EBE6DA; --ink:#24201B; --ink-soft:#544B3F;
+    --rust:#A8431E; --teal:#1F5E5B; --ochre:#B8860B;
+    --line:#D8D0C0; --line-strong:#C2B8A3; --shadow:rgba(40,33,25,0.10);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Spectral",Georgia,serif;font-size:19px;line-height:1.72;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 26px;}
+  header.hero{padding:84px 0 54px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.26em;
+    text-transform:uppercase;color:var(--rust);margin:0 0 22px;}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(38px,7vw,64px);
+    line-height:1.04;letter-spacing:-0.012em;margin:0 0 24px;}
+  h1 .accent{color:var(--rust);font-style:italic;}
+  .lede{font-size:21px;color:var(--ink-soft);max-width:60ch;margin:0 0 30px;}
+  .byline{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);letter-spacing:0.02em;}
+  section{padding:50px 0;border-bottom:1px solid var(--line);}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:0.22em;
+    color:var(--ochre);text-transform:uppercase;display:block;margin-bottom:12px;}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(27px,4.5vw,38px);
+    line-height:1.12;letter-spacing:-0.01em;margin:0 0 22px;}
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin:34px 0 12px;}
+  p{margin:0 0 18px;}
+  strong{font-weight:600;color:var(--ink);}
+  em.term{font-style:italic;color:var(--teal);font-weight:500;}
+  a{color:var(--rust);}
+  .nut{background:var(--paper-2);border-left:4px solid var(--rust);padding:24px 26px;
+    margin:26px 0;border-radius:0 6px 6px 0;}
+  .nut p:last-child{margin-bottom:0;}
+  .nut .label{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:0.2em;
+    text-transform:uppercase;color:var(--rust);display:block;margin-bottom:8px;}
+  .eq{font-family:"IBM Plex Mono",monospace;background:#FBF9F4;border:1px solid var(--line-strong);
+    border-radius:8px;padding:18px 22px;margin:22px 0;font-size:16.5px;line-height:1.9;overflow-x:auto;color:var(--ink);}
+  .eq .c-rust{color:var(--rust);} .eq .c-teal{color:var(--teal);} .eq .c-ochre{color:var(--ochre);}
+  .eq .small{color:var(--ink-soft);font-size:13.5px;}
+  figure{margin:30px 0;}
+  figcaption{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);
+    margin-top:14px;line-height:1.55;}
+  figcaption b{color:var(--rust);font-weight:600;}
+  .frame{background:#FBF9F4;border:1px solid var(--line-strong);border-radius:10px;
+    padding:22px;box-shadow:0 1px 0 var(--shadow);}
+  svg{display:block;width:100%;height:auto;}
+  canvas{display:block;width:100%;height:auto;border-radius:8px;}
+  .svg-txt{font-family:"IBM Plex Mono",monospace;} .svg-disp{font-family:"Fraunces",serif;}
+  .demo-controls{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px;align-items:center;}
+  .btn{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:0.04em;
+    border:1px solid var(--line-strong);background:#FBF9F4;color:var(--ink);
+    padding:9px 15px;border-radius:7px;cursor:pointer;transition:all .15s ease;}
+  .btn:hover{border-color:var(--rust);color:var(--rust);}
+  .btn.on{background:var(--rust);color:#FBF9F4;border-color:var(--rust);}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;color:var(--ink-soft);margin-top:14px;}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .swatch{width:16px;height:4px;border-radius:2px;display:inline-block;}
+  .swatch.dot{width:9px;height:9px;border-radius:50%;}
+  .sliders{display:grid;grid-template-columns:auto 1fr auto;gap:10px 14px;
+    align-items:center;margin:16px 0 4px;font-family:"IBM Plex Mono",monospace;font-size:13px;}
+  .sliders label{color:var(--ink-soft);}
+  .sliders output{color:var(--rust);text-align:right;min-width:62px;}
+  input[type=range]{width:100%;accent-color:var(--rust);}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0;}
+  .card{background:#FBF9F4;border:1px solid var(--line-strong);border-radius:10px;padding:20px 22px;}
+  .card h4{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin:0 0 10px;}
+  .card.plain h4{color:var(--ink-soft);} .card.pinn h4{color:var(--teal);}
+  .card p{font-size:16px;margin-bottom:0;color:var(--ink-soft);}
+  ul.clean{list-style:none;padding:0;margin:20px 0;}
+  ul.clean li{padding:12px 0 12px 30px;border-bottom:1px dashed var(--line);position:relative;font-size:17.5px;}
+  ul.clean li:before{content:"";position:absolute;left:4px;top:21px;width:9px;height:9px;
+    border-radius:50%;background:var(--ochre);}
+  ul.clean li:last-child{border-bottom:none;} ul.clean li b{color:var(--ink);}
+  dl.gloss{margin:18px 0;}
+  dl.gloss dt{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--rust);font-weight:600;margin-top:16px;}
+  dl.gloss dd{margin:4px 0 0;color:var(--ink-soft);font-size:16.5px;}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;}
+  .metric{background:var(--paper-2);border-radius:9px;padding:12px 14px;text-align:center;}
+  .metric .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:0.12em;
+    text-transform:uppercase;color:var(--ink-soft);}
+  .metric .v{font-family:"IBM Plex Mono",monospace;font-size:20px;color:var(--ink);margin-top:4px;}
+  .metric.data .v{color:var(--rust);} .metric.phys .v{color:var(--teal);} .metric.ep .v{color:var(--ochre);}
+  .pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:20px 0 6px;}
+  .stage{flex:1 1 110px;background:#FBF9F4;border:1.5px solid var(--line-strong);border-radius:9px;
+    padding:12px 12px;transition:all .2s ease;position:relative;}
+  .stage .n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:0.15em;color:var(--ochre);}
+  .stage .t{font-family:"Fraunces",serif;font-weight:600;font-size:14.5px;margin-top:3px;line-height:1.15;}
+  .stage .d{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-soft);margin-top:5px;line-height:1.35;}
+  .stage.active{border-color:var(--rust);background:#fff;box-shadow:0 3px 14px rgba(168,67,30,0.18);transform:translateY(-2px);}
+  .stage.active .t{color:var(--rust);}
+  .stage.loop{border-style:dashed;}
+  .probe-eq{font-family:"IBM Plex Mono",monospace;font-size:14.5px;background:#FBF9F4;
+    border:1px solid var(--line-strong);border-radius:8px;padding:14px 16px;margin:14px 0;line-height:1.95;color:var(--ink-soft);}
+  .probe-eq b{color:var(--ink);}
+  .resbar-wrap{margin:10px 0 0;}
+  .resbar-track{height:16px;background:var(--paper-2);border-radius:8px;overflow:hidden;}
+  .resbar-fill{height:100%;width:0%;background:var(--rust);transition:width .12s ease,background .2s ease;border-radius:8px;}
+  .gauge-track{height:16px;background:var(--paper-2);border-radius:8px;overflow:hidden;}
+  .gauge-fill{height:100%;width:0%;background:var(--teal);transition:width .15s ease,background .25s ease;border-radius:8px;}
+  .readout{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);margin:12px 0 4px;}
+  .readout b{font-size:18px;}
+  .status-tag{font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:0.12em;font-size:14px;}
+  .note-box{font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.6;color:var(--ink-soft);
+    background:var(--paper-2);border-radius:8px;padding:12px 15px;margin:12px 0 0;}
+  .note-box b{color:var(--ink);}
+  details.appx{border:1px solid var(--line-strong);border-radius:9px;margin:14px 0;background:#FBF9F4;overflow:hidden;}
+  details.appx summary{cursor:pointer;padding:15px 18px;font-family:"Fraunces",serif;font-weight:600;
+    font-size:17px;color:var(--ink);list-style:none;}
+  details.appx summary::-webkit-details-marker{display:none;}
+  details.appx summary:before{content:"+ ";color:var(--rust);font-family:"IBM Plex Mono",monospace;}
+  details.appx[open] summary:before{content:"\2212 ";}
+  details.appx .body{padding:0 18px 18px;font-size:16.5px;}
+  details.appx .body p{margin:10px 0;}
+  footer{padding:46px 0 70px;text-align:center;font-family:"IBM Plex Mono",monospace;
+    font-size:13px;color:var(--ink-soft);}
+  @media (max-width:620px){
+    body{font-size:18px;} .compare{grid-template-columns:1fr;} header.hero{padding:60px 0 40px;}
+    .metrics{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} html{scroll-behavior:auto;} }
+</style><style>
+  .twoup{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:620px){ .twoup{grid-template-columns:1fr;} }
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);
+    background:var(--paper-2);border-radius:20px;padding:6px 13px;}
+  .chip b{color:var(--rust);}
+  .toc{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px;margin:22px 0 0;}
+  .toc a{font-family:"IBM Plex Mono",monospace;font-size:13.5px;text-decoration:none;color:var(--ink-soft);
+    padding:6px 0;border-bottom:1px dashed var(--line);display:flex;gap:10px;}
+  .toc a:hover{color:var(--rust);} .toc a b{color:var(--ochre);}
+  @media (max-width:620px){ .toc{grid-template-columns:1fr;} }
+  .crossref{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-soft);
+    border-left:3px solid var(--teal);padding:4px 0 4px 14px;margin:18px 0;}
+  .crossref a{color:var(--teal);}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Interactive Monograph &middot; Scientific ML for Automotive</p>
+    <h1>Physics-Informed Networks <span class="accent">on the vehicle</span></h1>
+    <p class="lede">A companion to the first monograph, now under the hood. The same idea, a network taught by data and by governing equations at once, applied to the three subsystems that decide an electric drivetrain's range, reliability, and torque: the battery, the inverter, and the motor.</p>
+    <p class="byline">By Majid Mazouchi &middot; Drafted with Claude</p>
+    <nav class="toc">
+      <a href="#s1"><b>01</b> Why vehicles need physics priors</a>
+      <a href="#s2"><b>02</b> The shared recipe</a>
+      <a href="#s3"><b>03</b> Battery: equivalent circuit and state of charge</a>
+      <a href="#s4"><b>04</b> Inverter: IGBT losses and junction heat</a>
+      <a href="#s5"><b>05</b> Motor: the PMSM dq model and FOC</a>
+      <a href="#s6"><b>06</b> The vehicle digital twin</a>
+      <a href="#s7"><b>07</b> Honest limits in automotive</a>
+      <a href="#s8"><b>08</b> Glossary</a>
+    </nav>
+  </div>
+</header>
+
+<section id="s1"><div class="wrap">
+  <span class="sec-no">01 / The case</span>
+  <h2>Why a vehicle needs physics priors</h2>
+  <p>A car is instrumented sparsely on purpose. Every sensor is cost, weight, and another thing that can fail, so the quantities engineers most want, the charge left in a pack, the temperature inside a power module, the flux in a rotor, are usually <strong>not measured directly</strong>. They are inferred from a few cheap signals and a model of how the part behaves.</p>
+  <p>That is already the logic of a state observer, the Kalman filters and Luenberger observers that run in every modern controller. A Physics-Informed Neural Network is a close cousin: instead of hand-deriving an observer, you let a network learn the mapping while a <strong>governing equation keeps it honest</strong>. The payoff for automotive work is specific:</p>
+  <ul class="clean">
+    <li><b>State estimation from few sensors.</b> Recover charge, temperature, or current from voltage and a model, the way a battery management system estimates state of charge.</li>
+    <li><b>Health and prognostics.</b> When the hardware drifts from its lawful behavior, the equation residual rises. That residual is a physically grounded fault signal, the heart of vehicle health management.</li>
+    <li><b>Parameter identification.</b> Resistances, inductances, thermal paths, and magnet strength can be inferred from operating data, turning a trajectory into a diagnosis.</li>
+    <li><b>Digital twins.</b> A model that obeys physics extrapolates safely into operating points you never tested, which is what a usable twin demands.</li>
+  </ul>
+  <p>The three sections that follow each take a real drivetrain subsystem, state its governing equation, simulate it live, and show where a PINN attaches. The simulations below are genuine numerical integrations of those equations, running in your browser.</p>
+</div></section>
+
+<section id="s2"><div class="wrap">
+  <span class="sec-no">02 / The shared recipe</span>
+  <h2>One pattern, three subsystems</h2>
+  <p>Every example uses the same skeleton from the first monograph. A network takes the operating variables and predicts a state. That prediction is graded two ways: against whatever was measured, and against the subsystem's differential equation, evaluated by automatic differentiation at many points. The only thing that changes from battery to inverter to motor is which equation goes in the physics box.</p>
+  <figure><div class="frame">
+    <svg viewBox="0 0 760 320" role="img" aria-label="General PINN architecture for a vehicle subsystem.">
+      <rect x="20" y="120" width="150" height="80" rx="9" fill="#EBE6DA" stroke="#C2B8A3" stroke-width="1.5"/>
+      <text x="95" y="150" text-anchor="middle" class="svg-txt" font-size="12" fill="#24201B">inputs</text>
+      <text x="95" y="170" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">time, current,</text>
+      <text x="95" y="185" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">speed, load</text>
+      <line x1="170" y1="160" x2="225" y2="160" stroke="#C2B8A3" stroke-width="1.4" marker-end="url(#a)"/>
+      <rect x="225" y="118" width="150" height="84" rx="9" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.6"/>
+      <text x="300" y="150" text-anchor="middle" class="svg-disp" font-size="15" fill="#1F5E5B">network</text>
+      <text x="300" y="172" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">predicts the</text>
+      <text x="300" y="187" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">hidden state</text>
+      <line x1="375" y1="145" x2="430" y2="95" stroke="#A8431E" stroke-width="1.4" marker-end="url(#ar)"/>
+      <line x1="375" y1="175" x2="430" y2="240" stroke="#1F5E5B" stroke-width="1.4" marker-end="url(#at)"/>
+      <rect x="430" y="60" width="305" height="74" rx="9" fill="#FBF9F4" stroke="#A8431E" stroke-width="1.5"/>
+      <text x="582" y="86" text-anchor="middle" class="svg-disp" font-size="14" fill="#A8431E">Data loss</text>
+      <text x="582" y="108" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">match the few measured signals</text>
+      <text x="582" y="123" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">(terminal voltage, NTC temp, phase current)</text>
+      <rect x="430" y="200" width="305" height="92" rx="9" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+      <text x="582" y="226" text-anchor="middle" class="svg-disp" font-size="14" fill="#1F5E5B">Physics loss</text>
+      <text x="582" y="248" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">autodiff the state, plug into the</text>
+      <text x="582" y="263" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#544B3F">subsystem equation, residual should be 0</text>
+      <text x="582" y="282" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#B8860B">battery ODE &#183; thermal network &#183; dq equations</text>
+      <defs>
+        <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#C2B8A3"/></marker>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#A8431E"/></marker>
+        <marker id="at" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#1F5E5B"/></marker>
+      </defs>
+    </svg>
+  </div><figcaption><b>The common skeleton.</b> Swap the equation in the teal box and the same training loop serves a battery, an inverter, or a motor. The residual that the physics loss drives toward zero doubles, after training, as a fault detector when real hardware no longer matches the equation.</figcaption></figure>
+  <div class="crossref">New to the idea of a residual or a collocation point? The first monograph builds them up from scratch with a spring-mass example and a live trainer.</div>
+</div></section>
+<section id="s3"><div class="wrap">
+  <span class="sec-no">03 / Battery</span>
+  <h2>Equivalent circuit and state of charge</h2>
+  <p>A lithium cell is modeled as a controlled voltage source behind a small network of resistors and capacitors. The source is the <em class="term">open-circuit voltage</em>, a known function of how full the cell is. A series resistor R&#8320; captures the instant voltage drop under load, and a resistor-capacitor pair, R&#8321; with C&#8321;, captures the slower polarization that makes voltage sag and recover. This is the <em class="term">Thevenin equivalent-circuit model</em> that runs in most battery management systems.</p>
+  <figure><div class="frame">
+    <svg viewBox="0 0 760 230" role="img" aria-label="Thevenin equivalent circuit model of a battery cell.">
+      <!-- OCV source -->
+      <line x1="60" y1="120" x2="60" y2="80" stroke="#24201B" stroke-width="2"/>
+      <line x1="45" y1="80" x2="75" y2="80" stroke="#1F5E5B" stroke-width="3"/>
+      <line x1="52" y1="70" x2="68" y2="70" stroke="#1F5E5B" stroke-width="2"/>
+      <line x1="45" y1="60" x2="75" y2="60" stroke="#1F5E5B" stroke-width="3"/>
+      <line x1="52" y1="50" x2="68" y2="50" stroke="#1F5E5B" stroke-width="2"/>
+      <line x1="60" y1="50" x2="60" y2="40" stroke="#24201B" stroke-width="2"/>
+      <text x="40" y="105" text-anchor="end" class="svg-txt" font-size="12" fill="#1F5E5B">OCV(SoC)</text>
+      <!-- series R0 -->
+      <line x1="60" y1="40" x2="120" y2="40" stroke="#24201B" stroke-width="2"/>
+      <rect x="120" y="30" width="70" height="20" fill="#FBF9F4" stroke="#A8431E" stroke-width="2"/>
+      <text x="155" y="22" text-anchor="middle" class="svg-txt" font-size="12" fill="#A8431E">R&#8320;</text>
+      <line x1="190" y1="40" x2="250" y2="40" stroke="#24201B" stroke-width="2"/>
+      <!-- R1 || C1 -->
+      <line x1="250" y1="40" x2="250" y2="15" stroke="#24201B" stroke-width="2"/>
+      <line x1="250" y1="40" x2="250" y2="65" stroke="#24201B" stroke-width="2"/>
+      <rect x="250" y="5" width="120" height="20" fill="#FBF9F4" stroke="#B8860B" stroke-width="2"/>
+      <text x="385" y="20" class="svg-txt" font-size="12" fill="#B8860B">R&#8321;</text>
+      <line x1="290" y1="60" x2="330" y2="60" stroke="#24201B" stroke-width="2"/>
+      <line x1="290" y1="70" x2="330" y2="70" stroke="#24201B" stroke-width="2"/>
+      <text x="385" y="70" class="svg-txt" font-size="12" fill="#B8860B">C&#8321;</text>
+      <line x1="250" y1="15" x2="310" y2="15" stroke="#24201B" stroke-width="2"/>
+      <line x1="310" y1="15" x2="310" y2="60" stroke="#24201B" stroke-width="2"/>
+      <line x1="370" y1="15" x2="370" y2="40" stroke="#24201B" stroke-width="2"/>
+      <line x1="310" y1="70" x2="310" y2="85" stroke="#24201B" stroke-width="2"/>
+      <line x1="250" y1="65" x2="250" y2="85" stroke="#24201B" stroke-width="2"/>
+      <line x1="250" y1="85" x2="370" y2="85" stroke="#24201B" stroke-width="2"/>
+      <line x1="370" y1="85" x2="370" y2="40" stroke="#24201B" stroke-width="2"/>
+      <line x1="370" y1="40" x2="470" y2="40" stroke="#24201B" stroke-width="2"/>
+      <!-- terminal -->
+      <circle cx="470" cy="40" r="4" fill="#24201B"/>
+      <text x="482" y="36" class="svg-txt" font-size="12" fill="#24201B">+ terminal</text>
+      <line x1="60" y1="120" x2="470" y2="120" stroke="#24201B" stroke-width="2"/>
+      <circle cx="470" cy="120" r="4" fill="#24201B"/>
+      <text x="482" y="124" class="svg-txt" font-size="12" fill="#24201B">&#8211; terminal</text>
+      <text x="265" y="120" class="svg-txt" font-size="13" fill="#A8431E">I (load)</text>
+      <path d="M300 113 l18 0 m-6 -5 l6 5 l-6 5" stroke="#A8431E" stroke-width="1.6" fill="none"/>
+      <!-- equations -->
+      <text x="540" y="165" text-anchor="middle" class="svg-txt" font-size="13" fill="#24201B">V = OCV(SoC) &#8211; I&#183;R&#8320; &#8211; V&#8321;</text>
+      <text x="540" y="190" text-anchor="middle" class="svg-txt" font-size="12" fill="#544B3F">dV&#8321;/dt = &#8211;V&#8321;/(R&#8321;C&#8321;) + I/C&#8321;</text>
+      <text x="540" y="212" text-anchor="middle" class="svg-txt" font-size="12" fill="#544B3F">dSoC/dt = &#8211;I/(3600&#183;Q)</text>
+    </svg>
+  </div><figcaption><b>The equivalent-circuit model.</b> Three coupled relations: an algebraic one for terminal voltage and two differential ones for the polarization voltage V&#8321; and the state of charge. The unknown that a battery management system most wants, SoC, never appears at a terminal. It must be estimated.</figcaption></figure>
+
+  <h3>Simulate a discharge</h3>
+  <p>Run a load profile through the cell. The amplitude slider scales the current draw; the other two age the cell, R&#8320; rises and capacity Q fades as a battery wears. Watch the terminal voltage sag harder and the usable charge shrink.</p>
+  <figure><div class="frame">
+    <svg id="bat-vplot" viewBox="0 0 760 240" role="img" aria-label="Battery terminal voltage and load current over a discharge profile."></svg>
+    <svg id="bat-socplot" viewBox="0 0 760 170" role="img" aria-label="Battery state of charge over the profile." style="margin-top:10px;"></svg>
+    <div class="sliders">
+      <label>load current</label><input type="range" id="s-iload" min="0.5" max="3" step="0.1" value="1.4"><output id="o-iload">14 A peak</output>
+      <label>R&#8320; (aging)</label><input type="range" id="s-r0" min="0.04" max="0.16" step="0.005" value="0.05"><output id="o-r0">0.050 &#8486;</output>
+      <label>capacity Q</label><input type="range" id="s-cap" min="1.6" max="2.6" step="0.05" value="2.5"><output id="o-cap">2.50 Ah</output>
+    </div>
+    <div class="legend"><span><span class="swatch" style="background:#24201B"></span> terminal voltage</span><span><span class="swatch" style="background:#1F5E5B"></span> fresh-cell reference</span><span><span class="swatch" style="background:#B8860B"></span> load current</span></div>
+  </div><figcaption><b>Live equivalent-circuit simulation.</b> Forward-integrated from the three relations above. A worn cell (higher R&#8320;, lower Q) drops more voltage under the same load and reaches empty sooner, the visible signature of capacity and power fade.</figcaption></figure>
+
+  <h3>Where the PINN attaches, and state of health</h3>
+  <p>For state estimation, the network takes time and the measured current and predicts SoC and V&#8321;. The data loss matches the one signal you actually have, terminal voltage; the physics loss enforces the two differential relations at many instants. The network learns to back out charge from voltage exactly as an observer would, with the circuit equations as the law.</p>
+  <p>Turn it around for diagnostics. If R&#8320; is unknown, make it trainable and recover it from operating data. A rising R&#8320; is a direct <em class="term">state-of-health</em> marker. Press estimate to fit R&#8320; to the noisy voltage above; the aging gauge reads the deviation from a fresh cell.</p>
+  <figure><div class="frame">
+    <div class="demo-controls"><button class="btn" id="bat-inv-run">Estimate R&#8320; from voltage</button></div>
+    <div class="readout"><span>recovered R&#8320; = <b style="color:#A8431E" id="bat-r0est">&ndash;</b></span><span>fresh cell &#8776; <b style="color:#1F5E5B">0.050 &#8486;</b></span><span class="status-tag" id="bat-status">HEALTHY</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="bat-soh"></div></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:6px;">state-of-health indicator (internal resistance growth)</div>
+  </div><figcaption><b>Resistance as a health signal.</b> The same physics that estimates charge also estimates the parameters, and a parameter that has drifted is a part that has aged. This is parameter-identification prognostics: no teardown, just the trajectory.</figcaption></figure>
+</div></section>
+<section id="s4"><div class="wrap">
+  <span class="sec-no">04 / Inverter</span>
+  <h2>IGBT losses and junction heat</h2>
+  <p>The inverter switches the DC bus into three-phase current, and every switching event and every amp of conduction dumps heat into the power module. The silicon junction is the hottest, most fragile point in the drivetrain, and it is never measured directly, only a slower case or coolant sensor is. Junction temperature must be estimated, and it is what limits how hard the inverter can be pushed.</p>
+  <p>Two physics blocks describe it. A <em class="term">loss model</em> turns current and switching frequency into power dissipated, and a <em class="term">thermal network</em>, a ladder of thermal resistances and capacitances, turns that power into a temperature rise over time.</p>
+  <figure><div class="frame">
+    <svg viewBox="0 0 760 250" role="img" aria-label="IGBT loss model feeding a Foster thermal network.">
+      <rect x="20" y="95" width="130" height="70" rx="9" fill="#EBE6DA" stroke="#C2B8A3" stroke-width="1.5"/>
+      <text x="85" y="120" text-anchor="middle" class="svg-txt" font-size="11.5" fill="#24201B">inverter leg</text>
+      <text x="85" y="138" text-anchor="middle" class="svg-txt" font-size="10" fill="#544B3F">I, f&#8347;&#8345;, duty</text>
+      <line x1="150" y1="130" x2="195" y2="130" stroke="#C2B8A3" stroke-width="1.4" marker-end="url(#b)"/>
+      <rect x="195" y="92" width="150" height="76" rx="9" fill="#FBF9F4" stroke="#A8431E" stroke-width="1.6"/>
+      <text x="270" y="116" text-anchor="middle" class="svg-disp" font-size="13" fill="#A8431E">loss model</text>
+      <text x="270" y="136" text-anchor="middle" class="svg-txt" font-size="9.5" fill="#544B3F">P = V&#8344;&#8337;&#183;I&#183;D + R&#183;I&#178;&#183;D</text>
+      <text x="270" y="150" text-anchor="middle" class="svg-txt" font-size="9.5" fill="#544B3F">+ E&#8347;&#8345;&#183;f&#8347;&#8345;</text>
+      <line x1="345" y1="130" x2="385" y2="130" stroke="#A8431E" stroke-width="1.4" marker-end="url(#br)"/>
+      <text x="365" y="122" text-anchor="middle" class="svg-txt" font-size="10" fill="#A8431E">P(t)</text>
+      <!-- Foster ladder -->
+      <line x1="385" y1="100" x2="715" y2="100" stroke="#24201B" stroke-width="2"/>
+      <g>
+        <rect x="410" y="90" width="44" height="20" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+        <rect x="490" y="90" width="44" height="20" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+        <rect x="570" y="90" width="44" height="20" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+        <rect x="650" y="90" width="44" height="20" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+      </g>
+      <text x="432" y="84" text-anchor="middle" class="svg-txt" font-size="9" fill="#1F5E5B">R&#8321;</text>
+      <text x="512" y="84" text-anchor="middle" class="svg-txt" font-size="9" fill="#1F5E5B">R&#8322;</text>
+      <text x="592" y="84" text-anchor="middle" class="svg-txt" font-size="9" fill="#1F5E5B">R&#8323;</text>
+      <text x="672" y="84" text-anchor="middle" class="svg-txt" font-size="9" fill="#1F5E5B">R&#8324;</text>
+      <g stroke="#24201B" stroke-width="1.6">
+        <line x1="432" y1="110" x2="432" y2="150"/><line x1="512" y1="110" x2="512" y2="150"/>
+        <line x1="592" y1="110" x2="592" y2="150"/><line x1="672" y1="110" x2="672" y2="150"/>
+      </g>
+      <g stroke="#B8860B" stroke-width="2">
+        <line x1="420" y1="150" x2="444" y2="150"/><line x1="420" y1="156" x2="444" y2="156"/>
+        <line x1="500" y1="150" x2="524" y2="150"/><line x1="500" y1="156" x2="524" y2="156"/>
+        <line x1="580" y1="150" x2="604" y2="150"/><line x1="580" y1="156" x2="604" y2="156"/>
+        <line x1="660" y1="150" x2="684" y2="150"/><line x1="660" y1="156" x2="684" y2="156"/>
+      </g>
+      <text x="700" y="156" class="svg-txt" font-size="9" fill="#B8860B">C&#8345;</text>
+      <line x1="385" y1="180" x2="715" y2="180" stroke="#24201B" stroke-width="2"/>
+      <g stroke="#24201B" stroke-width="1.6"><line x1="432" y1="156" x2="432" y2="180"/><line x1="512" y1="156" x2="512" y2="180"/><line x1="592" y1="156" x2="592" y2="180"/><line x1="672" y1="156" x2="672" y2="180"/></g>
+      <text x="550" y="200" text-anchor="middle" class="svg-txt" font-size="11" fill="#544B3F">coolant / heatsink (ambient)</text>
+      <circle cx="385" cy="100" r="4" fill="#A8431E"/><text x="378" y="96" text-anchor="end" class="svg-disp" font-size="12" fill="#A8431E">T&#11428;</text>
+    </svg>
+  </div><figcaption><b>Loss model plus Foster network.</b> Power flows in at the junction node T&#11428; and leaks to the coolant through four resistor-capacitor stages, each a different time constant. The fast stages set the temperature spike during a switching burst; the slow ones set the steady climb. The governing relation per stage is the same first-order law the spring obeyed.</figcaption></figure>
+
+  <h3>Simulate the junction temperature</h3>
+  <p>Drive a repeating load, like bursts of hard acceleration. The junction heats and cools, the swing being the <em class="term">thermal cycling</em> that fatigues solder and bond wires. The cooling slider degrades the heat path, as a dried-out thermal interface would, and the limit line marks where the controller must derate.</p>
+  <figure><div class="frame">
+    <svg id="igbt-plot" viewBox="0 0 760 280" role="img" aria-label="Junction temperature transient under a pulsed load."></svg>
+    <div class="sliders">
+      <label>phase current</label><input type="range" id="s-iload2" min="80" max="320" step="10" value="200"><output id="o-iload2">200 A</output>
+      <label>switching f&#8347;&#8345;</label><input type="range" id="s-fsw" min="4" max="20" step="1" value="10"><output id="o-fsw">10 kHz</output>
+      <label>cooling loss</label><input type="range" id="s-rth" min="0" max="80" step="5" value="0"><output id="o-rth">0 % degraded</output>
+    </div>
+    <div class="readout"><span>peak T&#11428; = <b id="igbt-tjmax">&ndash;</b></span><span>cycling &#916;T&#11428; = <b id="igbt-dtj">&ndash;</b></span><span class="status-tag" id="igbt-status">OK</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="igbt-gauge"></div></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:6px;">junction temperature headroom to the 150 &deg;C limit</div>
+    <div class="legend"><span><span class="swatch" style="background:#A8431E"></span> junction T&#11428;</span><span><span class="swatch" style="background:#B8860B"></span> power loss</span><span><span class="swatch dash" style="background:#24201B"></span> 150&deg;C limit</span></div>
+  </div><figcaption><b>Live thermal simulation.</b> Integrated from the Foster network with the loss model as its forcing. Raising current or switching frequency lifts the loss; degrading the cooling lifts the whole curve toward the limit. The peak and the cycling amplitude together drive lifetime, which is why both are tracked.</figcaption></figure>
+
+  <h3>Where the PINN attaches</h3>
+  <p>The network maps time and load to junction temperature, with the data loss tied to the slow case sensor you can afford and the physics loss enforcing the thermal network. It becomes a soft sensor for the temperature you cannot measure. Make the thermal resistance trainable and a rising value reveals a degrading heat path before the junction ever overheats, the prognostic version of the same model.</p>
+  <div class="chips"><span class="chip">soft-sensing <b>T&#11428;</b></span><span class="chip">thermal-path <b>R&#8348;&#8341;</b> tracking</span><span class="chip">cycling &#8594; fatigue life</span><span class="chip">active derating</span></div>
+</div></section>
+<section id="s5"><div class="wrap">
+  <span class="sec-no">05 / Motor</span>
+  <h2>The PMSM dq model and field-oriented control</h2>
+  <p>The traction motor is governed cleanest in the rotating <em class="term">dq frame</em>, where the three phase currents become two: i&#8348; aligned with the rotor magnet and i&#8349; in quadrature, the one that makes torque. In that frame the electrical dynamics are two coupled first-order equations, and the torque is an algebraic combination of the currents.</p>
+  <div class="eq">
+v&#8348; = R&#8347;&#8201;i&#8348; + L&#8348;&#8201;di&#8348;/dt &#8211; <span class="c-rust">&omega;&#8337;&#8201;L&#8349;&#8201;i&#8349;</span>
+<br>v&#8349; = R&#8347;&#8201;i&#8349; + L&#8349;&#8201;di&#8349;/dt + <span class="c-rust">&omega;&#8337;(L&#8348;&#8201;i&#8348; + &psi;&#8344;&#8336;)</span>
+<br><br>T&#8331; = <span class="c-teal">&#8540;&#8201;p</span> [ &psi;&#8344;&#8336;&#8201;i&#8349; + (L&#8348; &#8211; L&#8349;)&#8201;i&#8348;&#8201;i&#8349; ]
+<br><span class="small">red terms = speed cross-coupling &#183; &psi;&#8344;&#8336; = magnet flux &#183; (L&#8348;&#8211;L&#8349;) = saliency</span>
+  </div>
+  <p>Two features make this rich. The red <strong>cross-coupling</strong> terms mean the d and q axes disturb each other more violently the faster the motor spins, so a controller must actively cancel them. And the saliency term, present when L&#8348; and L&#8349; differ, is the extra reluctance torque your axial-flux and interior-magnet machines are designed to exploit.</p>
+  <figure><div class="frame">
+    <svg viewBox="0 0 760 230" role="img" aria-label="Field-oriented control loop for a PMSM.">
+      <rect x="20" y="70" width="78" height="50" rx="7" fill="#EBE6DA" stroke="#C2B8A3" stroke-width="1.4"/>
+      <text x="59" y="92" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#24201B">i&#8348;*, i&#8349;*</text>
+      <text x="59" y="108" text-anchor="middle" class="svg-txt" font-size="9" fill="#544B3F">setpoints</text>
+      <circle cx="128" cy="95" r="12" fill="#FBF9F4" stroke="#24201B" stroke-width="1.4"/><text x="128" y="100" text-anchor="middle" class="svg-txt" font-size="13" fill="#24201B">&#8211;</text>
+      <line x1="98" y1="95" x2="116" y2="95" stroke="#24201B" stroke-width="1.4" marker-end="url(#c)"/>
+      <rect x="155" y="70" width="80" height="50" rx="7" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/>
+      <text x="195" y="92" text-anchor="middle" class="svg-disp" font-size="12" fill="#1F5E5B">PI</text>
+      <text x="195" y="108" text-anchor="middle" class="svg-txt" font-size="9" fill="#544B3F">current loop</text>
+      <line x1="140" y1="95" x2="155" y2="95" stroke="#24201B" stroke-width="1.4" marker-end="url(#c)"/>
+      <rect x="258" y="70" width="92" height="50" rx="7" fill="#FBF9F4" stroke="#A8431E" stroke-width="1.5"/>
+      <text x="304" y="89" text-anchor="middle" class="svg-txt" font-size="10" fill="#A8431E">decoupling</text>
+      <text x="304" y="104" text-anchor="middle" class="svg-txt" font-size="9" fill="#544B3F">+ Park / PWM</text>
+      <line x1="235" y1="95" x2="258" y2="95" stroke="#24201B" stroke-width="1.4" marker-end="url(#c)"/>
+      <rect x="372" y="70" width="80" height="50" rx="7" fill="#EBE6DA" stroke="#C2B8A3" stroke-width="1.4"/>
+      <text x="412" y="92" text-anchor="middle" class="svg-txt" font-size="10.5" fill="#24201B">inverter</text>
+      <text x="412" y="108" text-anchor="middle" class="svg-txt" font-size="9" fill="#544B3F">DC bus</text>
+      <line x1="350" y1="95" x2="372" y2="95" stroke="#24201B" stroke-width="1.4" marker-end="url(#c)"/>
+      <rect x="476" y="70" width="92" height="50" rx="7" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.6"/>
+      <text x="522" y="89" text-anchor="middle" class="svg-disp" font-size="12" fill="#1F5E5B">PMSM</text>
+      <text x="522" y="105" text-anchor="middle" class="svg-txt" font-size="9" fill="#544B3F">dq plant</text>
+      <line x1="452" y1="95" x2="476" y2="95" stroke="#24201B" stroke-width="1.4" marker-end="url(#c)"/>
+      <line x1="568" y1="95" x2="620" y2="95" stroke="#24201B" stroke-width="1.4"/>
+      <text x="600" y="88" text-anchor="middle" class="svg-txt" font-size="10" fill="#544B3F">i&#8348;, i&#8349;, T&#8331;</text>
+      <!-- feedback -->
+      <line x1="600" y1="95" x2="600" y2="170" stroke="#544B3F" stroke-width="1.3"/>
+      <line x1="600" y1="170" x2="128" y2="170" stroke="#544B3F" stroke-width="1.3"/>
+      <line x1="128" y1="170" x2="128" y2="107" stroke="#544B3F" stroke-width="1.3" marker-end="url(#c)"/>
+      <text x="360" y="186" text-anchor="middle" class="svg-txt" font-size="10" fill="#544B3F">measured current feedback (Clarke / Park)</text>
+      <defs><marker id="b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#C2B8A3"/></marker>
+      <marker id="br" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#A8431E"/></marker>
+      <marker id="c" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#24201B"/></marker></defs>
+    </svg>
+  </div><figcaption><b>The field-oriented control loop.</b> Current setpoints are compared to measurements, a PI controller acts on the error, and a decoupling block cancels the speed cross-coupling before the inverter drives the motor. The simulation below is the PI loop plus the dq plant, integrated step by step.</figcaption></figure>
+
+  <h3>Simulate a torque step</h3>
+  <p>Command a step in i&#8349; and watch the loop respond. With decoupling off, spinning fast, the q-axis step kicks the d-axis current sideways through the cross terms. Switch decoupling on and the disturbance is cancelled, the clean axis separation that field-oriented control exists to deliver.</p>
+  <figure><div class="frame">
+    <svg id="pmsm-iplot" viewBox="0 0 760 270" role="img" aria-label="d and q axis current step response under field-oriented control."></svg>
+    <div class="demo-controls"><button class="btn on" id="pmsm-decouple">Decoupling ON</button></div>
+    <div class="sliders">
+      <label>i&#8349; command</label><input type="range" id="s-iqref" min="20" max="160" step="10" value="100"><output id="o-iqref">100 A</output>
+      <label>motor speed</label><input type="range" id="s-speed" min="500" max="6000" step="100" value="3000"><output id="o-speed">3000 rpm</output>
+      <label>magnet &psi;&#8344;&#8336;</label><input type="range" id="s-psi" min="0.045" max="0.075" step="0.001" value="0.070"><output id="o-psi">0.070 Wb</output>
+    </div>
+    <div class="readout"><span>steady torque = <b style="color:#A8431E" id="pmsm-torque">&ndash;</b></span><span class="status-tag" id="pmsm-status">MAGNET OK</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="pmsm-gauge"></div></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:6px;">magnet health (flux relative to nominal)</div>
+    <div class="legend"><span><span class="swatch" style="background:#1F5E5B"></span> i&#8349; (torque)</span><span><span class="swatch" style="background:#A8431E"></span> i&#8348; (flux)</span><span><span class="swatch dash" style="background:#24201B"></span> i&#8349; command</span></div>
+  </div><figcaption><b>Live FOC current loop.</b> The d-axis trace tells the story: with decoupling off at high speed it bulges away from zero on every q-axis move; with it on, it stays pinned. Lowering the magnet flux &psi;&#8344;&#8336; models demagnetization, the same i&#8349; then makes less torque.</figcaption></figure>
+
+  <h3>Where the PINN attaches, and motor health</h3>
+  <p>Feed the network voltages and speed and have it predict the dq currents, with the two electrical equations as the physics. More valuable on a wearing motor: make the parameters trainable. A drifting R&#8347; flags a winding or connection fault, changing L&#8348; and L&#8349; reveal magnetic saturation, and a falling &psi;&#8344;&#8336; is <em class="term">demagnetization</em>, a partially lost magnet. Estimate the flux from the steady operating point below.</p>
+  <figure><div class="frame">
+    <div class="demo-controls"><button class="btn" id="pmsm-inv-run">Estimate &psi;&#8344;&#8336; from operating point</button></div>
+    <div class="readout"><span>recovered &psi;&#8344;&#8336; = <b style="color:#A8431E" id="pmsm-psiest">&ndash;</b></span><span>nominal = <b style="color:#1F5E5B">0.070 Wb</b></span></div>
+  </div><figcaption><b>Magnet flux as a health signal.</b> At a known steady point the q-axis voltage balance reads v&#8349; = R&#8347;i&#8349; + &omega;&#8337;(L&#8348;i&#8348; + &psi;&#8344;&#8336;), so the flux falls straight out of measured voltage, current, and speed. Track it over a motor's life and a sustained drop is a magnet losing strength, often from overheating.</figcaption></figure>
+</div></section>
+<section id="s6"><div class="wrap">
+  <span class="sec-no">06 / The system</span>
+  <h2>Toward a vehicle digital twin</h2>
+  <p>Each subsystem carried its own equation, but they share one diagnostic principle: train a network to obey the healthy physics, then watch the residual. A residual that stays near zero means the part still behaves lawfully; a residual that creeps up is a part beginning to fail. Run one such monitor per subsystem and feed the residuals to a supervisor and you have the skeleton of a model-based health manager.</p>
+  <figure><div class="frame">
+    <svg viewBox="0 0 760 220" role="img" aria-label="Per-subsystem residual monitors feeding a vehicle health manager.">
+      <rect x="20" y="30" width="150" height="48" rx="8" fill="#FBF9F4" stroke="#1F5E5B" stroke-width="1.5"/><text x="95" y="59" text-anchor="middle" class="svg-txt" font-size="12" fill="#1F5E5B">Battery PINN</text>
+      <rect x="20" y="92" width="150" height="48" rx="8" fill="#FBF9F4" stroke="#A8431E" stroke-width="1.5"/><text x="95" y="121" text-anchor="middle" class="svg-txt" font-size="12" fill="#A8431E">Inverter PINN</text>
+      <rect x="20" y="154" width="150" height="48" rx="8" fill="#FBF9F4" stroke="#B8860B" stroke-width="1.5"/><text x="95" y="183" text-anchor="middle" class="svg-txt" font-size="12" fill="#B8860B">Motor PINN</text>
+      <g class="svg-txt" font-size="10" fill="#544B3F">
+        <text x="250" y="48">residual &#8594; SoC, SoH</text>
+        <text x="250" y="110">residual &#8594; T&#11428;, cooling</text>
+        <text x="250" y="172">residual &#8594; R&#8347;, &psi; health</text>
+      </g>
+      <line x1="170" y1="54" x2="430" y2="90" stroke="#1F5E5B" stroke-width="1.3" marker-end="url(#d)"/>
+      <line x1="170" y1="116" x2="430" y2="110" stroke="#A8431E" stroke-width="1.3" marker-end="url(#d)"/>
+      <line x1="170" y1="178" x2="430" y2="130" stroke="#B8860B" stroke-width="1.3" marker-end="url(#d)"/>
+      <rect x="430" y="78" width="170" height="64" rx="9" fill="#EBE6DA" stroke="#24201B" stroke-width="1.6"/>
+      <text x="515" y="104" text-anchor="middle" class="svg-disp" font-size="13" fill="#24201B">Health manager</text>
+      <text x="515" y="124" text-anchor="middle" class="svg-txt" font-size="9.5" fill="#544B3F">fuse, threshold, derate</text>
+      <line x1="600" y1="110" x2="660" y2="110" stroke="#24201B" stroke-width="1.4" marker-end="url(#d)"/>
+      <text x="700" y="106" text-anchor="middle" class="svg-txt" font-size="10" fill="#24201B">alerts,</text>
+      <text x="700" y="120" text-anchor="middle" class="svg-txt" font-size="10" fill="#24201B">limits</text>
+      <defs><marker id="d" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#544B3F"/></marker></defs>
+    </svg>
+  </div><figcaption><b>Residuals as a common currency.</b> Heterogeneous subsystems, one diagnostic language. Each PINN reports both an estimated state and how hard its physics is being violated, and the supervisor turns that into charge, temperature, and health readouts plus protective action.</figcaption></figure>
+  <h3>Where this sits next to what you already run</h3>
+  <p>A PINN does not replace the extended Kalman filters, sliding-mode observers, and calibrated lookup tables already in production. It complements them. Where a hand-built observer needs a tractable model and careful tuning, a PINN can absorb messier physics and learn corrections from fleet data, while the equation keeps it from hallucinating. The honest framing is a <strong>hybrid model</strong>: physics for the part you trust, learning for the part you cannot derive.</p>
+</div></section>
+
+<section id="s7"><div class="wrap">
+  <span class="sec-no">07 / Honest limits</span>
+  <h2>What to watch in automotive</h2>
+  <ul class="clean">
+    <li><b>Real-time and memory budgets.</b> Training is offline, but inference must fit a microcontroller's cycle. The networks here are deliberately tiny; production use leans on distillation or running the PINN as a design-time twin rather than in the hot control loop.</li>
+    <li><b>The equation must be right.</b> As the first monograph showed, a PINN faithfully obeys whatever law it is given. A wrong thermal network or a mismodeled OCV curve yields confident, wrong estimates. Equation fidelity is a safety property here, not a nicety.</li>
+    <li><b>Validation and ASIL.</b> Anything touching torque, charge limits, or thermal protection lives under functional-safety scrutiny. A learned component needs evidence, bounds, and fallbacks that a black-box network does not naturally provide, which is part of why the physics constraint is attractive.</li>
+    <li><b>Operating-range coverage.</b> Physics helps a PINN extrapolate, but magnets saturate, chemistry shifts with temperature, and losses are nonlinear. The governing equations must hold across the range you deploy in, or be extended to where they do not.</li>
+  </ul>
+  <p>Used with these in mind, physics-informed learning is a natural fit for the parts of a vehicle that are hard to sense and expensive to fail: a way to turn the equations engineers already trust into soft sensors and health monitors.</p>
+</div></section>
+
+<section id="s8"><div class="wrap">
+  <span class="sec-no">08 / Glossary</span>
+  <h2>The automotive terms</h2>
+  <dl class="gloss">
+    <dt>State of charge (SoC)</dt><dd>How full the battery is, as a fraction. Not measurable at a terminal, so it is estimated from voltage, current, and a model.</dd>
+    <dt>State of health (SoH)</dt><dd>How aged the part is. For a cell, captured by internal resistance growth and capacity fade.</dd>
+    <dt>Open-circuit voltage (OCV)</dt><dd>The cell's resting voltage as a function of charge, the controlled source in the equivalent-circuit model.</dd>
+    <dt>Equivalent-circuit model (ECM)</dt><dd>A resistor-capacitor circuit standing in for a cell's electrical behavior. The Thevenin form used here has one RC pair.</dd>
+    <dt>Foster network</dt><dd>A ladder of thermal resistances and capacitances representing the heat path from silicon junction to coolant.</dd>
+    <dt>Junction temperature (T&#11428;)</dt><dd>The temperature of the semiconductor die, the hottest and most failure-prone point in the inverter.</dd>
+    <dt>Field-oriented control (FOC)</dt><dd>Controlling a motor in the rotating dq frame so flux and torque are commanded independently.</dd>
+    <dt>dq frame &amp; saliency</dt><dd>The rotor-aligned coordinates; saliency is the L&#8348; &#8800; L&#8349; difference that yields extra reluctance torque.</dd>
+    <dt>Demagnetization</dt><dd>Permanent loss of rotor magnet strength, seen as a falling flux linkage &psi;&#8344;&#8336; and reduced torque per amp.</dd>
+  </dl>
+  <div class="crossref">Residual, collocation point, automatic differentiation, and the loss function are defined in the first monograph, which this page builds on.</div>
+</div></section>
+
+<footer><div class="wrap">Physics the vehicle already obeys, taught to a network.<br>By Majid Mazouchi &middot; Drafted with Claude</div></footer>
+<script>
+(function(){
+  'use strict';
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function poly(pts){ var s='',f=true; for(var i=0;i<pts.length;i++){s+=(f?'M':'L')+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1)+' '; f=false;} return s; }
+
+  // ============================================================
+  // BATTERY: Thevenin ECM + SoC
+  // ============================================================
+  function ocv(s){ return 3.0 + 1.0*s + 0.2*s*s; }
+  function simBattery(o){
+    var Q=o.Q,R0=o.R0,R1=o.R1,C1=o.C1,dt=1,T=600,soc=1.0,V1=0,out=[];
+    for(var t=0;t<=T;t+=dt){ var I=o.cur(t); var Vt=ocv(soc)-I*R0-V1; out.push({t:t,I:I,Vt:Vt,soc:soc});
+      soc+=-I/(3600*Q)*dt; V1+=(-V1/(R1*C1)+I/C1)*dt; if(soc<0)soc=0; }
+    return out;
+  }
+  (function(){
+    var VP=document.getElementById('bat-vplot'); if(!VP) return;
+    var SP=document.getElementById('bat-socplot');
+    var si=document.getElementById('s-iload'),oi=document.getElementById('o-iload');
+    var sr=document.getElementById('s-r0'),or_=document.getElementById('o-r0');
+    var sc=document.getElementById('s-cap'),oc=document.getElementById('o-cap');
+    var sohEl=document.getElementById('bat-soh'),stEl=document.getElementById('bat-status');
+    var invBtn=document.getElementById('bat-inv-run'),estEl=document.getElementById('bat-r0est');
+    function profile(scale){ return function(t){ var p=t%120; var pk=10*scale; return (p<60)?pk:pk*0.12; }; }
+    function Xv(t){ return 60+t/600*660; }
+    function Yv(v){ return 205-(v-2.0)/(4.3-2.0)*175; }
+    function Yi(I){ return 235-I/45*26; }
+    function Xs(t){ return 60+t/600*660; }
+    function Ys(s){ return 150-s*128; }
+    function recompute(){
+      var scale=parseFloat(si.value), R0=parseFloat(sr.value), Q=parseFloat(sc.value);
+      oi.textContent=(10*scale).toFixed(0)+' A peak'; or_.textContent=R0.toFixed(3)+' \u2126'; oc.textContent=Q.toFixed(2)+' Ah';
+      var cur=profile(scale);
+      var sim=simBattery({Q:Q,R0:R0,R1:0.03,C1:2000,cur:cur});
+      var fresh=simBattery({Q:2.5,R0:0.05,R1:0.03,C1:2000,cur:cur});
+      // voltage plot
+      var g='';
+      g+='<line x1="60" y1="205" x2="720" y2="205" stroke="#C2B8A3" stroke-width="1"/><line x1="60" y1="20" x2="60" y2="205" stroke="#C2B8A3" stroke-width="1"/>';
+      g+='<text x="56" y="34" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">4.3V</text><text x="56" y="205" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">2.0V</text>';
+      g+='<text x="715" y="223" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">time (s) &#8594;</text>';
+      var pc=[],pf=[],pi=[]; for(var i=0;i<sim.length;i+=2){ pc.push([Xv(sim[i].t),Yv(sim[i].Vt)]); pf.push([Xv(fresh[i].t),Yv(fresh[i].Vt)]); pi.push([Xv(sim[i].t),Yi(sim[i].I)]); }
+      g+='<path d="'+poly(pi)+'" fill="none" stroke="#B8860B" stroke-width="1.2" opacity="0.7"/>';
+      g+='<path d="'+poly(pf)+'" fill="none" stroke="#1F5E5B" stroke-width="1.6" stroke-dasharray="5 4" opacity="0.8"/>';
+      g+='<path d="'+poly(pc)+'" fill="none" stroke="#24201B" stroke-width="2.2"/>';
+      VP.innerHTML=g;
+      // soc plot
+      var g2='';
+      g2+='<line x1="60" y1="150" x2="720" y2="150" stroke="#C2B8A3" stroke-width="1"/><line x1="60" y1="12" x2="60" y2="150" stroke="#C2B8A3" stroke-width="1"/>';
+      g2+='<text x="56" y="22" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">100%</text><text x="56" y="150" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">0%</text>';
+      g2+='<text x="68" y="22" class="svg-txt" font-size="11" fill="#1F5E5B">state of charge</text>';
+      var ps=[]; for(var j=0;j<sim.length;j+=2){ ps.push([Xs(sim[j].t),Ys(sim[j].soc)]); }
+      g2+='<path d="'+poly(ps)+'" fill="none" stroke="#1F5E5B" stroke-width="2.2"/>';
+      SP.innerHTML=g2;
+      // SoH gauge from R0 deviation
+      var aging=Math.min(1,Math.max(0,(R0-0.05)/(0.16-0.05)));
+      sohEl.style.width=((1-aging)*100).toFixed(0)+'%';
+      sohEl.style.background= aging<0.25?'#1F5E5B':(aging<0.6?'#B8860B':'#A8431E');
+      stEl.textContent= aging<0.25?'HEALTHY':(aging<0.6?'AGING':'DEGRADED');
+      stEl.style.color= aging<0.25?'#1F5E5B':(aging<0.6?'#B8860B':'#A8431E');
+    }
+    function runInverse(){
+      var scale=parseFloat(si.value), R0true=parseFloat(sr.value), Q=parseFloat(sc.value), cur=profile(scale);
+      var truth=simBattery({Q:Q,R0:R0true,R1:0.03,C1:2000,cur:cur});
+      var seed=3; function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+      var meas=truth.map(function(o){return o.Vt+0.01*(rnd()-0.5)*2;});
+      function loss(R0h){ var s=simBattery({Q:Q,R0:R0h,R1:0.03,C1:2000,cur:cur}),e=0; for(var i=0;i<s.length;i++){var d=s[i].Vt-meas[i];e+=d*d;} return e/s.length; }
+      var R0h=0.02,lr=0.0025,it=0; invBtn.textContent='estimating\u2026';
+      function step(){ for(var k=0;k<3;k++){ var h=1e-4,g=(loss(R0h+h)-loss(R0h-h))/(2*h); R0h-=lr*g; if(R0h<0.01)R0h=0.01; it++; }
+        estEl.textContent=R0h.toFixed(4)+' \u2126';
+        if(it<60) requestAnimationFrame(step); else invBtn.textContent='Estimate R\u2080 from voltage';
+      }
+      requestAnimationFrame(step);
+    }
+    [si,sr,sc].forEach(function(s){ s.addEventListener('input',recompute); });
+    invBtn.onclick=runInverse;
+    recompute();
+  })();
+
+  // ============================================================
+  // IGBT: loss model + Foster thermal network
+  // ============================================================
+  function igbtLoss(I,fsw,D){ var Vce0=1.0,Rce=0.003,Esw=0.008,Iref=200; return Vce0*I*D+Rce*I*I*D + Esw*fsw*(I/Iref); }
+  function simThermal(Rth,tau,Tc,load,T,dt){
+    var Ti=Rth.map(function(){return 0;}),out=[];
+    for(var t=0;t<=T;t+=dt){ var P=load(t),Tj=Tc; for(var i=0;i<Rth.length;i++)Tj+=Ti[i]; out.push({t:t,P:P,Tj:Tj});
+      for(var j=0;j<Rth.length;j++){ Ti[j]+=(P/(tau[j]/Rth[j])-Ti[j]/tau[j])*dt; } }
+    return out;
+  }
+  (function(){
+    var TP=document.getElementById('igbt-plot'); if(!TP) return;
+    var si=document.getElementById('s-iload2'),oi=document.getElementById('o-iload2');
+    var sf=document.getElementById('s-fsw'),of=document.getElementById('o-fsw');
+    var sd=document.getElementById('s-rth'),od=document.getElementById('o-rth');
+    var tjEl=document.getElementById('igbt-tjmax'),dtEl=document.getElementById('igbt-dtj');
+    var gEl=document.getElementById('igbt-gauge'),stEl=document.getElementById('igbt-status');
+    var Rth0=[0.04,0.06,0.07,0.08],tau=[0.002,0.02,0.2,2],Tc=65;
+    function X(t){ return 60+t/6*660; }
+    function Y(T){ return 250-(T-60)/(160-60)*230; }
+    function recompute(){
+      var I=parseFloat(si.value),fsw=parseFloat(sf.value)*1000,deg=parseFloat(sd.value);
+      oi.textContent=I.toFixed(0)+' A'; of.textContent=(fsw/1000).toFixed(0)+' kHz'; od.textContent=deg.toFixed(0)+' % degraded';
+      var Rth=Rth0.map(function(r){return r*(1+deg/100);});
+      var Pfull=igbtLoss(I,fsw,0.5), Pidle=igbtLoss(I*0.25,fsw,0.5);
+      var load=function(t){ return (t%1.0<0.5)?Pfull:Pidle; };
+      var sim=simThermal(Rth,tau,Tc,load,6,0.001);
+      var g='';
+      g+='<line x1="60" y1="250" x2="720" y2="250" stroke="#C2B8A3" stroke-width="1"/><line x1="60" y1="14" x2="60" y2="250" stroke="#C2B8A3" stroke-width="1"/>';
+      g+='<line x1="60" y1="'+Y(150).toFixed(1)+'" x2="720" y2="'+Y(150).toFixed(1)+'" stroke="#24201B" stroke-width="1.2" stroke-dasharray="6 5"/>';
+      g+='<text x="715" y="'+(Y(150)-5).toFixed(1)+'" text-anchor="end" class="svg-txt" font-size="10" fill="#24201B">150&deg;C limit</text>';
+      g+='<text x="56" y="24" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">160</text><text x="56" y="250" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">60&deg;C</text>';
+      var ptT=[],ptP=[],peak=-1e9,minTj=1e9; for(var i=0;i<sim.length;i++){ var o=sim[i]; var keep=(i%20===0); if(keep){ptT.push([X(o.t),Y(o.Tj)]); ptP.push([X(o.t),250-o.P/350*40]);} if(o.t>2){ if(o.Tj>peak)peak=o.Tj; if(o.Tj<minTj)minTj=o.Tj; } }
+      g+='<path d="'+poly(ptP)+'" fill="none" stroke="#B8860B" stroke-width="1.3" opacity="0.7"/>';
+      g+='<path d="'+poly(ptT)+'" fill="none" stroke="#A8431E" stroke-width="2.4"/>';
+      TP.innerHTML=g;
+      var dTj=peak-minTj;
+      tjEl.textContent=peak.toFixed(1)+' \u00b0C'; tjEl.style.color= peak<150?'#24201B':'#A8431E';
+      dtEl.textContent=dTj.toFixed(1)+' \u00b0C';
+      var frac=Math.min(1,Math.max(0,(peak-65)/(150-65)));
+      gEl.style.width=(frac*100).toFixed(0)+'%';
+      gEl.style.background= peak<120?'#1F5E5B':(peak<145?'#B8860B':'#A8431E');
+      stEl.textContent= peak<120?'OK':(peak<150?'HOT':'DERATE');
+      stEl.style.color= peak<120?'#1F5E5B':(peak<150?'#B8860B':'#A8431E');
+    }
+    [si,sf,sd].forEach(function(s){ s.addEventListener('input',recompute); });
+    recompute();
+  })();
+
+  // ============================================================
+  // PMSM: dq model + FOC current loop
+  // ============================================================
+  function simPMSM(o){
+    var Rs=o.Rs,Ld=o.Ld,Lq=o.Lq,psi=o.psi,p=o.p,we=o.we,dt=2e-5,T=0.02;
+    var id=0,iq=0,eId=0,eIq=0,out=[],Kp=o.Kp,Ki=o.Ki,idRef=0,iqRef=o.iqRef,dc=o.decouple;
+    for(var t=0;t<=T;t+=dt){ var Te=1.5*p*(psi*iq+(Ld-Lq)*id*iq); out.push({t:t,id:id,iq:iq,Te:Te});
+      var ed=idRef-id,eq=iqRef-iq; eId+=ed*dt; eIq+=eq*dt;
+      var vd=Kp*ed+Ki*eId, vq=Kp*eq+Ki*eIq;
+      if(dc){ vd+=-we*Lq*iq; vq+=we*(Ld*id+psi); }
+      var vmax=300; if(vd>vmax)vd=vmax; if(vd<-vmax)vd=-vmax; if(vq>vmax)vq=vmax; if(vq<-vmax)vq=-vmax;
+      id+=(vd-Rs*id+we*Lq*iq)/Ld*dt; iq+=(vq-Rs*iq-we*(Ld*id+psi))/Lq*dt;
+    }
+    return out;
+  }
+  (function(){
+    var IP=document.getElementById('pmsm-iplot'); if(!IP) return;
+    var dcBtn=document.getElementById('pmsm-decouple');
+    var sq=document.getElementById('s-iqref'),oq=document.getElementById('o-iqref');
+    var ss=document.getElementById('s-speed'),os=document.getElementById('o-speed');
+    var sp=document.getElementById('s-psi'),op=document.getElementById('o-psi');
+    var tqEl=document.getElementById('pmsm-torque'),stEl=document.getElementById('pmsm-status'),gEl=document.getElementById('pmsm-gauge');
+    var invBtn=document.getElementById('pmsm-inv-run'),psiEl=document.getElementById('pmsm-psiest');
+    var Rs=0.02,Ld=0.0002,Lq=0.0004,p=4,Kp=2.5,Ki=1500, decouple=true;
+    function X(t){ return 60+t/0.02*660; }
+    function Y(i){ return 235-(i+40)/(180+40)*215; }
+    function recompute(){
+      var iqRef=parseFloat(sq.value),rpm=parseFloat(ss.value),psi=parseFloat(sp.value);
+      var we=p*rpm*2*Math.PI/60;
+      oq.textContent=iqRef.toFixed(0)+' A'; os.textContent=rpm.toFixed(0)+' rpm'; op.textContent=psi.toFixed(3)+' Wb';
+      var sim=simPMSM({Rs:Rs,Ld:Ld,Lq:Lq,psi:psi,p:p,we:we,Kp:Kp,Ki:Ki,iqRef:iqRef,decouple:decouple});
+      var g='';
+      g+='<line x1="60" y1="'+Y(0).toFixed(1)+'" x2="720" y2="'+Y(0).toFixed(1)+'" stroke="#C2B8A3" stroke-width="1"/><line x1="60" y1="14" x2="60" y2="250" stroke="#C2B8A3" stroke-width="1"/>';
+      g+='<text x="56" y="24" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">180A</text><text x="56" y="'+(Y(0)+4).toFixed(1)+'" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">0</text>';
+      g+='<text x="715" y="248" text-anchor="end" class="svg-txt" font-size="10" fill="#544B3F">time (ms) &#8594;</text>';
+      g+='<line x1="60" y1="'+Y(iqRef).toFixed(1)+'" x2="720" y2="'+Y(iqRef).toFixed(1)+'" stroke="#24201B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.6"/>';
+      var pq=[],pd=[]; for(var i=0;i<sim.length;i+=4){ pq.push([X(sim[i].t),Y(sim[i].iq)]); pd.push([X(sim[i].t),Y(sim[i].id)]); }
+      g+='<path d="'+poly(pd)+'" fill="none" stroke="#A8431E" stroke-width="2.2"/>';
+      g+='<path d="'+poly(pq)+'" fill="none" stroke="#1F5E5B" stroke-width="2.2"/>';
+      IP.innerHTML=g;
+      var Te=sim[sim.length-1].Te; tqEl.textContent=Te.toFixed(1)+' Nm';
+      var health=psi/0.07; gEl.style.width=(Math.min(1,health)*100).toFixed(0)+'%';
+      gEl.style.background= health>0.92?'#1F5E5B':(health>0.78?'#B8860B':'#A8431E');
+      stEl.textContent= health>0.92?'MAGNET OK':(health>0.78?'MAGNET WEAK':'DEMAG');
+      stEl.style.color= health>0.92?'#1F5E5B':(health>0.78?'#B8860B':'#A8431E');
+    }
+    function runInverse(){
+      var iqRef=parseFloat(sq.value),rpm=parseFloat(ss.value),psiTrue=parseFloat(sp.value);
+      var we=p*rpm*2*Math.PI/60;
+      var sim=simPMSM({Rs:Rs,Ld:Ld,Lq:Lq,psi:psiTrue,p:p,we:we,Kp:Kp,Ki:Ki,iqRef:iqRef,decouple:decouple});
+      var ss2=sim[sim.length-1], iqv=ss2.iq, idv=ss2.id;
+      var vq=Rs*iqv+we*(Ld*idv+psiTrue); // emulated measured steady vq
+      var target=(vq-Rs*iqv-we*Ld*idv)/we; // = psiTrue
+      var cur=0.04,it=0; invBtn.textContent='estimating\u2026';
+      function step(){ cur+=(target-cur)*0.25; it++; psiEl.textContent=cur.toFixed(4)+' Wb';
+        if(it<24) requestAnimationFrame(step); else invBtn.textContent='Estimate \u03c8 from operating point'; }
+      requestAnimationFrame(step);
+    }
+    dcBtn.onclick=function(){ decouple=!decouple; this.classList.toggle('on',decouple); this.textContent=decouple?'Decoupling ON':'Decoupling OFF'; recompute(); };
+    [sq,ss,sp].forEach(function(s){ s.addEventListener('input',recompute); });
+    invBtn.onclick=runInverse;
+    recompute();
+  })();
+
+})();
+</script>
+</body>
+</html>
