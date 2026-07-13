@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulation Worlds · PhysX, Omniverse, Isaac Sim, Cosmos · A Field Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --cream: #faf6ee;
+  --cream-deep: #f3ecdd;
+  --ink: #21201c;
+  --ink-soft: #4c4a42;
+  --rust: #b3502d;
+  --rust-deep: #8f3c1f;
+  --teal: #1f6f6b;
+  --teal-deep: #14504d;
+  --ochre: #c98a1b;
+  --line: #d8cfba;
+  --card: #fffdf8;
+  --code-bg: #2a2822;
+  --code-ink: #e8e2d2;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+  font-size: 17.5px;
+  line-height: 1.72;
+}
+
+#progress {
+  position: fixed; top: 0; left: 0; height: 4px; width: 0%;
+  background: linear-gradient(90deg, var(--rust), var(--ochre), var(--teal));
+  z-index: 100;
+}
+
+nav.topnav {
+  position: sticky; top: 0; z-index: 90;
+  background: rgba(250, 246, 238, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+  padding: 0.55rem 1.2rem;
+  display: flex; align-items: center; gap: 1rem;
+  overflow-x: auto; white-space: nowrap;
+}
+nav.topnav .brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: 0.95rem; color: var(--rust-deep);
+  letter-spacing: 0.02em;
+}
+nav.topnav a {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ink-soft);
+  text-decoration: none; padding: 0.25rem 0.5rem;
+  border-radius: 4px; letter-spacing: 0.03em;
+}
+nav.topnav a:hover { color: var(--teal-deep); background: var(--cream-deep); }
+
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 1.4rem; }
+
+header.hero { padding: 4.2rem 0 3rem; border-bottom: 3px double var(--line); }
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 1.1rem;
+}
+h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: clamp(2.1rem, 5.2vw, 3.4rem);
+  line-height: 1.08; letter-spacing: -0.015em; margin-bottom: 1rem;
+}
+h1 .accent { color: var(--rust); font-style: italic; font-weight: 700; }
+.subtitle {
+  font-size: 1.15rem; color: var(--ink-soft); font-weight: 300;
+  max-width: 42rem; margin-bottom: 1.6rem;
+}
+.byline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem; color: var(--ink-soft);
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+}
+.byline span::before { content: "· "; color: var(--ochre); }
+.byline span:first-child::before { content: ""; }
+
+.abstract {
+  margin-top: 2.2rem; padding: 1.4rem 1.6rem;
+  background: var(--cream-deep); border-left: 4px solid var(--rust);
+  border-radius: 0 8px 8px 0; font-size: 0.98rem;
+}
+.abstract strong { font-family: 'Fraunces', serif; font-weight: 700; color: var(--rust-deep); }
+
+section { padding: 3.2rem 0 1.4rem; }
+.secnum {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ochre); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 0.5rem;
+}
+h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  line-height: 1.15; margin-bottom: 1.2rem;
+}
+h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600; font-size: 1.2rem; margin: 2rem 0 0.7rem;
+  color: var(--teal-deep);
+}
+p { margin-bottom: 1.05rem; max-width: 46rem; }
+p.lede { font-size: 1.06rem; }
+a.inline { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+a.inline:hover { color: var(--rust); }
+em { color: var(--rust-deep); }
+ul.body-list { max-width: 46rem; margin: 0 0 1.1rem 1.4rem; line-height: 1.72; }
+
+.pipeline { margin: 2rem 0; overflow-x: auto; }
+.pipeline svg { min-width: 640px; width: 100%; height: auto; display: block; }
+
+.table-scroll { overflow-x: auto; margin: 1.6rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.88rem; background: var(--card); }
+caption {
+  caption-side: top; text-align: left;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+  padding-bottom: 0.5rem;
+}
+th {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+  background: var(--teal-deep); color: var(--cream);
+  padding: 0.6rem 0.8rem;
+}
+td { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+tr:nth-child(even) td { background: var(--cream-deep); }
+td .mono, .mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.8em; color: var(--rust-deep); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.4rem 0 1.6rem; }
+.chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.04em; padding: 0.42rem 0.9rem;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink-soft); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover { border-color: var(--teal); color: var(--teal-deep); }
+.chip.active { background: var(--rust); border-color: var(--rust); color: var(--cream); }
+.chip:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.count-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft); margin-bottom: 1rem; }
+
+.gallery { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+.ex-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.3rem 1.4rem 1.1rem; position: relative;
+  transition: box-shadow 0.15s ease;
+}
+.ex-card:hover { box-shadow: 0 6px 20px rgba(33,32,28,0.08); }
+.ex-card[hidden] { display: none; }
+.ex-head { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+.ex-card h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.12rem; }
+.tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.18rem 0.55rem; border-radius: 4px;
+}
+.tag.factory { background: #e4efee; color: var(--teal-deep); }
+.tag.av { background: #f5e2d8; color: var(--rust-deep); }
+.tag.data { background: #f6ecd6; color: #8a5f0f; }
+.tag.dev { background: #e8e4f0; color: #4b3d78; }
+.ex-path {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--ink-soft); margin-bottom: 0.7rem; word-break: break-all;
+}
+.ex-card p { font-size: 0.93rem; margin-bottom: 0.7rem; max-width: none; }
+.ex-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; font-size: 0.8rem; margin-bottom: 0.8rem; }
+.ex-meta dt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+}
+.ex-meta dd { color: var(--ink-soft); }
+.why {
+  border-left: 3px solid var(--teal); padding: 0.45rem 0.9rem;
+  background: var(--cream-deep); border-radius: 0 6px 6px 0;
+  font-size: 0.86rem; font-style: italic; color: var(--ink-soft); margin-bottom: 0.9rem;
+}
+.why strong { font-style: normal; color: var(--teal-deep); font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.ex-link {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem;
+  color: var(--teal-deep); text-decoration: none;
+  border-bottom: 1px solid var(--ochre);
+}
+.ex-link:hover { color: var(--rust); }
+
+pre {
+  background: var(--code-bg); color: var(--code-ink);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; line-height: 1.6;
+  padding: 1.1rem 1.3rem; border-radius: 8px; overflow-x: auto;
+  margin: 1.2rem 0 1.6rem; border-left: 4px solid var(--ochre);
+}
+pre .cm { color: #9a9382; }
+pre .kw { color: #e8b04f; }
+pre .st { color: #8fc9c5; }
+
+.callout {
+  margin: 1.6rem 0; padding: 1.1rem 1.4rem; border-radius: 8px;
+  background: var(--cream-deep); border: 1px solid var(--line); font-size: 0.93rem;
+}
+.callout .co-title {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin-bottom: 0.4rem;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+.refs { list-style: none; counter-reset: ref; max-width: 48rem; }
+.refs li {
+  counter-increment: ref; position: relative;
+  padding: 0.55rem 0 0.55rem 3rem; border-bottom: 1px dotted var(--line);
+  font-size: 0.9rem; line-height: 1.55;
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute; left: 0; top: 0.6rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--ochre);
+}
+.refs a { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+.refs a:hover { color: var(--rust); }
+.ref-group {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin: 1.8rem 0 0.3rem;
+}
+
+
+/* ---------- playbook ---------- */
+.phase {
+  display: grid; grid-template-columns: 92px 1fr; gap: 1rem;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--line);
+}
+.phase:last-of-type { border-bottom: none; }
+.phase-week {
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.5rem;
+  color: var(--rust); line-height: 1.1;
+}
+.phase-week small {
+  display: block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 400; margin-top: 0.25rem;
+}
+.phase h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.35rem; }
+.phase p { font-size: 0.92rem; margin-bottom: 0.4rem; }
+.phase .milestone { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--teal-deep); }
+.phase .milestone::before { content: "\25B8 exit criterion: "; color: var(--ochre); }
+
+/* ---------- pitfalls ---------- */
+.pitfall { margin: 1.1rem 0; padding: 0.9rem 1.2rem; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--rust); border-radius: 0 8px 8px 0; }
+.pitfall h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; color: var(--rust-deep); }
+.pitfall p { font-size: 0.9rem; margin-bottom: 0; max-width: none; }
+
+/* ---------- glossary ---------- */
+.glossary { max-width: 48rem; }
+.glossary dt { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem; color: var(--teal-deep); margin-top: 1rem; }
+.glossary dd { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; padding-left: 1.1rem; border-left: 2px solid var(--cream-deep); margin-top: 0.2rem; }
+
+footer {
+  margin-top: 4rem; padding: 2.2rem 0 3rem;
+  border-top: 3px double var(--line);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft);
+}
+footer p { margin-bottom: 0.4rem; max-width: none; }
+.series-index {
+  margin-top: 1.2rem; padding-top: 1rem; border-top: 1px dotted var(--line);
+}
+.series-index a { color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid var(--ochre); }
+.series-index a:hover { color: var(--rust); }
+
+#toTop {
+  position: fixed; right: 1.2rem; bottom: 1.2rem; z-index: 80;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--rust);
+  font-size: 1.1rem; cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease; box-shadow: 0 4px 12px rgba(33,32,28,0.12);
+}
+#toTop.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  header.hero { padding-top: 3rem; }
+  .ex-card { padding: 1.1rem 1rem 0.9rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<nav class="topnav" aria-label="Section navigation">
+  <span class="brand">Simulation Worlds</span>
+  <a href="#s1">01 World Layer</a>
+  <a href="#s2">02 PhysX</a>
+  <a href="#s3">03 Omniverse</a>
+  <a href="#s4">04 USD Hands-On</a>
+  <a href="#s5">05 Isaac Sim</a>
+  <a href="#s6">06 Scripting</a>
+  <a href="#s7">07 Kit Apps</a>
+  <a href="#s8">08 Sensors &amp; SDG</a>
+  <a href="#s9">09 Blueprints</a>
+  <a href="#s10">10 Repo Shelf</a>
+  <a href="#s11">11 Cosmos</a>
+  <a href="#s12">12 Automotive</a>
+  <a href="#s13">13 Start</a>
+  <a href="#s14">14 Project Zero</a>
+  <a href="#s15">15 Playbook</a>
+  <a href="#s16">16 Pitfalls</a>
+  <a href="#s17">17 Choosing</a>
+  <a href="#s18">18 Glossary</a>
+  <a href="#s19">19 Resources</a>
+  <a href="#s20">20 References</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Physics-ML Monograph Series · Part III</div>
+  <h1>Simulation worlds: <span class="accent">PhysX, Omniverse, Isaac Sim, and Cosmos</span></h1>
+  <p class="subtitle">Part I learned the physics; Part II differentiated it. This part is about everything around the physics: the engine that runs production scenes, the platform that holds the world, the sensors that see it, and the generative models beginning to dream it.</p>
+  <div class="byline">
+    <span>By Majid Mazouchi</span>
+    <span>Drafted with Claude</span>
+    <span>July 2026</span>
+    <span>Companion to Parts I &amp; II</span>
+  </div>
+  <div class="abstract">
+    <strong>Abstract.</strong> A physics solver is not a world. A world has geometry with materials, lights and cameras, lidars and radars, robots and their controllers, a thousand assets from a dozen tools, and people who need to see it. This guide covers that layer of the stack: PhysX 5, NVIDIA's open-source production physics engine, now also packaged as the pip-installable <span class="mono">ovphysx</span> library; Omniverse, the OpenUSD-native platform of SDKs and libraries for building simulation applications; Isaac Sim 6, the open-source (Apache 2.0) robotics simulator that composes all of it, with PhysX and Newton as switchable physics backends; RTX-based sensor simulation and Replicator synthetic data generation; the Blueprint reference architectures for factory, fleet, and AV digital twins; and Cosmos, the world-foundation-model family that generates worlds rather than constructing them. Throughout, the vehicle-engineering reading: plant twins, AV validation, perception data, and where a health-management engineer plugs in.
+  </div>
+</header>
+
+<section id="s1">
+  <div class="secnum">Section 01</div>
+  <h2>The world layer</h2>
+  <p class="lede">This series has climbed a stack. Surrogates learn what physics does; differentiable engines expose how it responds; the world layer decides where it all happens, what observes it, and who can work with it.</p>
+
+  <div class="pipeline" role="img" aria-label="Stack diagram: Warp and PhysicsNeMo at the compute and learning layer; Newton and PhysX at the engine layer; OpenUSD, Kit, and RTX at the platform layer; Isaac Sim and Blueprints at the application layer; Cosmos alongside as generative worlds">
+    <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#8f3c1f"/>
+        </marker>
+      </defs>
+      <!-- layer bands -->
+      <rect x="10" y="230" width="640" height="52" rx="8" fill="#f3ecdd" stroke="#d8cfba" stroke-width="1.5"/>
+      <text x="30" y="252" font-family="IBM Plex Mono, monospace" font-size="11" fill="#8a8578">COMPUTE + LEARNING</text>
+      <text x="30" y="270" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#4c4a42">Warp kernels · PhysicsNeMo surrogates (Parts I–II)</text>
+
+      <rect x="10" y="160" width="640" height="52" rx="8" fill="#fffdf8" stroke="#b3502d" stroke-width="2"/>
+      <text x="30" y="182" font-family="IBM Plex Mono, monospace" font-size="11" fill="#8a8578">PHYSICS ENGINES</text>
+      <text x="30" y="200" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#b3502d">PhysX 5 (production, maximal) · Newton (research, differentiable)</text>
+
+      <rect x="10" y="90" width="640" height="52" rx="8" fill="#fffdf8" stroke="#1f6f6b" stroke-width="2"/>
+      <text x="30" y="112" font-family="IBM Plex Mono, monospace" font-size="11" fill="#8a8578">WORLD PLATFORM</text>
+      <text x="30" y="130" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1f6f6b">OpenUSD scene · Omniverse Kit SDK · RTX renderer + sensors</text>
+
+      <rect x="10" y="20" width="640" height="52" rx="8" fill="#fffdf8" stroke="#c98a1b" stroke-width="2"/>
+      <text x="30" y="42" font-family="IBM Plex Mono, monospace" font-size="11" fill="#8a8578">APPLICATIONS</text>
+      <text x="30" y="60" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#8a5f0f">Isaac Sim · Isaac Lab · Blueprints (Mega, AV sim, DSX)</text>
+
+      <!-- cosmos side panel -->
+      <rect x="690" y="20" width="200" height="262" rx="8" fill="#fffdf8" stroke="#4b3d78" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="790" y="48" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#4b3d78">Cosmos WFMs</text>
+      <text x="790" y="72" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">generative worlds</text>
+      <text x="790" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">Predict · Transfer</text>
+      <text x="790" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">· Reason</text>
+      <text x="790" y="186" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">augments and</text>
+      <text x="790" y="204" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">conditions the</text>
+      <text x="790" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">constructed stack</text>
+      <line x1="688" y1="150" x2="654" y2="150" stroke="#4b3d78" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr3)"/>
+    </svg>
+  </div>
+
+  <p>Three vocabulary corrections save weeks of confusion. First, <em>Omniverse is not an application</em>; it is a platform of SDKs and libraries (Kit, RTX, USD tooling) on which applications are built, Isaac Sim being the flagship. Second, <em>PhysX and Newton are colleagues, not rivals</em>: Isaac Sim ships both as switchable backends, PhysX carrying two decades of production maturity and Newton carrying differentiability and open governance. Third, <em>a Blueprint is a reference architecture</em>, working code plus a documented workflow, not a product you install; you fork it the way you fork a PhysicsNeMo recipe.</p>
+  <p>The organizing question of this part: when your problem stops being "solve these equations" and becomes "stand up a believable world, populate it, observe it with realistic sensors, and run fleets of things inside it," what do you reach for, and in what order?</p>
+</section>
+
+<section id="s2">
+  <div class="secnum">Section 02</div>
+  <h2>PhysX 5: the production engine</h2>
+  <p class="lede">PhysX is the physics engine most people have used without knowing it, decades of games, and now the default engine of Omniverse and Isaac Sim. Version 5 is open source under BSD-3, GPU solver source included.</p>
+  <p>The repository at <a class="inline" href="https://github.com/NVIDIA-Omniverse/PhysX" target="_blank" rel="noopener">NVIDIA-Omniverse/PhysX</a> now hosts the combined stack: the PhysX SDK itself (5.6.x at the time of writing, with GPU source released), the Flow volumetric fluid library, and the Omni PhysX layer, the Kit extensions, USD schemas, and runtime that let PhysX consume physics authored as USD in applications like Isaac Sim.</p>
+
+  <div class="table-scroll">
+  <table>
+    <caption>Table 1 · What PhysX 5 simulates</caption>
+    <thead><tr><th>Capability</th><th>What it is</th><th>Vehicle-flavored use</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Rigid bodies + TGS solver</strong></td><td>GPU-parallel rigid body dynamics with the temporal Gauss-Seidel solver; convex, mesh, and SDF collision</td><td>Everything from parts on a conveyor to full plant scenes with thousands of bodies</td></tr>
+      <tr><td><strong>Reduced-coordinate articulations</strong></td><td>Featherstone-style joint-space articulations with drives and limits, GPU batched</td><td>Robot arms, suspensions-as-linkages, closures; the backbone of Isaac RL workloads</td></tr>
+      <tr><td><strong>Vehicle SDK (PhysX Vehicle 2.0)</strong></td><td>A dedicated, modular vehicle model: tires, suspension, drivetrain, engine, gearbox, anti-roll, with pluggable components</td><td>Drivable vehicles in real-time scenes; the fast vehicle model for fleet-scale and interactive work, distinct from high-fidelity multibody</td></tr>
+      <tr><td><strong>Deformables (FEM)</strong></td><td>GPU finite-element soft bodies</td><td>Compliant grippers, seals, soft fixtures in manufacturing sims</td></tr>
+      <tr><td><strong>PBD particles</strong></td><td>Position-based particles for cloth, fluids, granular</td><td>Wire harnesses and flexible dress parts in assembly simulation</td></tr>
+      <tr><td><strong>Scene queries + CCT</strong></td><td>Raycasts, sweeps, overlaps; character controllers</td><td>Sensor stubs, reachability checks, human workers in plant twins</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>ovphysx: the engine without the platform</h3>
+  <p>The newest development matters for anyone who wants PhysX without adopting a whole application: <span class="mono">pip install ovphysx</span> (0.4.x, explicitly pre-1.0) delivers a self-contained library exposing the PhysX SDK and Omni PhysX behind a C API with Python bindings. It loads USD scenes directly, including from remote URIs, exposes simulation state through DLPack tensors for zero-copy exchange with PyTorch and JAX, supports environment cloning for batched reinforcement learning, and distributes scenes across multiple CUDA devices. In other words: the Isaac Sim physics core as an importable library, the same positioning bare Warp holds in Part II.</p>
+  <div class="callout">
+    <div class="co-title">PhysX vs Newton, honestly</div>
+    <p>PhysX optimizes for robustness, contact quality, feature breadth, and production scale; differentiability is not its design goal. Newton optimizes for differentiability, extensibility, and research velocity; production breadth is still growing. Isaac Sim's decision to ship both as switchable backends is the correct reading: identify and differentiate with Newton where you need gradients, validate and scale with PhysX where you need maturity, and keep the scene identical in USD.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="secnum">Section 03</div>
+  <h2>Omniverse: anatomy of the platform</h2>
+  <p class="lede">Strip away the marketing and Omniverse is four load-bearing pieces: a scene description, an application SDK, a renderer, and a fast data plane between them.</p>
+  <ul class="body-list">
+    <li><strong>OpenUSD is the world's file format.</strong> Everything in Omniverse is a USD stage: geometry, materials, physics (via the UsdPhysics schemas met in Part II), robots, sensors, and simulation output. Composition and layering are what make multi-team, multi-tool workflows survivable: the plant layout, the robot cells, and the simulation overrides are separate layers composed non-destructively.</li>
+    <li><strong>Kit is the application SDK.</strong> Every Omniverse application, Isaac Sim included, is a bundle of Kit extensions: Python or C++ modules contributing UI, simulation logic, importers, or services. Building your own tool means writing extensions, not forking an application, which is why the ecosystem now spans hundreds of them.</li>
+    <li><strong>RTX is the renderer, and more importantly the sensor engine.</strong> Hardware ray tracing gives physically-based light transport in real time, which is pleasant for humans and essential for sensors: the same machinery that draws the scene simulates cameras, lidar returns, and radar with physical fidelity (Section 08).</li>
+    <li><strong>Fabric is the data plane.</strong> A high-performance runtime representation of scene data that lets simulation write and rendering read at scale without round-tripping through USD's authoring layer every frame; the reason thousand-robot scenes are steppable at all.</li>
+  </ul>
+  <h3>The licensing map, plainly</h3>
+  <p>The pieces you build on have different terms, and the differences are decision-relevant. PhysX is BSD-3. Isaac Sim is Apache 2.0 on GitHub. The Omniverse Kit SDK is free to develop with, but <em>redistributing</em> Kit inside your own shipped product runs through an Omniverse Enterprise license. For internal engineering tools this rarely bites; for an ISV shipping a simulator it is the first architectural question. The old Launcher-and-Nucleus distribution model has meanwhile given way to SDKs, containers, pip wheels, and cloud APIs; treat any tutorial that begins with the Omniverse Launcher as historical.</p>
+  <div class="callout">
+    <div class="co-title">A pleasant surprise for agent builders</div>
+    <p>The NVIDIA-Omniverse GitHub organization now publishes Agent Skills and MCP servers for its own stack: semantic search over 400+ Kit extensions, USD and OmniUI API browsing, and RTX SDK scaffolding, consumable by Claude Code and other coding agents. For anyone already running a skills-and-MCP toolkit, the world layer arrives pre-instrumented for agentic development.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 4 (NEW) ================= -->
+<section id="s4">
+  <div class="secnum">Section 04</div>
+  <h2>USD hands-on: your first physics-ready stage</h2>
+  <p class="lede">Part II introduced OpenUSD as a format. Here it becomes a skill: ten lines of Python that author a physics-ready scene, and the five concepts those lines quietly use.</p>
+<pre><span class="kw">from</span> pxr <span class="kw">import</span> Usd, UsdGeom, UsdPhysics, Gf
+
+stage = Usd.Stage.CreateNew(<span class="st">"cell.usda"</span>)
+UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)     <span class="cm"># Isaac convention: Z up</span>
+UsdGeom.SetStageMetersPerUnit(stage, 1.0)           <span class="cm"># and meters, not cm</span>
+
+UsdGeom.Xform.Define(stage, <span class="st">"/World"</span>)
+UsdPhysics.Scene.Define(stage, <span class="st">"/World/PhysicsScene"</span>)
+
+crate = UsdGeom.Cube.Define(stage, <span class="st">"/World/Crate"</span>)
+crate.GetSizeAttr().Set(0.4)
+UsdGeom.XformCommonAPI(crate).SetTranslate(Gf.Vec3d(0, 0, 1.0))
+
+UsdPhysics.RigidBodyAPI.Apply(crate.GetPrim())      <span class="cm"># it falls</span>
+UsdPhysics.CollisionAPI.Apply(crate.GetPrim())      <span class="cm"># it collides</span>
+UsdPhysics.MassAPI.Apply(crate.GetPrim()).GetMassAttr().Set(12.0)
+
+stage.GetRootLayer().Save()                          <span class="cm"># open this in Isaac Sim</span></pre>
+  <p>The file this writes is plain ASCII (<span class="mono">.usda</span>); open it in a text editor and every line of the Python maps to a visible line of scene description, which is the fastest way to build intuition. The concepts at work:</p>
+  <ul class="body-list">
+    <li><strong>Stage, prim, property.</strong> A stage is the composed scene; prims are its nodes (<span class="mono">/World/Crate</span>); properties are their attributes (size, translate) and relationships. Everything else in the platform is machinery for producing and consuming these three.</li>
+    <li><strong>API schemas versus typed schemas.</strong> <span class="mono">UsdGeom.Cube</span> is a typed ("IsA") schema: the prim <em>is</em> a cube. <span class="mono">UsdPhysics.RigidBodyAPI</span> is an API schema: a capability <em>applied onto</em> an existing prim. Physics in USD is almost entirely applied API schemas, which is why any imported CAD mesh can be made dynamic after the fact.</li>
+    <li><strong>Composition arcs.</strong> Real projects never author monoliths: a plant stage <em>sublayers</em> the layout, <em>references</em> each robot's asset file, <em>payloads</em> heavy geometry for deferred loading, and switches <em>variants</em> for configurations. Edits land in your layer; the referenced assets stay pristine. This is the mechanism behind every "non-destructive collaboration" claim in Section 03.</li>
+    <li><strong>ASCII versus crate.</strong> <span class="mono">.usda</span> is diffable text for things you author by hand; <span class="mono">.usdc</span> (crate) is the binary for heavy data; plain <span class="mono">.usd</span> can be either. Author small things as usda so git review works.</li>
+    <li><strong>Conventions before content.</strong> Z-up and meters-per-unit 1.0 are the Isaac Sim conventions; assets arriving Y-up in centimeters (most DCC exports) are the single most common source of "my robot is the size of a stadium" bugs, treated properly in Section 16.</li>
+  </ul>
+  <div class="callout">
+    <div class="co-title">Where to steal from</div>
+    <p>The <a class="inline" href="https://github.com/NVIDIA-Omniverse/OpenUSD-Code-Samples" target="_blank" rel="noopener">OpenUSD-Code-Samples</a> repository is the pattern book for exactly this kind of snippet, in Python, C++, and raw USDA side by side; keep it open in a tab for the first month.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="secnum">Section 05</div>
+  <h2>Isaac Sim 6: the reference simulator</h2>
+  <p class="lede">Isaac Sim is where the stack composes: PhysX or Newton for dynamics, RTX for rendering and sensors, USD for the scene, Kit for extensibility, all open source under Apache 2.0 and installable with pip.</p>
+  <p>The capability set, briefly: import from URDF, MJCF, CAD (including Onshape), or USD; tune robots for physics accuracy versus computational cost; simulate with either physics backend and switch between them; attach RTX and physics-based sensors; generate synthetic data through Replicator; bridge to ROS 2 for stack-in-the-loop testing; and hand off to Isaac Lab (Part II) for reinforcement learning at scale. Real-world capture flows in through NuRec neural reconstruction, closing the loop from physical facility to digital twin.</p>
+  <p>Architecturally, Isaac Sim is deliberately a <em>reference</em> application: a curated bundle of Kit extensions you are expected to extend, strip down, or embed. The three consumption patterns, in increasing order of commitment: use the GUI application as-is for interactive scene work; drive it headlessly from Python scripts for pipelines and CI; or cherry-pick its extensions into a custom Kit application that is yours. The pip distribution (an <span class="mono">isaacsim</span> metapackage, 6.x at the time of writing) makes the middle path, Python-first automation, dramatically less painful than it once was.</p>
+  <div class="callout">
+    <div class="co-title">The quiet headline</div>
+    <p>The PhysX-or-Newton backend switch inside one simulator is the practical bridge between Parts II and III of this series: author the scene once in USD, train and identify against the differentiable engine, then validate the same scene against the production engine, an engine-to-engine cross-check that catches solver-shaped artifacts nothing else will.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 6 (NEW) ================= -->
+<section id="s6">
+  <div class="secnum">Section 06</div>
+  <h2>Scripting Isaac Sim: the standalone idiom</h2>
+  <p class="lede">Everything durable you build will run headlessly from Python, not from the GUI. The standalone-script skeleton is short, but its two rules are non-negotiable.</p>
+<pre><span class="kw">from</span> isaacsim <span class="kw">import</span> SimulationApp
+simulation_app = SimulationApp({<span class="st">"headless"</span>: <span class="kw">True</span>})   <span class="cm"># RULE 1: this line comes FIRST,</span>
+                                                      <span class="cm"># before any other omni/isaac import</span>
+
+<span class="kw">from</span> isaacsim.core.api <span class="kw">import</span> World                   <span class="cm"># namespaces moved from omni.isaac.*</span>
+<span class="kw">from</span> isaacsim.core.utils.stage <span class="kw">import</span> open_stage      <span class="cm"># in recent releases; pin and check</span>
+
+open_stage(<span class="st">"cell.usda"</span>)                               <span class="cm"># the stage from Section 04</span>
+world = World(stage_units_in_meters=1.0)
+world.scene.add_default_ground_plane()
+
+world.reset()                                          <span class="cm"># RULE 2: reset before stepping;</span>
+<span class="kw">for</span> i <span class="kw">in</span> range(600):                                  <span class="cm"># it initializes physics handles</span>
+    world.step(render=<span class="kw">False</span>)
+
+simulation_app.close()
+<span class="cm"># API sketch for the 6.x generation; the docs of your pinned version are truth.</span></pre>
+  <p>Why the import-order rule exists: <span class="mono">SimulationApp</span> boots the Kit runtime, and every <span class="mono">omni.*</span> and <span class="mono">isaacsim.*</span> module is a Kit extension that only exists once the runtime is up. Importing them earlier fails with errors that do not mention this cause, which is why it is the first thing every Isaac veteran checks in someone else's broken script.</p>
+  <h3>Bolting on synthetic data</h3>
+<pre><span class="kw">import</span> omni.replicator.core <span class="kw">as</span> rep
+
+crates = rep.get.prims(path_pattern=<span class="st">"/World/Crate.*"</span>)
+cam = rep.create.camera(position=(2.5, 2.5, 2.0), look_at=(0, 0, 0.5))
+rp = rep.create.render_product(cam, (1024, 768))
+
+writer = rep.WriterRegistry.get(<span class="st">"BasicWriter"</span>)
+writer.initialize(output_dir=<span class="st">"_out/cell_ds"</span>, rgb=<span class="kw">True</span>,
+                  bounding_box_2d_tight=<span class="kw">True</span>, semantic_segmentation=<span class="kw">True</span>)
+writer.attach([rp])
+
+<span class="kw">with</span> rep.trigger.on_frame(num_frames=200):            <span class="cm"># 200 randomized frames</span>
+    <span class="kw">with</span> crates:
+        rep.modify.pose(
+            position=rep.distribution.uniform((-0.6, -0.6, 0.6), (0.6, 0.6, 1.4)),
+            rotation=rep.distribution.uniform((0, 0, -180), (0, 0, 180)))
+rep.orchestrator.run()</pre>
+  <p>Two details that save an afternoon: semantic outputs (segmentation, labeled boxes) require prims to carry semantic labels, applied via the Semantics schema or the GUI's semantics tools, before the writer has anything to label; and the writer's output directory fills with per-annotator subfolders whose naming the docs specify, so inspect one frame end to end before generating fifty thousand.</p>
+</section>
+
+<!-- ================= SECTION 7 (NEW) ================= -->
+<section id="s7">
+  <div class="secnum">Section 07</div>
+  <h2>Building your own: Kit apps and extensions</h2>
+  <p class="lede">The step from "scripting Isaac Sim" to "shipping a tool" is the Kit template repository: scaffolded applications and extensions with the build, test, and packaging plumbing already wired.</p>
+<pre><span class="cm"># The whole lifecycle, four commands</span>
+git clone https://github.com/NVIDIA-Omniverse/kit-app-template.git
+cd kit-app-template
+./repo.sh template new      <span class="cm"># pick: app (USD Composer / Explorer / Viewer)</span>
+                            <span class="cm">#   or extension (Basic Python / Python UI / C++)</span>
+./repo.sh build
+./repo.sh launch</pre>
+  <p>The application templates are honest starting points, not toys: USD Composer for authoring-style tools, USD Explorer for large-scene review, USD Viewer for a viewport-only app built to be streamed into a web page. The extension templates scaffold the unit you will actually write most: a Kit extension is a folder with a <span class="mono">extension.toml</span> manifest (name, version, dependencies on other extensions) and a Python module exposing lifecycle hooks:</p>
+<pre><span class="kw">import</span> omni.ext
+
+<span class="kw">class</span> FleetHealthOverlay(omni.ext.IExt):
+    <span class="kw">def</span> on_startup(self, ext_id):
+        <span class="cm"># build UI, subscribe to stage events, register commands</span>
+        <span class="kw">print</span>(<span class="st">"[fleet.health.overlay] up"</span>)
+
+    <span class="kw">def</span> on_shutdown(self):
+        <span class="cm"># tear down everything you created</span>
+        <span class="kw">print</span>(<span class="st">"[fleet.health.overlay] down"</span>)</pre>
+  <p>Because Isaac Sim itself is a bundle of extensions, anything you build this way loads into it directly: a telemetry overlay, a custom importer for your plant's asset conventions, a one-button scenario runner for the test team. The template's tooling also handles packaging and the streaming-deployment layers (Kubernetes-based Kit App Streaming, or NVCF for managed cloud), which is the sanctioned route when the tool needs to reach people without workstations, with the Section 03 licensing note applying the moment Kit is redistributed inside a product.</p>
+</section>
+
+<section id="s8">
+  <div class="secnum">Section 08</div>
+  <h2>Sensors, rendering, and synthetic data</h2>
+  <p class="lede">For perception work, the renderer is not cosmetics; it is the physics of observation. A simulated camera is a light-transport problem, a lidar is a laser-transport problem, and getting them right is what makes synthetic data worth training on.</p>
+  <h3>Sensor RTX</h3>
+  <p>Omniverse's sensor simulation runs the same ray-tracing machinery as rendering, but for sensor physics: camera models with lens effects and rolling shutter, lidar with beam patterns, multiple returns, and material-dependent reflectance, and radar-class sensors, exposed through Sensor RTX APIs that the Mega and AV-simulation Blueprints are built on. The fidelity argument is simple: perception models trained on naive renders learn the render's tells; sensors simulated as physics narrow that gap at the source.</p>
+  <h3>Replicator: randomization as a pipeline</h3>
+  <p>Replicator is the synthetic-data-generation framework inside Isaac Sim: programmatic control over scene content, materials, lighting, poses, and sensor parameters, with automatic ground-truth labeling (bounding boxes, segmentation, depth, normals) emitted alongside every frame. It is domain randomization (Part II, Section 15) industrialized: define distributions over the world, sample datasets from them, and version the generator instead of the data.</p>
+  <h3>Assets that behave: SimReady</h3>
+  <p>A photoreal mesh is not a simulation-ready asset; it needs mass, materials, collision geometry, and semantic labels. The SimReady convention packages exactly that, and generative tooling now accelerates the drudgery: USD Code and USD Search NIM microservices generate and retrieve OpenUSD assets from text, and the Edify SimReady model auto-labels existing 3D assets with physical attributes, NVIDIA's cited example being a thousand objects processed in minutes rather than a forty-hour week.</p>
+  <div class="callout">
+    <div class="co-title">Vehicle reading</div>
+    <p>This is the workhorse layer for perception teams: rare-event training data (debris, weather, unusual actors) for AV stacks, and inspection-model data (defect renders on body panels, corrosion textures, assembly errors) for manufacturing quality, both generated with labels that would be unaffordable to annotate by hand.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <div class="secnum">Section 09</div>
+  <h2>Blueprints and digital twins: the gallery</h2>
+  <p class="lede">Eight reference architectures and workflows, filterable by domain, each a fork-and-adapt starting point rather than a demo.</p>
+
+  <div class="chips" role="group" aria-label="Filter blueprints by domain">
+    <button class="chip active" data-filter="all">All entries</button>
+    <button class="chip" data-filter="factory">Factory &amp; Fleet</button>
+    <button class="chip" data-filter="av">AV &amp; Sensors</button>
+    <button class="chip" data-filter="data">Data &amp; Capture</button>
+    <button class="chip" data-filter="dev">Developer Tooling</button>
+  </div>
+  <div class="count-note" id="countNote">Showing 8 of 8 entries</div>
+
+  <div class="gallery" id="gallery">
+
+    <article class="ex-card" data-cat="factory">
+      <div class="ex-head"><h4>Mega: robot fleets in facility twins</h4><span class="tag factory">Factory &amp; Fleet</span></div>
+      <div class="ex-path">Omniverse Blueprint · Sensor RTX APIs · Isaac Sim</div>
+      <p>The reference architecture for developing, testing, and optimizing robot fleets and their AI agents inside a physically accurate digital twin of a factory or warehouse before any robot touches the floor. In production use: KION, with Accenture and Siemens, builds warehouse twins on Mega to train and test fleets of Jetson-based autonomous forklifts for GXO.</p>
+      <dl class="ex-meta">
+        <div><dt>Scale</dt><dd>Whole facilities, many robots</dd></div>
+        <div><dt>Proof point</dt><dd>KION / Accenture / Siemens → GXO</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The direct template for automotive plant logistics: AGV and AMR fleets, line-side delivery, and virtual commissioning of material flow before a layout change is welded into place.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">Omniverse Blueprints on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="av">
+      <div class="ex-head"><h4>AV simulation blueprint</h4><span class="tag av">AV &amp; Sensors</span></div>
+      <div class="ex-path">Omniverse Blueprint · sensor replay + closed-loop testing</div>
+      <p>A standardized, API-driven workflow for AV development: construct road-scene digital twins, replay recorded drive data through simulated sensors, generate new ground truth, and run closed-loop tests. It leans on USD composition to make scenario variants (weather, traffic, edge cases) modular layers rather than forked scenes, and connects to the Cosmos-generated clip corpus for coverage of the long tail.</p>
+      <dl class="ex-meta">
+        <div><dt>Core moves</dt><dd>Replay, ground-truth gen, closed loop</dd></div>
+        <div><dt>Companion</dt><dd>NVIDIA Halos safety platform</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> This is the validation factory for ADAS and AV functions, and the scenario machinery transfers to any vehicle software that must be tested against rare situations, driver-assist and health-monitoring logic included.</div>
+      <a class="ex-link" href="https://blogs.nvidia.com/blog/wfm-advance-av-sim-safety/" target="_blank" rel="noopener">NVIDIA blog overview →</a>
+    </article>
+
+    <article class="ex-card" data-cat="data">
+      <div class="ex-head"><h4>Physical AI Data Factory</h4><span class="tag data">Data &amp; Capture</span></div>
+      <div class="ex-path">Blueprint · Cosmos WFMs + OSMO orchestration</div>
+      <p>Announced at GTC 2026: an open reference architecture that turns compute into training data at scale, unifying data curation, augmentation, and evaluation in one pipeline built on Cosmos world foundation models and the OSMO operator. The stated target: diverse, long-tail datasets for world modeling, humanoid skills, and autonomous driving generated from limited real captures.</p>
+      <dl class="ex-meta">
+        <div><dt>Inputs</dt><dd>Limited real data</dd></div>
+        <div><dt>Outputs</dt><dd>Curated, augmented, evaluated corpora</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The industrialized version of "we never have enough labeled failure data," which is the standing complaint of every diagnostics and perception team in the industry.</div>
+      <a class="ex-link" href="https://blogs.nvidia.com/blog/gtc-2026-virtual-worlds-physical-ai/" target="_blank" rel="noopener">GTC 2026 announcement →</a>
+    </article>
+
+    <article class="ex-card" data-cat="factory dev">
+      <div class="ex-head"><h4>DSX: AI factory digital twins</h4><span class="tag factory">Factory &amp; Fleet</span></div>
+      <div class="ex-path">Omniverse DSX Blueprint</div>
+      <p>The blueprint for simulating AI factories, gigawatt-class data centers, as digital twins: power, cooling, network topology, and layout optimized virtually before construction, the pattern demonstrated with Cadence's Reality Digital Twin integration. Included here less for its subject than for its method: it is the most complete public example of multi-physics facility twinning on the platform.</p>
+      <dl class="ex-meta">
+        <div><dt>Physics</dt><dd>Thermal, airflow, power, layout</dd></div>
+        <div><dt>Pattern</dt><dd>Design-before-build at facility scale</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Swap servers for cells and the method is a paint-shop or battery-plant energy twin; the CFD-plus-layout optimization loop is the same problem wearing different equipment.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">Omniverse on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="data">
+      <div class="ex-head"><h4>NuRec: real-to-sim neural reconstruction</h4><span class="tag data">Data &amp; Capture</span></div>
+      <div class="ex-path">Omniverse NuRec · Isaac Sim ingestion</div>
+      <p>Neural reconstruction that turns real-world captures into simulation-ready environments: photograph or scan the facility, reconstruct it as a renderable, navigable scene, and bring it into Isaac Sim as the stage for robot and sensor work. The inverse of synthetic data: instead of generating the world, digitize the one you have.</p>
+      <dl class="ex-meta">
+        <div><dt>Direction</dt><dd>Physical → digital</dd></div>
+        <div><dt>Consumers</dt><dd>Isaac Sim scenes, twin backdrops</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The fastest honest route to a plant twin: reconstruct the actual line rather than remodeling it from stale CAD, then layer physics and robots on top.</div>
+      <a class="ex-link" href="https://developer.nvidia.com/isaac/sim" target="_blank" rel="noopener">Isaac Sim overview →</a>
+    </article>
+
+    <article class="ex-card" data-cat="dev">
+      <div class="ex-head"><h4>kit-cae: CAE results in the world</h4><span class="tag dev">Developer Tooling</span></div>
+      <div class="ex-path">github.com/NVIDIA-Omniverse/kit-cae</div>
+      <p>A Kit-based reference for bringing computer-aided engineering data, fields, meshes, results, into Omniverse scenes for real-time, physically contextualized visualization: the "real-time digital twins for CAE" workflow that pairs CUDA-X solvers and physics-AI surrogates with RTX visualization.</p>
+      <dl class="ex-meta">
+        <div><dt>Bridges</dt><dd>Solver output ↔ USD scenes</dd></div>
+        <div><dt>Pairs with</dt><dd>Part I surrogates, at interactive rates</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Where a DoMINO-style aero surrogate meets its audience: interactive flow fields on the actual vehicle model in a reviewable scene, instead of static contour plots in a slide deck.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA-Omniverse/kit-cae" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="dev">
+      <div class="ex-head"><h4>Agent Skills &amp; MCP servers for the stack</h4><span class="tag dev">Developer Tooling</span></div>
+      <div class="ex-path">NVIDIA-Omniverse org · skills + MCP catalog</div>
+      <p>Structured skills and Model Context Protocol servers covering the platform itself: semantic search across 400+ Kit extensions with dependency graphs, USD and OmniUI API browsing with signatures and examples, and RTX SDK project scaffolding, published for Claude Code and other coding agents, and listed in the public skill marketplaces.</p>
+      <dl class="ex-meta">
+        <div><dt>Covers</dt><dd>Kit, USD, OmniUI, RTX SDK</dd></div>
+        <div><dt>Consumers</dt><dd>Agentic coding toolchains</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> For a team already running a skills-and-MCP development kit, this is the world layer arriving pre-instrumented: your agents can learn Kit and USD the same way they learned your internal codebase.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">Omniverse org on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="av factory">
+      <div class="ex-head"><h4>Spatial streaming to headsets</h4><span class="tag factory">Factory &amp; Fleet</span><span class="tag av">AV &amp; Sensors</span></div>
+      <div class="ex-path">Omniverse Blueprint · Apple Vision Pro streaming</div>
+      <p>A blueprint for streaming large industrial digital twins to Apple Vision Pro: the full-fidelity scene rendered server-side and delivered immersively, so a design review or plant walkthrough happens inside the twin rather than in front of it.</p>
+      <dl class="ex-meta">
+        <div><dt>Pattern</dt><dd>Server render, immersive client</dd></div>
+        <div><dt>Audience</dt><dd>Design and operations reviews</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Vehicle design reviews and plant layout walkthroughs at true scale; the underrated payoff is stakeholder buy-in, because a twin people have stood inside gets maintained.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">Omniverse Blueprints →</a>
+    </article>
+
+  </div>
+</section>
+
+<!-- ================= SECTION 10 (NEW) ================= -->
+<section id="s10">
+  <div class="secnum">Section 10</div>
+  <h2>The sample repository shelf</h2>
+  <p class="lede">Every repository below was verified live at the time of writing. Together they cover the full path from first USD file to shipped Kit application; the third column says when to open which.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 2 · Official repositories, ordered roughly by the journey</caption>
+    <thead><tr><th>Repository</th><th>What it is</th><th>Start here when…</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/OpenUSD" target="_blank" rel="noopener"><span class="mono">NVIDIA-Omniverse/OpenUSD</span></a></td>
+        <td>Curated USD learning resources: tutorials, examples, reference material</td>
+        <td>You are on day one and want the guided road into USD itself</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/OpenUSD-Code-Samples" target="_blank" rel="noopener"><span class="mono">OpenUSD-Code-Samples</span></a></td>
+        <td>Task-shaped snippets in Python, C++, and USDA, rendered as browsable docs</td>
+        <td>You know what you want to do to a stage and need the three lines that do it</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/isaac-sim/IsaacSim" target="_blank" rel="noopener"><span class="mono">isaac-sim/IsaacSim</span></a></td>
+        <td>The simulator itself: source, build system, tutorials, standalone examples</td>
+        <td>Anything in Sections 05–06; its <span class="mono">standalone_examples</span> tree is the scripting pattern book</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/isaac-sim/IsaacLab" target="_blank" rel="noopener"><span class="mono">isaac-sim/IsaacLab</span></a></td>
+        <td>The robot-learning framework on top: tasks, RL workflows, Newton integration</td>
+        <td>Your project graduates from simulation to training policies (Part II territory)</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/isaac-sim/IsaacSimZMQ" target="_blank" rel="noopener"><span class="mono">isaac-sim/IsaacSimZMQ</span></a></td>
+        <td>Reference bridge between Isaac Sim and external processes over ZeroMQ</td>
+        <td>Your controller, digital-twin service, or test harness lives outside the simulator process</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/synthetic-data-examples" target="_blank" rel="noopener"><span class="mono">synthetic-data-examples</span></a></td>
+        <td>Worked Replicator and SDG examples beyond the basics</td>
+        <td>Section 06's writer snippet worked and you now need randomization patterns at dataset scale</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/kit-app-template" target="_blank" rel="noopener"><span class="mono">kit-app-template</span></a></td>
+        <td>Scaffolded Kit applications and extensions with build, test, packaging, streaming layers</td>
+        <td>Section 07: your script wants to become a tool other people run</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/usd-exchange-samples" target="_blank" rel="noopener"><span class="mono">usd-exchange-samples</span></a></td>
+        <td>OpenUSD Exchange SDK samples for authoring consistent, correct USD from your own pipelines</td>
+        <td>You are writing the importer/exporter between company data and USD</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/vfi-samples" target="_blank" rel="noopener"><span class="mono">vfi-samples</span></a></td>
+        <td>Virtual-facility automation: JT/CAD → USD conversion, asset validation, scene optimization, material assignment, assembly building</td>
+        <td>The plant-twin project starts and the input is a mountain of CAD; this is the automotive-shaped ETL</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/OpenUSD-plugin-samples" target="_blank" rel="noopener"><span class="mono">OpenUSD-plugin-samples</span></a></td>
+        <td>Custom USD schemas, file-format plugins, and dynamic payloads, with build tooling</td>
+        <td>Your domain needs its own vocabulary in USD (a VHM telemetry schema, say)</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/kit-cae" target="_blank" rel="noopener"><span class="mono">kit-cae</span></a></td>
+        <td>CAE data in Omniverse: USD schemas and data delegates for CGNS, EnSight, VTK, OpenFOAM; Warp-accelerated processing; RTX and IndeX rendering</td>
+        <td>Simulation results (Part I's included) need to live in the world, interactively</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/NVIDIA-Omniverse/PhysX" target="_blank" rel="noopener"><span class="mono">NVIDIA-Omniverse/PhysX</span></a></td>
+        <td>PhysX SDK + Omni PhysX source, snippets, and the ovphysx releases</td>
+        <td>You need engine-level behavior answers, or PhysX as a bare library</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/newton-physics/newton" target="_blank" rel="noopener"><span class="mono">newton-physics/newton</span></a></td>
+        <td>The differentiable engine of Part II, reachable as Isaac Sim's second backend</td>
+        <td>The backend-diff exercise, and everything gradient-shaped</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 3 · Community repositories worth knowing</caption>
+    <thead><tr><th>Repository</th><th>What it is</th><th>Why it earns a slot</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="inline" href="https://github.com/j3soon/nvidia-isaac-summary" target="_blank" rel="noopener"><span class="mono">j3soon/nvidia-isaac-summary</span></a></td>
+        <td>An unofficial, maintained map of the entire Isaac / Omniverse namespace</td>
+        <td>The sprawl is real; this is the best single orientation document, kept current</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/perfectproducts/kit_snippets" target="_blank" rel="noopener"><span class="mono">perfectproducts/kit_snippets</span></a></td>
+        <td>Kit source snippets collected by an Omniverse Ambassador building industrial-twin middleware</td>
+        <td>Practitioner-grade answers to "how does the GUI do that," ready to lift into extensions</td>
+      </tr>
+      <tr>
+        <td><a class="inline" href="https://github.com/mati-nvidia/scene-api-sample" target="_blank" rel="noopener"><span class="mono">mati-nvidia/scene-api-sample</span></a></td>
+        <td>A clean worked example of viewport overlays via the scene API</td>
+        <td>The exact pattern for drawing live telemetry or health markers on top of a twin</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">A shelf discipline</div>
+    <p>Clone the shelf, but pin it: record the commit of every sample you lift code from, because this ecosystem renames namespaces between minor versions more often than most. A <span class="mono">SOURCES.md</span> with repo, commit, and date has saved more Omniverse projects than any profiler.</p>
+  </div>
+</section>
+
+<section id="s11">
+  <div class="secnum">Section 11</div>
+  <h2>Cosmos: worlds that are generated, not constructed</h2>
+  <p class="lede">Everything above builds worlds the classical way: model, compose, render. Cosmos, NVIDIA's world-foundation-model family, generates them: video-native neural models that predict, transfer, and reason about physical scenes.</p>
+  <p>Launched at CES 2025 and now at its third generation alongside models like Isaac GR00T and Alpamayo, the family divides by verb. <em>Predict</em> models generate physically plausible future video from prompts and context, synthetic worlds by sampling. <em>Transfer</em> models re-render structured input (a simulation layout, a segmentation, a coarse scene) into photoreal variants, which is how a single Omniverse scenario becomes a thousand weather-and-lighting variants. <em>Reason</em> models answer questions about physical scenes, the perception-and-judgment end. The AV pipeline is the flagship consumer: the AV-simulation ecosystem's public corpus includes tens of thousands of Cosmos-generated driving clips aimed at exactly the rare events real fleets under-sample.</p>
+  <h3>The honest relationship between the two world-making methods</h3>
+  <p>Constructed simulation gives controllability, ground truth by construction, and physics you can audit; it struggles with visual diversity and the cost of authoring the long tail. Generative world models give diversity and photorealism at negligible marginal cost; they struggle with physical guarantees, controllability, and labels. The emerging pattern is not a contest but a sandwich: construct the scenario in Omniverse (controllable, labeled), amplify it through Cosmos Transfer (diverse, photoreal), and validate perception against both. Treat WFM physics the way Part I taught you to treat surrogate physics: useful, fast, and to be cross-checked against the auditable model before anything safety-adjacent depends on it.</p>
+</section>
+
+<section id="s12">
+  <div class="secnum">Section 12</div>
+  <h2>The automotive map</h2>
+  <p class="lede">One table to place every OEM function on the stack, and a closing argument for the health-management reader.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 4 · Where automotive functions land on the world layer</caption>
+    <thead><tr><th>Function</th><th>Primary tools</th><th>What the twin buys</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Plant logistics &amp; AMR fleets</strong></td><td>Mega Blueprint, Isaac Sim, PhysX</td><td>Fleet behavior and layout changes tested against a physically accurate facility before deployment</td></tr>
+      <tr><td><strong>Virtual commissioning</strong></td><td>Isaac Sim + ROS 2 bridges, NuRec capture</td><td>Cell and line control software validated against the twin, shrinking on-floor commissioning time</td></tr>
+      <tr><td><strong>AV / ADAS validation</strong></td><td>AV simulation Blueprint, Sensor RTX, Cosmos</td><td>Closed-loop testing over scenario spaces no fleet could drive, with ground truth for free</td></tr>
+      <tr><td><strong>Perception training data</strong></td><td>Replicator, SimReady assets, Cosmos Transfer</td><td>Labeled long-tail data for driving and for manufacturing inspection alike</td></tr>
+      <tr><td><strong>Robot learning</strong></td><td>Isaac Lab on Isaac Sim (PhysX or Newton)</td><td>Policies trained at GPU scale, transferred with the Part II sim-to-real discipline</td></tr>
+      <tr><td><strong>CAE communication</strong></td><td>kit-cae, Part I surrogates, RTX</td><td>Simulation results as interactive scenes rather than static reports</td></tr>
+      <tr><td><strong>Design &amp; ops review</strong></td><td>USD composition, spatial streaming</td><td>One composable scene serving styling, engineering, and manufacturing simultaneously</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>The VHM argument</h3>
+  <p>Vehicle health management enters this layer from three doors. First, <em>the twin as context</em>: telemetry interpreted against a live facility or vehicle twin is worth more than telemetry in a dashboard, because the twin supplies the operating context (duty, route, ambient, neighbors) that turns an anomaly into a diagnosis. Second, <em>degraded-fleet simulation</em>: the same Mega-style machinery that tests healthy fleets can inject the degradations Part II taught you to identify, a worn damper here, a drifting sensor there, and measure operational impact before deciding maintenance policy; failure-mode injection in a twin is DFMEA's quantitative sibling. Third, <em>synthetic failure data</em>: Replicator and Cosmos generate the labeled failure observations (visual, and increasingly signal-level) that real fleets are too healthy, or too poorly instrumented, to provide. The world layer, in short, is where health management stops being a per-signal discipline and becomes a per-system one.</p>
+</section>
+
+<section id="s13">
+  <div class="secnum">Section 13</div>
+  <h2>Getting started</h2>
+  <p class="lede">All three entry points are now pip-shaped or git-shaped. Versions verified on PyPI at the time of writing.</p>
+<pre><span class="cm"># Isaac Sim 6.x as Python packages (the metapackage pulls the stack)</span>
+pip install isaacsim --extra-index-url https://pypi.nvidia.com
+
+<span class="cm"># PhysX as a standalone library (pre-1.0; API still settling)</span>
+pip install ovphysx
+
+<span class="cm"># Or build Isaac Sim from source</span>
+git clone https://github.com/isaac-sim/IsaacSim.git
+
+<span class="cm"># PhysX SDK + Omni PhysX source</span>
+git clone https://github.com/NVIDIA-Omniverse/PhysX.git</pre>
+  <h3>A sensible first week</h3>
+  <p>Day 1: install Isaac Sim, load a sample scene, and run the basic tutorials until the stage, prims, and play-button model feels native. Day 2: import one of your own assets, a URDF robot or a CAD fixture, and give it physics. Day 3: attach an RTX camera and a lidar, and write frames plus ground truth to disk with Replicator; this single exercise touches sensors, SDG, and the Python API at once. Day 4: script the whole thing headlessly, no GUI, from one Python file, because everything durable you build will run this way. Day 5: switch the physics backend from PhysX to Newton on the same scene and diff the trajectories, which is Parts II and III shaking hands.</p>
+  <div class="callout">
+    <div class="co-title">Hardware honesty</div>
+    <p>This layer is the most hardware-hungry of the series: RTX-class GPUs are effectively required for the sensor and rendering paths, and facility-scale scenes want workstation or server parts. Budget accordingly, or lean on containerized remote and cloud deployment, which the current distribution model treats as a first-class path.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 14 (NEW) ================= -->
+<section id="s14">
+  <div class="secnum">Section 14</div>
+  <h2>Project Zero: a cell twin that writes labeled data</h2>
+  <p class="lede">A complete first project that touches every layer of this guide once, sized for a focused weekend. Deliverable: a physics-ready stage you authored, a headless script that simulates it, and a labeled synthetic dataset it produced.</p>
+  <ul class="body-list">
+    <li><strong>Step 1 · Environment.</strong> Fresh Python environment, <span class="mono">pip install isaacsim --extra-index-url https://pypi.nvidia.com</span> (Section 13), and confirm the GUI launches and a sample scene plays. Do not skip the GUI check; every later mystery is easier to debug against a simulator you have seen working.</li>
+    <li><strong>Step 2 · Author the stage.</strong> Run the Section 04 script, then extend it: three crates instead of one (<span class="mono">/World/Crate_01…03</span>), a static table under them (collision, no rigid body), and semantic labels on the crates so Replicator has something to annotate. Open the result in the GUI, press play, and watch the crates drop; if they fall through the table, you have met collision-API-forgotten, the classic first bug.</li>
+    <li><strong>Step 3 · Simulate headlessly.</strong> The Section 06 standalone skeleton, pointed at your stage: open, reset, step 600 frames, close. Confirm it runs on a machine with no display attached, because that is where every pipeline eventually lives.</li>
+    <li><strong>Step 4 · Generate the dataset.</strong> Bolt on the Section 06 Replicator block: randomized crate poses, one camera, RGB plus tight 2D boxes plus segmentation, 200 frames to <span class="mono">_out/cell_ds</span>. Open frame 0 and frame 199 side by side and verify the labels track the randomization before scaling the frame count.</li>
+    <li><strong>Step 5 · Inspect like a skeptic.</strong> Plot the distribution of crate positions recovered from the labels against the distribution you requested; mismatches here are randomizer bugs that would silently bias a trained model. This ten-line pandas check is the habit that separates dataset generators from dataset believers.</li>
+    <li><strong>Step 6 · Stretch goals, pick one.</strong> (a) Import a URDF robot next to the table and step it; (b) switch the physics backend to Newton on the same stage and diff crate trajectories against PhysX, the Parts II–III handshake; (c) wrap the whole run as a Kit extension button using Section 07's skeleton, and you have shipped your first tool.</li>
+  </ul>
+  <div class="callout">
+    <div class="co-title">What Project Zero proves</div>
+    <p>Authoring (USD), simulating (PhysX), observing (RTX camera), labeling (Replicator), and automating (headless Python) in one artifact, which is the entire world layer in miniature. Every real project after this one is Project Zero with more assets, more sensors, and more discipline.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 15 (NEW) ================= -->
+<section id="s15">
+  <div class="secnum">Section 15</div>
+  <h2>A 30-day playbook</h2>
+  <p class="lede">Project Zero, industrialized: four weeks from installation to a defensible pilot twin, each week with an exit criterion so drift is visible.</p>
+
+  <div class="phase">
+    <div class="phase-week">W1<small>Fluency</small></div>
+    <div>
+      <h4>Environment and USD literacy</h4>
+      <p>Install both consumption paths (pip and GUI). Work through the Learn OpenUSD curriculum's core modules and the Section 04 primer until stages, prims, schemas, and composition arcs are vocabulary, not lookup. Author three small stages by hand, including one that references another.</p>
+      <p class="milestone">a hand-authored, physics-ready stage that passes the asset validator cleanly</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W2<small>Automation</small></div>
+    <div>
+      <h4>Headless scripting and sensors</h4>
+      <p>Complete Project Zero through Step 5. Then parameterize it: scene contents, camera count, randomization ranges, and frame counts from a config file, run entirely from CI or a remote box.</p>
+      <p class="milestone">a one-command pipeline producing 1,000 labeled frames with a written sanity-check report</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W3<small>Your world</small></div>
+    <div>
+      <h4>Real assets, one real cell</h4>
+      <p>Bring in your own data: CAD of one actual cell or line segment through the vfi-samples conversion/validation/optimization pipeline, or a NuRec capture if geometry is stale. Add the real robot from URDF, give everything physics, and reproduce one real behavior (a pick, a transfer, a conveyor pass) well enough that a process engineer nods.</p>
+      <p class="milestone">one physical cell reconstructed, simulating, and reviewed by someone who runs the real one</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W4<small>Integration</small></div>
+    <div>
+      <h4>Connect it and decide</h4>
+      <p>Pick the integration your organization will actually use: ROS 2 bridge to the real control stack, IsaacSimZMQ to an external twin service, Isaac Lab for a learning workload, or the Newton backend diff for a physics-credibility check. Package the demo, write the honest one-pager (what works, what does not, what it cost), and present the go / no-go.</p>
+      <p class="milestone">a go / no-go decision backed by a working integration, not a rendered video</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SECTION 16 (NEW) ================= -->
+<section id="s16">
+  <div class="secnum">Section 16</div>
+  <h2>Pitfalls the tutorials will not warn you about</h2>
+  <p class="lede">Seven failure modes that account for most first-month misery on this stack, each cheap to avoid once named.</p>
+
+  <div class="pitfall">
+    <h4>1 · Units and up-axis mismatches</h4>
+    <p>Isaac Sim expects Z-up, meters. Most DCC and CAD exports arrive Y-up, centimeters. The symptoms are comic (stadium-sized robots, physics that looks like slow motion) but the fix is procedural: set stage metadata explicitly on everything you author, and normalize every import through a conversion step before it touches a working scene.</p>
+  </div>
+  <div class="pitfall">
+    <h4>2 · Importing before the runtime exists</h4>
+    <p>Any <span class="mono">omni.*</span> or <span class="mono">isaacsim.*</span> import before <span class="mono">SimulationApp(...)</span> fails with errors that never mention the real cause. Rule: SimulationApp is line one; all Kit-provided imports come after. Put it in your project template so nobody rediscovers it.</p>
+  </div>
+  <div class="pitfall">
+    <h4>3 · Editing the authoring layer, reading the runtime (or vice versa)</h4>
+    <p>Live simulation state flows through Fabric, not through the USD authoring layer, so a value you read via plain USD APIs mid-simulation may be stale, and an edit may not take effect where you expect. Use the simulator's core APIs (World, its views and articulation handles) for runtime reads and writes, and reserve raw USD editing for authoring time.</p>
+  </div>
+  <div class="pitfall">
+    <h4>4 · Confusing physics rate with render rate</h4>
+    <p>Physics steps at its own dt, rendering at another, and "it behaves differently headless" is usually this. Fix the physics timestep explicitly, decide how many physics steps per rendered frame, and never let wall-clock frame rate leak into dynamics if you care about determinism or comparisons between runs.</p>
+  </div>
+  <div class="pitfall">
+    <h4>5 · Version drift and Launcher-era tutorials</h4>
+    <p>Namespaces have moved (<span class="mono">omni.isaac.core</span> → <span class="mono">isaacsim.core.*</span>), the Launcher distribution is history, and many excellent-looking tutorials predate both. Check the date on everything, pin your Isaac Sim and extension versions, and record them in the repo; the shelf discipline from Section 10 applies to your own project doubly.</p>
+  </div>
+  <div class="pitfall">
+    <h4>6 · Broken asset paths and unvalidated USD</h4>
+    <p>Stages reference other files, and a scene that renders on your machine with absolute paths dies on the next one. Keep references relative, run the asset validator (as the vfi-samples pipeline does) as a gate, and treat "missing texture magenta" as a build failure, not a cosmetic issue.</p>
+  </div>
+  <div class="pitfall">
+    <h4>7 · Headless does not mean GPU-less</h4>
+    <p>The RTX renderer and sensor simulation need RTX-class GPU hardware whether or not a window is open, and facility scenes eat VRAM through textures and geometry long before compute saturates. Budget VRAM first, use payloads and instancing for large scenes, and test on the smallest GPU the pipeline must support early, not at delivery.</p>
+  </div>
+</section>
+
+<section id="s17">
+  <div class="secnum">Section 17</div>
+  <h2>Choosing your stack, and the series in one view</h2>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 5 · From problem to layer</caption>
+    <thead><tr><th>Your problem sounds like…</th><th>Reach for</th><th>Part of this series</th></tr></thead>
+    <tbody>
+      <tr><td>"CFD/FEA is too slow for the design loop"</td><td>PhysicsNeMo surrogates (DoMINO, Transolver, crash recipes)</td><td>Part I</td></tr>
+      <tr><td>"I need gradients: system ID, calibration, design sensitivities"</td><td>Warp, Newton, differentiable rollouts</td><td>Part II</td></tr>
+      <tr><td>"I need a believable environment with sensors and many actors"</td><td>Isaac Sim on PhysX, RTX sensors</td><td>Part III</td></tr>
+      <tr><td>"I need labeled data I cannot collect"</td><td>Replicator + SimReady, amplified by Cosmos Transfer</td><td>Part III</td></tr>
+      <tr><td>"I need to test a fleet or a facility before touching the real one"</td><td>Mega / AV-sim Blueprints on the twin</td><td>Part III</td></tr>
+      <tr><td>"I need physics inside a training loop"</td><td>Newton or ovphysx via DLPack into PyTorch</td><td>Parts II–III</td></tr>
+      <tr><td>"I need my simulation results seen and believed"</td><td>kit-cae, USD scenes, spatial streaming</td><td>Parts I + III</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The three parts compose into one sentence: <em>learn the physics where solving is too slow (I), differentiate it where questions are gradients (II), and situate it in a world where systems, sensors, and people meet it (III).</em> Any serious vehicle program will eventually run all three layers against the same USD scene, which is precisely why the scene format, not any single engine, is the load-bearing standard.</p>
+</section>
+
+<!-- ================= SECTION 18 (NEW) ================= -->
+<section id="s18">
+  <div class="secnum">Section 18</div>
+  <h2>Glossary</h2>
+  <p class="lede">The working vocabulary of the world layer, in one place.</p>
+  <dl class="glossary">
+    <dt>Stage</dt><dd>The composed USD scene: the result of opening a root layer and resolving every composition arc it pulls in.</dd>
+    <dt>Prim</dt><dd>A node in the scene hierarchy (<span class="mono">/World/Crate</span>); carries a type, applied schemas, properties, and children.</dd>
+    <dt>Layer</dt><dd>A single USD file's worth of opinions. Stages are stacks of layers; stronger layers override weaker ones non-destructively.</dd>
+    <dt>Composition arcs</dt><dd>The mechanisms that assemble stages from layers: sublayer (stacking), reference (asset inclusion), payload (deferred-load reference), variant (switchable alternatives), inherits/specializes (class-like broadcast edits).</dd>
+    <dt>Typed vs API schema</dt><dd>Typed ("IsA") schemas define what a prim is (Cube, Mesh, Camera); API schemas apply capabilities onto existing prims (RigidBodyAPI, CollisionAPI, MassAPI). USD physics is almost entirely applied APIs.</dd>
+    <dt>usda / usdc</dt><dd>ASCII and binary (crate) encodings of USD. Author small things as diffable usda; let heavy data live in usdc.</dd>
+    <dt>Kit</dt><dd>The Omniverse application SDK. Every Omniverse app, Isaac Sim included, is a configured bundle of Kit extensions.</dd>
+    <dt>Extension</dt><dd>The unit of Kit functionality: a manifest (<span class="mono">extension.toml</span>) plus Python or C++ implementing lifecycle hooks; hundreds ship with the platform.</dd>
+    <dt>Fabric</dt><dd>The high-performance runtime data plane between simulation and rendering; the reason live state and the USD authoring layer are not the same thing (Pitfall 3).</dd>
+    <dt>RTX renderer / Sensor RTX</dt><dd>The hardware-ray-traced renderer, and the same machinery repurposed as physically-based camera, lidar, and radar simulation.</dd>
+    <dt>Replicator</dt><dd>Isaac Sim's synthetic-data framework: programmatic randomization of scenes plus automatic ground-truth writers (boxes, segmentation, depth, normals).</dd>
+    <dt>SimReady</dt><dd>The asset convention for simulation-usable content: geometry plus mass, materials, collision, and semantic labels, not just a pretty mesh.</dd>
+    <dt>Semantic labels</dt><dd>Class annotations applied to prims that Replicator's annotators read; no labels, no labeled data.</dd>
+    <dt>NuRec</dt><dd>Neural reconstruction: real-world captures turned into simulation-ready environments; the physical-to-digital direction.</dd>
+    <dt>Blueprint</dt><dd>A reference architecture with working code and a documented workflow (Mega, AV sim, DSX); forked and adapted, not installed.</dd>
+    <dt>NIM</dt><dd>NVIDIA Inference Microservice: a pretrained model behind a container and API (USD Code, USD Search, DoMINO Aero from Part I).</dd>
+    <dt>World foundation model (WFM)</dt><dd>A generative model of physical scenes (Cosmos Predict / Transfer / Reason); worlds by sampling rather than construction.</dd>
+    <dt>Digital twin</dt><dd>A maintained virtual counterpart of a physical asset or facility, coupled to it by data; distinguished from a mere model by the coupling.</dd>
+    <dt>Virtual commissioning</dt><dd>Validating control software against the twin before, or instead of, commissioning time on the physical equipment.</dd>
+  </dl>
+</section>
+
+<section id="s19">
+  <div class="secnum">Section 19</div>
+  <h2>Learning resources</h2>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 6 · Where to learn what</caption>
+    <thead><tr><th>Resource</th><th>What it is for</th><th>Link</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Isaac Sim repository</strong></td><td>Source, build system, packaging (binaries, wheels, containers)</td><td><a class="inline" href="https://github.com/isaac-sim/IsaacSim" target="_blank" rel="noopener">github.com/isaac-sim/IsaacSim</a></td></tr>
+      <tr><td><strong>Isaac Sim documentation</strong></td><td>Tutorials from first scene to SDG, ROS 2, and backend switching</td><td><a class="inline" href="https://docs.omniverse.nvidia.com/isaacsim" target="_blank" rel="noopener">docs.omniverse.nvidia.com/isaacsim</a></td></tr>
+      <tr><td><strong>PhysX repository &amp; docs</strong></td><td>SDK source, Omni PhysX, Flow, changelogs, ovphysx releases</td><td><a class="inline" href="https://github.com/NVIDIA-Omniverse/PhysX" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse/PhysX</a> · <a class="inline" href="https://nvidia-omniverse.github.io/PhysX/" target="_blank" rel="noopener">docs</a></td></tr>
+      <tr><td><strong>NVIDIA-Omniverse org</strong></td><td>Blueprints, workflows, kit-cae, USD tooling, agent skills and MCP servers</td><td><a class="inline" href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse</a></td></tr>
+      <tr><td><strong>Isaac Sim developer page</strong></td><td>Positioning, licensing FAQ, NuRec, Newton relationship</td><td><a class="inline" href="https://developer.nvidia.com/isaac/sim" target="_blank" rel="noopener">developer.nvidia.com/isaac/sim</a></td></tr>
+      <tr><td><strong>Cosmos</strong></td><td>World foundation models: Predict, Transfer, Reason families</td><td><a class="inline" href="https://developer.nvidia.com/cosmos" target="_blank" rel="noopener">developer.nvidia.com/cosmos</a></td></tr>
+      <tr><td><strong>Learn OpenUSD curriculum</strong></td><td>Free self-paced USD course; the platform's real prerequisite</td><td><a class="inline" href="https://www.nvidia.com/en-us/learn/learning-path/openusd/" target="_blank" rel="noopener">nvidia.com/learn · OpenUSD path</a></td></tr>
+      <tr><td><strong>Community Isaac summary</strong></td><td>The best unofficial map of the sprawling Isaac/Omniverse namespace</td><td><a class="inline" href="https://github.com/j3soon/nvidia-isaac-summary" target="_blank" rel="noopener">github.com/j3soon/nvidia-isaac-summary</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="s20">
+  <div class="secnum">Section 20</div>
+  <h2>References</h2>
+
+  <div class="ref-group">Engines and platform</div>
+  <ol class="refs">
+    <li>NVIDIA PhysX SDK 5 and Omni PhysX, open source (BSD-3), GPU solver source included; Flow fluid library. <a href="https://github.com/NVIDIA-Omniverse/PhysX" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse/PhysX</a></li>
+    <li>ovphysx: self-contained Python library for USD-based physics simulation with DLPack interoperability, batched environment cloning, and multi-GPU scene distribution (pre-1.0; 0.4.x on PyPI at time of writing). <a href="https://nvidia-omniverse.github.io/PhysX/ovphysx/" target="_blank" rel="noopener">Documentation</a></li>
+    <li>NVIDIA Isaac Sim: open-source (Apache 2.0) robotics simulation reference application on Omniverse; PhysX and Newton switchable backends; URDF/MJCF/CAD/USD import; Replicator; ROS 2 bridges. <a href="https://github.com/isaac-sim/IsaacSim" target="_blank" rel="noopener">github.com/isaac-sim/IsaacSim</a></li>
+    <li>Isaac Sim developer overview and licensing FAQ, including Kit redistribution terms and NuRec real-world capture. <a href="https://developer.nvidia.com/isaac/sim" target="_blank" rel="noopener">developer.nvidia.com/isaac/sim</a></li>
+    <li>NVIDIA-Omniverse GitHub organization: Blueprints and workflows, kit-cae, USD validation and profile tooling, and Agent Skills / MCP servers for Kit, USD, OmniUI, and the RTX SDK. <a href="https://github.com/NVIDIA-Omniverse" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse</a></li>
+    <li>Pixar / AOUSD, OpenUSD: Universal Scene Description. <a href="https://openusd.org/" target="_blank" rel="noopener">openusd.org</a></li>
+  </ol>
+
+  <div class="ref-group">Blueprints, twins, and world models</div>
+  <ol class="refs" start="7" style="counter-reset: ref 6;">
+    <li>NVIDIA CES 2025 announcements: Cosmos world-foundation-model platform; Mega, AV simulation, spatial streaming, and real-time CAE digital twin Blueprints; USD Code / USD Search NIMs; Edify SimReady. Coverage: <a href="https://www.robotics247.com/article/ces_2025_nvidia_launches_cosmos_world_foundation_model_expands_omniverse" target="_blank" rel="noopener">Robotics 24/7</a>, <a href="https://www.therobotreport.com/nvidia-unveils-omniverse-upgrades-launches-cosmos-foundation-model-ces-2025/" target="_blank" rel="noopener">The Robot Report</a>.</li>
+    <li>NVIDIA blog, "Into the Omniverse: World Foundation Models Advance Autonomous Vehicle Simulation and Safety" (AV Blueprint workflow, Cosmos-generated clip corpus, Halos). <a href="https://blogs.nvidia.com/blog/wfm-advance-av-sim-safety/" target="_blank" rel="noopener">blogs.nvidia.com</a></li>
+    <li>NVIDIA blog, GTC 2026: Cosmos 3, Isaac GR00T N1.7, Alpamayo 1.5, the Physical AI Data Factory Blueprint (Cosmos + OSMO), the Omniverse DSX Blueprint, and the KION / Accenture / Siemens Mega deployment for GXO. <a href="https://blogs.nvidia.com/blog/gtc-2026-virtual-worlds-physical-ai/" target="_blank" rel="noopener">blogs.nvidia.com</a></li>
+    <li>NVIDIA Cosmos world foundation models: Predict, Transfer, and Reason families. <a href="https://developer.nvidia.com/cosmos" target="_blank" rel="noopener">developer.nvidia.com/cosmos</a></li>
+  </ol>
+
+  <div class="ref-group">Templates and samples</div>
+  <ol class="refs" start="11" style="counter-reset: ref 10;">
+    <li>Omniverse Kit App Template: scaffolded Kit applications (USD Composer / Explorer / Viewer) and extension templates with build, packaging, and streaming tooling. <a href="https://github.com/NVIDIA-Omniverse/kit-app-template" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse/kit-app-template</a></li>
+    <li>OpenUSD Code Samples (task-shaped snippets in Python, C++, USDA) and OpenUSD learning resources. <a href="https://github.com/NVIDIA-Omniverse/OpenUSD-Code-Samples" target="_blank" rel="noopener">OpenUSD-Code-Samples</a> · <a href="https://github.com/NVIDIA-Omniverse/OpenUSD" target="_blank" rel="noopener">OpenUSD</a></li>
+    <li>OpenUSD plugin samples: custom schemas, file-format plugins, dynamic payloads, with build tooling. <a href="https://github.com/NVIDIA-Omniverse/OpenUSD-plugin-samples" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse/OpenUSD-plugin-samples</a> · Exchange SDK samples: <a href="https://github.com/NVIDIA-Omniverse/usd-exchange-samples" target="_blank" rel="noopener">usd-exchange-samples</a></li>
+    <li>VFI Samples: CAD-to-USD conversion, asset validation, scene optimization, material assignment, and assembly automation for virtual facilities. <a href="https://github.com/NVIDIA-Omniverse/vfi-samples" target="_blank" rel="noopener">github.com/NVIDIA-Omniverse/vfi-samples</a></li>
+    <li>Synthetic data examples for Replicator-based generation, and the IsaacSimZMQ external-process bridge. <a href="https://github.com/NVIDIA-Omniverse/synthetic-data-examples" target="_blank" rel="noopener">synthetic-data-examples</a> · <a href="https://github.com/isaac-sim/IsaacSimZMQ" target="_blank" rel="noopener">IsaacSimZMQ</a></li>
+  </ol>
+
+  <div class="ref-group">Companion parts of this series</div>
+  <ol class="refs" start="16" style="counter-reset: ref 15;">
+    <li>Part I: NVIDIA PhysicsNeMo, a field guide for vehicle engineering (surrogate models, DrivAerML, crash recipes, deployment workflows).</li>
+    <li>Part II: Differentiable physics engines, Warp and Newton (adjoints, system identification, the half-car case study, sim-to-real discipline).</li>
+  </ol>
+
+  <div class="callout" style="margin-top:2rem;">
+    <div class="co-title">On citation hygiene</div>
+    <p>Package versions (isaacsim 6.0.x, ovphysx 0.4.x) were verified against PyPI, and repository claims against the sources, in July 2026. This layer of the stack moves fastest of the three: Blueprints, model generations, and licensing details in particular should be re-verified against the linked primary sources before decisions rest on them.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Simulation Worlds: PhysX, Omniverse, Isaac Sim, and Cosmos · A Field Guide for Vehicle Engineering · Part III</p>
+  <p>By Majid Mazouchi · Drafted with Claude · July 2026</p>
+  <p class="series-index">In this series: <a href="physicsnemo-vehicle-field-guide.html">Part I · NVIDIA PhysicsNeMo</a> &nbsp;·&nbsp; <a href="differentiable-engines-warp-newton.html">Part II · Differentiable physics engines: Warp and Newton</a> &nbsp;·&nbsp; Part III · Simulation worlds (this page). Links resolve when the files sit in the same folder.</p>
+  <p>Primary sources: github.com/NVIDIA-Omniverse, github.com/isaac-sim, docs.omniverse.nvidia.com, developer.nvidia.com, blogs.nvidia.com, PyPI. Details verified July 2026; this layer evolves quickly.</p>
+</footer>
+
+</div>
+
+<button id="toTop" aria-label="Back to top">↑</button>
+
+<script>
+(function () {
+  var bar = document.getElementById('progress');
+  var toTop = document.getElementById('toTop');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    toTop.classList.toggle('show', h.scrollTop > 600);
+  }, { passive: true });
+  toTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  var chips = document.querySelectorAll('.chip');
+  var cards = document.querySelectorAll('.ex-card');
+  var note = document.getElementById('countNote');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var f = chip.getAttribute('data-filter');
+      var shown = 0;
+      cards.forEach(function (card) {
+        var cats = card.getAttribute('data-cat').split(' ');
+        var show = (f === 'all') || (cats.indexOf(f) !== -1);
+        card.hidden = !show;
+        if (show) shown++;
+      });
+      note.textContent = 'Showing ' + shown + ' of ' + cards.length + ' entries';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

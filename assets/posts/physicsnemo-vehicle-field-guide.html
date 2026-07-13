@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVIDIA PhysicsNeMo · A Field Guide for Vehicle Engineering</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --cream: #faf6ee;
+  --cream-deep: #f3ecdd;
+  --ink: #21201c;
+  --ink-soft: #4c4a42;
+  --rust: #b3502d;
+  --rust-deep: #8f3c1f;
+  --teal: #1f6f6b;
+  --teal-deep: #14504d;
+  --ochre: #c98a1b;
+  --line: #d8cfba;
+  --card: #fffdf8;
+  --code-bg: #2a2822;
+  --code-ink: #e8e2d2;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+  font-size: 17.5px;
+  line-height: 1.72;
+}
+
+/* ---------- progress bar ---------- */
+#progress {
+  position: fixed; top: 0; left: 0; height: 4px; width: 0%;
+  background: linear-gradient(90deg, var(--rust), var(--ochre), var(--teal));
+  z-index: 100;
+}
+
+/* ---------- top nav ---------- */
+nav.topnav {
+  position: sticky; top: 0; z-index: 90;
+  background: rgba(250, 246, 238, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+  padding: 0.55rem 1.2rem;
+  display: flex; align-items: center; gap: 1rem;
+  overflow-x: auto; white-space: nowrap;
+}
+nav.topnav .brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: 0.95rem; color: var(--rust-deep);
+  letter-spacing: 0.02em;
+}
+nav.topnav a {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ink-soft);
+  text-decoration: none; padding: 0.25rem 0.5rem;
+  border-radius: 4px; letter-spacing: 0.03em;
+}
+nav.topnav a:hover { color: var(--teal-deep); background: var(--cream-deep); }
+
+/* ---------- layout ---------- */
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 1.4rem; }
+
+/* ---------- hero ---------- */
+header.hero { padding: 4.2rem 0 3rem; border-bottom: 3px double var(--line); }
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 1.1rem;
+}
+h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: clamp(2.1rem, 5.2vw, 3.4rem);
+  line-height: 1.08; letter-spacing: -0.015em; margin-bottom: 1rem;
+}
+h1 .accent { color: var(--rust); font-style: italic; font-weight: 700; }
+.subtitle {
+  font-size: 1.15rem; color: var(--ink-soft); font-weight: 300;
+  max-width: 42rem; margin-bottom: 1.6rem;
+}
+.byline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem; color: var(--ink-soft);
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+}
+.byline span::before { content: "· "; color: var(--ochre); }
+.byline span:first-child::before { content: ""; }
+
+.abstract {
+  margin-top: 2.2rem; padding: 1.4rem 1.6rem;
+  background: var(--cream-deep); border-left: 4px solid var(--rust);
+  border-radius: 0 8px 8px 0; font-size: 0.98rem;
+}
+.abstract strong { font-family: 'Fraunces', serif; font-weight: 700; color: var(--rust-deep); }
+
+/* ---------- sections ---------- */
+section { padding: 3.2rem 0 1.4rem; }
+.secnum {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ochre); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 0.5rem;
+}
+h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  line-height: 1.15; margin-bottom: 1.2rem;
+}
+h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600; font-size: 1.2rem; margin: 2rem 0 0.7rem;
+  color: var(--teal-deep);
+}
+p { margin-bottom: 1.05rem; max-width: 46rem; }
+p.lede { font-size: 1.06rem; }
+a.inline { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+a.inline:hover { color: var(--rust); }
+em { color: var(--rust-deep); }
+
+/* ---------- pipeline diagram ---------- */
+.pipeline { margin: 2rem 0; overflow-x: auto; }
+.pipeline svg { min-width: 640px; width: 100%; height: auto; display: block; }
+
+/* ---------- repo cards ---------- */
+.repo-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem; margin: 1.6rem 0 1rem;
+}
+.repo-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-top: 4px solid var(--teal); border-radius: 8px;
+  padding: 1.1rem 1.2rem; transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.repo-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(33,32,28,0.09); }
+.repo-card.rust-top { border-top-color: var(--rust); }
+.repo-card.ochre-top { border-top-color: var(--ochre); }
+.repo-card h4 {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.86rem;
+  font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);
+}
+.repo-card p { font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 0.7rem; line-height: 1.55; }
+.repo-card a {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid var(--ochre);
+}
+.repo-card a:hover { color: var(--rust); }
+
+/* ---------- tables ---------- */
+.table-scroll { overflow-x: auto; margin: 1.6rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.88rem; background: var(--card); }
+caption {
+  caption-side: top; text-align: left;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+  padding-bottom: 0.5rem;
+}
+th {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+  background: var(--teal-deep); color: var(--cream);
+  padding: 0.6rem 0.8rem;
+}
+td { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+tr:nth-child(even) td { background: var(--cream-deep); }
+td .mono, .mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.8em; color: var(--rust-deep); }
+
+/* ---------- filter chips + gallery ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.4rem 0 1.6rem; }
+.chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.04em; padding: 0.42rem 0.9rem;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink-soft); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover { border-color: var(--teal); color: var(--teal-deep); }
+.chip.active { background: var(--rust); border-color: var(--rust); color: var(--cream); }
+.chip:focus-visible, a:focus-visible, .card-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.count-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft); margin-bottom: 1rem; }
+
+.gallery { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+.ex-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.3rem 1.4rem 1.1rem; position: relative;
+  transition: box-shadow 0.15s ease;
+}
+.ex-card:hover { box-shadow: 0 6px 20px rgba(33,32,28,0.08); }
+.ex-card[hidden] { display: none; }
+.ex-head { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+.ex-card h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.12rem; }
+.tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.18rem 0.55rem; border-radius: 4px;
+}
+.tag.aero { background: #e4efee; color: var(--teal-deep); }
+.tag.crash { background: #f5e2d8; color: var(--rust-deep); }
+.tag.thermal { background: #f6ecd6; color: #8a5f0f; }
+.tag.deploy { background: #e8e4f0; color: #4b3d78; }
+.tag.data { background: #e6e8de; color: #4c5b2f; }
+.ex-path {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--ink-soft); margin-bottom: 0.7rem; word-break: break-all;
+}
+.ex-card p { font-size: 0.93rem; margin-bottom: 0.7rem; max-width: none; }
+.ex-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; font-size: 0.8rem; margin-bottom: 0.8rem; }
+.ex-meta dt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+}
+.ex-meta dd { color: var(--ink-soft); }
+.why {
+  border-left: 3px solid var(--teal); padding: 0.45rem 0.9rem;
+  background: var(--cream-deep); border-radius: 0 6px 6px 0;
+  font-size: 0.86rem; font-style: italic; color: var(--ink-soft); margin-bottom: 0.9rem;
+}
+.why strong { font-style: normal; color: var(--teal-deep); font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.ex-link {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem;
+  color: var(--teal-deep); text-decoration: none;
+  border-bottom: 1px solid var(--ochre);
+}
+.ex-link:hover { color: var(--rust); }
+
+/* ---------- code ---------- */
+pre {
+  background: var(--code-bg); color: var(--code-ink);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; line-height: 1.6;
+  padding: 1.1rem 1.3rem; border-radius: 8px; overflow-x: auto;
+  margin: 1.2rem 0 1.6rem; border-left: 4px solid var(--ochre);
+}
+pre .cm { color: #9a9382; }
+pre .kw { color: #e8b04f; }
+pre .st { color: #8fc9c5; }
+
+/* ---------- callouts ---------- */
+.callout {
+  margin: 1.6rem 0; padding: 1.1rem 1.4rem; border-radius: 8px;
+  background: var(--cream-deep); border: 1px solid var(--line); font-size: 0.93rem;
+}
+.callout .co-title {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin-bottom: 0.4rem;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+/* ---------- playbook ---------- */
+.phase {
+  display: grid; grid-template-columns: 92px 1fr; gap: 1rem;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--line);
+}
+.phase:last-of-type { border-bottom: none; }
+.phase-week {
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.5rem;
+  color: var(--rust); line-height: 1.1;
+}
+.phase-week small {
+  display: block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 400; margin-top: 0.25rem;
+}
+.phase h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.35rem; }
+.phase p { font-size: 0.92rem; margin-bottom: 0.4rem; }
+.phase .milestone {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--teal-deep);
+}
+.phase .milestone::before { content: "▸ exit criterion: "; color: var(--ochre); }
+
+/* ---------- pitfalls ---------- */
+.pitfall { margin: 1.1rem 0; padding: 0.9rem 1.2rem; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--rust); border-radius: 0 8px 8px 0; }
+.pitfall h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; color: var(--rust-deep); }
+.pitfall p { font-size: 0.9rem; margin-bottom: 0; max-width: none; }
+
+/* ---------- references ---------- */
+.refs { list-style: none; counter-reset: ref; max-width: 48rem; }
+.refs li {
+  counter-increment: ref; position: relative;
+  padding: 0.55rem 0 0.55rem 3rem; border-bottom: 1px dotted var(--line);
+  font-size: 0.9rem; line-height: 1.55;
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute; left: 0; top: 0.6rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--ochre);
+}
+.refs a { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+.refs a:hover { color: var(--rust); }
+.ref-group {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin: 1.8rem 0 0.3rem;
+}
+
+/* ---------- footer ---------- */
+footer {
+  margin-top: 4rem; padding: 2.2rem 0 3rem;
+  border-top: 3px double var(--line);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft);
+}
+footer p { margin-bottom: 0.4rem; max-width: none; }
+
+#toTop {
+  position: fixed; right: 1.2rem; bottom: 1.2rem; z-index: 80;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--rust);
+  font-size: 1.1rem; cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease; box-shadow: 0 4px 12px rgba(33,32,28,0.12);
+}
+#toTop.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  header.hero { padding-top: 3rem; }
+  .ex-card { padding: 1.1rem 1rem 0.9rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<nav class="topnav" aria-label="Section navigation">
+  <span class="brand">PhysicsNeMo Field Guide</span>
+  <a href="#s1">01 Framework</a>
+  <a href="#s2">02 Ecosystem</a>
+  <a href="#s3">03 Models</a>
+  <a href="#s4">04 Vehicle Examples</a>
+  <a href="#s5">05 Datasets</a>
+  <a href="#s6">06 Getting Started</a>
+  <a href="#s7">07 Toward VHM</a>
+  <a href="#s8">08 Choosing a Model</a>
+  <a href="#s9">09 Recipe Anatomy</a>
+  <a href="#s10">10 30-Day Playbook</a>
+  <a href="#s11">11 Pitfalls</a>
+  <a href="#s12">12 Resources</a>
+  <a href="#s13">13 References</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Physics-ML Monograph Series</div>
+  <h1>NVIDIA PhysicsNeMo: <span class="accent">a field guide for vehicle engineering</span></h1>
+  <p class="subtitle">What the framework is, how its four repositories fit together, and a curated tour of the GitHub examples closest to real automotive work: external aerodynamics, crash dynamics, thermal surrogates, and deployment workflows.</p>
+  <div class="byline">
+    <span>By Majid Mazouchi</span>
+    <span>Drafted with Claude</span>
+    <span>July 2026</span>
+    <span>Sources: github.com/NVIDIA</span>
+  </div>
+  <div class="abstract">
+    <strong>Abstract.</strong> PhysicsNeMo (formerly Modulus) is NVIDIA's open-source framework for building, training, and fine-tuning physics-ML models: neural operators, graph neural networks, physics-attention transformers, diffusion models, and PINNs, backed by optimized data pipelines and multi-GPU training infrastructure. For a vehicle engineer, the most valuable part of the project is not the library itself but its example catalog: production-grade training recipes on open automotive datasets (DrivAerML, AhmedML, DrivAerNet) plus deployment workflows that couple trained surrogates back into CFD and CAE toolchains. This guide maps that catalog, filtered through a vehicle lens.
+  </div>
+</header>
+
+<!-- ================= SECTION 1 ================= -->
+<section id="s1">
+  <div class="secnum">Section 01</div>
+  <h2>What PhysicsNeMo actually is</h2>
+  <p class="lede">PhysicsNeMo is best understood as three things stacked together: a <em>model zoo</em> of physics-ML architectures, a <em>training substrate</em> tuned for scientific data structures, and a <em>recipe catalog</em> of end-to-end worked examples.</p>
+  <p>The project began life as NVIDIA Modulus and was rebranded to PhysicsNeMo in early 2025. It is Apache 2.0 licensed, pure PyTorch underneath, and installable either as a pip package or through NVIDIA's NGC container images. The framework is modular by design, and its core components break down as follows:</p>
+  <ul style="max-width:46rem; margin: 0 0 1.1rem 1.4rem; line-height:1.72;">
+    <li><strong>Models.</strong> Optimized, composable implementations of neural operators (FNO and variants), graph networks (MeshGraphNet and scalable X-MeshGraphNet), transformer surrogates (Transolver, GeoTransolver), point-cloud architectures (DoMINO), convolutional mesh solvers (FIGConvUNet), and a full diffusion module for probabilistic physics.</li>
+    <li><strong>Datapipes.</strong> Built-in pipelines for meshes, point clouds, and volumetric fields, including the newer PhysicsNeMo-Mesh native format that loads meshes far faster than VTU while preserving full mesh structure.</li>
+    <li><strong>Distributed training.</strong> A sub-module on top of <span class="mono">torch.distributed</span> for multi-GPU and multi-node scaling with minimal code changes, essential when a single crash graph carries hundreds of thousands of nodes.</li>
+    <li><strong>Symbolic physics.</strong> The <span class="mono">physicsnemo.sym</span> module (installed via <span class="mono">pip install "nvidia-physicsnemo[sym]"</span>) defines PDEs symbolically through SymPy and computes physics-informed residual losses with automatic spatial derivatives. This is the home of the PINN and PINO recipes.</li>
+  </ul>
+  <p>The training recipes themselves are deliberately <em>not</em> bundled into the pip wheel. You clone the repository and work from <span class="mono">examples/</span>, each recipe carrying its own <span class="mono">requirements.txt</span> and Hydra configuration. That decision matters in practice: the examples are meant to be forked and pointed at your own data, not imported as a black box.</p>
+</section>
+
+<!-- ================= SECTION 2 ================= -->
+<section id="s2">
+  <div class="secnum">Section 02</div>
+  <h2>The four-repository ecosystem</h2>
+  <p class="lede">PhysicsNeMo is not one repo. It is a small constellation, and each member owns a distinct stage of the surrogate lifecycle: data curation, training, physics constraints, and engineering deployment.</p>
+
+  <div class="pipeline" role="img" aria-label="Pipeline diagram: raw CAE data flows through physicsnemo-curator into physicsnemo for training, with physicsnemo-sym providing physics constraints, and out through physicsnemo-cfd into engineering workflows">
+    <svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#8f3c1f"/>
+        </marker>
+      </defs>
+      <!-- raw data -->
+      <rect x="10" y="60" width="150" height="70" rx="8" fill="#f3ecdd" stroke="#d8cfba" stroke-width="1.5"/>
+      <text x="85" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#4c4a42">Raw CAE data</text>
+      <text x="85" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">CFD · LS-DYNA · STL</text>
+      <!-- curator -->
+      <rect x="205" y="60" width="165" height="70" rx="8" fill="#fffdf8" stroke="#4c5b2f" stroke-width="2"/>
+      <text x="287" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#4c5b2f">physicsnemo-curator</text>
+      <text x="287" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">ETL → Zarr / VTP</text>
+      <!-- core -->
+      <rect x="415" y="60" width="165" height="70" rx="8" fill="#fffdf8" stroke="#b3502d" stroke-width="2.5"/>
+      <text x="497" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#b3502d">physicsnemo</text>
+      <text x="497" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">models · training</text>
+      <!-- sym -->
+      <rect x="415" y="155" width="165" height="45" rx="8" fill="#fffdf8" stroke="#c98a1b" stroke-width="2"/>
+      <text x="497" y="182" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#8a5f0f">physicsnemo-sym (PDE loss)</text>
+      <!-- cfd -->
+      <rect x="625" y="60" width="165" height="70" rx="8" fill="#fffdf8" stroke="#1f6f6b" stroke-width="2"/>
+      <text x="707" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1f6f6b">physicsnemo-cfd</text>
+      <text x="707" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">NIM · benchmarks</text>
+      <!-- engineering -->
+      <rect x="700" y="10" width="190" height="0" rx="0" fill="none"/>
+      <text x="845" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#4c4a42">CAE</text>
+      <text x="845" y="104" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#4c4a42">loop</text>
+      <!-- arrows -->
+      <line x1="160" y1="95" x2="198" y2="95" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="370" y1="95" x2="408" y2="95" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="580" y1="95" x2="618" y2="95" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="790" y1="95" x2="822" y2="95" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="497" y1="153" x2="497" y2="136" stroke="#c98a1b" stroke-width="2" marker-end="url(#arrow)"/>
+    </svg>
+  </div>
+
+  <div class="repo-grid">
+    <div class="repo-card rust-top">
+      <h4>NVIDIA/physicsnemo</h4>
+      <p>The core framework: model architectures, datapipes, distributed utilities, and the full <span class="mono">examples/</span> training-recipe catalog spanning CFD, structural mechanics, weather, and healthcare.</p>
+      <a href="https://github.com/NVIDIA/physicsnemo" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo</a>
+    </div>
+    <div class="repo-card ochre-top">
+      <h4>NVIDIA/physicsnemo-sym</h4>
+      <p>Symbolic PDE framework for physics-informed training: geometry primitives, SymPy equation definitions, and residual-loss machinery behind the PINN and PINO recipes.</p>
+      <a href="https://github.com/NVIDIA/physicsnemo-sym" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-sym</a>
+    </div>
+    <div class="repo-card">
+      <h4>NVIDIA/physicsnemo-cfd</h4>
+      <p>The deployment side: recipes for calling pretrained models served as NVIDIA Inference Microservices (the DoMINO Automotive Aero NIM), a benchmarking suite of engineering metrics, and hybrid CFD-initialization workflows.</p>
+      <a href="https://github.com/NVIDIA/physicsnemo-cfd" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-cfd</a>
+    </div>
+    <div class="repo-card">
+      <h4>NVIDIA/physicsnemo-curator</h4>
+      <p>Accelerated ETL toolkit that turns raw solver output (VTU, VTP, STL, LS-DYNA d3plot) into training-ready Zarr or VTP datasets, with reference pipelines for external aerodynamics and crash.</p>
+      <a href="https://github.com/NVIDIA/physicsnemo-curator" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-curator</a>
+    </div>
+  </div>
+  <p>A useful mental model: <em>Curator feeds, PhysicsNeMo trains, Sym constrains, CFD deploys.</em> The vehicle examples in Section 04 are drawn from all four.</p>
+</section>
+
+<!-- ================= SECTION 3 ================= -->
+<section id="s3">
+  <div class="secnum">Section 03</div>
+  <h2>The model families, in one table</h2>
+  <p class="lede">Every recipe in the catalog is a pairing of an architecture with a data regime. Knowing the families makes the example gallery legible.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 1 · Architecture families used in the vehicle-relevant recipes</caption>
+    <thead>
+      <tr><th>Family</th><th>Representatives</th><th>Data shape</th><th>Where it shines in vehicle work</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Graph neural networks</strong></td>
+        <td><span class="mono">MeshGraphNet, X-MeshGraphNet, AeroGraphNet</span></td>
+        <td>Unstructured meshes as graphs</td>
+        <td>Surface pressure and wall shear on car bodies; transient crash deformation on FE meshes; anything where mesh topology carries the physics</td>
+      </tr>
+      <tr>
+        <td><strong>Point-cloud multi-scale</strong></td>
+        <td><span class="mono">DoMINO</span></td>
+        <td>Point clouds, local multi-scale sampling</td>
+        <td>Large-scale external aerodynamics; the architecture behind NVIDIA's Automotive Aero NIM</td>
+      </tr>
+      <tr>
+        <td><strong>Physics-attention transformers</strong></td>
+        <td><span class="mono">Transolver, GeoTransolver</span></td>
+        <td>Meshes and point sets via learned physical slices</td>
+        <td>External aero and crash with strong out-of-the-box speed; supports FP8 training through Transformer Engine</td>
+      </tr>
+      <tr>
+        <td><strong>Convolutional mesh solvers</strong></td>
+        <td><span class="mono">FIGConvUNet</span></td>
+        <td>Large 3D meshes, arbitrary in/out geometry</td>
+        <td>Efficient drag prediction over full-vehicle meshes with millions of cells</td>
+      </tr>
+      <tr>
+        <td><strong>Neural operators</strong></td>
+        <td><span class="mono">FNO, PINO, ModAFNO</span></td>
+        <td>Regular grids and spectral fields</td>
+        <td>Field-to-field maps such as parametrized flow or thermal fields; the natural bridge to thermal neural network work</td>
+      </tr>
+      <tr>
+        <td><strong>PINNs (via Sym)</strong></td>
+        <td><span class="mono">physicsnemo.sym</span> recipes</td>
+        <td>Collocation points, no or little data</td>
+        <td>Data-poor regimes: enforcing Navier-Stokes or heat-equation residuals when simulation budgets are thin</td>
+      </tr>
+      <tr>
+        <td><strong>Diffusion models</strong></td>
+        <td><span class="mono">physicsnemo diffusion module, CorrDiff</span></td>
+        <td>Fields with distributions of answers</td>
+        <td>Ensembles, inverse problems, and physics-constrained generation; useful where a single deterministic answer undersells uncertainty</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================= SECTION 4 ================= -->
+<section id="s4">
+  <div class="secnum">Section 04</div>
+  <h2>The vehicle example gallery</h2>
+  <p class="lede">Fifteen recipes and workflows from the official repositories, each one runnable today, filtered and annotated for automotive relevance. Use the chips to slice by domain.</p>
+
+  <div class="chips" role="group" aria-label="Filter examples by domain">
+    <button class="chip active" data-filter="all">All examples</button>
+    <button class="chip" data-filter="aero">Aerodynamics</button>
+    <button class="chip" data-filter="crash">Crash &amp; Structure</button>
+    <button class="chip" data-filter="thermal">Thermal</button>
+    <button class="chip" data-filter="deploy">Deployment &amp; Workflows</button>
+    <button class="chip" data-filter="data">Data Pipelines</button>
+  </div>
+  <div class="count-note" id="countNote">Showing 15 of 15 examples</div>
+
+  <div class="gallery" id="gallery">
+
+    <article class="ex-card" data-cat="aero">
+      <div class="ex-head"><h4>DoMINO external aerodynamics</h4><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/external_aerodynamics/domino</div>
+      <p>The flagship automotive recipe. DoMINO is a local, multi-scale, point-cloud architecture trained on DrivAerML to predict surface and volume flow fields around full car geometries. This is the same model family NVIDIA packages as the DoMINO Automotive Aero NIM.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>DoMINO</dd></div>
+        <div><dt>Dataset</dt><dd>DrivAerML</dd></div>
+        <div><dt>Output</dt><dd>Surface + volume fields, drag/lift</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The closest thing to a production automotive aero surrogate in open source. Drag counts in seconds instead of overnight CFD runs.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics/domino" target="_blank" rel="noopener">View on GitHub →</a> &nbsp;&nbsp; <a class="ex-link" href="https://arxiv.org/abs/2501.13350" target="_blank" rel="noopener">Paper [8] →</a>
+    </article>
+
+    <article class="ex-card" data-cat="aero">
+      <div class="ex-head"><h4>AeroGraphNet: Ahmed body &amp; DrivAerNet</h4><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/external_aerodynamics/aero_graph_net</div>
+      <p>A MeshGraphNet-based recipe trained on both the simplified Ahmed body and the more realistic DrivAerNet car geometries. The two-tier setup makes it the best pedagogical entry point: validate the pipeline on Ahmed bodies, then scale to real cars.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>AeroGraphNet (GNN)</dd></div>
+        <div><dt>Dataset</dt><dd>Ahmed body + DrivAerNet</dd></div>
+        <div><dt>Output</dt><dd>Surface pressure, wall shear</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The graph formulation transfers naturally to any vehicle surface mesh you already have. A gentle on-ramp before DoMINO-scale training.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics/aero_graph_net" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="aero">
+      <div class="ex-head"><h4>XAeroNet: scalable surface + volume aero</h4><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/external_aerodynamics/xaeronet</div>
+      <p>A pair of scalable models for large-scale external aerodynamic evaluation: XAeroNet-S for surface predictions and XAeroNet-V for volume fields. Built to push past the memory ceilings that stall naive GNN training on production-size meshes.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>XAeroNet-S / XAeroNet-V</dd></div>
+        <div><dt>Dataset</dt><dd>DrivAerML-class meshes</dd></div>
+        <div><dt>Output</dt><dd>Surface and volumetric flow</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> When the mesh is tens of millions of cells and one GPU will not cut it, this is the recipe that shows the partitioning tricks.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics/xaeronet" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="aero">
+      <div class="ex-head"><h4>FIGConvUNet drag prediction</h4><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/external_aerodynamics/figconvnet</div>
+      <p>Factorized implicit global convolutions for CFD on large 3D meshes with arbitrary input and output geometries. Trades the graph machinery for an efficient convolutional formulation that scales gracefully.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>FIGConvUNet</dd></div>
+        <div><dt>Dataset</dt><dd>DrivAerNet / DrivAerML</dd></div>
+        <div><dt>Output</dt><dd>Pressure fields, drag coefficient</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> A strong architectural counterpoint to GNNs for the same aero task, and one of the three experts in the MoE recipe below.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics/figconvnet" target="_blank" rel="noopener">View on GitHub →</a> &nbsp;&nbsp; <a class="ex-link" href="https://arxiv.org/abs/2502.04317" target="_blank" rel="noopener">Paper [9] →</a>
+    </article>
+
+    <article class="ex-card" data-cat="aero">
+      <div class="ex-head"><h4>Transolver external aerodynamics</h4><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/external_aerodynamics/transolver</div>
+      <p>The ICML-highlighted physics-attention transformer applied to automotive external aero. Notably, this recipe enables FP8 training and inference through NVIDIA's Transformer Engine backend, one of the first physics-ML recipes to do so.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>Transolver</dd></div>
+        <div><dt>Dataset</dt><dd>DrivAerML (via Curator)</dd></div>
+        <div><dt>Output</dt><dd>Surface fields, integrated forces</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The transformer path: if your team is already fluent in attention architectures, this recipe meets you where you are, with FP8 economics on modern GPUs.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics/transolver" target="_blank" rel="noopener">View on GitHub →</a> &nbsp;&nbsp; <a class="ex-link" href="https://arxiv.org/abs/2402.02366" target="_blank" rel="noopener">Paper [10] →</a>
+    </article>
+
+    <article class="ex-card" data-cat="crash">
+      <div class="ex-head"><h4>Automotive crash dynamics surrogates</h4><span class="tag crash">Crash &amp; Structure</span></div>
+      <div class="ex-path">physicsnemo/examples/structural_mechanics/crash</div>
+      <p>A unified pipeline for ML surrogates of vehicle crash: highly non-linear, millisecond-scale deformation traditionally solved in LS-DYNA. The recipe supports GeoTransolver, Transolver, MeshGraphNet, and FIGConvUNet with multiple transient rollout schemes, validated on a full-vehicle Body-in-White dataset with variable component thicknesses.</p>
+      <dl class="ex-meta">
+        <div><dt>Models</dt><dd>GeoTransolver, Transolver, MGN, FIGConvUNet</dd></div>
+        <div><dt>Data</dt><dd>LS-DYNA d3plot → VTP/Zarr</dd></div>
+        <div><dt>Output</dt><dd>Time-evolving deformation fields</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Crashworthiness iteration at surrogate speed: sweep thousands of design candidates for deformation response before committing solver hours. Directly relevant to bumpers, rails, chassis, and battery enclosure design.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/structural_mechanics/crash" target="_blank" rel="noopener">View on GitHub →</a> &nbsp;&nbsp; <a class="ex-link" href="https://arxiv.org/abs/2510.15201" target="_blank" rel="noopener">Paper [18] →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy">
+      <div class="ex-head"><h4>Hybrid CFD initialization with DoMINO NIM</h4><span class="tag deploy">Deployment</span></div>
+      <div class="ex-path">physicsnemo-cfd/workflows/hybrid_initialization_example</div>
+      <p>A reference workflow that accelerates transient automotive CFD in OpenFOAM by initializing the flow field with a blend of potential flow and DoMINO NIM predictions. The surrogate does not replace the solver; it warm-starts it, cutting convergence time substantially.</p>
+      <dl class="ex-meta">
+        <div><dt>Stack</dt><dd>OpenFOAM + DoMINO NIM + Python</dd></div>
+        <div><dt>Input</dt><dd>Vehicle geometry (STL)</dd></div>
+        <div><dt>Output</dt><dd>Converged transient simulation, faster</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The pragmatic middle path for CFD-conservative organizations: keep the trusted solver in the loop, let the AI model pay for itself in wall-clock time.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-cfd/tree/main/workflows/hybrid_initialization_example" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy">
+      <div class="ex-head"><h4>DoMINO NIM inference notebooks</h4><span class="tag deploy">Deployment</span></div>
+      <div class="ex-path">physicsnemo-cfd/workflows/nim_inference</div>
+      <p>Tutorial Jupyter notebooks that call the DoMINO Automotive Aero NIM against DrivAerML surface and volume meshes from a plain Python interface, including metrics, plots, and no-ground-truth diagnostics for cases where you have no CFD reference.</p>
+      <dl class="ex-meta">
+        <div><dt>Interface</dt><dd><span class="mono">physicsnemo.cfd.evaluation.nims</span></dd></div>
+        <div><dt>Requires</dt><dd>NGC API key, Docker</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Zero-training entry point: run pretrained automotive aero inference on your own geometry in an afternoon and judge the fidelity yourself.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-cfd/tree/main/workflows/nim_inference" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy">
+      <div class="ex-head"><h4>Benchmarking &amp; validation workflow</h4><span class="tag deploy">Deployment</span></div>
+      <div class="ex-path">physicsnemo-cfd/workflows/benchmarking</div>
+      <p>A config-driven (Hydra) benchmark for validating trained ML models against traditional CFD using engineering metrics: pointwise errors, integrated quantities, spectral metrics, and PDE residuals. This is the credibility layer that turns a demo into a tool an aero department will accept.</p>
+      <dl class="ex-meta">
+        <div><dt>Metrics</dt><dd>Pointwise, integrated, spectral, residual</dd></div>
+        <div><dt>Runner</dt><dd><span class="mono">python main.py</span> (Hydra)</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Model V&amp;V is the gating question in any regulated engineering org. This workflow encodes the answer as reusable code.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-cfd/tree/main/workflows/benchmarking" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy">
+      <div class="ex-head"><h4>DoMINO fine-tuning: predictor-corrector</h4><span class="tag deploy">Deployment</span></div>
+      <div class="ex-path">physicsnemo · external aero fine-tuning recipe (25.08)</div>
+      <p>A fine-tuning recipe where the pretrained DoMINO NIM acts as a frozen predictor and a small user-trained corrector model learns your custom data: Y = Y_predictor + Y_corrector. Early results show roughly an order of magnitude improvement in compute efficiency versus training from scratch, with a companion UMAP-based workflow for judging which of your samples the pretrained model has already seen the likes of.</p>
+      <dl class="ex-meta">
+        <div><dt>Method</dt><dd>Predictor-corrector fine-tuning</dd></div>
+        <div><dt>Base model</dt><dd>DoMINO Automotive Aero NIM</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The realistic OEM scenario: a modest set of in-house CFD runs on proprietary geometry, adapted onto a foundation model rather than trained cold.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/external_aerodynamics" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy aero">
+      <div class="ex-head"><h4>Mixture-of-Experts aero ensemble</h4><span class="tag deploy">Deployment</span><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo · MoE external aerodynamics recipe</div>
+      <p>Combines predictions from DoMINO, FIGConvNet, and X-MeshGraphNet through a small gating network that weights the experts dynamically per prediction. A clean template for blending your own custom model with pretrained ones instead of picking a single winner.</p>
+      <dl class="ex-meta">
+        <div><dt>Experts</dt><dd>DoMINO + FIGConvNet + X-MeshGraphNet</dd></div>
+        <div><dt>Gate</dt><dd>Learned weighting network</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Ensemble disagreement doubles as a cheap uncertainty signal, which is exactly what a downstream health-monitoring or design-gating system wants to consume.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="deploy aero">
+      <div class="ex-head"><h4>DoMINO design sensitivities</h4><span class="tag deploy">Deployment</span><span class="tag aero">Aerodynamics</span></div>
+      <div class="ex-path">physicsnemo-cfd/workflows/domino_design_sensitivities</div>
+      <p>Computes geometry sensitivities for external aerodynamics from a pretrained DoMINO surrogate: given a surface mesh and flow conditions, it returns gradients of total drag with respect to mesh coordinates, surface-normal sensitivity maps showing where adding or removing material reduces drag, Laplacian-smoothing post-processing, and a finite-difference validation of the autograd gradients.</p>
+      <dl class="ex-meta">
+        <div><dt>Method</dt><dd>Autograd through the surrogate</dd></div>
+        <div><dt>Output</dt><dd>dDrag/dx per surface element</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Surrogates are differentiable where solvers are not. This workflow turns a trained aero model into an adjoint-style design tool, the pattern to copy for any gradient-based optimization on top of a PhysicsNeMo model.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-cfd/tree/main/workflows/domino_design_sensitivities" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="data">
+      <div class="ex-head"><h4>External aerodynamics ETL pipeline</h4><span class="tag data">Data Pipeline</span></div>
+      <div class="ex-path">physicsnemo-curator/examples/external_aerodynamics</div>
+      <p>The reference Curator pipeline for automotive aero: reads CFD output in DriveSim, DrivAerML, and AhmedML schemas, then transforms it into training-ready datasets for DoMINO and Transolver, including the scripted download of DrivAerML itself.</p>
+      <dl class="ex-meta">
+        <div><dt>Reads</dt><dd>VTU / VTP / STL, three schemas</dd></div>
+        <div><dt>Writes</dt><dd>Zarr, model-specific formats</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Ninety percent of surrogate projects die in data wrangling. This pipeline is the extensible skeleton to hang your own solver output on.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-curator/tree/main/examples/external_aerodynamics" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="data crash">
+      <div class="ex-head"><h4>Crash / structural mechanics ETL</h4><span class="tag data">Data Pipeline</span><span class="tag crash">Crash</span></div>
+      <div class="ex-path">physicsnemo-curator · structural mechanics pipeline</div>
+      <p>Curator's companion pipeline for crash: preprocesses LS-DYNA d3plot files into VTP for visualization and smaller datasets, or Zarr for large-scale ML training, feeding the crash recipe directly via a single <span class="mono">physicsnemo-curator-etl</span> command.</p>
+      <dl class="ex-meta">
+        <div><dt>Reads</dt><dd>LS-DYNA d3plot</dd></div>
+        <div><dt>Writes</dt><dd>VTP / Zarr</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> If your organization owns years of crash simulation archives, this is the shortest path from d3plot to a trainable dataset.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo-curator" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="thermal">
+      <div class="ex-head"><h4>3D UNet airflow surrogate (thermal template)</h4><span class="tag thermal">Thermal</span></div>
+      <div class="ex-path">physicsnemo/examples/cfd/datacenter</div>
+      <p>A 3D UNet surrogate for datacenter airflow enabling real-time thermal design. The application is racks rather than battery packs, but the problem structure, conjugate heat transfer plus forced convection in a constrained enclosure, is the same one a pack or inverter cooling engineer faces.</p>
+      <dl class="ex-meta">
+        <div><dt>Model</dt><dd>3D UNet</dd></div>
+        <div><dt>Physics</dt><dd>Airflow + heat transport</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The most transferable thermal recipe in the catalog: swap the rack geometry for a battery enclosure or inverter cold plate and the training loop carries over largely intact.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/physicsnemo/tree/main/examples/cfd/datacenter" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+  </div>
+</section>
+
+<!-- ================= SECTION 5 ================= -->
+<section id="s5">
+  <div class="secnum">Section 05</div>
+  <h2>The open automotive datasets</h2>
+  <p class="lede">Three open datasets underwrite nearly every aero recipe above. Knowing their scope tells you what a pretrained model has and has not seen.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 2 · Open datasets behind the automotive recipes</caption>
+    <thead>
+      <tr><th>Dataset</th><th>Contents</th><th>License</th><th>Used by</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>DrivAerML</strong></td>
+        <td>500 parametrically morphed variants of the DrivAer notchback generic vehicle, spanning 16 geometric parameters, with high-fidelity scale-resolving CFD validated against wind-tunnel data</td>
+        <td>CC-BY-SA</td>
+        <td>DoMINO, Transolver, XAeroNet, NIM workflows</td>
+      </tr>
+      <tr>
+        <td><strong>DrivAerNet</strong></td>
+        <td>Large parametric family of realistic DrivAer-derived car geometries with CFD surface and force data</td>
+        <td>Open (research)</td>
+        <td>AeroGraphNet, FIGConvUNet</td>
+      </tr>
+      <tr>
+        <td><strong>AhmedML</strong></td>
+        <td>Parametric Ahmed-body bluff geometries; the canonical simplified car shape for validating aero surrogates cheaply</td>
+        <td>Open</td>
+        <td>AeroGraphNet, Curator ETL, UMAP analysis recipe</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">Practical note</div>
+    <p>The Curator repository ships scripts to download DrivAerML from multiple mirrors. Budget real disk: the full volume-field dataset runs to terabytes, which is precisely why the surface-only recipes (XAeroNet-S, DoMINO surface mode) exist as first milestones.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 6 ================= -->
+<section id="s6">
+  <div class="secnum">Section 06</div>
+  <h2>Getting started</h2>
+  <p class="lede">Two supported installation routes, one important flag, and the shape of a minimal recipe run.</p>
+
+  <h3>Install</h3>
+<pre><span class="cm"># Route 1: pip. Include cu12 or cu13 to get CUDA-matched PyTorch</span>
+<span class="cm"># and GPU-accelerated RAPIDS packages.</span>
+pip install <span class="st">"nvidia-physicsnemo[cu12]"</span>
+
+<span class="cm"># Physics-informed training (PINNs, PINO) needs the sym extra:</span>
+pip install <span class="st">"nvidia-physicsnemo[sym]"</span>
+
+<span class="cm"># Graph-based recipes (MeshGraphNet, crash) need the gnns extra:</span>
+pip install <span class="st">"nvidia-physicsnemo[gnns]"</span>
+
+<span class="cm"># Route 2: the NGC container, which bundles the full stack:</span>
+docker pull nvcr.io/nvidia/physicsnemo/physicsnemo:25.08</pre>
+
+  <h3>Clone the recipes</h3>
+<pre><span class="cm"># Training recipes are NOT in the wheel. Work from the repo:</span>
+git clone https://github.com/NVIDIA/physicsnemo.git
+cd physicsnemo/examples/cfd/external_aerodynamics/aero_graph_net
+pip install -r requirements.txt
+
+<span class="cm"># Each recipe is Hydra-configured; a run looks like:</span>
+python train.py <span class="kw">data.data_dir</span>=/data/ahmed_body <span class="kw">training.epochs</span>=300</pre>
+
+  <h3>Curate your own solver output</h3>
+<pre><span class="cm"># Example: LS-DYNA crash archives → training-ready Zarr</span>
+export PYTHONPATH=$PYTHONPATH:examples
+physicsnemo-curator-etl \
+  --config-dir=examples/structural_mechanics/crash/config \
+  --config-name=crash_etl \
+  <span class="kw">serialization_format</span>=zarr \
+  <span class="kw">etl.source.input_dir</span>=/data/crash_sims/</pre>
+
+  <div class="callout">
+    <div class="co-title">A sensible first week</div>
+    <p>Day 1-2: run the DoMINO NIM inference notebooks on a DrivAerML sample and inspect the diagnostics. Day 3-4: train AeroGraphNet on the Ahmed-body set to internalize the Hydra recipe structure. Day 5: point the Curator ETL at one folder of your own solver output and see what breaks. That sequence front-loads the two hard lessons, deployment plumbing and data schemas, before any training bill arrives.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 7 ================= -->
+<section id="s7">
+  <div class="secnum">Section 07</div>
+  <h2>From surrogate to vehicle health management</h2>
+  <p class="lede">The catalog is framed around design-time CAE, but the same trained surrogates are quietly ideal building blocks for prognostics and health management.</p>
+  <p>Three bridges are worth naming explicitly. First, <em>residual generation</em>: a fast physics surrogate evaluated against telemetry provides a model-based expectation, and the innovation between prediction and measurement is the raw material of fault detection. A thermal or electro-thermal surrogate trained in the PhysicsNeMo style can serve as the nominal model in exactly the residual-analysis sense used in classical model-based diagnosis, but at fleet scale and with geometry awareness.</p>
+  <p>Second, <em>what-if throughput</em>: prognostics ultimately asks how a degraded component behaves under future load. Surrogates that answer in milliseconds make it feasible to roll out thousands of stress scenarios per vehicle per day, something no solver-in-the-loop architecture can afford. The crash recipe's design-sweep framing translates directly into degradation-sweep framing.</p>
+  <p>Third, <em>uncertainty as a first-class signal</em>: the MoE ensemble and the diffusion module both expose predictive spread. In a health-management context, spread is not a nuisance to be averaged away; it is the confidence weighting a downstream decision layer needs before flagging a fleet action.</p>
+  <p>None of the official examples say "PHM" on the label. But an engineer who can run the DoMINO recipe, the crash pipeline, and the Curator ETL has assembled, almost incidentally, every ingredient of a physics-grounded digital twin for a vehicle subsystem. The remaining work is the part frameworks cannot ship: choosing what to monitor, and deciding what a residual is allowed to mean.</p>
+</section>
+
+<!-- ================= SECTION 8 ================= -->
+<section id="s8">
+  <div class="secnum">Section 08</div>
+  <h2>Choosing your architecture: a decision guide</h2>
+  <p class="lede">The single most common false start is picking a model by fashion rather than by data regime. Start from what you have, not from what is newest.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 3 · From data regime to architecture</caption>
+    <thead>
+      <tr><th>Your situation</th><th>Reach for</th><th>Recipe to fork</th><th>Reasoning</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Hundreds of steady CFD runs over varying geometry, full-vehicle scale</td>
+        <td><span class="mono">DoMINO</span> or <span class="mono">Transolver</span></td>
+        <td><span class="mono">external_aerodynamics/domino</span></td>
+        <td>Point-sampling avoids mesh downsampling; both scale to production geometry and have pretrained checkpoints to adapt</td>
+      </tr>
+      <tr>
+        <td>Small dataset (tens of runs), mesh topology carries the physics</td>
+        <td><span class="mono">MeshGraphNet</span></td>
+        <td><span class="mono">aero_graph_net</span> or <span class="mono">vortex_shedding_mgn</span></td>
+        <td>Graph inductive bias is strong regularization; the sample-efficient workhorse of the catalog</td>
+      </tr>
+      <tr>
+        <td>Meshes too large for one GPU (tens of millions of cells)</td>
+        <td><span class="mono">XAeroNet / X-MeshGraphNet</span>, <span class="mono">FIGConvUNet</span></td>
+        <td><span class="mono">xaeronet</span>, <span class="mono">figconvnet</span></td>
+        <td>Built-in graph partitioning and factorized grids exist precisely to break the memory ceiling</td>
+      </tr>
+      <tr>
+        <td>Fields on regular grids (thermal maps, parametrized flow)</td>
+        <td><span class="mono">FNO / PINO</span></td>
+        <td><span class="mono">darcy_fno</span> as template</td>
+        <td>Spectral operators excel at grid-to-grid field maps and train fast; natural fit for battery or inverter thermal fields</td>
+      </tr>
+      <tr>
+        <td>Little or no data, but the governing PDE is known</td>
+        <td><span class="mono">PINN via physicsnemo.sym</span></td>
+        <td><span class="mono">ldc_pinns</span></td>
+        <td>Physics residual replaces missing data; accept slower, fussier training as the price</td>
+      </tr>
+      <tr>
+        <td>Transient rollout (crash deformation, wake dynamics)</td>
+        <td><span class="mono">GeoTransolver / MGN</span> with rollout schemes</td>
+        <td><span class="mono">structural_mechanics/crash</span></td>
+        <td>The crash recipe already implements one-step, autoregressive, and time-bundled rollout for you to compare</td>
+      </tr>
+      <tr>
+        <td>You need uncertainty, not just a point estimate</td>
+        <td>MoE ensemble or diffusion module</td>
+        <td>MoE aero recipe; <span class="mono">physicsnemo diffusion</span></td>
+        <td>Ensemble spread and posterior sampling are the two supported routes to calibrated doubt</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">Rule of thumb</div>
+    <p>Data-rich and geometry-varying: learn from data, add physics only as a soft constraint. Data-poor and physics-known: go physics-informed. In between, the physics-informed fine-tuning recipes in <span class="mono">physicsnemo.sym</span> let a data-driven model inherit PDE residual pressure late in training, often the best of both.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 9 ================= -->
+<section id="s9">
+  <div class="secnum">Section 09</div>
+  <h2>Anatomy of a recipe</h2>
+  <p class="lede">Every training recipe in the catalog follows the same skeleton. Internalize it once and every other example becomes familiar territory.</p>
+<pre><span class="cm"># Typical recipe layout (aero_graph_net shown; others rhyme)</span>
+aero_graph_net/
+├── conf/                  <span class="cm"># Hydra configuration tree</span>
+│   ├── config.yaml        <span class="cm"># top-level defaults</span>
+│   ├── data/              <span class="cm"># dataset variants (ahmed, drivaernet)</span>
+│   ├── model/             <span class="cm"># architecture hyperparameters</span>
+│   └── experiment/        <span class="cm"># named, reproducible run bundles</span>
+├── src/ or *.py           <span class="cm"># datapipe, model wiring, loss</span>
+├── train.py               <span class="cm"># entry point, Hydra-decorated</span>
+├── inference.py           <span class="cm"># checkpoint → predictions on new geometry</span>
+└── requirements.txt       <span class="cm"># recipe-specific extras</span></pre>
+  <p>Five framework idioms recur across every recipe and are worth learning by name:</p>
+  <ul style="max-width:46rem; margin: 0 0 1.1rem 1.4rem; line-height:1.72;">
+    <li><strong>Hydra everywhere.</strong> No recipe hardcodes paths or hyperparameters. Every run is <span class="mono">python train.py key=value</span> overrides on a config tree, which makes sweeps and reproducibility nearly free. Resist the urge to edit Python before you have exhausted the config.</li>
+    <li><strong>DistributedManager.</strong> A singleton that initializes process groups and device placement. The same <span class="mono">train.py</span> runs on one GPU or on a multi-node cluster via <span class="mono">torchrun</span> without code changes.</li>
+    <li><strong>The Module base class.</strong> PhysicsNeMo models subclass a checkpoint-aware <span class="mono">physicsnemo.Module</span>, so <span class="mono">save()</span> and <span class="mono">from_checkpoint()</span> carry architecture metadata with the weights. Checkpoints are self-describing.</li>
+    <li><strong>LaunchLogger and friends.</strong> Console, MLflow, and Weights &amp; Biases logging share one interface; switching backends is a config flag, which matters when your organization mandates a specific tracking stack.</li>
+    <li><strong>Global statistics files.</strong> Recipes normalize fields with precomputed per-variable statistics (a <span class="mono">global_stats.json</span> or equivalent) generated during ETL. Treat this file as part of the model: mismatched stats at inference is the classic silent-wrongness bug.</li>
+  </ul>
+</section>
+
+<!-- ================= SECTION 10 ================= -->
+<section id="s10">
+  <div class="secnum">Section 10</div>
+  <h2>A 30-day project playbook</h2>
+  <p class="lede">Four weeks from zero to a defensible pilot, with an explicit exit criterion per week so the project can fail fast instead of drifting.</p>
+
+  <div class="phase">
+    <div class="phase-week">W1<small>Foundations</small></div>
+    <div>
+      <h4>Environment, inference, and one toy training run</h4>
+      <p>Stand up the NGC container or pip environment. Run the DoMINO NIM notebooks on a DrivAerML sample and study the no-ground-truth diagnostics. Train AeroGraphNet on the Ahmed-body set end to end, deliberately small, to internalize the Hydra structure, checkpointing, and logging.</p>
+      <p class="milestone">a trained toy checkpoint plus a NIM inference plot you can explain line by line</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W2<small>Data</small></div>
+    <div>
+      <h4>Audit your data and build the ETL</h4>
+      <p>Inventory your solver archives: formats, schemas, field names, units, mesh sizes, and how many independent designs you truly have. Extend a Curator pipeline to your schema and produce a first Zarr dataset with global statistics. Decide the target quantities and the engineering metrics that will define success before any training starts.</p>
+      <p class="milestone">a versioned, training-ready dataset and a written metric definition signed off by the domain owner</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W3<small>Modeling</small></div>
+    <div>
+      <h4>First real surrogate, benchmarked honestly</h4>
+      <p>Pick the architecture from Table 3, fork the matching recipe, and train on your data. Evaluate with the physicsnemo-cfd benchmarking workflow: pointwise error, integrated quantities, spectra, and residuals, not just a validation loss curve. If a pretrained DoMINO checkpoint fits your domain, run the predictor-corrector fine-tuning in parallel as a baseline race.</p>
+      <p class="milestone">a benchmark report comparing at least two approaches on the Week-2 metrics</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">W4<small>Decision</small></div>
+    <div>
+      <h4>Validation report and deployment sketch</h4>
+      <p>Stress-test generalization on held-out designs, quantify where the surrogate is and is not trustworthy, and write the honest one-pager: accuracy achieved, compute spent, speedup delivered, failure modes observed. Sketch the deployment path, a NIM-style container, a Python evaluation API, or a hybrid warm-start into your existing solver, and present the go / no-go.</p>
+      <p class="milestone">a go / no-go decision backed by numbers, not enthusiasm</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SECTION 11 ================= -->
+<section id="s11">
+  <div class="secnum">Section 11</div>
+  <h2>Pitfalls the recipes will not warn you about</h2>
+  <p class="lede">Seven failure modes seen repeatedly in first surrogate projects, each cheap to avoid if named in advance.</p>
+
+  <div class="pitfall">
+    <h4>1 · Train/test leakage inside parametric families</h4>
+    <p>DrivAerML's 500 cases are morphs of one base car; your in-house sweeps are likely the same. A random split puts near-twins on both sides and inflates accuracy. Split by design parameter region or by base geometry, and report both interpolation and extrapolation error separately.</p>
+  </div>
+  <div class="pitfall">
+    <h4>2 · Field error is not force error</h4>
+    <p>A model with excellent L2 pressure error can still miss drag by many counts, because integrated forces are dominated by small regions of separation and stagnation. Always evaluate integrated quantities and spectral content alongside pointwise metrics; the benchmarking workflow exists for exactly this reason.</p>
+  </div>
+  <div class="pitfall">
+    <h4>3 · Mismatched normalization statistics</h4>
+    <p>The global-stats file computed at ETL time is part of the model contract. Reusing a checkpoint with regenerated or different statistics produces confidently wrong fields with no error message. Version the stats file with the checkpoint, always.</p>
+  </div>
+  <div class="pitfall">
+    <h4>4 · Aggressive mesh downsampling</h4>
+    <p>Decimating a production mesh to fit GPU memory destroys near-wall gradients, the very physics that sets drag and heat flux. Prefer architectures designed around the problem: DoMINO's point sampling, XAeroNet's graph partitioning, FIGConv's factorized grids. Downsampling should be a measured decision, not a workaround.</p>
+  </div>
+  <div class="pitfall">
+    <h4>5 · PINN training pathologies in data-rich regimes</h4>
+    <p>Physics-informed losses bring stiff optimization, loss-balancing sensitivity, and spectral bias. When you have data, use it; reserve pure PINNs for genuinely data-poor problems, and prefer the physics-informed fine-tuning recipes when you want residual pressure on a data-driven model.</p>
+  </div>
+  <div class="pitfall">
+    <h4>6 · Unpinned, fast-moving examples</h4>
+    <p>The examples directory evolves quickly and some recipes are flagged as under active development. Pin to a tagged release for anything you intend to reproduce, and record the container tag in your experiment metadata.</p>
+  </div>
+  <div class="pitfall">
+    <h4>7 · Underestimating storage before compute</h4>
+    <p>Volume-field datasets at DrivAerML fidelity run to terabytes, and ETL is I/O-bound long before training is GPU-bound. Start with surface-only targets, budget disk and object storage first, and consider the newer PhysicsNeMo-Mesh format for markedly faster mesh loading than VTU.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 12 ================= -->
+<section id="s12">
+  <div class="secnum">Section 12</div>
+  <h2>Learning resources</h2>
+  <p class="lede">The shortest paths into the ecosystem, ordered roughly by how a newcomer should encounter them.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 4 · Where to learn what</caption>
+    <thead>
+      <tr><th>Resource</th><th>What it is for</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Official documentation</strong></td><td>API reference, tutorials, and the browsable examples catalog with per-recipe pages</td><td><a class="inline" href="https://docs.nvidia.com/physicsnemo/" target="_blank" rel="noopener">docs.nvidia.com/physicsnemo</a></td></tr>
+      <tr><td><strong>Examples catalog</strong></td><td>The full recipe index across CFD, structural, weather, and healthcare domains</td><td><a class="inline" href="https://docs.nvidia.com/physicsnemo/latest/examples_catalog.html" target="_blank" rel="noopener">examples_catalog.html</a></td></tr>
+      <tr><td><strong>Project blog</strong></td><td>Release notes and deep-dives (diffusion module, PhysicsNeMo-Mesh, crash surrogates); the best way to track what is new</td><td><a class="inline" href="https://nvidia.github.io/physicsnemo/blog/" target="_blank" rel="noopener">nvidia.github.io/physicsnemo/blog</a></td></tr>
+      <tr><td><strong>PhysicsNeMo Forum</strong></td><td>Community Q&amp;A from new to moderate-level users and the maintainers</td><td><a class="inline" href="https://forums.developer.nvidia.com/c/physics-simulation/physicsnemo/" target="_blank" rel="noopener">NVIDIA developer forums</a></td></tr>
+      <tr><td><strong>NGC container registry</strong></td><td>The batteries-included Docker images (<span class="mono">physicsnemo:25.08</span> and later)</td><td><a class="inline" href="https://catalog.ngc.nvidia.com/" target="_blank" rel="noopener">catalog.ngc.nvidia.com</a></td></tr>
+      <tr><td><strong>NIM catalog</strong></td><td>Pretrained hosted models including the DoMINO Automotive Aero NIM</td><td><a class="inline" href="https://build.nvidia.com/" target="_blank" rel="noopener">build.nvidia.com</a></td></tr>
+      <tr><td><strong>CAE ML datasets hub</strong></td><td>DrivAerML, AhmedML, and WindsorML dataset access and documentation</td><td><a class="inline" href="https://caemldatasets.org/" target="_blank" rel="noopener">caemldatasets.org</a></td></tr>
+      <tr><td><strong>NVIDIA DLI course</strong></td><td>Guided introduction to physics-informed ML with the framework, useful for team onboarding</td><td><a class="inline" href="https://www.nvidia.com/en-us/training/" target="_blank" rel="noopener">nvidia.com/training</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================= SECTION 13 ================= -->
+<section id="s13">
+  <div class="secnum">Section 13</div>
+  <h2>References</h2>
+
+  <div class="ref-group">Framework and workflows</div>
+  <ol class="refs">
+    <li>NVIDIA PhysicsNeMo: open-source deep-learning framework for Physics-ML. <a href="https://github.com/NVIDIA/physicsnemo" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo</a></li>
+    <li>NVIDIA PhysicsNeMo documentation and examples catalog. <a href="https://docs.nvidia.com/physicsnemo/" target="_blank" rel="noopener">docs.nvidia.com/physicsnemo</a></li>
+    <li>NVIDIA PhysicsNeMo-CFD: library for using trained models in engineering and CFD workflows. <a href="https://github.com/NVIDIA/physicsnemo-cfd" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-cfd</a></li>
+    <li>NVIDIA PhysicsNeMo-Curator: accelerated ETL toolkit for AI-ready scientific datasets. <a href="https://github.com/NVIDIA/physicsnemo-curator" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-curator</a></li>
+    <li>NVIDIA PhysicsNeMo-Sym: symbolic PDE framework for physics-informed training. <a href="https://github.com/NVIDIA/physicsnemo-sym" target="_blank" rel="noopener">github.com/NVIDIA/physicsnemo-sym</a></li>
+    <li>Tangsali, K., Ranade, R., Nabian, M. A., Kamenev, A., Sharpe, P., Ashton, N., Cherukuri, R., Choudhry, S. "A Benchmarking Framework for AI Models in Automotive Aerodynamics." 2025. <a href="https://arxiv.org/abs/2507.10747" target="_blank" rel="noopener">arXiv:2507.10747</a></li>
+    <li>Sharpe, P., Ranade, R., Tangsali, K., Nabian, M. A., Cherukuri, R., Choudhry, S. "Accelerating Transient CFD through Machine Learning-Based Flow Initialization." 2025. Referenced in the physicsnemo-cfd hybrid initialization workflow. <a href="https://github.com/NVIDIA/physicsnemo-cfd/tree/main/workflows/hybrid_initialization_example" target="_blank" rel="noopener">Workflow README</a></li>
+  </ol>
+
+  <div class="ref-group">Architectures</div>
+  <ol class="refs" start="8" style="counter-reset: ref 7;">
+    <li>Ranade, R., et al. "DoMINO: A Decomposable Multi-scale Iterative Neural Operator for Modeling Large Scale Engineering Simulations." 2025. <a href="https://arxiv.org/abs/2501.13350" target="_blank" rel="noopener">arXiv:2501.13350</a></li>
+    <li>Choy, C., Kamenev, A., Kossaifi, J., Rietmann, M., Kautz, J., Azizzadenesheli, K. "Factorized Implicit Global Convolution for Automotive Computational Fluid Dynamics Prediction." 2025. <a href="https://arxiv.org/abs/2502.04317" target="_blank" rel="noopener">arXiv:2502.04317</a></li>
+    <li>Wu, H., Luo, H., Wang, H., Wang, J., Long, M. "Transolver: A Fast Transformer Solver for PDEs on General Geometries." ICML 2024. <a href="https://arxiv.org/abs/2402.02366" target="_blank" rel="noopener">arXiv:2402.02366</a></li>
+    <li>Pfaff, T., Fortunato, M., Sanchez-Gonzalez, A., Battaglia, P. "Learning Mesh-Based Simulation with Graph Networks." ICLR 2021. <a href="https://arxiv.org/abs/2010.03409" target="_blank" rel="noopener">arXiv:2010.03409</a></li>
+    <li>Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhattacharya, K., Stuart, A., Anandkumar, A. "Fourier Neural Operator for Parametric Partial Differential Equations." ICLR 2021. <a href="https://arxiv.org/abs/2010.08895" target="_blank" rel="noopener">arXiv:2010.08895</a></li>
+    <li>Raissi, M., Perdikaris, P., Karniadakis, G. E. "Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations." Journal of Computational Physics, 378, 2019.</li>
+  </ol>
+
+  <div class="ref-group">Datasets and geometries</div>
+  <ol class="refs" start="14" style="counter-reset: ref 13;">
+    <li>Ashton, N., et al. "DrivAerML: High-Fidelity Computational Fluid Dynamics Dataset for Road-Car External Aerodynamics." 2024. <a href="https://arxiv.org/abs/2408.11969" target="_blank" rel="noopener">arXiv:2408.11969</a></li>
+    <li>Elrefaie, M., Dai, A., Ahmed, F. "DrivAerNet: A Parametric Car Dataset for Data-Driven Aerodynamic Design and Graph-Based Drag Prediction." ASME IDETC 2024. <a href="https://arxiv.org/abs/2403.08055" target="_blank" rel="noopener">arXiv:2403.08055</a></li>
+    <li>Heft, A. I., Indinger, T., Adams, N. A. "Introduction of a New Realistic Generic Car Model for Aerodynamic Investigations." SAE Technical Paper 2012-01-0168, 2012. (The DrivAer geometry.)</li>
+    <li>Ahmed, S. R., Ramm, G., Faltin, G. "Some Salient Features of the Time-Averaged Ground Vehicle Wake." SAE Technical Paper 840300, 1984. (The Ahmed body.)</li>
+  </ol>
+
+  <div class="ref-group">Vehicle applications</div>
+  <ol class="refs" start="18" style="counter-reset: ref 17;">
+    <li>"Automotive Crash Dynamics Modeling Accelerated with Machine Learning." NVIDIA, 2025. Validated on full-vehicle Body-in-White data using PhysicsNeMo. <a href="https://arxiv.org/abs/2510.15201" target="_blank" rel="noopener">arXiv:2510.15201</a></li>
+    <li>NVIDIA PhysicsNeMo blog: 25.08 release notes (DoMINO fine-tuning, MoE, design sensitivities) and the structural mechanics deep-dive. <a href="https://nvidia.github.io/physicsnemo/blog/" target="_blank" rel="noopener">nvidia.github.io/physicsnemo/blog</a></li>
+    <li>NVIDIA DoMINO Automotive Aero NIM documentation. <a href="https://docs.nvidia.com/nim/physicsnemo/domino-automotive-aero/latest/overview.html" target="_blank" rel="noopener">docs.nvidia.com/nim</a></li>
+  </ol>
+
+  <div class="callout" style="margin-top:2rem;">
+    <div class="co-title">On citation hygiene</div>
+    <p>arXiv identifiers above were verified against the sources in July 2026. Author lists for the NVIDIA workflow papers are abbreviated; consult the arXiv pages for complete attributions before citing formally.</p>
+  </div>
+</section>
+
+<footer>
+  <p>NVIDIA PhysicsNeMo · A Field Guide for Vehicle Engineering</p>
+  <p>By Majid Mazouchi · Drafted with Claude · July 2026</p>
+  <p>Primary sources: github.com/NVIDIA/physicsnemo, physicsnemo-cfd, physicsnemo-curator, physicsnemo-sym; docs.nvidia.com/physicsnemo; NVIDIA PhysicsNeMo release notes 25.08 and project blog. Repository contents evolve; paths verified July 2026.</p>
+  <p style="margin-top:1.2rem; padding-top:1rem; border-top:1px dotted var(--line);">In this series: Part I · NVIDIA PhysicsNeMo (this page) &nbsp;·&nbsp; <a href="differentiable-engines-warp-newton.html" style="color:var(--teal-deep); text-decoration:none; border-bottom:1px solid var(--ochre);">Part II · Differentiable physics engines: Warp and Newton</a> &nbsp;·&nbsp; <a href="simulation-worlds-physx-omniverse.html" style="color:var(--teal-deep); text-decoration:none; border-bottom:1px solid var(--ochre);">Part III · Simulation worlds: PhysX, Omniverse, Isaac Sim, Cosmos</a>. Links resolve when both files sit in the same folder.</p>
+</footer>
+
+</div>
+
+<button id="toTop" aria-label="Back to top">↑</button>
+
+<script>
+(function () {
+  // reading progress
+  var bar = document.getElementById('progress');
+  var toTop = document.getElementById('toTop');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    toTop.classList.toggle('show', h.scrollTop > 600);
+  }, { passive: true });
+  toTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  // gallery filtering
+  var chips = document.querySelectorAll('.chip');
+  var cards = document.querySelectorAll('.ex-card');
+  var note = document.getElementById('countNote');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var f = chip.getAttribute('data-filter');
+      var shown = 0;
+      cards.forEach(function (card) {
+        var cats = card.getAttribute('data-cat').split(' ');
+        var show = (f === 'all') || (cats.indexOf(f) !== -1);
+        card.hidden = !show;
+        if (show) shown++;
+      });
+      note.textContent = 'Showing ' + shown + ' of ' + cards.length + ' examples';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Differentiable Physics Engines · Warp and Newton · A Field Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --cream: #faf6ee;
+  --cream-deep: #f3ecdd;
+  --ink: #21201c;
+  --ink-soft: #4c4a42;
+  --rust: #b3502d;
+  --rust-deep: #8f3c1f;
+  --teal: #1f6f6b;
+  --teal-deep: #14504d;
+  --ochre: #c98a1b;
+  --line: #d8cfba;
+  --card: #fffdf8;
+  --code-bg: #2a2822;
+  --code-ink: #e8e2d2;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+  font-size: 17.5px;
+  line-height: 1.72;
+}
+
+#progress {
+  position: fixed; top: 0; left: 0; height: 4px; width: 0%;
+  background: linear-gradient(90deg, var(--rust), var(--ochre), var(--teal));
+  z-index: 100;
+}
+
+nav.topnav {
+  position: sticky; top: 0; z-index: 90;
+  background: rgba(250, 246, 238, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+  padding: 0.55rem 1.2rem;
+  display: flex; align-items: center; gap: 1rem;
+  overflow-x: auto; white-space: nowrap;
+}
+nav.topnav .brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: 0.95rem; color: var(--rust-deep);
+  letter-spacing: 0.02em;
+}
+nav.topnav a {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ink-soft);
+  text-decoration: none; padding: 0.25rem 0.5rem;
+  border-radius: 4px; letter-spacing: 0.03em;
+}
+nav.topnav a:hover { color: var(--teal-deep); background: var(--cream-deep); }
+
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 1.4rem; }
+
+header.hero { padding: 4.2rem 0 3rem; border-bottom: 3px double var(--line); }
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 1.1rem;
+}
+h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900; font-size: clamp(2.1rem, 5.2vw, 3.4rem);
+  line-height: 1.08; letter-spacing: -0.015em; margin-bottom: 1rem;
+}
+h1 .accent { color: var(--rust); font-style: italic; font-weight: 700; }
+.subtitle {
+  font-size: 1.15rem; color: var(--ink-soft); font-weight: 300;
+  max-width: 42rem; margin-bottom: 1.6rem;
+}
+.byline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem; color: var(--ink-soft);
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+}
+.byline span::before { content: "· "; color: var(--ochre); }
+.byline span:first-child::before { content: ""; }
+
+.abstract {
+  margin-top: 2.2rem; padding: 1.4rem 1.6rem;
+  background: var(--cream-deep); border-left: 4px solid var(--rust);
+  border-radius: 0 8px 8px 0; font-size: 0.98rem;
+}
+.abstract strong { font-family: 'Fraunces', serif; font-weight: 700; color: var(--rust-deep); }
+
+section { padding: 3.2rem 0 1.4rem; }
+.secnum {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem; color: var(--ochre); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 0.5rem;
+}
+h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  line-height: 1.15; margin-bottom: 1.2rem;
+}
+h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600; font-size: 1.2rem; margin: 2rem 0 0.7rem;
+  color: var(--teal-deep);
+}
+p { margin-bottom: 1.05rem; max-width: 46rem; }
+p.lede { font-size: 1.06rem; }
+a.inline { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+a.inline:hover { color: var(--rust); }
+em { color: var(--rust-deep); }
+ul.body-list { max-width: 46rem; margin: 0 0 1.1rem 1.4rem; line-height: 1.72; }
+
+.pipeline { margin: 2rem 0; overflow-x: auto; }
+.pipeline svg { min-width: 640px; width: 100%; height: auto; display: block; }
+
+.repo-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem; margin: 1.6rem 0 1rem;
+}
+.repo-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-top: 4px solid var(--teal); border-radius: 8px;
+  padding: 1.1rem 1.2rem; transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.repo-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(33,32,28,0.09); }
+.repo-card.rust-top { border-top-color: var(--rust); }
+.repo-card.ochre-top { border-top-color: var(--ochre); }
+.repo-card h4 {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.86rem;
+  font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);
+}
+.repo-card p { font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 0.7rem; line-height: 1.55; }
+.repo-card a {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid var(--ochre);
+}
+.repo-card a:hover { color: var(--rust); }
+
+.table-scroll { overflow-x: auto; margin: 1.6rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.88rem; background: var(--card); }
+caption {
+  caption-side: top; text-align: left;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+  padding-bottom: 0.5rem;
+}
+th {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+  background: var(--teal-deep); color: var(--cream);
+  padding: 0.6rem 0.8rem;
+}
+td { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+tr:nth-child(even) td { background: var(--cream-deep); }
+td .mono, .mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.8em; color: var(--rust-deep); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.4rem 0 1.6rem; }
+.chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.04em; padding: 0.42rem 0.9rem;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink-soft); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover { border-color: var(--teal); color: var(--teal-deep); }
+.chip.active { background: var(--rust); border-color: var(--rust); color: var(--cream); }
+.chip:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.count-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft); margin-bottom: 1rem; }
+
+.gallery { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+.ex-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.3rem 1.4rem 1.1rem; position: relative;
+  transition: box-shadow 0.15s ease;
+}
+.ex-card:hover { box-shadow: 0 6px 20px rgba(33,32,28,0.08); }
+.ex-card[hidden] { display: none; }
+.ex-head { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+.ex-card h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.12rem; }
+.tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.18rem 0.55rem; border-radius: 4px;
+}
+.tag.sysid { background: #e4efee; color: var(--teal-deep); }
+.tag.control { background: #f5e2d8; color: var(--rust-deep); }
+.tag.learning { background: #f6ecd6; color: #8a5f0f; }
+.tag.solver { background: #e8e4f0; color: #4b3d78; }
+.ex-path {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--ink-soft); margin-bottom: 0.7rem; word-break: break-all;
+}
+.ex-card p { font-size: 0.93rem; margin-bottom: 0.7rem; max-width: none; }
+.ex-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; font-size: 0.8rem; margin-bottom: 0.8rem; }
+.ex-meta dt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ochre);
+}
+.ex-meta dd { color: var(--ink-soft); }
+.why {
+  border-left: 3px solid var(--teal); padding: 0.45rem 0.9rem;
+  background: var(--cream-deep); border-radius: 0 6px 6px 0;
+  font-size: 0.86rem; font-style: italic; color: var(--ink-soft); margin-bottom: 0.9rem;
+}
+.why strong { font-style: normal; color: var(--teal-deep); font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.ex-link {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem;
+  color: var(--teal-deep); text-decoration: none;
+  border-bottom: 1px solid var(--ochre);
+}
+.ex-link:hover { color: var(--rust); }
+
+pre {
+  background: var(--code-bg); color: var(--code-ink);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; line-height: 1.6;
+  padding: 1.1rem 1.3rem; border-radius: 8px; overflow-x: auto;
+  margin: 1.2rem 0 1.6rem; border-left: 4px solid var(--ochre);
+}
+pre .cm { color: #9a9382; }
+pre .kw { color: #e8b04f; }
+pre .st { color: #8fc9c5; }
+
+.callout {
+  margin: 1.6rem 0; padding: 1.1rem 1.4rem; border-radius: 8px;
+  background: var(--cream-deep); border: 1px solid var(--line); font-size: 0.93rem;
+}
+.callout .co-title {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin-bottom: 0.4rem;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+.pitfall { margin: 1.1rem 0; padding: 0.9rem 1.2rem; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--rust); border-radius: 0 8px 8px 0; }
+.pitfall h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; color: var(--rust-deep); }
+.pitfall p { font-size: 0.9rem; margin-bottom: 0; max-width: none; }
+
+.phase {
+  display: grid; grid-template-columns: 92px 1fr; gap: 1rem;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--line);
+}
+.phase:last-of-type { border-bottom: none; }
+.phase-week {
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.5rem;
+  color: var(--rust); line-height: 1.1;
+}
+.phase-week small {
+  display: block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 400; margin-top: 0.25rem;
+}
+.phase h4 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.35rem; }
+.phase p { font-size: 0.92rem; margin-bottom: 0.4rem; }
+.phase .milestone {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  color: var(--teal-deep);
+}
+.phase .milestone::before { content: "▸ exit criterion: "; color: var(--ochre); }
+
+.refs { list-style: none; counter-reset: ref; max-width: 48rem; }
+.refs li {
+  counter-increment: ref; position: relative;
+  padding: 0.55rem 0 0.55rem 3rem; border-bottom: 1px dotted var(--line);
+  font-size: 0.9rem; line-height: 1.55;
+}
+.refs li::before {
+  content: "[" counter(ref) "]";
+  position: absolute; left: 0; top: 0.6rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--ochre);
+}
+.refs a { color: var(--teal-deep); text-decoration-color: var(--ochre); text-underline-offset: 3px; }
+.refs a:hover { color: var(--rust); }
+.ref-group {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--rust);
+  margin: 1.8rem 0 0.3rem;
+}
+
+/* ---------- interactive demo ---------- */
+.demo {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.1rem 1.2rem 1rem; margin: 1.6rem 0 1.2rem;
+}
+.demo-title {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ochre);
+  margin-bottom: 0.8rem;
+}
+.demo canvas { width: 100%; height: auto; display: block; border-radius: 6px; background: #fcf9f2; border: 1px solid var(--cream-deep); margin-bottom: 0.6rem; }
+.demo-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.4rem 0 0.6rem; }
+.demo-btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem;
+  padding: 0.42rem 1rem; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--teal); background: var(--card); color: var(--teal-deep);
+  transition: all 0.15s ease;
+}
+.demo-btn:hover { background: var(--teal); color: var(--cream); }
+.demo-btn.primary { background: var(--rust); border-color: var(--rust); color: var(--cream); }
+.demo-btn.primary:hover { background: var(--rust-deep); }
+.demo-btn:focus-visible, .demo-label select:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.demo-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--ink-soft);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.demo-label select {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+  padding: 0.3rem 0.5rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--ink);
+}
+.readout {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; color: var(--ink-soft);
+  border-top: 1px dotted var(--line); padding-top: 0.6rem;
+}
+.readout b { color: var(--rust-deep); font-weight: 600; }
+.readout .truth-hidden { opacity: 0; transition: opacity 0.6s ease; }
+.readout .truth-shown { opacity: 1; color: var(--teal-deep); }
+
+/* ---------- glossary ---------- */
+.glossary { max-width: 48rem; }
+.glossary dt {
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem;
+  color: var(--teal-deep); margin-top: 1rem;
+}
+.glossary dd {
+  font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6;
+  padding-left: 1.1rem; border-left: 2px solid var(--cream-deep); margin-top: 0.2rem;
+}
+
+/* ---------- series index ---------- */
+.series-index {
+  margin-top: 1.2rem; padding-top: 1rem; border-top: 1px dotted var(--line);
+}
+.series-index a { color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid var(--ochre); }
+.series-index a:hover { color: var(--rust); }
+
+footer {
+  margin-top: 4rem; padding: 2.2rem 0 3rem;
+  border-top: 3px double var(--line);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft);
+}
+footer p { margin-bottom: 0.4rem; max-width: none; }
+
+#toTop {
+  position: fixed; right: 1.2rem; bottom: 1.2rem; z-index: 80;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--rust);
+  font-size: 1.1rem; cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease; box-shadow: 0 4px 12px rgba(33,32,28,0.12);
+}
+#toTop.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  header.hero { padding-top: 3rem; }
+  .ex-card { padding: 1.1rem 1rem 0.9rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<nav class="topnav" aria-label="Section navigation">
+  <span class="brand">Differentiable Engines</span>
+  <a href="#s1">01 Idea</a>
+  <a href="#s2">02 Live Demo</a>
+  <a href="#s3">03 Warp</a>
+  <a href="#s4">04 Autodiff</a>
+  <a href="#s5">05 Newton</a>
+  <a href="#s6">06 API</a>
+  <a href="#s7">07 OpenUSD</a>
+  <a href="#s8">08 Start</a>
+  <a href="#s9">09 Performance</a>
+  <a href="#s10">10 Landscape</a>
+  <a href="#s11">11 Vehicle Uses</a>
+  <a href="#s12">12 Case Study</a>
+  <a href="#s13">13 Contact</a>
+  <a href="#s14">14 Estimators</a>
+  <a href="#s15">15 Sim-to-Real</a>
+  <a href="#s16">16 PhysicsNeMo</a>
+  <a href="#s17">17 Ladder</a>
+  <a href="#s18">18 Glossary</a>
+  <a href="#s19">19 Resources</a>
+  <a href="#s20">20 References</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Physics-ML Monograph Series · Part II</div>
+  <h1>Differentiable physics engines: <span class="accent">Warp and Newton</span></h1>
+  <p class="subtitle">What it means for a simulator to have gradients, how NVIDIA Warp turns Python into GPU-speed physics code, how the Newton engine builds a full multi-solver simulator on top, and where a vehicle engineer should point all of it.</p>
+  <div class="byline">
+    <span>By Majid Mazouchi</span>
+    <span>Drafted with Claude</span>
+    <span>July 2026</span>
+    <span>Companion to Part I: PhysicsNeMo</span>
+  </div>
+  <div class="abstract">
+    <strong>Abstract.</strong> Part I of this series covered learning <em>surrogates of</em> physics. This part covers the complementary move: making the physics simulation itself differentiable, so that gradients of any simulated outcome flow back to parameters, controls, and designs. Two projects anchor the modern stack. NVIDIA Warp is a Python framework that JIT-compiles kernel functions to native CPU and CUDA code and automatically generates their adjoints, giving researchers hand-tuned-CUDA performance with reverse-mode autodiff. Newton, an open-source engine created by NVIDIA, Google DeepMind, and Disney Research and governed by the Linux Foundation, builds a full multi-solver, OpenUSD-native robotics simulator on that foundation, reaching 1.0 alongside Isaac Lab 3.0. This guide covers both layers, the surrounding engine landscape, the honest fine print about gradients through contact, and the vehicle-engineering applications, from suspension system identification to tire-soil interaction.
+  </div>
+</header>
+
+<section id="s1">
+  <div class="secnum">Section 01</div>
+  <h2>The idea: simulation you can backpropagate through</h2>
+  <p class="lede">A classical simulator is a function you can only call. A differentiable simulator is a function you can also differentiate: for any scalar outcome L of a rollout, it returns ∂L/∂θ for the parameters θ that produced it.</p>
+  <p>Concretely, a simulation step advances state s and parameters θ: s(t+1) = f(s(t), u(t), θ), where u is the control input. Chain many steps into a rollout, compute a loss on the trajectory, and reverse-mode automatic differentiation propagates sensitivities back through every step, exactly the way training a neural network does, except the "network" here is the physics. Three problem classes fall out of this one capability:</p>
+  <ul class="body-list">
+    <li><strong>System identification.</strong> θ are physical parameters: masses, inertias, spring rates, damping coefficients, friction, tire model coefficients. Fit them to measured trajectories by gradient descent instead of derivative-free search. For a health-management engineer this has a second reading: a <em>drifting</em> θ estimated online is a degradation signal.</li>
+    <li><strong>Control and trajectory optimization.</strong> θ are the controls u(t) or policy weights. Gradients through the rollout give first-order policy improvement (the SHAC family of methods) and enable differentiable MPC, often with far fewer samples than zeroth-order RL.</li>
+    <li><strong>Design optimization.</strong> θ are geometric or structural parameters. The simulator becomes an adjoint solver you did not have to derive by hand, the same pattern as the DoMINO design-sensitivities workflow from Part I, but with the real physics instead of a surrogate.</li>
+  </ul>
+  <p>The price of admission is twofold: memory (reverse mode stores or recomputes intermediate states across the rollout, hence gradient checkpointing) and gradient quality through discontinuous events like contact, which gets its own honest section later. Neither price is hidden in Warp or Newton; both are engineered around explicitly.</p>
+</section>
+
+<!-- ================= SECTION 2 (NEW) ================= -->
+<section id="s2">
+  <div class="secnum">Section 02</div>
+  <h2>Feel the gradient: a live identification demo</h2>
+  <p class="lede">Before any framework, the idea itself, running in this page. A quarter-car with hidden spring rate and damping drives over a bump; noisy displacement measurements are all you get. Press run and watch gradient descent recover the hidden parameters by backpropagating through the simulation.</p>
+  <p>Everything below is plain JavaScript in this page's source: a semi-implicit Euler forward pass, a hand-written adjoint (the "tape") of about twenty lines, and Adam on log-parameters. It is the same mathematics Warp generates automatically for every kernel, shrunk to a size you can read in one sitting.</p>
+
+  <div class="demo">
+    <div class="demo-title">Quarter-car system identification · m = 300 kg, hidden k* and c*, 5 cm bump at 0.3 s</div>
+    <canvas id="demoTraj" width="840" height="250" aria-label="Trajectory plot: noisy measured displacement versus current simulated displacement"></canvas>
+    <canvas id="demoConv" width="840" height="210" aria-label="Convergence plot: estimated parameters relative to hidden truth versus iteration"></canvas>
+    <div class="demo-controls">
+      <button class="demo-btn" id="dRun">▶ Run</button>
+      <button class="demo-btn" id="dStep">Step ×25</button>
+      <button class="demo-btn" id="dReset">Reset</button>
+      <label class="demo-label">Measurement noise
+        <select id="dNoise">
+          <option value="0.0005">low · 0.5 mm</option>
+          <option value="0.002" selected>medium · 2 mm</option>
+          <option value="0.005">high · 5 mm</option>
+        </select>
+      </label>
+    </div>
+    <div class="readout">
+      <span>iter <b id="rIter">0</b></span>
+      <span>k̂ <b id="rK">12000</b> N/m</span>
+      <span>ĉ <b id="rC">500</b> N·s/m</span>
+      <span>loss <b id="rL">–</b></span>
+      <span id="rTruth" class="truth-hidden">truth: k* = 28000, c* = 1800</span>
+    </div>
+  </div>
+
+  <p>Three things worth noticing as it runs. The stiffness converges before the damping, because spring force scales with displacement while damper force scales with velocity, which the noise punishes harder. Higher noise settings slow and roughen convergence but do not break it; the estimator is averaging over 1,500 timesteps of evidence. And the entire optimization is deterministic given the noise seed: gradients, not guesses.</p>
+</section>
+
+<section id="s3">
+  <div class="secnum">Section 03</div>
+  <h2>NVIDIA Warp: the substrate</h2>
+  <p class="lede">Warp is not a physics engine. It is the layer that makes writing one in Python viable: kernel functions JIT-compiled to native CPU and CUDA code, with adjoints generated automatically.</p>
+  <p>You decorate a Python function with <span class="mono">@wp.kernel</span>, and Warp compiles it through its own type-checked subset of Python into efficient parallel code, caching the result. The same source runs on CPU or any CUDA device. Because Warp generates both the forward kernel and its adjoint, any program composed of kernels is differentiable end to end via <span class="mono">wp.Tape</span>. The published industrial numbers are striking: NVIDIA reports speedups up to 669x over CPU baselines and large gains over JAX in specific workloads, with zero-copy interoperability into PyTorch and JAX tensors so the physics slots directly into ML training loops.</p>
+
+  <h3>A sixty-second taste</h3>
+<pre><span class="kw">import</span> warp <span class="kw">as</span> wp
+
+@wp.kernel
+<span class="kw">def</span> quarter_car(x: wp.array(dtype=<span class="kw">float</span>), v: wp.array(dtype=<span class="kw">float</span>),
+                f: wp.array(dtype=<span class="kw">float</span>), k: <span class="kw">float</span>, c: <span class="kw">float</span>):
+    i = wp.tid()                          <span class="cm"># one thread per environment</span>
+    f[i] = -k * x[i] - c * v[i]           <span class="cm"># spring-damper force</span>
+
+<span class="cm"># thousands of parallel suspension corners in one launch</span>
+wp.launch(quarter_car, dim=n_envs, inputs=[x, v, f, k, c])</pre>
+
+  <h3>And the gradient, for free</h3>
+<pre>k = wp.array([28000.0], dtype=<span class="kw">float</span>, requires_grad=<span class="kw">True</span>)   <span class="cm"># unknown spring rate</span>
+
+tape = wp.Tape()
+<span class="kw">with</span> tape:
+    <span class="kw">for</span> t <span class="kw">in</span> range(steps):
+        wp.launch(step_dynamics, dim=n, inputs=[state, k, dt])
+    wp.launch(trajectory_loss, dim=1, inputs=[state, measured, loss])
+
+tape.backward(loss)
+<span class="kw">print</span>(k.grad)   <span class="cm"># dLoss/dk: descend on this to identify the spring rate</span>
+
+<span class="cm"># Sketch of the idiom; consult the Warp docs for current signatures.</span></pre>
+
+  <h3>The module map</h3>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 1 · What ships inside Warp</caption>
+    <thead><tr><th>Component</th><th>What it gives you</th><th>Vehicle-flavored use</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">wp.kernel / wp.launch</span></td><td>JIT-compiled parallel kernels, CPU and CUDA, cached</td><td>Custom vehicle dynamics stepped across thousands of parallel environments</td></tr>
+      <tr><td><span class="mono">wp.Tape</span> + adjoints</td><td>Reverse-mode autodiff over kernel programs, gradient checkpointing for long rollouts</td><td>System ID, differentiable MPC, design sensitivities</td></tr>
+      <tr><td>Geometry: meshes, BVH, SDF, hash grids</td><td>GPU spatial queries: ray casts, closest points, signed distances</td><td>Contact and collision machinery; sensor simulation</td></tr>
+      <tr><td><span class="mono">warp.fem</span></td><td>A domain-specific language for finite-element weak forms with integrands as kernels</td><td>Battery-pack and inverter thermal solvers you can differentiate</td></tr>
+      <tr><td><span class="mono">warp.sparse</span> / <span class="mono">warp.optim</span></td><td>Sparse linear algebra and optimizers</td><td>Implicit integrators; Gauss-Newton loops for identification</td></tr>
+      <tr><td>Interop</td><td>Zero-copy exchange with PyTorch, JAX, NumPy, CuPy via DLPack; CUDA graph capture</td><td>Physics-in-the-loop training with a PyTorch model, no copies</td></tr>
+      <tr><td><span class="mono">warp.sim</span> (legacy)</td><td>The original simulation module, now superseded</td><td>Its lineage and lessons live on as Newton</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">Positioning</div>
+    <p>Think of Warp as "CUDA for people who refuse to leave Python, with adjoints included." It competes less with physics engines and more with hand-written CUDA, Taichi, and JAX: it is the substrate on which engines, solvers, and the geometry pipelines of Part I's PhysicsNeMo are built.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 4 (NEW) ================= -->
+<section id="s4">
+  <div class="secnum">Section 04</div>
+  <h2>Autodiff under the hood</h2>
+  <p class="lede">Warp's differentiability is not a wrapper around PyTorch; it is generated at kernel compile time. Knowing the mechanism tells you exactly what will and will not differentiate, and how to debug it when it goes quiet.</p>
+
+  <h3>How the adjoint gets made</h3>
+  <p>When Warp compiles a <span class="mono">@wp.kernel</span>, it emits two functions: the forward kernel you wrote, and an adjoint kernel derived from it by reversing the dataflow, each primitive operation replaced by its derivative rule. Arrays created with <span class="mono">requires_grad=True</span> carry a companion <span class="mono">.grad</span> buffer. A <span class="mono">wp.Tape</span> then simply records every launch inside its context; calling <span class="mono">tape.backward(loss)</span> replays the recorded launches in reverse order using the adjoint kernels, accumulating into the <span class="mono">.grad</span> buffers. Reverse-mode over the whole program falls out of reverse order over its launches.</p>
+
+  <h3>The working rules</h3>
+  <ul class="body-list">
+    <li><strong>Gradients accumulate.</strong> Adjoint buffers are added into, never overwritten, exactly like PyTorch. Between optimizer steps, call <span class="mono">tape.zero()</span> or you will be descending on the sum of every gradient you have ever computed. This is the single most common silent bug.</li>
+    <li><strong>The tape stores what the backward pass needs.</strong> For long rollouts that means intermediate state, and memory grows with horizon length. The remedies, in order: reuse preallocated state arrays where the math permits, checkpoint segments (store every k-th state, recompute the rest during backward), and truncate horizons where the problem allows it.</li>
+    <li><strong>Custom gradients are first-class.</strong> For operations whose true derivative is useless or undefined, a hard contact response, a lookup table, a clamp at its corner, Warp lets you register a replacement adjoint for a <span class="mono">@wp.func</span>. This is the sanctioned mechanism for the smoothed contact gradients discussed later: keep the hard physics forward, supply a soft derivative backward, and document that you did.</li>
+    <li><strong>Not everything differentiates.</strong> Integer indexing logic, branches on data, and atomic scatter patterns have the derivative semantics you would derive by hand, which is sometimes zero. If a parameter's gradient is exactly zero, suspect a branch or cast severing the path before suspecting the physics.</li>
+  </ul>
+
+  <h3>Debugging the invisible</h3>
+  <p>A wrong gradient looks like a right gradient until it ruins an optimization, so verification is part of the workflow, not an afterthought. The tools, cheapest first: compare against central finite differences on a shrunken problem (the case study in Section 12 does exactly this and agrees to 1.4e-8); inspect the tape's recorded launch graph to confirm the operations you think are being differentiated actually were; enable Warp's floating-point verification mode during development to trap NaN and inf the moment they appear rather than three kernels later; and bisect long rollouts, checking gradient norms per segment, to localize where sensitivity explodes or dies. Gradient norms that grow exponentially with horizon length are not a bug in the tape; they are Lyapunov instability in your dynamics, and the fix is shorter horizons, not different code.</p>
+</section>
+
+<section id="s5">
+  <div class="secnum">Section 05</div>
+  <h2>Newton: the engine</h2>
+  <p class="lede">Newton is what happens when Warp's simulation module grows up, moves out, and acquires institutional parents: an open-source, GPU-accelerated, multi-solver physics engine created by NVIDIA, Google DeepMind, and Disney Research, governed by the Linux Foundation under Apache 2.0.</p>
+  <p>Newton explicitly supersedes <span class="mono">warp.sim</span> with a more general architecture. Its design commitments: end-to-end GPU execution with CUDA graphs so thousands of environments run without CPU bottlenecks, OpenUSD as the native scene and asset representation, differentiability through inputs, controls, and parameters, and a pluggable solver architecture rather than one monolithic integrator. It reached 1.0 in March 2026, integrated as a first-class backend of Isaac Lab 3.0.</p>
+
+  <div class="pipeline" role="img" aria-label="Newton architecture: assets in USD, MJCF, URDF flow into the Newton Model, stepped by pluggable solvers (MuJoCo Warp, XPBD, VBD, MPM, Featherstone), all on Warp kernels, consumed by Isaac Lab and viewers">
+    <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#8f3c1f"/>
+        </marker>
+      </defs>
+      <!-- assets -->
+      <rect x="10" y="75" width="150" height="70" rx="8" fill="#f3ecdd" stroke="#d8cfba" stroke-width="1.5"/>
+      <text x="85" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#4c4a42">Assets</text>
+      <text x="85" y="121" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">USD · MJCF · URDF</text>
+      <!-- model -->
+      <rect x="205" y="75" width="150" height="70" rx="8" fill="#fffdf8" stroke="#b3502d" stroke-width="2.5"/>
+      <text x="280" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#b3502d">Newton Model</text>
+      <text x="280" y="121" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">bodies · joints · state</text>
+      <!-- solvers -->
+      <rect x="400" y="35" width="190" height="150" rx="8" fill="#fffdf8" stroke="#1f6f6b" stroke-width="2"/>
+      <text x="495" y="58" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="#1f6f6b">Pluggable solvers</text>
+      <text x="495" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">MuJoCo Warp · rigid</text>
+      <text x="495" y="98" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">XPBD · constraints</text>
+      <text x="495" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">VBD · cloth, deformables</text>
+      <text x="495" y="134" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">MPM · granular, soil</text>
+      <text x="495" y="152" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#4c4a42">Featherstone · articulated</text>
+      <text x="495" y="172" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">+ your custom solver</text>
+      <!-- consumers -->
+      <rect x="635" y="35" width="155" height="60" rx="8" fill="#fffdf8" stroke="#c98a1b" stroke-width="2"/>
+      <text x="712" y="60" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#8a5f0f">Isaac Lab 3.0</text>
+      <text x="712" y="78" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">RL · robot learning</text>
+      <rect x="635" y="125" width="155" height="60" rx="8" fill="#fffdf8" stroke="#c98a1b" stroke-width="2"/>
+      <text x="712" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#8a5f0f">Viewers</text>
+      <text x="712" y="168" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8a8578">gl · usd · rtx · rerun</text>
+      <!-- warp base -->
+      <rect x="205" y="215" width="385" height="38" rx="8" fill="#f3ecdd" stroke="#1f6f6b" stroke-width="1.5"/>
+      <text x="397" y="239" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="#14504d">NVIDIA Warp: kernels · autodiff · CUDA graphs · geometry</text>
+      <!-- arrows -->
+      <line x1="160" y1="110" x2="198" y2="110" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="355" y1="110" x2="393" y2="110" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="590" y1="70" x2="628" y2="65" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="590" y1="150" x2="628" y2="155" stroke="#8f3c1f" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="397" y1="213" x2="330" y2="150" stroke="#1f6f6b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+      <line x1="460" y1="213" x2="480" y2="190" stroke="#1f6f6b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+    </svg>
+  </div>
+
+  <h3>What the solver menu buys you</h3>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 2 · Newton's solver families (as of v1.x; the menu is growing)</caption>
+    <thead><tr><th>Solver family</th><th>Physics regime</th><th>Vehicle-flavored use</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MuJoCo Warp</strong></td><td>Rigid multibody with MuJoCo's proven contact model, GPU-native, full MJCF compatibility</td><td>Full-vehicle and chassis multibody; the default for RL and control research assets</td></tr>
+      <tr><td><strong>XPBD</strong></td><td>Position-based compliant constraint dynamics</td><td>Fast, stable articulated mechanisms; bushings and compliant joints</td></tr>
+      <tr><td><strong>VBD (Vertex Block Descent)</strong></td><td>Deformables: cloth, cables, volumetric soft bodies</td><td>Wiring harnesses, seals, hoses, seat and interior soft trim</td></tr>
+      <tr><td><strong>MPM</strong></td><td>Granular and continuum materials</td><td>Tire-soil and tire-snow interaction; off-road terramechanics</td></tr>
+      <tr><td><strong>Featherstone</strong></td><td>Reduced-coordinate articulated rigid bodies</td><td>Suspension linkages in minimal coordinates, gradient-friendly</td></tr>
+      <tr><td><strong>Custom (yours)</strong></td><td>Any Warp-kernel solver plugged into the same Model/State API</td><td>A bespoke ride-dynamics or powertrain solver living beside the standard ones</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Two adjacent pieces complete the picture. <em>Hydroelastic contact and an SDF collision library</em> address the contact-quality failure modes that have long plagued sim-to-real transfer. And <em>NeRD, Neural Robot Dynamics</em>, explores the hybrid frontier: learned dynamics models inside the engine that can be fine-tuned with real-world data, which is the engine-side mirror of everything Part I covered.</p>
+</section>
+
+<!-- ================= SECTION 6 (NEW) ================= -->
+<section id="s6">
+  <div class="secnum">Section 06</div>
+  <h2>Anatomy of the Newton API</h2>
+  <p class="lede">Like the recipe anatomy in Part I, this is the skeleton every Newton program shares. Learn the lifecycle once and each example reads as a variation.</p>
+<pre><span class="cm"># The lifecycle, end to end</span>
+ModelBuilder  →  finalize()  →  Model  →  State / Control  →  Solver.step  →  Viewer / USD
+   build             │        GPU arrays     per-timestep        physics         output
+ or import           │       (parameters)      buffers          advance         artifact</pre>
+  <ul class="body-list">
+    <li><strong>ModelBuilder</strong> is the construction phase: procedural calls to add bodies, joints, and shapes, or importers that ingest whole MJCF, URDF, and USD descriptions. Nothing touches the GPU yet; you are describing, not simulating.</li>
+    <li><strong>finalize()</strong> is the phase change. The description is compiled into a <strong>Model</strong>: flat, GPU-resident arrays of masses, inertias, joint limits, shape parameters, and contact properties. This flatness is the point, and the opportunity: physical parameters live in plain arrays you can read, write, and, crucially, differentiate with respect to.</li>
+    <li><strong>State</strong> holds everything that changes per timestep (positions, velocities, in generalized or maximal coordinates depending on solver); <strong>Control</strong> holds actuation. You allocate them from the model and ping-pong two states through the loop.</li>
+    <li><strong>Solver.step</strong> advances physics. Solvers are interchangeable behind the same call because they consume the same Model/State contract, which is what makes "swap MuJoCo Warp for XPBD and compare" a one-line experiment.</li>
+    <li><strong>Viewers and USD export</strong> sit outside the loop: attach a window for interactive work, or write the rollout to a USD file for replay, review, and diffing.</li>
+  </ul>
+
+  <h3>The two idioms that unlock scale</h3>
+  <p><em>Environment replication.</em> To simulate 4,096 vehicles, you do not create 4,096 models; you replicate one articulation into a single Model whose arrays are 4,096 environments long, then step them in one launch. Batch dimension, not object count.</p>
+  <p><em>Parameter randomization by array writes.</em> Because parameters are flat arrays indexed by environment, domain randomization and per-vehicle system identification are the same operation: write different values into each environment's slice of the mass, stiffness, or friction arrays. No scene rebuilding, no per-env objects, and the writes themselves can sit inside the differentiated program.</p>
+  <div class="callout">
+    <div class="co-title">Version honesty</div>
+    <p>Newton is young and its surface is still settling; class and argument names have already shifted between minor versions. The lifecycle above is stable in shape. For signatures, trust the documentation of the version you have pinned, not this page and not your memory.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 7 (NEW) ================= -->
+<section id="s7">
+  <div class="secnum">Section 07</div>
+  <h2>A short OpenUSD primer</h2>
+  <p class="lede">Newton's choice of OpenUSD as its native scene representation looks like a rendering detail and is actually an engineering-data decision.</p>
+  <p>Universal Scene Description, from Pixar, is a scene graph with a superpower: <em>composition</em>. A USD stage is assembled from layers that override and extend one another non-destructively, so a robot asset, an environment, and a set of simulation-specific tweaks live in separate files composed at load time. Physics enters through the UsdPhysics schemas, which attach rigid-body, collider, joint, and material semantics to scene prims as typed attributes. The practical consequences for a simulation team:</p>
+  <ul class="body-list">
+    <li><strong>One source of truth.</strong> The same asset flows through CAD-adjacent tools, Omniverse, Isaac Sim, and Newton without lossy format hops; simulation overrides live in a thin layer on top rather than in a forked copy.</li>
+    <li><strong>Versionable and reviewable.</strong> The ASCII form (.usda) diffs in git like code. A changed inertia or joint limit shows up in review as a changed line, not a changed binary blob.</li>
+    <li><strong>Rollouts as artifacts.</strong> Newton can write simulations out as USD, which turns every run into a portable, replayable, inspectable file, the difference between "it looked wrong yesterday" and attaching the offending trajectory to the bug report.</li>
+  </ul>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 3 · The three asset dialects Newton ingests</caption>
+    <thead><tr><th>Format</th><th>Origin</th><th>Strengths</th><th>Watch for</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">MJCF</span></td><td>MuJoCo</td><td>Compact, simulation-native, rich actuator and contact semantics; the RL community's lingua franca</td><td>MuJoCo-specific conventions; fidelity is best on the MuJoCo Warp backend</td></tr>
+      <tr><td><span class="mono">URDF</span></td><td>ROS</td><td>Ubiquitous in robotics toolchains; every arm and mobile base ships one</td><td>No closed kinematic loops, thin dynamics vocabulary; often needs supplementing</td></tr>
+      <tr><td><span class="mono">USD</span></td><td>Pixar / OpenUSD</td><td>Composition, layering, physics schemas, ecosystem interchange, versionability</td><td>Steeper learning curve; schema coverage still evolving across tools</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="s8">
+  <div class="secnum">Section 08</div>
+  <h2>Getting started</h2>
+  <p class="lede">Both projects are a pip install away. Versions below verified on PyPI at the time of writing.</p>
+<pre><span class="cm"># Warp (v1.15.0 at time of writing)</span>
+pip install warp-lang
+
+<span class="cm"># Newton (v1.3.0; the old name newton-physics now redirects here)</span>
+pip install newton
+
+<span class="cm"># MuJoCo Warp, usable standalone or as Newton's rigid-body backend</span>
+pip install mujoco-warp</pre>
+
+  <h3>First contact with Newton</h3>
+<pre><span class="cm"># Discover the shipped examples</span>
+python -m newton.examples --list
+
+<span class="cm"># Run one with the OpenGL viewer</span>
+python -m newton.examples basic_viewer --viewer gl --num-frames 500
+
+<span class="cm"># Load a robot description and pick your device</span>
+python -m newton.examples basic_urdf --device cuda:0
+
+<span class="cm"># Render to an OpenUSD file instead of a window</span>
+python -m newton.examples basic_viewer --viewer usd --output-path my_run.usd</pre>
+  <p>The example runner accepts a shared set of flags: viewer backends (<span class="mono">gl</span>, <span class="mono">usd</span>, <span class="mono">rtx</span>, <span class="mono">rerun</span>, <span class="mono">viser</span>, <span class="mono">null</span>), device selection, and frame counts. The <span class="mono">usd</span> path matters more than it looks: writing simulations to OpenUSD makes every run a portable, inspectable asset rather than a fleeting window.</p>
+
+  <h3>The programming idiom</h3>
+<pre><span class="kw">import</span> newton
+
+<span class="cm"># 1. Build: describe bodies, joints, shapes (or import MJCF/URDF/USD)</span>
+builder = newton.ModelBuilder()
+builder.add_ground_plane()
+<span class="cm"># ... add articulation, e.g. a double-wishbone corner ...</span>
+model = builder.finalize()
+
+<span class="cm"># 2. Pick a solver and allocate states</span>
+solver = newton.solvers.SolverMuJoCo(model)
+state_in, state_out = model.state(), model.state()
+
+<span class="cm"># 3. Step: the loop is yours, which is the whole point</span>
+<span class="kw">for</span> t <span class="kw">in</span> range(horizon):
+    solver.step(state_in, state_out, control, contacts, dt)
+    state_in, state_out = state_out, state_in
+
+<span class="cm"># API sketch to convey the shape; the library is young and moving,</span>
+<span class="cm"># so treat the current docs as the source of truth for signatures.</span></pre>
+  <div class="callout">
+    <div class="co-title">Build-vs-import note</div>
+    <p>Newton ingests MJCF, URDF, and USD directly. If your organization already maintains MuJoCo or ROS descriptions of test rigs and vehicles, they are the fastest on-ramp; the MuJoCo Warp backend keeps MJCF semantics intact.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 9 (NEW) ================= -->
+<section id="s9">
+  <div class="secnum">Section 09</div>
+  <h2>Performance engineering</h2>
+  <p class="lede">The throughput headlines are real, but they are earned by a handful of disciplines, and lost by their absence. Most "Warp is slow" reports decompose into one of these rows.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 4 · Symptom, cause, fix</caption>
+    <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>First run is slow, later runs fast</td>
+        <td>JIT compilation of kernels on first launch</td>
+        <td>Expected; the kernel cache persists across runs. Warm up before benchmarking and never time the first call.</td>
+      </tr>
+      <tr>
+        <td>GPU utilization low despite many environments</td>
+        <td>Host-device synchronization inside the loop: <span class="mono">.numpy()</span>, printing, Python-side branching on device values</td>
+        <td>Keep the loop device-resident; move logging outside the loop or to periodic snapshots; let scalars live in length-1 device arrays.</td>
+      </tr>
+      <tr>
+        <td>Thousands of tiny kernels, launch overhead dominates</td>
+        <td>Each substep is a separate launch; a physics step can be dozens of kernels</td>
+        <td>CUDA graph capture: record the step sequence once, replay it per iteration. This is the single largest win for many-env simulation and the reason Newton leans on it.</td>
+      </tr>
+      <tr>
+        <td>Memory climbs with rollout length until it doesn't fit</td>
+        <td>The tape retains what backward needs; naive per-step allocation compounds it</td>
+        <td>Preallocate and ping-pong state buffers; checkpoint the tape into segments; ask whether the loss truly needs the full horizon.</td>
+      </tr>
+      <tr>
+        <td>Results drift between runs or diverge slowly</td>
+        <td>fp32 accumulation over long horizons; atomics ordering</td>
+        <td>fp32 is the default and usually right; give long-running sums and sensitive reductions fp64 islands, and verify against a small fp64 reference run.</td>
+      </tr>
+      <tr>
+        <td>Benchmark numbers nobody can reproduce</td>
+        <td>Timing includes compile, excludes synchronization, or reports a single lucky run</td>
+        <td>Synchronize the device before starting and stopping timers, exclude JIT, report steps per second per environment with environment count, GPU, and precision stated.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">A sizing intuition</div>
+    <p>Differentiable simulation shifts the bottleneck: forward-only workloads are compute-bound and scale gloriously with environments; differentiated workloads are usually memory-bound through the tape. Budget rollout length × state size × environments before budgeting FLOPs, and treat checkpointing as a first-class design choice rather than an emergency patch.</p>
+  </div>
+</section>
+
+<section id="s10">
+  <div class="secnum">Section 10</div>
+  <h2>The differentiable engine landscape</h2>
+  <p class="lede">Newton and Warp sit in a lively neighborhood. Choosing among the neighbors is mostly a question of ecosystem, autodiff framework, and physics coverage.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 5 · Differentiable (and one deliberately non-differentiable) simulators</caption>
+    <thead><tr><th>Engine</th><th>Substrate</th><th>Differentiable?</th><th>Physics coverage</th><th>Best when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Newton</strong></td><td>Warp (Python → CUDA)</td><td>Yes, via Warp adjoints</td><td>Rigid, articulated, cloth, deformable, granular; multi-solver</td><td>You want one extensible GPU engine with open governance and Isaac Lab integration</td></tr>
+      <tr><td><strong>Warp (bare)</strong></td><td>Itself</td><td>Yes, kernel-level</td><td>Whatever you write</td><td>You are building a custom solver (FEM thermal, LBM, bespoke dynamics)</td></tr>
+      <tr><td><strong>MuJoCo Warp</strong></td><td>Warp</td><td>Partially; primarily built for speed, gradients maturing</td><td>Rigid multibody, MuJoCo contact</td><td>You live in MJCF and want GPU throughput with MuJoCo fidelity</td></tr>
+      <tr><td><strong>MuJoCo MJX</strong></td><td>JAX/XLA</td><td>Yes, JAX-native</td><td>Rigid multibody</td><td>Your training stack is JAX and you want jit/vmap composition</td></tr>
+      <tr><td><strong>Brax</strong></td><td>JAX</td><td>Yes</td><td>Simplified rigid body</td><td>Massive RL throughput matters more than contact fidelity</td></tr>
+      <tr><td><strong>Taichi / DiffTaichi</strong></td><td>Taichi DSL</td><td>Yes</td><td>Custom (MPM, fluids, soft)</td><td>Research-flavored custom differentiable solvers; Warp's closest cousin</td></tr>
+      <tr><td><strong>Genesis</strong></td><td>Taichi-lineage, Python</td><td>Yes (progressively)</td><td>Ambitiously broad multiphysics</td><td>You want a fast-moving generalist platform and accept research maturity</td></tr>
+      <tr><td><strong>Dojo</strong></td><td>Julia</td><td>Yes, smoothed contact gradients</td><td>Rigid with careful contact</td><td>Gradient quality through contact is your research subject</td></tr>
+      <tr><td><strong>Drake</strong></td><td>C++/Python</td><td>Autodiff types, not GPU-parallel</td><td>Multibody with strong contact theory</td><td>Rigor, verification, and controls pedigree outrank raw throughput</td></tr>
+      <tr><td><strong>Project Chrono</strong></td><td>C++</td><td>No (sensitivities via other means)</td><td>Vehicle dynamics, terramechanics, FSI</td><td>The automotive multibody incumbent; the fidelity yardstick to validate against</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <div class="co-title">Reading the table honestly</div>
+    <p>"Differentiable: yes" never means "gradients are always useful." Every engine in this table inherits the contact caveats of Section 13. And Chrono earns its row despite lacking autodiff: for vehicle work it remains the reference physics against which a Newton-based pipeline should be validated.</p>
+  </div>
+</section>
+
+<section id="s11">
+  <div class="secnum">Section 11</div>
+  <h2>Vehicle applications gallery</h2>
+  <p class="lede">Eight concrete places a vehicle engineer can point this stack, from published workflows to well-scoped internal projects.</p>
+
+  <div class="chips" role="group" aria-label="Filter applications by domain">
+    <button class="chip active" data-filter="all">All applications</button>
+    <button class="chip" data-filter="sysid">System ID &amp; Health</button>
+    <button class="chip" data-filter="control">Control &amp; Optimization</button>
+    <button class="chip" data-filter="learning">Robot &amp; Policy Learning</button>
+    <button class="chip" data-filter="solver">Custom Solvers</button>
+  </div>
+  <div class="count-note" id="countNote">Showing 8 of 8 applications</div>
+
+  <div class="gallery" id="gallery">
+
+    <article class="ex-card" data-cat="sysid">
+      <div class="ex-head"><h4>Gradient-based suspension &amp; tire identification</h4><span class="tag sysid">System ID</span></div>
+      <div class="ex-path">pattern: newton rollout + wp.Tape → fit {k, c, μ, tire coefficients} to telemetry</div>
+      <p>Model a corner or full vehicle in Newton, drive it with recorded road inputs, and descend on the mismatch between simulated and measured response. Spring rates, damper curves, bushing stiffness, friction, and tire model coefficients become trainable parameters. The same loop run continuously in the fleet turns parameter drift into a first-class degradation observable.</p>
+      <dl class="ex-meta">
+        <div><dt>Gradient path</dt><dd>Loss → trajectory → solver steps → θ</dd></div>
+        <div><dt>Scale</dt><dd>Thousands of vehicles as parallel envs</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> This is the flagship VHM use: system identification is condition monitoring when the identified parameters are allowed to move. A damper whose fitted c drops 20 percent over six months has told you something no threshold alarm can.</div>
+      <a class="ex-link" href="https://github.com/newton-physics/newton" target="_blank" rel="noopener">Newton on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="control">
+      <div class="ex-head"><h4>Differentiable trajectory optimization &amp; MPC</h4><span class="tag control">Control</span></div>
+      <div class="ex-path">pattern: unroll horizon in Newton → backprop to controls u(0..H)</div>
+      <p>With gradients through the rollout, trajectory optimization becomes first-order: shape a lane change, an evasive maneuver, or an energy-optimal speed profile by descending directly on the control sequence. The same machinery differentiates an MPC's closed-loop cost with respect to its tuning parameters, turning controller calibration into optimization rather than manual sweeps.</p>
+      <dl class="ex-meta">
+        <div><dt>Methods</dt><dd>First-order shooting, DiffMPC-style tuning</dd></div>
+        <div><dt>Caveat</dt><dd>Contact-rich segments need Section 13</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> For someone with an FOC and MPC background, this is familiar adjoint territory wearing new clothes: the simulator supplies the adjoint model that classical optimal control made you derive by hand.</div>
+      <a class="ex-link" href="https://arxiv.org/abs/2204.07137" target="_blank" rel="noopener">SHAC paper [14] →</a>
+    </article>
+
+    <article class="ex-card" data-cat="learning">
+      <div class="ex-head"><h4>Isaac Lab 3.0 + Newton for policy learning</h4><span class="tag learning">Learning</span></div>
+      <div class="ex-path">isaac-sim/IsaacLab · Newton as physics backend</div>
+      <p>Isaac Lab 3.0 adopts Newton as a physics backend, giving robot-learning workflows GPU-parallel environments, OpenUSD assets, and a path to differentiable rollouts inside one framework. For automotive, the near-term relevance is manipulation and locomotion in plants and service scenarios; the longer arc is learned controllers for chassis subsystems trained against high-throughput simulation.</p>
+      <dl class="ex-meta">
+        <div><dt>Stack</dt><dd>Isaac Lab → Newton → Warp</dd></div>
+        <div><dt>Throughput</dt><dd>Thousands of parallel environments</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The manufacturing floor gets this first: robot cells, wire-harness handling (VBD cloth), bin picking. The chassis gets it as the sim-to-real gap narrows.</div>
+      <a class="ex-link" href="https://github.com/isaac-sim/IsaacLab" target="_blank" rel="noopener">Isaac Lab on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="learning sysid">
+      <div class="ex-head"><h4>NeRD: neural dynamics inside the engine</h4><span class="tag learning">Learning</span><span class="tag sysid">System ID</span></div>
+      <div class="ex-path">Newton project · Neural Robot Dynamics</div>
+      <p>NeRD replaces or augments analytic solver steps with learned dynamics models that can be fine-tuned on real-world trajectories. It is the engine-side answer to the sim-to-real gap: rather than hand-tuning contact parameters forever, let a residual network absorb what the analytic model cannot express, while keeping the analytic core for trust and extrapolation.</p>
+      <dl class="ex-meta">
+        <div><dt>Pattern</dt><dd>Analytic solver + learned residual</dd></div>
+        <div><dt>Data</dt><dd>Fine-tuned with real trajectories</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Structurally identical to the predictor-corrector fine-tuning from Part I, and to residual-based health monitoring: the learned residual is both a model improvement and a diagnostic signal.</div>
+      <a class="ex-link" href="https://github.com/newton-physics" target="_blank" rel="noopener">Newton org on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="learning control">
+      <div class="ex-head"><h4>MuJoCo Warp: full-vehicle multibody at RL throughput</h4><span class="tag learning">Learning</span><span class="tag control">Control</span></div>
+      <div class="ex-path">google-deepmind/mujoco_warp · pip install mujoco-warp</div>
+      <p>Google DeepMind's GPU port of MuJoCo onto Warp kernels, developed as part of the Newton collaboration and serving as Newton's primary rigid-body backend. Existing MJCF models, including vehicle and wheeled-platform descriptions, run with MuJoCo semantics at GPU-parallel scale.</p>
+      <dl class="ex-meta">
+        <div><dt>Compatibility</dt><dd>MJCF-faithful</dd></div>
+        <div><dt>Version</dt><dd>3.10.x on PyPI at time of writing</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The pragmatic bridge: teams with MuJoCo assets get GPU scale today, and a seat inside Newton's architecture tomorrow, without rewriting models.</div>
+      <a class="ex-link" href="https://github.com/google-deepmind/mujoco_warp" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="solver">
+      <div class="ex-head"><h4>warp.fem thermal solvers for battery &amp; inverter</h4><span class="tag solver">Custom Solver</span></div>
+      <div class="ex-path">NVIDIA/warp · warp/fem module and examples</div>
+      <p>Warp's FEM module lets you state weak forms with integrand kernels and assemble GPU-resident systems, which is enough to build a conjugate heat transfer or electro-thermal solver for a pack or power module. Because the solver is made of Warp kernels, it is differentiable: sensitivities of hot-spot temperature with respect to contact resistances, coolant flow, or material properties come from the tape, not from finite differences.</p>
+      <dl class="ex-meta">
+        <div><dt>Module</dt><dd><span class="mono">warp.fem</span>, <span class="mono">warp.sparse</span></dd></div>
+        <div><dt>Gradient use</dt><dd>Design sensitivity, parameter estimation</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> The natural companion to the thermal-neural-network thread from Part I: a differentiable analytic thermal model to generate data, embed physics losses, and cross-check learned surrogates.</div>
+      <a class="ex-link" href="https://github.com/NVIDIA/warp" target="_blank" rel="noopener">Warp on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="solver">
+      <div class="ex-head"><h4>XLB: differentiable lattice-Boltzmann CFD on Warp</h4><span class="tag solver">Custom Solver</span></div>
+      <div class="ex-path">Autodesk/XLB · Warp and JAX backends</div>
+      <p>Autodesk's open-source XLB library implements massively parallel lattice-Boltzmann flow simulation with a Warp backend, cited by NVIDIA as a flagship industrial Warp adoption. It demonstrates that a serious, differentiable CFD solver can be written in Python and still saturate the GPU, the existence proof for any bespoke flow solver you are tempted to build.</p>
+      <dl class="ex-meta">
+        <div><dt>Method</dt><dd>Lattice-Boltzmann</dd></div>
+        <div><dt>Backends</dt><dd>Warp, JAX</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Underhood and cabin airflow at interactive speeds, with gradients, an interesting counterpoint to the surrogate-based aero of Part I: solve the physics fast rather than learn it.</div>
+      <a class="ex-link" href="https://github.com/Autodesk/XLB" target="_blank" rel="noopener">View on GitHub →</a>
+    </article>
+
+    <article class="ex-card" data-cat="solver learning">
+      <div class="ex-head"><h4>MPM terrain: tire-soil and off-road terramechanics</h4><span class="tag solver">Custom Solver</span><span class="tag learning">Learning</span></div>
+      <div class="ex-path">newton · MPM solver family for granular media</div>
+      <p>Newton's granular MPM solver family simulates soil, sand, and snow as continuum particles interacting with rigid bodies, which is precisely the regime of off-road tire-terrain interaction, soft-soil mobility, and construction-vehicle work where classical multibody contact models give up. Historically a Chrono and specialized-code domain, now reachable in a differentiable GPU engine.</p>
+      <dl class="ex-meta">
+        <div><dt>Method</dt><dd>Material Point Method</dd></div>
+        <div><dt>Coupling</dt><dd>Granular ↔ rigid multibody</dd></div>
+      </dl>
+      <div class="why"><strong>Vehicle angle</strong> Traction and mobility prediction on deformable terrain, and training data for terrain-aware controllers, with the option of gradients through the terrain interaction itself.</div>
+      <a class="ex-link" href="https://github.com/newton-physics/newton" target="_blank" rel="noopener">Newton on GitHub →</a>
+    </article>
+
+  </div>
+</section>
+
+<!-- ================= SECTION 12 (NEW) ================= -->
+<section id="s12">
+  <div class="secnum">Section 12</div>
+  <h2>A worked case study: half-car identification and damper-drift detection</h2>
+  <p class="lede">The Section 02 demo, grown up: a pitch-plane half car, four unknown suspension parameters, realistic sensor noise, a hand-written adjoint verified against finite differences, and a deliberately degraded damper to detect. Every number below was produced by the companion script shipped alongside this page.</p>
+
+  <h3>Protocol</h3>
+  <p>The plant is a pitch-plane half car (m = 1400 kg, I = 2100 kg·m², axle distances a = 1.2 m, b = 1.5 m) with front and rear spring-damper corners. Ground truth: kf = 32,000 N/m, cf = 1,500 N·s/m, kr = 28,000 N/m, cr = 1,300 N·s/m. The excitation is a 5 cm half-sine bump traversed at 10 m/s, hitting the rear axle 0.27 s after the front. Sensors are heave and pitch displacement at 1 kHz over a 4 s horizon (4,000 steps, semi-implicit Euler at 1 ms). Identification is Adam on log-parameters, 500 iterations, from a deliberately poor initial guess (18,000 / 800 / 18,000 / 800). Gradients come from a hand-written discrete adjoint, the same reverse pass Warp generates automatically, small enough here to read in full.</p>
+
+<pre><span class="cm"># The adjoint core (backward over one step), verbatim from the script</span>
+<span class="kw">for</span> t <span class="kw">in</span> range(N - 1, -1, -1):
+    gz  += 2.0 * rz[t] / (SZ * N)      <span class="cm"># loss injects adjoint at t+1</span>
+    gth += 2.0 * rt[t] / (STH * N)
+    gthd += DT * gth;  gthdd = DT * gthd
+    gzd  += DT * gz;   gzdd  = DT * gzd
+    gFf = gzdd / M - A_ * gthdd / I    <span class="cm"># accelerations → forces</span>
+    gFr = gzdd / M + B_ * gthdd / I
+    gkf += -zf * gFf;  gcf += -zfd * gFf     <span class="cm"># parameter gradients</span>
+    gkr += -zr * gFr;  gcr += -zrd * gFr
+    gzf = -kf * gFf;  gzfd = -cf * gFf       <span class="cm"># forces → state at t</span>
+    gzr = -kr * gFr;  gzrd = -cr * gFr
+    gz  += gzf + gzr;   gth  += -A_ * gzf + B_ * gzr
+    gzd += gzfd + gzrd; gthd += -A_ * gzfd + B_ * gzrd</pre>
+
+  <h3>Result 1 · The adjoint is correct</h3>
+  <p>Before trusting any optimization, the gradient itself was checked against central finite differences over all four parameters: maximum relative difference <strong>1.4 × 10⁻⁸</strong>. This verification step costs seconds and should be a fixed ritual of any differentiable-simulation project; it is rung R4 of the ladder for a reason.</p>
+
+  <h3>Result 2 · Identification accuracy vs sensor noise</h3>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 6 · Recovered parameters after 500 iterations (error vs ground truth)</caption>
+    <thead><tr><th>Noise (heave / pitch)</th><th>kf error</th><th>cf error</th><th>kr error</th><th>cr error</th></tr></thead>
+    <tbody>
+      <tr><td>None</td><td>−0.00%</td><td>−0.00%</td><td>+0.00%</td><td>+0.00%</td></tr>
+      <tr><td>1 mm / 0.5 mrad</td><td>+0.21%</td><td>−0.79%</td><td>+0.08%</td><td>+0.09%</td></tr>
+      <tr><td>5 mm / 2.5 mrad</td><td>+0.80%</td><td>+2.68%</td><td>−0.72%</td><td>−0.24%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Two patterns worth internalizing. Noise-free identification is exact to display precision, confirming the estimator and the adjoint jointly. And damping is consistently the hardest parameter: damper force scales with velocity, whose signal-to-noise is worst, so cf carries the largest error at every noise level, the same effect visible in the live demo. Cost: each 500-iteration run over 4,000-step rollouts took about 10 seconds single-threaded on CPU; the identical computation in Warp runs thousands of vehicles as a batch dimension.</p>
+
+  <h3>Result 3 · Drift detection: the VHM payoff</h3>
+  <p>A second dataset was generated from a vehicle whose front damper had degraded by 25% (cf: 1,500 → 1,125 N·s/m), with everything else unchanged, and re-identified starting from the healthy estimates. The fit localized the fault cleanly:</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 7 · Re-identification on the worn-damper dataset (1 mm / 0.5 mrad noise)</caption>
+    <thead><tr><th>Parameter</th><th>Fitted vs healthy truth</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>kf</td><td>−0.20%</td><td>unchanged, correctly</td></tr>
+      <tr><td><strong>cf</strong></td><td><strong>−24.91%</strong></td><td>injected degradation: −25.0%; shift vs healthy estimate: −24.3%</td></tr>
+      <tr><td>kr</td><td>+0.01%</td><td>unchanged, correctly</td></tr>
+      <tr><td>cr</td><td>−0.73%</td><td>unchanged, correctly</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>This is the argument of the whole guide in one table. A threshold on ride acceleration would eventually notice something; the identified parameter vector says <em>which component, by how much</em>, with the healthy parameters standing still as the control group. Run continuously against telemetry, the fitted cf is a physically interpretable degradation trend, prognosable like any other health indicator, and the residual after fitting bounds what the model cannot explain.</p>
+
+  <div class="callout">
+    <div class="co-title">Reproduce it</div>
+    <p>The complete experiment is one dependency-light Python file, <a href="halfcar_sysid.py" download><span class="mono">halfcar_sysid.py</span></a>, shipped alongside this page (NumPy only, about a minute on CPU). Porting the forward loop to a Warp kernel and replacing the hand-written backward pass with <span class="mono">wp.Tape</span> is rung R3 of the project ladder, and the honest way to internalize what the tape is doing for you.</p>
+  </div>
+</section>
+
+<section id="s13">
+  <div class="secnum">Section 13</div>
+  <h2>Gradients through contact: the fine print</h2>
+  <p class="lede">Differentiable simulation's hardest honesty problem: contact is discontinuous, and gradients through discontinuities can be biased, exploding, or subtly wrong while looking perfectly plausible.</p>
+  <div class="pitfall">
+    <h4>1 · Discontinuous events break local linearization</h4>
+    <p>Impacts, stick-slip transitions, and contact making-and-breaking are non-smooth. Research examining gradient correctness through contact shows popular engines can return gradients that disagree with the true sensitivity of position, velocity, and control precisely at these events. Treat gradients near contact transitions as suspect until validated.</p>
+  </div>
+  <div class="pitfall">
+    <h4>2 · A useful gradient is not always the true gradient</h4>
+    <p>Analysis of policy learning with differentiable simulators shows first-order gradients can have lower variance but higher bias than zeroth-order estimates, and can lose empirically in stiff contact-rich settings. The practical stance: use analytic gradients where dynamics are smooth (suspension, thermal, aero), fall back to smoothing, randomized smoothing, or RL where they are not.</p>
+  </div>
+  <div class="pitfall">
+    <h4>3 · Long rollouts, exploding tapes</h4>
+    <p>Backpropagation through time over thousands of steps both consumes memory and compounds Lyapunov growth in chaotic dynamics. The standard toolkit: gradient checkpointing (supported in Warp's autodiff machinery), truncated horizons, and the short-horizon formulation that methods like SHAC exist to exploit.</p>
+  </div>
+  <div class="pitfall">
+    <h4>4 · Softening changes the physics you are differentiating</h4>
+    <p>Compliant and hydroelastic contact models give smoother, better-behaved gradients, which is partly why Newton invests in them, but the smoothed system is not identical to the hard-contact system. Validate identified parameters and optimized designs against the unsmoothed physics, or against Chrono-class reference simulation, before believing them.</p>
+  </div>
+  <div class="callout">
+    <div class="co-title">Rule of thumb</div>
+    <p>Gradient trustworthiness roughly tracks smoothness: thermal and electrical, excellent; aero fields, good; suspension over smooth roads, good; contact-rich maneuvers, curbs, and impacts, verify everything twice.</p>
+  </div>
+</section>
+
+<!-- ================= SECTION 14 (NEW) ================= -->
+<section id="s14">
+  <div class="secnum">Section 14</div>
+  <h2>Choosing a gradient estimator</h2>
+  <p class="lede">"Differentiable" names a capability, not a decision. For any given problem you still choose how to estimate the gradient, and the contact caveats of Section 13 are really a claim that this choice should be deliberate.</p>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 8 · Gradient estimators, honestly compared</caption>
+    <thead><tr><th>Estimator</th><th>Cost per gradient</th><th>Variance</th><th>Bias</th><th>Reach for it when</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Analytic adjoint</strong> (Warp tape)</td>
+        <td>≈ one forward + one backward, independent of parameter count</td>
+        <td>None (deterministic)</td>
+        <td>None where dynamics are smooth; potentially wrong at contact events</td>
+        <td>Thermal, electrical, aero fields, suspension over smooth roads; many parameters (the adjoint's superpower)</td>
+      </tr>
+      <tr>
+        <td><strong>Central finite differences</strong></td>
+        <td>2 × n_params forwards</td>
+        <td>None</td>
+        <td>Discretization; step-size sensitivity</td>
+        <td>Verifying the adjoint; few parameters; any solver at all, including non-differentiable references like Chrono</td>
+      </tr>
+      <tr>
+        <td><strong>Randomized smoothing</strong></td>
+        <td>k forwards per gradient (k ≈ 8–64)</td>
+        <td>Moderate, shrinks with k</td>
+        <td>Deliberate: you are differentiating a smoothed objective</td>
+        <td>Contact-rich objectives with discrete events; when analytic gradients are technically defined but practically useless</td>
+      </tr>
+      <tr>
+        <td><strong>Zeroth-order / ES / policy gradient</strong></td>
+        <td>Many full rollouts</td>
+        <td>High</td>
+        <td>Low (in the smoothed sense)</td>
+        <td>Long horizons, chaotic or heavily discontinuous dynamics, policy learning where BPTT explodes</td>
+      </tr>
+      <tr>
+        <td><strong>Hybrid short-horizon</strong> (SHAC-style)</td>
+        <td>Truncated BPTT + a learned value function</td>
+        <td>Reduced vs pure RL</td>
+        <td>Inherits value-function error</td>
+        <td>Policy learning where you want first-order efficiency without differentiating through the full episode</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p>A serviceable decision procedure: start with the analytic adjoint and verify it against finite differences on a shrunken problem. If verification fails near contact events or gradients are noisy-looking despite deterministic code, switch the contact-adjacent portion to randomized smoothing or supply a custom smoothed adjoint via Warp's custom-gradient mechanism. If horizons are long enough that gradient norms grow exponentially, truncate and go hybrid. Reserve pure zeroth-order methods for the problems that have defeated everything above; they are the most robust and the most expensive.</p>
+</section>
+
+<!-- ================= SECTION 15 (NEW) ================= -->
+<section id="s15">
+  <div class="secnum">Section 15</div>
+  <h2>Sim-to-real: closing the loop with the physical vehicle</h2>
+  <p class="lede">A simulator earns its keep only if conclusions transfer. The gap between simulation and reality is not one thing, and each of its components has a different remedy.</p>
+
+  <h3>A taxonomy of the gap</h3>
+  <p>Five distinguishable error sources, in roughly increasing order of stubbornness: <em>parameter error</em> (masses, stiffnesses, friction coefficients are wrong), <em>contact model error</em> (the functional form of contact is wrong, not just its coefficients), <em>actuator error</em> (real actuators have torque curves, delays, saturation, backlash, and temperature dependence that idealized joints lack), <em>sensor error</em> (bias, noise, quantization, and latency between the world and the measurement), and <em>unmodeled dynamics</em> (flexibility, slop, and physics your model class cannot express at all).</p>
+
+  <h3>Identify first, then randomize</h3>
+  <p>Domain randomization, training against a distribution of simulated worlds so the real world looks like one more sample, is the standard robustness tool, but randomizing blindly trades performance for robustness you may not need. The disciplined sequence uses the machinery of this guide: <em>identify</em> what can be identified from real trajectories (Sections 02 and 12), which collapses parameter error to a posterior; then <em>randomize around that posterior</em>, wide where identification was uncertain, narrow where it was confident. In Newton this is mechanically trivial, because per-environment randomization is just writes into the model's parameter arrays; every environment in the batch is a different plausible vehicle.</p>
+
+  <h3>Model the boring parts</h3>
+  <p>Transfer failures are attributed to contact more often than they are caused by it. Actuator and sensor models are the unglamorous half of sim-to-real: a first-order lag and delay on actuation, torque-speed limits, IMU bias random walks, and measurement latency cost little to implement and routinely dominate the residual gap. They also belong inside the differentiated program, so their parameters are identified alongside the plant's.</p>
+
+  <h3>Residuals for the last mile, and for health</h3>
+  <p>What remains after identification and honest actuator modeling is structural: the model class itself falls short. This is where learned residual dynamics, the NeRD pattern, earns its place: keep the analytic core, let a network absorb the systematic remainder, fine-tune it on real trajectories. The VHM reading is the same as everywhere in this guide: a residual model whose magnitude grows over a vehicle's life is telling you the physical system has moved, and the direction of its growth says something about where.</p>
+
+  <h3>A validation protocol worth writing down</h3>
+  <p>Hold out maneuvers, not just trajectories: validate on excitation types the identification never saw. Report reality-gap metrics per channel (position, velocity, load) rather than one aggregate. Track identified parameters over repeated sessions; their scatter is your honest uncertainty. And predeclare the acceptance threshold before running the comparison, the same discipline a DFMEA review would demand of any other verification activity.</p>
+</section>
+
+<section id="s16">
+  <div class="secnum">Section 16</div>
+  <h2>How this stacks with PhysicsNeMo</h2>
+  <p class="lede">Part I and Part II are not rivals; they are two halves of one workflow. Surrogates learn from simulation; differentiable engines make simulation itself trainable infrastructure.</p>
+  <p>Four composition patterns cover most of the practical territory:</p>
+  <ul class="body-list">
+    <li><strong>Data generation.</strong> Newton and Warp-based solvers generate the training corpora that PhysicsNeMo recipes consume, at GPU throughput and with programmatic parameter sweeps, feeding Curator ETL exactly like any other solver output.</li>
+    <li><strong>Physics-in-the-loop training.</strong> Because Warp interoperates zero-copy with PyTorch, a differentiable solver can sit inside a training loop as a layer: the network proposes, the physics evaluates, and gradients flow through both. This is the solver-in-the-loop pattern that pure surrogate training cannot express.</li>
+    <li><strong>Residual physics, both directions.</strong> NeRD adds a learned residual to an analytic engine; PhysicsNeMo's predictor-corrector fine-tuning adds a learned corrector to a pretrained surrogate. Same idea, opposite anchors. A mature pipeline may use both, with the residual magnitudes doubling as model-trust diagnostics.</li>
+    <li><strong>Cross-validation.</strong> A differentiable analytic model is the cheapest independent check on a learned surrogate, and vice versa. Disagreement between them, localized in state space, is a map of where neither should be trusted alone, which is exactly the kind of evidence a V&amp;V case for a digital twin needs.</li>
+  </ul>
+  <p>One sentence to carry away: <em>PhysicsNeMo makes physics learnable; Warp and Newton make it differentiable; the interesting engineering lives where the two meet.</em></p>
+</section>
+
+<section id="s17">
+  <div class="secnum">Section 17</div>
+  <h2>A starter project ladder</h2>
+  <p class="lede">Five rungs, each one afternoon to one week, each producing something you keep.</p>
+
+  <div class="phase">
+    <div class="phase-week">R1<small>Warp basics</small></div>
+    <div>
+      <h4>One kernel, one gradient</h4>
+      <p>Implement a quarter-car spring-damper as a Warp kernel across a thousand parallel environments; recover a known spring rate from a synthetic trajectory using wp.Tape and gradient descent.</p>
+      <p class="milestone">the identified k matches ground truth to under one percent</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">R2<small>Newton basics</small></div>
+    <div>
+      <h4>Run, view, export</h4>
+      <p>Install Newton, run three shipped examples across the gl and usd viewers, and import one of your own URDF or MJCF assets. Read one solver's source to see how it consumes the Model/State API.</p>
+      <p class="milestone">your own asset simulating, exported as a USD you can replay</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">R3<small>Identification</small></div>
+    <div>
+      <h4>Half-car system ID on real-ish data</h4>
+      <p>Build a half-car in Newton, generate trajectories with hidden parameters plus noise, and identify spring, damper, and mass parameters by gradient descent. Then perturb a parameter mid-trajectory and detect the drift, your first simulation-based health monitor.</p>
+      <p class="milestone">drift detected with a localized, interpretable parameter estimate</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">R4<small>Custom solver</small></div>
+    <div>
+      <h4>A differentiable thermal model in warp.fem</h4>
+      <p>Assemble a 2D transient heat solver for a simplified module cross-section, drive it with a load profile, and compute hot-spot sensitivity to a contact resistance via the tape. Cross-check against finite differences.</p>
+      <p class="milestone">adjoint and finite-difference sensitivities agree to tolerance</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-week">R5<small>Integration</small></div>
+    <div>
+      <h4>Physics-in-the-loop with PyTorch</h4>
+      <p>Wrap a Newton rollout as a differentiable layer in a PyTorch training loop, train a small controller or residual model through it, and log where gradients degrade near contact, connecting the lesson of Section 13 to your own data.</p>
+      <p class="milestone">a training curve, and a written note on where the gradients stopped being trustworthy</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SECTION 18 (NEW) ================= -->
+<section id="s18">
+  <div class="secnum">Section 18</div>
+  <h2>Glossary</h2>
+  <p class="lede">The working vocabulary of this guide, in one place.</p>
+  <dl class="glossary">
+    <dt>Adjoint method</dt><dd>Computing sensitivities of a scalar output by solving the reverse (adjoint) problem once, at cost independent of the number of parameters; reverse-mode autodiff is its algorithmic form.</dd>
+    <dt>Tape</dt><dd>The record of operations (in Warp, kernel launches) captured during a forward pass, replayed in reverse with adjoint kernels to accumulate gradients.</dd>
+    <dt>BPTT</dt><dd>Backpropagation through time: applying reverse-mode differentiation across the steps of a rollout. Memory grows with horizon; gradients can grow with the dynamics' Lyapunov exponents.</dd>
+    <dt>Reverse vs forward mode</dt><dd>Reverse mode: one backward pass yields gradients of one output w.r.t. all inputs (ideal for many parameters, one loss). Forward mode: one pass per input direction (ideal for few inputs, many outputs).</dd>
+    <dt>Gradient checkpointing</dt><dd>Storing only periodic states during the forward pass and recomputing the segments between them during backward, trading compute for tape memory.</dd>
+    <dt>Semi-implicit (symplectic) Euler</dt><dd>Integrator that updates velocity first, then position with the new velocity; the workhorse of real-time physics for its energy behavior at large timesteps.</dd>
+    <dt>Reduced vs maximal coordinates</dt><dd>Reduced: state is joint coordinates, constraints exact by construction (Featherstone). Maximal: each body carries full 6-DoF state, joints enforced as constraints (XPBD-style). Different trade-offs in speed, drift, and gradient conditioning.</dd>
+    <dt>XPBD</dt><dd>Extended position-based dynamics: compliant constraints solved on positions, stable and fast; the modern form of the position-based family.</dd>
+    <dt>VBD</dt><dd>Vertex block descent: a per-vertex optimization scheme for deformables (cloth, cables, volumetric solids) well suited to GPU parallelism.</dd>
+    <dt>MPM</dt><dd>Material point method: continuum material carried on particles, computed on a background grid; the tool of choice for granular media, snow, and soil.</dd>
+    <dt>SDF</dt><dd>Signed distance field: an implicit surface representation returning distance-to-surface (negative inside), enabling fast, smooth collision queries.</dd>
+    <dt>Hydroelastic contact</dt><dd>A compliant contact model producing distributed pressure fields over patch areas instead of point forces, better-behaved physically and for gradients than rigid point contact.</dd>
+    <dt>CUDA graph</dt><dd>A recorded sequence of GPU operations replayed as a unit, eliminating per-launch overhead; the key to stepping thousands of small physics kernels efficiently.</dd>
+    <dt>Zero-copy interop</dt><dd>Sharing GPU memory between frameworks (Warp ↔ PyTorch/JAX) via DLPack without copying, letting physics sit inside a training loop at no transfer cost.</dd>
+    <dt>MJCF / URDF / USD</dt><dd>The three asset dialects Newton ingests: MuJoCo's simulation-native XML, ROS's ubiquitous robot description, and OpenUSD's composable scene description.</dd>
+    <dt>System identification</dt><dd>Estimating a model's physical parameters from measured input-output data; with a differentiable simulator, gradient descent on simulation-vs-measurement error.</dd>
+    <dt>Domain randomization</dt><dd>Training against a distribution of simulated worlds so the real world resembles a sample from it; best centered on an identified posterior rather than guessed bounds.</dd>
+    <dt>Sim-to-real gap</dt><dd>The composite discrepancy between simulated and physical behavior: parameter, contact, actuator, sensor, and unmodeled-dynamics error, each with its own remedy.</dd>
+  </dl>
+</section>
+
+<section id="s19">
+  <div class="secnum">Section 19</div>
+  <h2>Learning resources</h2>
+  <div class="table-scroll">
+  <table>
+    <caption>Table 9 · Where to learn what</caption>
+    <thead><tr><th>Resource</th><th>What it is for</th><th>Link</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Newton repository</strong></td><td>Source, examples runner, contribution and governance links</td><td><a class="inline" href="https://github.com/newton-physics/newton" target="_blank" rel="noopener">github.com/newton-physics/newton</a></td></tr>
+      <tr><td><strong>Newton developer page</strong></td><td>NVIDIA's overview of goals, collaborators, and positioning</td><td><a class="inline" href="https://developer.nvidia.com/newton-physics" target="_blank" rel="noopener">developer.nvidia.com/newton-physics</a></td></tr>
+      <tr><td><strong>Warp repository &amp; docs</strong></td><td>Kernel programming model, autodiff, fem/sparse/optim modules, extensive examples</td><td><a class="inline" href="https://github.com/NVIDIA/warp" target="_blank" rel="noopener">github.com/NVIDIA/warp</a> · <a class="inline" href="https://nvidia.github.io/warp/" target="_blank" rel="noopener">docs</a></td></tr>
+      <tr><td><strong>Warp for computational physics blog</strong></td><td>The 2026 deep-dive with the industrial case studies (XLB, MuJoCo Warp) and performance data</td><td><a class="inline" href="https://developer.nvidia.com/blog/build-accelerated-differentiable-computational-physics-code-for-ai-with-nvidia-warp/" target="_blank" rel="noopener">NVIDIA technical blog</a></td></tr>
+      <tr><td><strong>MuJoCo Warp</strong></td><td>The GPU MuJoCo backend, standalone or under Newton</td><td><a class="inline" href="https://github.com/google-deepmind/mujoco_warp" target="_blank" rel="noopener">github.com/google-deepmind/mujoco_warp</a></td></tr>
+      <tr><td><strong>Isaac Lab</strong></td><td>Robot learning framework with Newton backend integration</td><td><a class="inline" href="https://github.com/isaac-sim/IsaacLab" target="_blank" rel="noopener">github.com/isaac-sim/IsaacLab</a></td></tr>
+      <tr><td><strong>Linux Foundation announcement</strong></td><td>Governance context: why Newton is vendor-neutral by construction</td><td><a class="inline" href="https://www.linuxfoundation.org/" target="_blank" rel="noopener">linuxfoundation.org</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="s20">
+  <div class="secnum">Section 20</div>
+  <h2>References</h2>
+
+  <div class="ref-group">Warp and Newton</div>
+  <ol class="refs">
+    <li>Newton: an open-source, GPU-accelerated physics engine for robotics, built on NVIDIA Warp. Linux Foundation project, Apache 2.0. <a href="https://github.com/newton-physics/newton" target="_blank" rel="noopener">github.com/newton-physics/newton</a></li>
+    <li>Macklin, M. "Warp: A High-Performance Python Framework for GPU Simulation and Graphics." NVIDIA GTC, 2022. <a href="https://github.com/NVIDIA/warp" target="_blank" rel="noopener">github.com/NVIDIA/warp</a></li>
+    <li>NVIDIA Technical Blog. "Build Accelerated, Differentiable Computational Physics Code for AI with NVIDIA Warp." 2026. <a href="https://developer.nvidia.com/blog/build-accelerated-differentiable-computational-physics-code-for-ai-with-nvidia-warp/" target="_blank" rel="noopener">developer.nvidia.com/blog</a></li>
+    <li>NVIDIA Developer. "Newton Physics Engine." Overview page with collaborator and design statements. <a href="https://developer.nvidia.com/newton-physics" target="_blank" rel="noopener">developer.nvidia.com/newton-physics</a></li>
+    <li>Google DeepMind. MuJoCo Warp (MJWarp): GPU-optimized MuJoCo on NVIDIA Warp. <a href="https://github.com/google-deepmind/mujoco_warp" target="_blank" rel="noopener">github.com/google-deepmind/mujoco_warp</a></li>
+    <li>Isaac Lab: a GPU-accelerated simulation framework for multi-modal robot learning, with Newton engine integration. 2025. <a href="https://arxiv.org/abs/2511.04831" target="_blank" rel="noopener">arXiv:2511.04831</a></li>
+  </ol>
+
+  <div class="ref-group">Differentiable simulation methods</div>
+  <ol class="refs" start="7" style="counter-reset: ref 6;">
+    <li>Hu, Y., et al. "DiffTaichi: Differentiable Programming for Physical Simulation." ICLR 2020. <a href="https://arxiv.org/abs/1910.00935" target="_blank" rel="noopener">arXiv:1910.00935</a></li>
+    <li>Xu, J., et al. "Accelerated Policy Learning with Parallel Differentiable Simulation" (SHAC). ICLR 2022. <a href="https://arxiv.org/abs/2204.07137" target="_blank" rel="noopener">arXiv:2204.07137</a></li>
+    <li>Suh, H. J. T., Simchowitz, M., Zhang, K., Tedrake, R. "Do Differentiable Simulators Give Better Policy Gradients?" ICML 2022. <a href="https://arxiv.org/abs/2202.00817" target="_blank" rel="noopener">arXiv:2202.00817</a></li>
+    <li>"Differentiable Physics Simulations with Contacts: Do They Have Correct Gradients w.r.t. Position, Velocity and Control?" 2022. <a href="https://arxiv.org/abs/2207.05060" target="_blank" rel="noopener">arXiv:2207.05060</a></li>
+    <li>Macklin, M., Müller, M., Chentanez, N. "XPBD: Position-Based Simulation of Compliant Constrained Dynamics." Motion in Games, 2016.</li>
+    <li>Howell, T., Le Cleac'h, S., Kolter, Z., Schwager, M., Manchester, Z. "Dojo: A Differentiable Physics Engine for Robotics." 2022. <a href="https://arxiv.org/abs/2203.00806" target="_blank" rel="noopener">arXiv:2203.00806</a></li>
+    <li>Werling, K., Omens, D., Lee, J., Exarchos, I., Liu, C. K. "Fast and Feature-Complete Differentiable Physics for Articulated Rigid Bodies with Contact" (Nimble). RSS 2021. <a href="https://arxiv.org/abs/2103.16021" target="_blank" rel="noopener">arXiv:2103.16021</a></li>
+  </ol>
+
+  <div class="ref-group">Neighboring engines</div>
+  <ol class="refs" start="14" style="counter-reset: ref 13;">
+    <li>Todorov, E., Erez, T., Tassa, Y. "MuJoCo: A Physics Engine for Model-Based Control." IROS 2012. MJX (JAX) ships within the MuJoCo repository. <a href="https://github.com/google-deepmind/mujoco" target="_blank" rel="noopener">github.com/google-deepmind/mujoco</a></li>
+    <li>Freeman, C. D., et al. "Brax: A Differentiable Physics Engine for Large Scale Rigid Body Simulation." 2021. <a href="https://arxiv.org/abs/2106.13281" target="_blank" rel="noopener">arXiv:2106.13281</a></li>
+    <li>Genesis: a generative and universal physics platform for robotics and embodied AI. <a href="https://github.com/Genesis-Embodied-AI/Genesis" target="_blank" rel="noopener">github.com/Genesis-Embodied-AI/Genesis</a></li>
+    <li>Ataei, M., Salehipour, H. "XLB: A Differentiable Massively Parallel Lattice Boltzmann Library in Python." Computer Physics Communications, 2024. <a href="https://github.com/Autodesk/XLB" target="_blank" rel="noopener">github.com/Autodesk/XLB</a></li>
+    <li>Drake: model-based design and verification for robotics. Toyota Research Institute. <a href="https://drake.mit.edu/" target="_blank" rel="noopener">drake.mit.edu</a></li>
+    <li>Project Chrono: multi-physics simulation with the Chrono::Vehicle module. <a href="https://projectchrono.org/" target="_blank" rel="noopener">projectchrono.org</a></li>
+  </ol>
+
+  <div class="callout" style="margin-top:2rem;">
+    <div class="co-title">On citation hygiene</div>
+    <p>Package versions (newton 1.3.0, warp-lang 1.15.0, mujoco-warp 3.10.x) were verified against PyPI in July 2026; arXiv identifiers were verified against the sources. Newton's API surface is young and evolving, so prefer the current documentation over any code sketch in this guide when signatures disagree.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Differentiable Physics Engines: Warp and Newton · A Field Guide for Vehicle Engineering · Part II</p>
+  <p>By Majid Mazouchi · Drafted with Claude · July 2026</p>
+  <p class="series-index">In this series: <a href="physicsnemo-vehicle-field-guide.html">Part I · NVIDIA PhysicsNeMo: a field guide for vehicle engineering</a> &nbsp;·&nbsp; Part II · Differentiable physics engines: Warp and Newton (this page) &nbsp;·&nbsp; <a href="simulation-worlds-physx-omniverse.html">Part III · Simulation worlds: PhysX, Omniverse, Isaac Sim, Cosmos</a>. Links resolve when the files sit in the same folder.</p>
+  <p>Primary sources: github.com/newton-physics, github.com/NVIDIA/warp, github.com/google-deepmind/mujoco_warp, developer.nvidia.com, PyPI, and the papers cited above. Repository contents evolve; details verified July 2026.</p>
+</footer>
+
+</div>
+
+<button id="toTop" aria-label="Back to top">↑</button>
+
+<script>
+(function () {
+  var bar = document.getElementById('progress');
+  var toTop = document.getElementById('toTop');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    toTop.classList.toggle('show', h.scrollTop > 600);
+  }, { passive: true });
+  toTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  var chips = document.querySelectorAll('.chip');
+  var cards = document.querySelectorAll('.ex-card');
+  var note = document.getElementById('countNote');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var f = chip.getAttribute('data-filter');
+      var shown = 0;
+      cards.forEach(function (card) {
+        var cats = card.getAttribute('data-cat').split(' ');
+        var show = (f === 'all') || (cats.indexOf(f) !== -1);
+        card.hidden = !show;
+        if (show) shown++;
+      });
+      note.textContent = 'Showing ' + shown + ' of ' + cards.length + ' applications';
+    });
+  });
+})();
+</script>
+
+<script>
+/* Quarter-car system identification demo: forward sim + hand-written adjoint + Adam. */
+(function () {
+  var trajC = document.getElementById('demoTraj');
+  var convC = document.getElementById('demoConv');
+  if (!trajC || !convC) return;
+  var tctx = trajC.getContext('2d');
+  var cctx = convC.getContext('2d');
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- physics setup ----
+  var M = 300.0, K_TRUE = 28000.0, C_TRUE = 1800.0;
+  var DT = 0.002, N = 1500;                    // 3 s horizon
+  var S = 0.001;                                // loss scale: 1 mm
+  var K0 = 12000.0, C0 = 500.0;                 // initial guess
+  var u = new Float64Array(N), ud = new Float64Array(N);
+  (function road() {
+    var t0 = 0.3, dur = 0.12, h = 0.05;
+    for (var t = 0; t < N; t++) {
+      var ph = (t * DT - t0) / dur;
+      if (ph >= 0 && ph <= 1) {
+        u[t] = h * Math.sin(Math.PI * ph);
+        ud[t] = h * Math.PI / dur * Math.cos(Math.PI * ph);
+      }
+    }
+  })();
+
+  function simulate(k, c, X, V) {                // fills X,V of length N+1
+    X[0] = 0; V[0] = 0;
+    for (var t = 0; t < N; t++) {
+      var F = -k * (X[t] - u[t]) - c * (V[t] - ud[t]);
+      V[t + 1] = V[t] + DT / M * F;
+      X[t + 1] = X[t] + DT * V[t + 1];
+    }
+  }
+
+  // ---- the tape: hand-written adjoint of the loop above ----
+  var Xs = new Float64Array(N + 1), Vs = new Float64Array(N + 1);
+  function lossGrad(k, c, meas) {
+    simulate(k, c, Xs, Vs);
+    var L = 0, t;
+    for (t = 0; t < N; t++) { var r = (Xs[t + 1] - meas[t]) / S; L += r * r; }
+    L /= N;
+    var gx = 0, gv = 0, gk = 0, gc = 0;
+    for (t = N - 1; t >= 0; t--) {
+      gx += 2 * (Xs[t + 1] - meas[t]) / (S * S * N); // loss adjoint at t+1
+      gv += DT * gx;                                  // x' = x + dt v'
+      var gF = DT / M * gv;                           // v' = v + dt/M F
+      gk += -(Xs[t] - u[t]) * gF;                     // F = -k(x-u) - c(v-ud)
+      gc += -(Vs[t] - ud[t]) * gF;
+      gx += -k * gF;
+      gv += -c * gF;
+    }
+    return { L: L, gk: gk, gc: gc };
+  }
+
+  // ---- measurement generation (seeded gaussian) ----
+  var seed = 12345;
+  function rand() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  function gauss() { var a = Math.max(rand(), 1e-12), b = rand(); return Math.sqrt(-2 * Math.log(a)) * Math.cos(2 * Math.PI * b); }
+  var meas = new Float64Array(N);
+  var Xt = new Float64Array(N + 1), Vt = new Float64Array(N + 1);
+  function makeMeasurement(sigma) {
+    seed = 12345;
+    simulate(K_TRUE, C_TRUE, Xt, Vt);
+    for (var t = 0; t < N; t++) meas[t] = Xt[t + 1] + sigma * gauss();
+  }
+
+  // ---- optimizer state ----
+  var lk, lc, mk, mc, vk, vc, iter, kHist, cHist, running = false, MAXIT = 400;
+  function reset() {
+    lk = Math.log(K0); lc = Math.log(C0);
+    mk = mc = vk = vc = 0; iter = 0;
+    kHist = [K0]; cHist = [C0];
+    running = false;
+    runBtn.textContent = '\u25B6 Run';
+    truth.className = 'truth-hidden';
+    stepN(0); draw();
+  }
+  function stepN(n) {
+    for (var i = 0; i < n && iter < MAXIT; i++) {
+      iter++;
+      var k = Math.exp(lk), c = Math.exp(lc);
+      var g = lossGrad(k, c, meas);
+      var glk = g.gk * k, glc = g.gc * c;      // chain rule through log-params
+      mk = 0.9 * mk + 0.1 * glk; vk = 0.999 * vk + 0.001 * glk * glk;
+      mc = 0.9 * mc + 0.1 * glc; vc = 0.999 * vc + 0.001 * glc * glc;
+      var b1 = 1 - Math.pow(0.9, iter), b2 = 1 - Math.pow(0.999, iter);
+      lk -= 0.08 * (mk / b1) / (Math.sqrt(vk / b2) + 1e-12);
+      lc -= 0.08 * (mc / b1) / (Math.sqrt(vc / b2) + 1e-12);
+      kHist.push(Math.exp(lk)); cHist.push(Math.exp(lc));
+    }
+    var kk = Math.exp(lk), cc = Math.exp(lc);
+    var res = lossGrad(kk, cc, meas);
+    rIter.textContent = iter;
+    rK.textContent = kk.toFixed(0);
+    rC.textContent = cc.toFixed(0);
+    rL.textContent = res.L.toExponential(2);
+    if (iter >= MAXIT) { truth.className = 'truth-shown'; running = false; runBtn.textContent = '\u25B6 Run'; }
+    return res;
+  }
+
+  // ---- drawing ----
+  function axes(ctx, W, H) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = '#e6ddc8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(40, H / 2); ctx.lineTo(W - 10, H / 2); ctx.stroke();
+  }
+  function draw() {
+    var W = trajC.width, H = trajC.height;
+    axes(tctx, W, H);
+    var ymax = 0.09, x0 = 40, plotW = W - 55;
+    function px(t) { return x0 + plotW * t / N; }
+    function py(y, h) { return h / 2 - y / ymax * (h / 2 - 12); }
+    // measured points
+    tctx.fillStyle = 'rgba(76,74,66,0.35)';
+    for (var t = 0; t < N; t += 6) { tctx.fillRect(px(t) - 1, py(meas[t], H) - 1, 2, 2); }
+    // current simulated trajectory
+    simulate(Math.exp(lk), Math.exp(lc), Xs, Vs);
+    tctx.strokeStyle = '#b3502d'; tctx.lineWidth = 2; tctx.beginPath();
+    for (t = 0; t <= N; t++) { var X = px(t), Y = py(Xs[t], H); if (t === 0) tctx.moveTo(X, Y); else tctx.lineTo(X, Y); }
+    tctx.stroke();
+    tctx.fillStyle = '#8a8578'; tctx.font = '11px IBM Plex Mono, monospace';
+    tctx.fillText('grey: measured (noisy) · rust: simulated with current estimate · x-axis: 3 s', 44, 16);
+
+    // convergence panel
+    var W2 = convC.width, H2 = convC.height;
+    cctx.clearRect(0, 0, W2, H2);
+    var yLo = 0.2, yHi = 1.35, pw = W2 - 55;
+    function cy(v) { return H2 - 18 - (v - yLo) / (yHi - yLo) * (H2 - 36); }
+    function cx(i) { return 40 + pw * i / MAXIT; }
+    cctx.strokeStyle = '#c98a1b'; cctx.setLineDash([5, 4]); cctx.beginPath();
+    cctx.moveTo(40, cy(1)); cctx.lineTo(W2 - 15, cy(1)); cctx.stroke(); cctx.setLineDash([]);
+    function series(hist, ref, color) {
+      cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.beginPath();
+      for (var i = 0; i < hist.length; i++) { var X = cx(i), Y = cy(hist[i] / ref); if (i === 0) cctx.moveTo(X, Y); else cctx.lineTo(X, Y); }
+      cctx.stroke();
+    }
+    series(kHist, K_TRUE, '#1f6f6b');
+    series(cHist, C_TRUE, '#b3502d');
+    cctx.fillStyle = '#8a8578'; cctx.font = '11px IBM Plex Mono, monospace';
+    cctx.fillText('teal: k\u0302/k*  ·  rust: c\u0302/c*  ·  ochre dashes: truth (1.0)  ·  x-axis: iteration', 44, 14);
+  }
+
+  // ---- wiring ----
+  var runBtn = document.getElementById('dRun');
+  var stepBtn = document.getElementById('dStep');
+  var resetBtn = document.getElementById('dReset');
+  var noiseSel = document.getElementById('dNoise');
+  var rIter = document.getElementById('rIter'), rK = document.getElementById('rK'),
+      rC = document.getElementById('rC'), rL = document.getElementById('rL'),
+      truth = document.getElementById('rTruth');
+
+  function loop() {
+    if (!running) return;
+    stepN(4); draw();
+    if (iter < MAXIT && running) requestAnimationFrame(loop);
+  }
+  runBtn.addEventListener('click', function () {
+    if (reduced) { stepN(MAXIT); draw(); return; }   // no animation if reduced motion
+    running = !running;
+    runBtn.textContent = running ? '\u23F8 Pause' : '\u25B6 Run';
+    if (running) requestAnimationFrame(loop);
+  });
+  stepBtn.addEventListener('click', function () { stepN(25); draw(); });
+  resetBtn.addEventListener('click', reset);
+  noiseSel.addEventListener('change', function () { makeMeasurement(parseFloat(noiseSel.value)); reset(); });
+
+  makeMeasurement(parseFloat(noiseSel.value));
+  reset();
+})();
+</script>
+
+</body>
+</html>
