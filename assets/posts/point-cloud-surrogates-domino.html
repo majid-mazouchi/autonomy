@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Point-Cloud Surrogates for Aerodynamics: DoMINO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#F4F0E6; --paper:#FBF8F1; --ink:#211C15; --ink-soft:#5A5044; --rule:#DAD1BF; --rule-soft:#E7DFD0; --rust:#C2410C; --rust-deep:#9A3412; --teal:#0F766E; --amber:#B45309; --slate:#475569; --good:#0F766E; --bad:#B91C1C; --hold:#B45309;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:"Spectral",Georgia,serif; font-size:18px; line-height:1.66; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:820px; margin:0 auto; padding:0 26px}
+header.masthead{padding:72px 0 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--rust); margin:0 0 22px}
+h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(34px,6.2vw,58px); line-height:1.04; letter-spacing:-.015em; margin:0 0 18px}
+.subtitle{font-family:"Spectral",serif; font-style:italic; font-size:clamp(18px,2.4vw,22px); color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em; color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px}
+.byline b{color:var(--ink); font-weight:600}
+.abstract{margin:38px 0 10px; padding:24px 26px; background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--rust)}
+.abstract p{margin:0; font-size:17px}
+.abstract .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--rust); display:block; margin-bottom:8px}
+section{padding:46px 0; border-bottom:1px solid var(--rule-soft)}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.2em; color:var(--rust); display:block; margin-bottom:10px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(25px,3.6vw,33px); line-height:1.12; letter-spacing:-.01em; margin:0 0 18px}
+h3{font-family:"Fraunces",serif; font-weight:600; font-size:20px; margin:34px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:19.5px}
+em{font-style:italic}
+strong{font-weight:600}
+a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+ul,ol{margin:16px 0; padding-left:24px}
+li{margin:0 0 9px}
+figure{margin:30px 0; padding:20px 18px 14px; background:var(--paper); border:1px solid var(--rule)}
+figure svg{display:block; width:100%; height:auto}
+figcaption{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-top:12px; padding-top:11px; border-top:1px solid var(--rule-soft)}
+figcaption b{color:var(--ink); font-weight:600}
+.figlab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--rust); margin-bottom:6px}
+pre{background:#211C15; color:#EDE6D6; font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.6; padding:18px 20px; overflow-x:auto; border-radius:2px; margin:22px 0}
+code.inl{font-family:"IBM Plex Mono",monospace; font-size:.84em; background:var(--rule-soft); padding:1px 6px; border-radius:3px}
+.tbl{width:100%; border-collapse:collapse; margin:22px 0; font-size:14px; font-family:"IBM Plex Mono",monospace}
+.tbl th{text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:9px 10px}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.note{margin:24px 0; padding:16px 20px; background:#F3EEE0; border:1px dashed var(--rule); font-size:16px}
+.note .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--amber); display:block; margin-bottom:6px}
+.note p{margin:0}
+.refs{font-family:"Spectral",serif; font-size:16px}
+.refs p{margin:0 0 14px; padding-left:22px; text-indent:-22px}
+.refs b{font-weight:600}
+footer{padding:48px 0 80px; text-align:center}
+footer .rule{width:60px; height:2px; background:var(--ink); margin:0 auto 22px}
+footer p{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft); margin:4px 0}
+.reslinks{font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:center; margin:24px 0 0; padding-top:16px; border-top:1px solid var(--rule)}
+.reslinks a{color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rule)}
+.reslinks .ic{color:var(--rust)}
+@media (max-width:560px){body{font-size:17px} .wrap{padding:0 18px} header.masthead{padding:48px 0 32px} .tbl{font-size:12.5px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important} html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a href="/autonomy/" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);text-decoration:none;margin-bottom:22px;">← Back to Autonomy</a>
+  <p class="eyebrow">Physics-ML · CFD Surrogates · Point Clouds</p>
+  <h1>Point-Cloud Surrogates for Aerodynamics: DoMINO</h1>
+  <p class="subtitle">How a network reads a car's shape as a cloud of points and predicts the pressure and airflow around it — one query point at a time.</p>
+  <p class="byline">By <b>Majid Mazouchi</b> &nbsp;·&nbsp; Physics-ML Notes</p>
+
+  <div class="abstract">
+    <span class="lab">Abstract</span>
+    <p>Testing a car's aerodynamics normally means running computational fluid dynamics (CFD) — an expensive simulation — for every candidate shape. DoMINO (<b>Decomposable Multi-scale Iterative Neural Operator</b>, from NVIDIA) is a fast stand-in, or <em>surrogate</em>. You hand it the car's geometry as a cloud of surface points and it predicts both the forces on the body (surface pressure and wall shear stress) and the airflow around it (velocity and pressure in the surrounding air). The trick is that it solves for one point at a time — anchoring each local answer to a compact summary of the whole shape — which keeps it mesh-free and lets it scale to very large models. This note explains the idea in plain words, with block diagrams and a flowchart.</p>
+  </div>
+
+  <div class="reslinks" style="justify-content:flex-start"><span class="ic">▸</span>
+    <a href="transformer-surrogates-transolver-geotransolver.html">Transformers: Transolver</a>
+    <a href="convolutional-mesh-solvers-figconvunet.html">Mesh convolutions: FIGConvUNet</a>
+    <a href="physicsnemo-vehicle-field-guide.html">The PhysicsNeMo field guide</a>
+  </div>
+</header>
+
+<section>
+  <span class="snum">§ 01</span>
+  <h2>The job: predict aerodynamics straight from a shape</h2>
+  <p class="lead">Give the model a car and ask: what does the air do around it? That is the whole task.</p>
+  <p>Designers iterate on shapes constantly — a slightly lower roofline, a different mirror, a reshaped rear. Each change alters drag, lift, and cooling. The gold-standard way to check is CFD, a physics simulation that computes the airflow over the body. It is accurate, but slow and heavy. Running it for every candidate design is a bottleneck.</p>
+  <p>DoMINO's job is to replace that per-design simulation with a fast prediction. The geometry arrives as an <strong>STL file</strong> or a <strong>point cloud</strong> — a set of points sampled on the surface of the car, which for a real vehicle can be millions of points. From that shape alone, the model predicts two kinds of answers:</p>
+  <ul>
+    <li><strong>Surface quantities</strong> — the <em>pressure</em> pushing on the body and the <em>wall shear stress</em> (the drag the moving air exerts along the skin) at points on the car itself.</li>
+    <li><strong>Volume fields</strong> — the <em>velocity</em> and <em>pressure</em> of the air in the space <em>around</em> the car, including the wake trailing behind it.</li>
+  </ul>
+  <p>The goal is a surrogate that is fast, accurate, and — importantly — <strong>scalable</strong>, so it works on full-resolution production geometry, not just a toy simplified into a coarse grid.</p>
+
+  <figure>
+    <div class="figlab">Figure 1 · The car as a cloud of points</div>
+    <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <rect x="1" y="1" width="758" height="218" rx="7" fill="#FBF8F1" stroke="#211C15" stroke-width="1"/>
+      <text x="24" y="34" font-size="13" fill="#211C15" font-weight="600">INPUT: surface point cloud (from STL / CAD)</text>
+      <!-- car silhouette drawn as dots -->
+      <!-- underbody line -->
+      <circle cx="120" cy="160" r="2.4" fill="#C2410C"/><circle cx="150" cy="160" r="2.4" fill="#C2410C"/><circle cx="180" cy="160" r="2.4" fill="#C2410C"/><circle cx="210" cy="160" r="2.4" fill="#C2410C"/><circle cx="240" cy="160" r="2.4" fill="#C2410C"/><circle cx="270" cy="160" r="2.4" fill="#C2410C"/><circle cx="300" cy="160" r="2.4" fill="#C2410C"/><circle cx="330" cy="160" r="2.4" fill="#C2410C"/><circle cx="360" cy="160" r="2.4" fill="#C2410C"/><circle cx="390" cy="160" r="2.4" fill="#C2410C"/>
+      <!-- hood / front -->
+      <circle cx="105" cy="150" r="2.4" fill="#0F766E"/><circle cx="112" cy="138" r="2.4" fill="#0F766E"/><circle cx="124" cy="128" r="2.4" fill="#0F766E"/><circle cx="140" cy="122" r="2.4" fill="#0F766E"/><circle cx="160" cy="118" r="2.4" fill="#0F766E"/>
+      <!-- windshield up to roof -->
+      <circle cx="178" cy="108" r="2.4" fill="#0F766E"/><circle cx="196" cy="96" r="2.4" fill="#0F766E"/><circle cx="214" cy="86" r="2.4" fill="#0F766E"/><circle cx="236" cy="80" r="2.4" fill="#0F766E"/>
+      <!-- roof -->
+      <circle cx="260" cy="78" r="2.4" fill="#0F766E"/><circle cx="286" cy="78" r="2.4" fill="#0F766E"/><circle cx="312" cy="80" r="2.4" fill="#0F766E"/>
+      <!-- rear glass / trunk -->
+      <circle cx="336" cy="90" r="2.4" fill="#0F766E"/><circle cx="358" cy="104" r="2.4" fill="#0F766E"/><circle cx="376" cy="122" r="2.4" fill="#0F766E"/><circle cx="388" cy="140" r="2.4" fill="#0F766E"/>
+      <!-- wheels hint -->
+      <circle cx="160" cy="172" r="2.4" fill="#B45309"/><circle cx="168" cy="178" r="2.4" fill="#B45309"/><circle cx="176" cy="172" r="2.4" fill="#B45309"/>
+      <circle cx="332" cy="172" r="2.4" fill="#B45309"/><circle cx="340" cy="178" r="2.4" fill="#B45309"/><circle cx="348" cy="172" r="2.4" fill="#B45309"/>
+      <!-- scattered field points around -->
+      <circle cx="90" cy="100" r="1.7" fill="#5A5044"/><circle cx="70" cy="130" r="1.7" fill="#5A5044"/><circle cx="430" cy="110" r="1.7" fill="#5A5044"/><circle cx="450" cy="140" r="1.7" fill="#5A5044"/><circle cx="410" cy="90" r="1.7" fill="#5A5044"/>
+      <!-- arrow to outputs -->
+      <line x1="490" y1="120" x2="560" y2="120" stroke="#211C15" stroke-width="2" marker-end="url(#ar1)"/>
+      <defs><marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#211C15"/></marker></defs>
+      <rect x="562" y="52" width="186" height="60" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="574" y="76" font-size="11.5" fill="#9A3412" font-weight="600">SURFACE OUTPUTS</text>
+      <text x="574" y="94" font-size="10.5" fill="#211C15">pressure · wall shear</text>
+      <rect x="562" y="122" width="186" height="60" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="574" y="146" font-size="11.5" fill="#0F766E" font-weight="600">VOLUME OUTPUTS</text>
+      <text x="574" y="164" font-size="10.5" fill="#211C15">velocity · pressure (air)</text>
+    </svg>
+    <figcaption><b>The shape in, the fields out.</b> The car is just points on its surface (teal = body, rust = underbody, amber = wheel hints, grey = nearby air samples). DoMINO turns that shape into forces on the body and airflow around it — no hand-built simulation mesh required.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <span class="snum">§ 02</span>
+  <h2>Why point clouds, not a fixed grid or mesh</h2>
+  <p>Older surrogates often force the geometry onto a rigid <em>voxel grid</em> (like 3D pixels) or a carefully built <em>mesh</em>. Both add friction: a grid blurs fine detail unless it is very fine (and then it is huge), and a mesh has to be constructed and cleaned for each new shape.</p>
+  <p>A <strong>point cloud</strong> sidesteps this. It comes straight out of CAD or an STL export, it can represent <em>any</em> shape without special preparation, and it never squeezes the car into a rigid box of cells. What you sample is what you feed in.</p>
+  <p>But point clouds bring two real challenges the model has to handle:</p>
+  <ul>
+    <li><strong>They are unordered and enormous.</strong> There is no natural row-and-column layout, and there can be millions of points. The model cannot assume a fixed grid position for anything.</li>
+    <li><strong>The answer at a point depends on two very different scales at once.</strong> The flow at one spot is shaped both by <em>nearby</em> surface detail (a sharp edge, a mirror) <em>and</em> by the <em>whole body's</em> shape (is this a boxy SUV or a low sports car?). The model must respect both without drowning in point count.</li>
+  </ul>
+  <p>DoMINO's design is essentially an answer to that second point: keep a compact picture of the whole shape, and combine it with a local, detailed picture around wherever you are asking.</p>
+</section>
+
+<section>
+  <span class="snum">§ 03</span>
+  <h2>The big idea: local problems, anchored by global shape</h2>
+  <p class="lead">Instead of solving the entire flow field in one giant shot, DoMINO answers one query point at a time — and each answer is anchored to a summary of the full geometry.</p>
+  <p>You can point at <em>any</em> single location — on the car's surface or out in the air — and ask DoMINO for the solution there, on its own. That independence is what the word <strong>"decomposable"</strong> means: the big problem is broken into many small, local ones that can be solved separately, yet each one still "knows" about the whole car through a shared global context.</p>
+  <p>Concretely, the model works in three stages:</p>
+  <ol>
+    <li><strong>Global multi-scale geometry encoder.</strong> Look at the whole point cloud and compress it into a compact <em>global latent</em> — a summary of the overall shape, captured at several scales.</li>
+    <li><strong>Local geometry + dynamic stencil.</strong> For the query point you care about, gather its local neighborhood (a small subregion) and build a <em>computational stencil</em> — a set of nearby points used to estimate how the field behaves right there.</li>
+    <li><strong>Aggregation network.</strong> Fuse the global latent, the local geometry, and the nearby flow information into a single predicted field value at that point.</li>
+  </ol>
+
+  <figure>
+    <div class="figlab">Figure 2 · Block diagram — the three stages of DoMINO</div>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#211C15"/></marker></defs>
+
+      <!-- input -->
+      <rect x="20" y="120" width="120" height="70" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.5"/>
+      <text x="80" y="150" font-size="11.5" fill="#211C15" text-anchor="middle" font-weight="600">POINT CLOUD</text>
+      <text x="80" y="168" font-size="10" fill="#5A5044" text-anchor="middle">whole car (STL)</text>
+
+      <!-- Stage 1 -->
+      <rect x="185" y="30" width="200" height="80" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="285" y="55" font-size="12" fill="#0F766E" text-anchor="middle" font-weight="600">STAGE 1</text>
+      <text x="285" y="74" font-size="10.5" fill="#211C15" text-anchor="middle">global multi-scale</text>
+      <text x="285" y="90" font-size="10.5" fill="#211C15" text-anchor="middle">geometry encoder</text>
+
+      <!-- global latent -->
+      <rect x="420" y="45" width="150" height="50" rx="7" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="495" y="66" font-size="11" fill="#B45309" text-anchor="middle" font-weight="600">GLOBAL LATENT</text>
+      <text x="495" y="82" font-size="9.5" fill="#211C15" text-anchor="middle">shape summary</text>
+
+      <!-- query point -->
+      <rect x="185" y="150" width="200" height="80" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="285" y="175" font-size="12" fill="#9A3412" text-anchor="middle" font-weight="600">STAGE 2</text>
+      <text x="285" y="194" font-size="10.5" fill="#211C15" text-anchor="middle">local geometry +</text>
+      <text x="285" y="210" font-size="10.5" fill="#211C15" text-anchor="middle">dynamic stencil</text>
+
+      <!-- query in -->
+      <rect x="20" y="230" width="120" height="55" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.5"/>
+      <text x="80" y="254" font-size="11" fill="#211C15" text-anchor="middle" font-weight="600">QUERY POINT</text>
+      <text x="80" y="270" font-size="9.5" fill="#5A5044" text-anchor="middle">surface or air</text>
+
+      <!-- Stage 3 aggregation -->
+      <rect x="440" y="150" width="150" height="80" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="515" y="177" font-size="12" fill="#9A3412" text-anchor="middle" font-weight="600">STAGE 3</text>
+      <text x="515" y="196" font-size="10.5" fill="#211C15" text-anchor="middle">aggregation</text>
+      <text x="515" y="212" font-size="10.5" fill="#211C15" text-anchor="middle">network</text>
+
+      <!-- output -->
+      <rect x="628" y="150" width="118" height="80" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="687" y="182" font-size="11" fill="#0F766E" text-anchor="middle" font-weight="600">FIELD</text>
+      <text x="687" y="199" font-size="11" fill="#0F766E" text-anchor="middle">VALUE</text>
+      <text x="687" y="216" font-size="9" fill="#5A5044" text-anchor="middle">at that point</text>
+
+      <!-- arrows -->
+      <line x1="140" y1="150" x2="185" y2="90" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="140" y1="170" x2="185" y2="185" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="140" y1="255" x2="185" y2="205" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="385" y1="70" x2="420" y2="70" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="385" y1="190" x2="440" y2="190" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <!-- global latent feeds aggregation -->
+      <path d="M495,95 L495,130 L515,130 L515,150" fill="none" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="590" y1="190" x2="628" y2="190" stroke="#211C15" stroke-width="2" marker-end="url(#ar2)"/>
+    </svg>
+    <figcaption><b>One global pass, many local answers.</b> Stage 1 runs once per car and produces a shape summary (the global latent). Stages 2 and 3 run per query point: gather the local region, build a stencil, pull in the global latent, and aggregate everything into the field value at that exact spot. Ask for a million points and you repeat Stages 2 and 3 a million times, always against the same global summary.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <span class="snum">§ 04</span>
+  <h2>Stage 1 — encoding the whole shape at many scales</h2>
+  <p>The first stage reads the entire point cloud and compresses it into a <strong>global latent</strong> — a compact set of numbers that stands in for "the shape of this car." The important word is <strong>multi-scale</strong>.</p>
+  <p>Think about what determines airflow. Some of it is set by <em>broad</em> shape: is the rear a smooth <em>fastback</em> that lets air reattach, or a sharp <em>notchback</em> that separates the flow? Some of it is set by <em>finer</em> features: the exact curve of a fender, the gap around a mirror, the crease along a door.</p>
+  <p><strong>Multi-scale simply means the encoder looks at the geometry through several "zoom levels" at once.</strong> A coarse level captures the overall silhouette; finer levels capture the smaller bumps and edges. If it only looked coarsely, it would miss detail that matters for drag; if it only looked finely, it would lose the big-picture context that governs the wake. By keeping several scales together, the global latent carries both the forest and the trees.</p>
+  <p>Because this summary is produced once for the whole geometry, every later query point can reuse it. That shared context is what lets each local answer still account for the rest of the car — including long-range effects that a purely local view could never see.</p>
+
+  <figure>
+    <div class="figlab">Figure 3 · What "multi-scale" means</div>
+    <svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <rect x="1" y="1" width="758" height="188" rx="7" fill="#FBF8F1" stroke="#211C15" stroke-width="1"/>
+      <text x="24" y="32" font-size="12.5" fill="#211C15" font-weight="600">Same car, three zoom levels — all folded into one global latent</text>
+
+      <!-- coarse -->
+      <rect x="40" y="52" width="180" height="110" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="130" y="74" font-size="11" fill="#0F766E" text-anchor="middle" font-weight="600">COARSE</text>
+      <path d="M60,140 Q75,110 105,108 Q130,90 165,108 L200,140 Z" fill="none" stroke="#0F766E" stroke-width="2.5"/>
+      <text x="130" y="156" font-size="9.5" fill="#5A5044" text-anchor="middle">overall silhouette</text>
+
+      <!-- medium -->
+      <rect x="290" y="52" width="180" height="110" rx="7" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="380" y="74" font-size="11" fill="#B45309" text-anchor="middle" font-weight="600">MEDIUM</text>
+      <path d="M310,140 Q320,112 340,110 L352,96 Q380,86 412,110 L440,120 L450,140 Z" fill="none" stroke="#B45309" stroke-width="2.2"/>
+      <circle cx="335" cy="140" r="8" fill="none" stroke="#B45309" stroke-width="2"/><circle cx="430" cy="140" r="8" fill="none" stroke="#B45309" stroke-width="2"/>
+      <text x="380" y="156" font-size="9.5" fill="#5A5044" text-anchor="middle">roofline + wheels</text>
+
+      <!-- fine -->
+      <rect x="540" y="52" width="180" height="110" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="630" y="74" font-size="11" fill="#9A3412" text-anchor="middle" font-weight="600">FINE</text>
+      <path d="M560,132 Q568,116 582,116 L588,104 L596,116 L640,116 L648,100 Q672,96 690,116 L700,132" fill="none" stroke="#C2410C" stroke-width="2"/>
+      <circle cx="608" cy="106" r="3" fill="#C2410C"/><rect x="700" y="106" width="9" height="6" rx="1.5" fill="none" stroke="#C2410C" stroke-width="1.6"/>
+      <text x="630" y="156" font-size="9.5" fill="#5A5044" text-anchor="middle">edges · mirror · crease</text>
+    </svg>
+    <figcaption><b>Zoom levels, combined.</b> Coarse captures the silhouette that drives the wake; medium captures roofline and wheels; fine captures edges and small features that nudge local drag. DoMINO keeps all of them, so the global latent is neither too blurry nor lost in detail.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <span class="snum">§ 05</span>
+  <h2>Stage 2 — local geometry and a dynamic stencil</h2>
+  <p>Now zoom in to a single query point. Stage 2 does two things: it gathers the <strong>local subregion</strong> — the patch of geometry immediately around that point — and it builds a <strong>computational stencil</strong>.</p>
+  <p>A stencil is an old idea from classical CFD solvers. To estimate how a field (say pressure) <em>changes</em> at a location, a solver looks at a small set of neighbor points and compares values across them. That little set of neighbors is the stencil; it is how the solver "feels" the local gradients that physics cares about.</p>
+  <p>DoMINO borrows the concept but makes it <strong>dynamic</strong>: instead of a fixed hand-designed pattern, the network constructs the stencil on the fly from whatever neighbors are actually near the query point in the cloud. This keeps two things true at once — the local view respects <em>physical locality</em> (flow is influenced most by what is close), and it works for point clouds that have no fixed grid to hang a stencil on.</p>
+
+  <figure>
+    <div class="figlab">Figure 4 · Flowchart — the path for one query point</div>
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+      <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#211C15"/></marker></defs>
+
+      <!-- step 1 -->
+      <rect x="270" y="20" width="220" height="46" rx="7" fill="#F7E7DF" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="380" y="48" font-size="11.5" fill="#211C15" text-anchor="middle" font-weight="600">Pick a query point (surface or air)</text>
+
+      <!-- step 2 -->
+      <rect x="270" y="92" width="220" height="46" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.5"/>
+      <text x="380" y="120" font-size="11.5" fill="#211C15" text-anchor="middle" font-weight="600">Gather local neighborhood</text>
+
+      <!-- step 3 -->
+      <rect x="270" y="164" width="220" height="46" rx="7" fill="#EFE7D6" stroke="#211C15" stroke-width="1.5"/>
+      <text x="380" y="192" font-size="11.5" fill="#211C15" text-anchor="middle" font-weight="600">Build dynamic stencil</text>
+
+      <!-- global latent side node -->
+      <rect x="40" y="164" width="180" height="46" rx="7" fill="#F7E9CF" stroke="#B45309" stroke-width="1.5"/>
+      <text x="130" y="185" font-size="11" fill="#B45309" text-anchor="middle" font-weight="600">Pull global latent</text>
+      <text x="130" y="201" font-size="9" fill="#5A5044" text-anchor="middle">(from Stage 1, reused)</text>
+
+      <!-- step 4 aggregate -->
+      <rect x="270" y="236" width="220" height="46" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.5"/>
+      <text x="380" y="264" font-size="11.5" fill="#0F766E" text-anchor="middle" font-weight="600">Aggregate (fuse everything)</text>
+
+      <!-- step 5 predict -->
+      <rect x="270" y="292" width="220" height="40" rx="7" fill="#C2410C" stroke="#9A3412" stroke-width="1.5"/>
+      <text x="380" y="317" font-size="11.5" fill="#FBF8F1" text-anchor="middle" font-weight="600">Predict field value here</text>
+
+      <!-- arrows -->
+      <line x1="380" y1="66" x2="380" y2="92" stroke="#211C15" stroke-width="2" marker-end="url(#ar3)"/>
+      <line x1="380" y1="138" x2="380" y2="164" stroke="#211C15" stroke-width="2" marker-end="url(#ar3)"/>
+      <line x1="380" y1="210" x2="380" y2="236" stroke="#211C15" stroke-width="2" marker-end="url(#ar3)"/>
+      <line x1="380" y1="282" x2="380" y2="292" stroke="#211C15" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- global latent into aggregate -->
+      <path d="M130,210 L130,259 L270,259" fill="none" stroke="#211C15" stroke-width="2" marker-end="url(#ar3)"/>
+    </svg>
+    <figcaption><b>Per-point recipe.</b> Every query point follows the same short path: locate it, gather its neighbors, build a stencil, bring in the reused global shape summary, aggregate, and read off the answer. The global latent is computed once and shared across all points, so this loop stays cheap.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <span class="snum">§ 06</span>
+  <h2>Stage 3 — aggregation, and why it scales</h2>
+  <p>The final stage is the <strong>aggregation network</strong>. It takes the pieces assembled so far — the <em>local geometry</em> around the point and the <em>stencil-based flow information</em> from its neighbors — and combines them, together with the shared global latent, into the high-fidelity prediction at that point.</p>
+  <p>This division of labor is what makes DoMINO scale. Because each point is solved <strong>locally against a shared global context</strong>, the model never has to hold the entire flow field in one enormous computation. It is <strong>mesh-free</strong> — no simulation mesh to build — and it can be pushed to very large geometries by simply evaluating more query points.</p>
+  <p>The two halves cover complementary physics:</p>
+  <ul>
+    <li>The <strong>global latent</strong> carries <em>long-range shape effects</em> — how the overall body redirects flow, where the wake forms — that a purely local model could never infer.</li>
+    <li>The <strong>local stencils</strong> respect <em>physical locality</em> — the fact that the field at a point is set mostly by its immediate surroundings and their gradients.</li>
+  </ul>
+  <p>This is where the name pays off. <strong>"Iterative Neural Operator"</strong> reflects that DoMINO is doing <em>operator learning</em> — learning the map from geometry to flow field — but applied point by point, so the same learned operator is evaluated across the whole domain rather than in a single monolithic pass. Decomposable (per point), multi-scale (Stage 1), iterative operator (evaluated everywhere): the name is the method.</p>
+
+  <div class="note">
+    <span class="lab">Intuition</span>
+    <p>A useful mental picture: the global latent is a shared "map of the whole car" that everyone consults, while each query point is a local surveyor who measures its own patch in detail. The map keeps every local measurement consistent with the big shape; the local survey keeps it faithful to the fine physics right there.</p>
+  </div>
+</section>
+
+<section>
+  <span class="snum">§ 07</span>
+  <h2>In practice — inputs, outputs, and where it lives</h2>
+  <p>Putting it together, here is what you feed in and what you get back.</p>
+  <table class="tbl">
+    <tr><th>Item</th><th>What it is</th></tr>
+    <tr><td>Input</td><td>STL geometries — the car's surface as a point cloud</td></tr>
+    <tr><td>Surface outputs</td><td>Pressure and wall shear stress on the body</td></tr>
+    <tr><td>Volume outputs</td><td>Velocity and pressure in the air around the car</td></tr>
+    <tr><td>Validation case</td><td>A realistic production mid-size SUV from General Motors</td></tr>
+    <tr><td>Home</td><td>Part of NVIDIA PhysicsNeMo</td></tr>
+    <tr><td>Deployment</td><td>DoMINO-Automotive-Aero NIM microservice for inference</td></tr>
+  </table>
+  <p>DoMINO has been validated on a realistic production mid-size SUV from General Motors — a genuine engineering geometry, not a simplified test body. It ships as part of the <strong>NVIDIA PhysicsNeMo</strong> framework, and for teams that want inference without training from scratch, it is packaged as the <strong>DoMINO-Automotive-Aero NIM</strong> microservice.</p>
+
+  <div class="note">
+    <span class="lab">When to reach for it</span>
+    <p>Reach for a <strong>point-cloud surrogate like DoMINO</strong> when your geometry comes straight from CAD/STL, when you need <em>both</em> surface and volume fields, and when models are large enough that forcing them onto a grid or mesh would be a headache. A <strong>transformer surrogate</strong> (e.g. Transolver) can be a strong choice when global attention across the geometry matters; a <strong>convolutional / mesh approach</strong> (e.g. FIGConvUNet) fits when a structured grid or mesh is natural and efficient. And whichever you pick: any surrogate is only trustworthy inside the range of shapes it learned from — always <strong>validate against real CFD on out-of-distribution shapes</strong> before you trust its numbers on something new.</p>
+  </div>
+</section>
+
+<section>
+  <span class="snum">§ 08</span>
+  <h2>References</h2>
+  <div class="refs">
+    <p><b>DoMINO: A Decomposable Multi-scale Iterative Neural Operator for Modeling Large-Scale Engineering Simulations</b> (NVIDIA). See NVIDIA PhysicsNeMo documentation; ResearchGate publication 388354439.</p>
+    <p>NVIDIA PhysicsNeMo — <b>DoMINO: Decomposable Multi-scale Iterative Neural Operator for External Aerodynamics</b> (documentation / example).</p>
+    <p>NVIDIA — <b>DoMINO-Automotive-Aero NIM</b> overview (documentation).</p>
+    <p><b>Automotive Aerodynamics Surrogate Modeling using NVIDIA PhysicsNeMo on a Mid-Sized SUV GM Dataset.</b> SAE Technical Paper 2026-01-0600.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="rule"></div>
+  <p><b>Point-Cloud Surrogates for Aerodynamics: DoMINO</b></p>
+  <p>By Majid Mazouchi · Physics-ML Notes</p>
+</footer>
+
+</body>
+</html>
