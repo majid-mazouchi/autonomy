@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Token Budget: Methods for Token Optimization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF5EA; --paper-2:#F3ECDC; --ink:#1E1A15; --ink-2:#4A4238; --ink-3:#7A7063;
+  --rust:#A8432B; --teal:#1B6B66; --ochre:#BE8A21; --rule:#D9CFBA; --plum:#6B3A5B;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+h1{font-size:clamp(2.3rem,6.4vw,3.7rem);font-weight:800;margin:0 0 .35em}
+h2{font-size:clamp(1.42rem,3.4vw,1.95rem);margin:2.4em 0 .5em}
+h3{font-size:1.14rem;margin:1.9em 0 .4em}
+h4{font-size:.95rem;margin:1.4em 0 .3em}
+p{margin:0 0 1.05em}
+a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em}
+code{background:var(--paper-2);padding:.1em .34em;border-radius:3px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:0 0 .8em}
+
+/* part dividers */
+.part{margin:4.2em 0 0;padding-top:1.6em;border-top:2px solid var(--ink)}
+.part .pn{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--rust)}
+.part h2{margin:.25em 0 .3em;font-weight:800;font-size:clamp(1.6rem,4vw,2.2rem)}
+.part p{color:var(--ink-2);max-width:58ch;margin-bottom:0}
+
+header.hero{padding:66px 0 34px;border-bottom:1px solid var(--rule)}
+.byline{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--ink-3);letter-spacing:.03em}
+.standfirst{font-size:1.2rem;color:var(--ink-2);max-width:60ch;font-weight:300}
+.band{margin:28px 0 6px}
+.band-lab{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}
+.cells{display:grid;grid-template-columns:repeat(60,1fr);gap:2px;height:34px}
+.cell{border-radius:1px;background:var(--rule)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--ink-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:5px}
+
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(250,245,234,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+nav.toc .inner{max-width:820px;margin:0 auto;padding:9px 22px;display:flex;gap:15px;overflow-x:auto;scrollbar-width:none}
+nav.toc .inner::-webkit-scrollbar{display:none}
+nav.toc a{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-decoration:none;white-space:nowrap;padding:3px 0;border-bottom:2px solid transparent}
+nav.toc a:hover{color:var(--rust);border-bottom-color:var(--rust)}
+
+.fig{background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;padding:20px 20px 18px;margin:1.9em 0}
+.fig-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.fig-num{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--rust)}
+.fig-title{font-family:"Fraunces",serif;font-weight:600;font-size:1.02rem}
+.fig-note{font-size:.86rem;color:var(--ink-3);margin:12px 0 0;line-height:1.5}
+.ctrl{margin:11px 0}
+.ctrl label{display:flex;justify-content:space-between;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--ink-2);margin-bottom:5px}
+.ctrl label b{color:var(--rust);font-weight:600;white-space:nowrap}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--rule);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--rust);cursor:pointer;border:2px solid var(--paper)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--rust);cursor:pointer;border:2px solid var(--paper)}
+input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(168,67,43,.3)}
+textarea{width:100%;min-height:96px;font-family:"IBM Plex Mono",monospace;font-size:.8rem;line-height:1.6;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px;color:var(--ink);resize:vertical}
+textarea:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:11px;margin-top:15px}
+.stat{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:9px 11px}
+.stat .k{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:"Fraunces",serif;font-size:1.3rem;font-weight:600;line-height:1.25;margin-top:2px}
+.v.good{color:var(--teal)} .v.bad{color:var(--rust)} .v.mid{color:var(--ochre)}
+
+.btnrow{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+button.tog{font-family:"IBM Plex Mono",monospace;font-size:.72rem;padding:6px 11px;border-radius:3px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);cursor:pointer;transition:.15s}
+button.tog:hover{border-color:var(--rust);color:var(--rust)}
+button.tog[aria-pressed=true]{background:var(--rust);color:var(--paper);border-color:var(--rust)}
+button.tog:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gridline{stroke:var(--rule);stroke-width:1}
+.axis-lab{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:var(--ink-3)}
+
+table{width:100%;border-collapse:collapse;margin:1.5em 0;font-size:.89rem}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+td.n{font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+
+.callout{border-left:3px solid var(--teal);background:rgba(27,107,102,.05);padding:13px 16px;margin:1.6em 0;border-radius:0 4px 4px 0}
+.callout.warn{border-left-color:var(--rust);background:rgba(168,67,43,.05)}
+.callout p:last-child{margin-bottom:0}
+.callout .lab{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:5px}
+.callout.warn .lab{color:var(--rust)}
+
+.tok{display:inline;transition:opacity .25s}
+.tok.drop{opacity:.2;text-decoration:line-through;text-decoration-thickness:1px}
+.corpus{font-family:"IBM Plex Mono",monospace;font-size:.79rem;line-height:1.75;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:13px;max-height:230px;overflow-y:auto}
+
+.tokview{font-family:"IBM Plex Mono",monospace;font-size:.78rem;line-height:2.1;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px;max-height:190px;overflow-y:auto;margin-top:11px;word-break:break-all}
+.tk{padding:1px 2px;border-radius:2px;margin-right:1px;white-space:pre-wrap}
+
+.chunkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin:12px 0}
+.chunk{aspect-ratio:1;border-radius:2px;background:var(--rule);border:1px solid transparent;transition:.25s}
+.chunk.sel{background:var(--teal);border-color:var(--teal)}
+.chunk.gold{border-color:var(--ochre);border-width:2px}
+
+.toolstack{display:flex;flex-wrap:wrap;gap:3px;margin:12px 0;max-height:150px;overflow:hidden}
+.tl{height:12px;border-radius:1px;background:var(--rule);flex:0 0 auto;transition:.3s}
+.tl.live{background:var(--teal)}
+
+ol.steps{padding-left:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding-left:38px;margin-bottom:.9em}
+ol.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.16em;font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--rust)}
+
+/* decision tool */
+.qcard{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;margin-bottom:9px}
+.qcard .q{font-size:.92rem;margin-bottom:8px;color:var(--ink-2)}
+.rank{list-style:none;padding:0;margin:14px 0 0;counter-reset:r}
+.rank li{counter-increment:r;display:flex;gap:11px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--rule);font-size:.9rem}
+.rank li::before{content:counter(r);font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--rust);min-width:16px}
+.rank li .why{color:var(--ink-3);font-size:.82rem}
+
+/* anti-pattern cards */
+.apgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:1.6em 0}
+.ap{background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--rust);border-radius:0 4px 4px 0;padding:13px 15px}
+.ap h4{margin:0 0 6px;font-size:.95rem;color:var(--rust)}
+.ap p{font-size:.85rem;margin:0 0 7px;line-height:1.5}
+.ap p:last-child{margin:0}
+.ap .tag{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:3px}
+
+.formula{font-family:"IBM Plex Mono",monospace;font-size:.79rem;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px 13px;margin:.7em 0 1.3em;line-height:1.8;white-space:pre-wrap;overflow-x:auto}
+
+.refs{font-size:.87rem;line-height:1.55}
+.refs li{margin-bottom:.75em}
+.refs .rn{font-family:"IBM Plex Mono",monospace;color:var(--rust);font-size:.78rem}
+
+footer{border-top:1px solid var(--rule);margin-top:70px;padding:26px 0 60px;font-size:.82rem;color:var(--ink-3)}
+
+@media (max-width:620px){
+  body{font-size:17px}
+  .cells{grid-template-columns:repeat(30,1fr);height:26px}
+  .readout{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Applied AI Systems &middot; Monograph</p>
+    <h1>The Token Budget</h1>
+    <p class="standfirst">Every method for cutting token consumption in LLM and agentic pipelines, the arithmetic that tells you which one to reach for first, the ways each of them fails, and what changes when the pipeline becomes a fleet of agents.</p>
+    <div class="band">
+      <div class="band-lab"><span>Context window occupancy, one agent turn</span><span>70% used, 2% is the task</span></div>
+      <div class="cells" id="band"></div>
+      <div class="legend">
+        <span><i style="background:#8E8878"></i>System prompt</span>
+        <span><i style="background:var(--ochre)"></i>Tool schemas</span>
+        <span><i style="background:var(--rust)"></i>History</span>
+        <span><i style="background:var(--teal)"></i>Retrieved docs</span>
+        <span><i style="background:var(--ink)"></i>The actual task</span>
+      </div>
+    </div>
+    <p class="byline" style="margin-top:26px">By Majid Mazouchi &middot; August 29, 2026</p>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#economics">Foundations</a>
+    <a href="#tokenizer">Tokenizer</a>
+    <a href="#decide">Decision tool</a>
+    <a href="#caching">Caching</a>
+    <a href="#semantic">Semantic cache</a>
+    <a href="#growth">Compaction</a>
+    <a href="#compress">Compression</a>
+    <a href="#learned">Learned compression</a>
+    <a href="#retrieval">Retrieval</a>
+    <a href="#tools">Tool schemas</a>
+    <a href="#format">Format</a>
+    <a href="#output">Output side</a>
+    <a href="#cascade">Cascades</a>
+    <a href="#batch">Batching</a>
+    <a href="#distill">Distillation</a>
+    <a href="#isolate">Isolation</a>
+    <a href="#serving">Serving layer</a>
+    <a href="#measure">Measurement</a>
+    <a href="#retries">Retries</a>
+    <a href="#case">Case study</a>
+    <a href="#anti">Anti-patterns</a>
+    <a href="#order">Order of work</a>
+    <a href="#multiplier">Multi-agent</a>
+    <a href="#anatomy">Anatomy</a>
+    <a href="#skills">Skills</a>
+    <a href="#harness">Harness</a>
+    <a href="#comms">Comms</a>
+    <a href="#coordfail">Coord failure</a>
+    <a href="#fanout">Fan-out</a>
+    <a href="#appendix">Formulas</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<div class="part" id="economics">
+  <p class="pn">Part I</p>
+  <h2>Foundations</h2>
+  <p>What a token actually is, why cutting tokens is an accuracy argument before it is a cost argument, and how to decide which of the twenty methods below apply to your workload.</p>
+</div>
+
+<h2>The two reasons to care</h2>
+
+<p>Token optimization gets framed as a cost exercise, and cost is real: in a long-running agent, the same system prompt and tool catalog are re-sent on every single model call, so a 40,000 token preamble in a 30 step loop is 1.2 million billed input tokens for one task. But cost is the smaller half of the argument.</p>
+
+<p>The larger half is accuracy. Liu and colleagues showed that model performance follows a U-shaped curve against the position of the relevant passage: it is highest when the needed information sits at the very start or the very end of the input, and it degrades markedly when the model has to reach into the middle of a long context. Performance also falls as the context simply gets longer, even for models explicitly built for long inputs. Anthropic's context engineering guidance frames the same finding as a design rule: treat context as a finite resource with diminishing marginal returns, and hunt for the smallest set of high-signal tokens that still gets the outcome you want.</p>
+
+<p>So the tokens you cut are not only cheaper, they are often <em>better</em>. That reframing changes what counts as a successful optimization. A method that halves your token count and costs you two points of task accuracy is a bad trade. A method that halves your token count and <em>raises</em> accuracy, because it removed distractors, is the one you want, and several of the methods below do exactly that.</p>
+
+<h2 id="tokenizer">What a token is, concretely</h2>
+
+<p>Before any of the arithmetic, it helps to see the unit. A token is not a word and not a character. It is a subword unit produced by a byte-pair encoding trained mostly on English web text, which has three consequences that surprise people: common English words are usually one token while rare ones fragment, many non-Latin scripts cost several times more tokens per unit of meaning, and code pays a penalty for indentation, long identifiers and punctuation runs.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 1</span><span class="fig-title">Live token estimator</span></div>
+  <textarea id="tkin" spellcheck="false">The vehicle health management module flagged main bearing three at 1.87 mm/s.
+Le module de gestion de la sante du vehicule a signale le palier numero trois.
+車両ヘルスマネジメントモジュールが第三主軸受を検知しました。
+def compute_thrust_bearing_clearance(oil_film_thickness_um, asperity_contact_ratio):
+    return oil_film_thickness_um * (1.0 - asperity_contact_ratio) / 25.4</textarea>
+  <div class="btnrow" id="tksamples">
+    <button class="tog" data-s="english">English prose</button>
+    <button class="tog" data-s="code">Python</button>
+    <button class="tog" data-s="json">JSON record</button>
+    <button class="tog" data-s="cjk">Japanese</button>
+    <button class="tog" data-s="numbers">Numeric log</button>
+  </div>
+  <div class="tokview" id="tkview"></div>
+  <div class="readout">
+    <div class="stat"><div class="k">Characters</div><div class="v" id="tk_ch">0</div></div>
+    <div class="stat"><div class="k">Words</div><div class="v" id="tk_w">0</div></div>
+    <div class="stat"><div class="k">Tokens, estimated</div><div class="v mid" id="tk_t">0</div></div>
+    <div class="stat"><div class="k">Tokens per word</div><div class="v" id="tk_r">0</div></div>
+  </div>
+  <p class="fig-note">This is a heuristic estimator, not a real BPE vocabulary: it segments on the usual word, number, punctuation and whitespace boundaries, treats frequent English words as single tokens, splits long or unusual words into subwords, groups digits, and charges non-Latin scripts at roughly one token per character or worse. Expect it to be within about ten percent on English prose and rougher elsewhere. Use it to feel the ratios, not to bill anyone. The pattern to internalize: English prose lands near 0.75 tokens per word, code runs higher because of indentation and identifiers, and the same sentence in a non-Latin script can cost two to three times what its English translation costs, which is a real fairness and budget issue in multilingual products.</p>
+</div>
+
+<h2>A map of the territory</h2>
+<p>There are only four things you can do. Every method in this monograph is an instance of one of them.</p>
+
+<table>
+  <thead><tr><th>Family</th><th>What it changes</th><th>Methods covered here</th></tr></thead>
+  <tbody>
+    <tr><td><b>Shrink the input</b></td><td>Tokens sent per call</td><td>Prompt caching, semantic caching, compaction, extractive compression, learned compression, retrieval, progressive tool loading, serialization format</td></tr>
+    <tr><td><b>Shrink the output</b></td><td>Tokens generated per call</td><td>Length and schema constraints, diffs instead of rewrites, reasoning budget caps</td></tr>
+    <tr><td><b>Change the architecture</b></td><td>Number, size and shape of calls</td><td>Model cascades, batch prompting, distillation and fine-tuning, subagent isolation, programmatic tool calling, serving-layer levers</td></tr>
+    <tr><td><b>Measure</b></td><td>Where you spend effort</td><td>Per-stage accounting, cache hit rate, retry and error budgets, tokens per solved task</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <span class="lab">Rates used on this page</span>
+  <p>All dollar figures use an illustrative $3.00 per million input tokens and $15.00 per million output tokens, with cache writes at 1.25&times; base input and cache reads at 0.10&times; base input. Those multipliers match the published Claude prompt caching structure. Substitute your own rates; the shapes of the curves do not move.</p>
+</div>
+
+<h2 id="decide">Which methods apply to you</h2>
+
+<p>The ranked table at the end of this monograph is the general answer. This is the version filtered to your workload. Answer four questions and it reorders.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 2</span><span class="fig-title">Workload triage</span></div>
+  <div id="qwrap"></div>
+  <ol class="rank" id="ranked"></ol>
+  <p class="fig-note">This is the same thirteen-method table from Part V, re-scored against your answers. It is a starting order, not a verdict: your own per-stage measurements override it the moment you have them.</p>
+</div>
+
+<div class="part" id="caching">
+  <p class="pn">Part II</p>
+  <h2>Shrink the input</h2>
+  <p>Eight methods, ordered by how much of a typical agent's input they touch. The first two skip work entirely; the rest make the work smaller.</p>
+</div>
+
+<h2>1. Prompt caching</h2>
+
+<p>Caching is prefix-based and it is the single highest-leverage lever in any repeated-call workload, so it goes first. The provider stores the tokenized prefix of your request up to a marked breakpoint. Any later request that begins with a byte-identical prefix is served from that store. On Claude the prefix is assembled in a fixed order, tools then system then messages, and the cache references everything up to and including the block you mark with <code>cache_control</code>.</p>
+
+<p>The economics are asymmetric in a way that decides your architecture. A cache write costs about 25 percent more than a normal input token. A cache read costs about 90 percent less. Break-even therefore arrives on the second hit, and everything after that is close to free. The design implication is blunt: <b>put everything stable at the front and never let a variable token drift into the prefix</b>. A timestamp injected at the top of a system prompt invalidates the entire cache on every call, and this is the most common reason a caching rollout shows no savings.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 3</span><span class="fig-title">Cache economics over an agent loop</span></div>
+  <div class="ctrl"><label>Stable prefix: system prompt, tool schemas, reference docs <b id="v_pfx">30,000 tok</b></label><input type="range" id="s_pfx" min="1000" max="150000" step="1000" value="30000"></div>
+  <div class="ctrl"><label>Turns in the session <b id="v_turns">20</b></label><input type="range" id="s_turns" min="1" max="60" step="1" value="20"></div>
+  <div class="ctrl"><label>New tokens added per turn: user text plus tool results <b id="v_new">1,200 tok</b></label><input type="range" id="s_new" min="100" max="8000" step="100" value="1200"></div>
+  <div class="ctrl"><label>Prefix invalidation rate: fraction of turns where the prefix drifts <b id="v_inv">0%</b></label><input type="range" id="s_inv" min="0" max="100" step="5" value="0"></div>
+  <svg id="cacheChart" viewBox="0 0 700 250" role="img" aria-label="Cumulative cost with and without prompt caching"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">No cache</div><div class="v bad" id="o_nocache">$0</div></div>
+    <div class="stat"><div class="k">With cache</div><div class="v good" id="o_cache">$0</div></div>
+    <div class="stat"><div class="k">Saving</div><div class="v" id="o_save">0%</div></div>
+    <div class="stat"><div class="k">Cache hit rate</div><div class="v mid" id="o_hit">0%</div></div>
+  </div>
+  <p class="fig-note">Drag the invalidation slider off zero to see the failure mode. At 20 percent drift the cache still helps; at 60 percent you are paying the 1.25&times; write premium often enough that the benefit largely evaporates. History accumulation is included in both curves, which is why neither line is flat.</p>
+</div>
+
+<h3>Practical rules</h3>
+<ol class="steps">
+  <li>Order the prompt from most stable to least stable. Tools, then system instructions, then few-shot examples, then long reference documents, then the conversation, then the current turn.</li>
+  <li>Place one breakpoint at the end of the static region. The system finds the longest matching prefix, so a single well-placed marker usually beats several scattered ones.</li>
+  <li>Move anything volatile, current time, request ID, per-user greeting, out of the prefix and into the suffix.</li>
+  <li>Match the cache lifetime to the traffic. The short default window suits interactive sessions; a longer window is only worth its higher write premium when you expect enough reads to amortize it.</li>
+  <li>Log <code>cache_read_input_tokens</code> and <code>cache_creation_input_tokens</code> per call. A sudden spike in creation tokens means someone changed the prompt template.</li>
+</ol>
+
+<h2 id="semantic">2. Semantic caching</h2>
+
+<p>Prompt caching reuses the prefix and still runs the model. Semantic caching skips the call entirely. The incoming query is embedded, compared against a store of previous query embeddings, and if the nearest neighbour is close enough the stored response is returned without touching the model at all. GPTCache is the reference open-source implementation: queries go to the cache first, and a hit returns immediately, saving the API call and cutting response time substantially.</p>
+
+<p>This is a categorically different mechanism from prefix caching and it has a categorically different failure mode. Prefix caching is exact-match and therefore cannot be wrong. Semantic caching is approximate-match and can be, in two ways. A <b>false hit</b> returns an answer to a question the user did not ask, and embedding models are known to score texts with opposite meanings but similar wording as near neighbours, which is tolerable for search ranking and not tolerable when the cached text is presented as an answer. A <b>stale hit</b> returns an answer that was correct when it was cached and is not any more. The GPTCache authors themselves note that hit rates high enough for production are hard to reach without accepting more of these.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 4</span><span class="fig-title">Similarity threshold: hit rate against wrong answers</span></div>
+  <div class="ctrl"><label>Similarity threshold for a cache hit <b id="v_sth">0.90</b></label><input type="range" id="s_sth" min="50" max="100" step="1" value="90"></div>
+  <div class="ctrl"><label>Query repetition in your traffic <b id="v_rep">35%</b></label><input type="range" id="s_rep" min="0" max="90" step="1" value="35"></div>
+  <div class="ctrl"><label>Embedding separation: how cleanly it splits equivalent from merely similar <b id="v_sep">medium</b></label><input type="range" id="s_sep" min="10" max="95" step="1" value="55"></div>
+  <svg id="semChart" viewBox="0 0 700 250" role="img" aria-label="Cache hit rate and false hit rate against similarity threshold"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Hit rate</div><div class="v good" id="sm_hit">0%</div></div>
+    <div class="stat"><div class="k">False hits</div><div class="v bad" id="sm_false">0%</div></div>
+    <div class="stat"><div class="k">Calls avoided</div><div class="v" id="sm_saved">0%</div></div>
+    <div class="stat"><div class="k">Wrong answers served</div><div class="v" id="sm_wrong">0 per 1k</div></div>
+  </div>
+  <p class="fig-note">The dashed line marks a one-in-a-thousand wrong-answer budget. Where the false-hit curve crosses it is your real threshold ceiling, and it moves left fast as embedding separation degrades. Note that the two curves are not symmetric: dropping the threshold buys hit rate slowly and buys false hits quickly.</p>
+</div>
+
+<h3>When it is safe</h3>
+<ul>
+  <li>High query repetition with a narrow domain: FAQ handling, support triage, product lookups. Repetition is the whole business case, so measure it before building anything.</li>
+  <li>Answers that do not go stale within the TTL. Anything touching live data needs either a short TTL or a freshness check, which erodes the saving.</li>
+  <li>Never on personalized answers unless the cache key includes the user scope. A cache that crosses users is a data leak, not an optimization.</li>
+  <li>Prefer a two-stage design: embed and retrieve top candidates, then re-rank with a cross-encoder before accepting a hit. It costs a little and removes most of the near-miss failures.</li>
+</ul>
+
+<h2 id="growth">3. Context growth and compaction</h2>
+
+<p>In a naive agent loop the context is the full transcript, so cumulative billed input grows quadratically with turn count even though the useful information per turn is roughly constant. This is the cost curve that surprises teams in production: the tenth turn of a session costs several times what the first one did, for no additional user value.</p>
+
+<p>Anthropic's guidance describes three counters. <b>Compaction</b> summarizes a conversation approaching the window limit and reinitializes with the summary. <b>Structured note-taking</b> pushes durable state out to a file the agent re-reads, so the transcript does not have to carry it. <b>Multi-agent architectures</b> give each subtask its own window. The lightest touch of the three, and the one to try first, is <b>tool result clearing</b>: once a tool has been called deep in the history, the raw result rarely needs to be visible again, so replace it with a short stub and keep the call itself.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 5</span><span class="fig-title">Four context management strategies over 40 turns</span></div>
+  <div class="btnrow" id="growthToggles">
+    <button class="tog" data-k="naive" aria-pressed="true">Full transcript</button>
+    <button class="tog" data-k="clear" aria-pressed="true">Tool result clearing</button>
+    <button class="tog" data-k="compact" aria-pressed="true">Compaction at 70%</button>
+    <button class="tog" data-k="notes" aria-pressed="true">External notes file</button>
+  </div>
+  <div class="ctrl"><label>Tool result size, average <b id="v_trs">3,000 tok</b></label><input type="range" id="s_trs" min="200" max="15000" step="200" value="3000"></div>
+  <div class="ctrl"><label>Context window <b id="v_win">200k tok</b></label><input type="range" id="s_win" min="50" max="1000" step="50" value="200"></div>
+  <svg id="growthChart" viewBox="0 0 700 280" role="img" aria-label="Context size per turn under four strategies"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Full transcript, total in</div><div class="v bad" id="g_naive">0</div></div>
+    <div class="stat"><div class="k">With clearing</div><div class="v mid" id="g_clear">0</div></div>
+    <div class="stat"><div class="k">With compaction</div><div class="v" id="g_compact">0</div></div>
+    <div class="stat"><div class="k">Notes file</div><div class="v good" id="g_notes">0</div></div>
+  </div>
+  <p class="fig-note">The sawtooth in the compaction curve is the summarize-and-restart event. Note the trade it hides: each compaction is itself a model call that reads the whole window, so aggressive compaction on a cheap workload can cost more than it saves. Compaction earns its keep when the alternative is hitting the window ceiling.</p>
+</div>
+
+<div class="callout warn">
+  <span class="lab">The compaction failure mode</span>
+  <p>Overly aggressive compaction discards detail whose importance only becomes apparent later. The recommended tuning procedure is to maximize recall first, write a compaction prompt that captures every relevant item from a complex trace, then tighten for precision by removing what proved superfluous. Test it against real traces, not synthetic ones.</p>
+</div>
+
+<h2 id="compress">4. Extractive prompt compression</h2>
+
+<p>Natural language is redundant, and a model does not need all of it. The LLMLingua line of work exploits this directly: use a small language model to score every token by perplexity, and drop the tokens whose removal barely changes the entropy of the sequence. The original method adds a budget controller that allocates different compression ratios to different regions of the prompt, instructions versus demonstrations versus the question, plus iterative token-level compression that accounts for dependence between the tokens it keeps. The reported headline is up to 20&times; compression with little performance loss on reasoning, summarization and dialogue benchmarks.</p>
+
+<p>Two descendants matter for production. <b>LongLLMLingua</b> makes the compression question-aware and reorders documents, which raised benchmark performance while using substantially fewer tokens. <b>LLMLingua-2</b> reframes compression as token classification, trains a small bidirectional encoder by distilling from a larger model, and is task-agnostic: it runs several times faster than its predecessors and cuts end-to-end latency at 2&times; to 5&times; compression ratios.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 6</span><span class="fig-title">Informativeness-ranked token dropping</span></div>
+  <div class="ctrl"><label>Compression ratio <b id="v_cr">1.0&times;</b></label><input type="range" id="s_cr" min="0" max="70" step="1" value="0"></div>
+  <div class="corpus" id="corpus"></div>
+  <div class="readout">
+    <div class="stat"><div class="k">Original</div><div class="v" id="c_orig">0</div></div>
+    <div class="stat"><div class="k">Compressed</div><div class="v good" id="c_comp">0</div></div>
+    <div class="stat"><div class="k">Dropped</div><div class="v bad" id="c_drop">0</div></div>
+    <div class="stat"><div class="k">Cost per 1k calls</div><div class="v" id="c_cost">$0</div></div>
+  </div>
+  <p class="fig-note">This demonstration ranks tokens with a transparent heuristic, function words and high-frequency terms score low, rare and long content words score high, and drops from the bottom up. A real compressor uses a small model's per-token perplexity, which is a far better estimator, but the visible behavior is the same: syntax goes first, entities and numbers survive longest. Push past roughly 50 percent and watch where the sentence stops being reconstructable.</p>
+</div>
+
+<div class="callout warn">
+  <span class="lab">When not to compress</span>
+  <p>Compression adds an inference pass and a failure surface. If your prompt is stable across calls, cache it instead, caching gets you a 90 percent discount with zero information loss, which beats a lossy 3&times; reduction. Compression is for content that is large, <em>variable</em>, and therefore uncacheable: retrieved passages, freshly scraped pages, per-request transcripts.</p>
+</div>
+
+<h2 id="learned">5. Learned compression</h2>
+
+<p>The methods above delete words. A second branch compresses context into learned representations instead, trading a training step for a much higher compression ratio and a representation the model reads natively.</p>
+
+<p><b>Gisting</b> trains a model to compress a prompt into a small set of gist tokens using nothing more than a modified attention mask during ordinary instruction finetuning, so downstream tokens can only attend to the prompt through the gists. On LLaMA-7B and FLAN-T5-XXL this reached up to 26&times; prompt compression with minimal quality loss, and because gists are cacheable activations, the compression is paid once and reused. <b>AutoCompressors</b> extend the idea to long contexts by recursively accumulating summary vectors across chunks. <b>Cartridges</b> take the furthest step: instead of putting a corpus in the window, train a small KV cache offline for that corpus and load it at inference. Naive next-token training on the corpus was not competitive with in-context learning, so the authors use self-study, generating synthetic conversations about the corpus and training with a context-distillation objective. The reported result is roughly 26&times; higher throughput at matched quality, with the training cost amortized over every query that touches the same corpus.</p>
+
+<table>
+  <thead><tr><th>Method</th><th>Compresses</th><th>Needs</th><th>Reuse model</th></tr></thead>
+  <tbody>
+    <tr><td>LLMLingua family</td><td>Text into shorter text</td><td>A small scorer at inference</td><td>Per request, nothing persists</td></tr>
+    <tr><td>Gisting</td><td>Prompt into gist tokens</td><td>Instruction finetuning of the target model</td><td>Gist activations cached and reused</td></tr>
+    <tr><td>AutoCompressors</td><td>Long context into summary vectors</td><td>Recursive training</td><td>Vectors reused as soft prompts</td></tr>
+    <tr><td>Cartridges</td><td>A whole corpus into a trained KV cache</td><td>Offline self-study per corpus</td><td>Cartridge loaded per corpus, amortized over all queries</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="lab">The catch that rules these out for most teams</span>
+  <p>All of them require access to model weights or the serving stack. If you call a hosted API you cannot use any of them, and prefix caching is the hosted equivalent: it also pays the encoding cost once and reuses it, just without the compression ratio. These belong in your toolbox when you self-host or when a corpus is stable enough and queried often enough to justify an offline training run.</p>
+</div>
+
+<h2 id="retrieval">6. Retrieval instead of stuffing</h2>
+
+<p>The oldest lever and still the most misapplied. Stuffing a whole corpus into a long window is now technically possible and usually still wrong, for the accuracy reason in Part I: the relevant passage ends up in the middle, where recall is weakest, surrounded by distractors that compete for attention. Retrieval sends a small selected subset instead.</p>
+
+<p>The variant worth adopting in agent systems is <b>just-in-time retrieval</b>: rather than pre-loading content, the agent holds lightweight identifiers, file paths, query strings, record IDs, and pulls the underlying content into context only at the moment it is needed. The identifier costs a dozen tokens; the document costs thousands.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 7</span><span class="fig-title">Top-k retrieval against a 96 chunk corpus</span></div>
+  <div class="ctrl"><label>Chunks retrieved (k) <b id="v_k">5</b></label><input type="range" id="s_k" min="1" max="96" step="1" value="5"></div>
+  <div class="ctrl"><label>Retriever quality: rank of the chunk holding the answer <b id="v_q">3</b></label><input type="range" id="s_q" min="1" max="40" step="1" value="3"></div>
+  <div class="chunkgrid" id="chunks"></div>
+  <div class="readout">
+    <div class="stat"><div class="k">Tokens sent</div><div class="v" id="r_tok">0</div></div>
+    <div class="stat"><div class="k">Versus stuffing</div><div class="v good" id="r_vs">0%</div></div>
+    <div class="stat"><div class="k">Answer present</div><div class="v" id="r_hit">yes</div></div>
+    <div class="stat"><div class="k">Distractors</div><div class="v mid" id="r_dis">0</div></div>
+  </div>
+  <p class="fig-note">Ochre outline marks the chunk that actually contains the answer; teal fill marks what gets sent. Degrade the retriever and the honest fix is a better ranker, not a larger k: raising k to cover a bad retriever buys recall with distractors, and distractors are exactly what the position-sensitivity literature says will hurt you.</p>
+</div>
+
+<h2 id="tools">7. Tool schemas and progressive disclosure</h2>
+
+<p>This is the quiet budget killer in MCP-connected agents. Most clients load every connected tool's full JSON schema into the system prompt at session start, before the agent has read a single word of the request. Anthropic's write-up on code execution with MCP reports that tool definitions and tool results can consume more than 50,000 tokens before the agent even begins, and that restructuring the same workload, presenting servers as a filesystem of code APIs the agent explores on demand, and letting intermediate data stay in the sandbox rather than round-tripping through the model, took a benchmark task from roughly 150,000 tokens to about 2,000, a 98.7 percent reduction.</p>
+
+<p>The same principle ships in a lighter form as a tool search tool: keep the full catalog available, load definitions only for the tools the current step needs. Anthropic reported roughly 85 percent token reduction from that pattern while preserving access to the whole library. Both are instances of <b>progressive disclosure</b>: the catalog stays large, the working set stays small.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 8</span><span class="fig-title">Upfront loading versus on-demand discovery</span></div>
+  <div class="ctrl"><label>Connected tools <b id="v_nt">60</b></label><input type="range" id="s_nt" min="3" max="200" step="1" value="60"></div>
+  <div class="ctrl"><label>Average schema size <b id="v_ss">850 tok</b></label><input type="range" id="s_ss" min="120" max="3000" step="10" value="850"></div>
+  <div class="ctrl"><label>Tools actually used this task <b id="v_nu">3</b></label><input type="range" id="s_nu" min="1" max="12" step="1" value="3"></div>
+  <div class="toolstack" id="toolstack"></div>
+  <div class="readout">
+    <div class="stat"><div class="k">Upfront, per call</div><div class="v bad" id="t_up">0</div></div>
+    <div class="stat"><div class="k">On demand, per call</div><div class="v good" id="t_dn">0</div></div>
+    <div class="stat"><div class="k">Reduction</div><div class="v" id="t_red">0%</div></div>
+    <div class="stat"><div class="k">Saved over 30 turns</div><div class="v mid" id="t_ses">0</div></div>
+  </div>
+  <p class="fig-note">Teal bars are the tools loaded into context. Because the schema block sits in the prefix, this interacts with caching: schemas are stable, so they cache well, and the on-demand pattern trades a perfectly cacheable block for a smaller but more variable one. Measure both before switching, especially at low tool counts where the discovery overhead can dominate.</p>
+</div>
+
+<p>A secondary effect is worth naming. When a model must evaluate hundreds of tool options on every request, selection itself consumes capability that would otherwise go to the task. Fewer relevant options in context tends to improve tool-choice accuracy, not just cost.</p>
+
+<h2 id="format">8. Serialization format</h2>
+
+<p>The cheapest optimization on this page, because it costs one line of code. JSON repeats every key on every record. For a 200 row result set with 8 fields, that is 1,600 redundant key strings plus punctuation. CSV states the keys once. The saving is mechanical and lossless for flat tabular data.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 9</span><span class="fig-title">Serialization cost for a flat result set</span></div>
+  <div class="ctrl"><label>Rows <b id="v_rows">200</b></label><input type="range" id="s_rows" min="1" max="2000" step="1" value="200"></div>
+  <div class="ctrl"><label>Fields per row <b id="v_cols">8</b></label><input type="range" id="s_cols" min="2" max="30" step="1" value="8"></div>
+  <div class="ctrl"><label>Average field-name length <b id="v_klen">14 chars</b></label><input type="range" id="s_klen" min="3" max="34" step="1" value="14"></div>
+  <svg id="fmtChart" viewBox="0 0 700 180" role="img" aria-label="Estimated tokens by serialization format"></svg>
+  <p class="fig-note">Estimated at roughly four characters per token. Pretty-printed JSON is the default output of most tool wrappers and the worst of the four. Note that this only applies to homogeneous flat records: for nested or sparse data, JSON's structure is carrying real information and flattening it will cost you more in confusion than it saves in tokens.</p>
+</div>
+
+<h3>Related input-side habits</h3>
+<ul>
+  <li>Reference files by path and let the agent read them, rather than inlining contents that may not be needed.</li>
+  <li>Strip nulls, empty arrays and default-valued fields from tool results before they enter context.</li>
+  <li>Truncate and paginate large results at the tool boundary, returning a count and a handle rather than 4,000 rows.</li>
+  <li>Deduplicate identical schemas by reference rather than repeating them.</li>
+</ul>
+
+<div class="part" id="output">
+  <p class="pn">Part III</p>
+  <h2>Shrink the output</h2>
+  <p>One section, because there are only three levers here. They matter out of proportion to their number, since a generated token costs several times what an input token costs.</p>
+</div>
+
+<h2>9. The output side</h2>
+
+<h3>Constrain length and shape</h3>
+<p>An explicit output schema does double duty: it removes the preamble, the restatement of the question and the closing summary, and it makes the response parseable. "Return only the JSON object" is worth more than any prompt-shortening you will do on the input side of a short-prompt workload.</p>
+
+<h3>Emit diffs, not rewrites</h3>
+<p>When an agent edits a 900 line file, having it reproduce the whole file costs the full file in output tokens and invites transcription errors. A targeted replacement costs the changed region. This is the single largest output-side saving in coding agents.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 10</span><span class="fig-title">Full rewrite versus targeted edit</span></div>
+  <div class="ctrl"><label>File size <b id="v_fl">900 lines</b></label><input type="range" id="s_fl" min="50" max="4000" step="10" value="900"></div>
+  <div class="ctrl"><label>Lines actually changed <b id="v_ch">12</b></label><input type="range" id="s_ch" min="1" max="400" step="1" value="12"></div>
+  <div class="ctrl"><label>Edits in the session <b id="v_ne">15</b></label><input type="range" id="s_ne" min="1" max="60" step="1" value="15"></div>
+  <svg id="editChart" viewBox="0 0 700 150" role="img" aria-label="Output token cost of rewrite versus diff"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Rewrite, output cost</div><div class="v bad" id="e_rw">$0</div></div>
+    <div class="stat"><div class="k">Diff, output cost</div><div class="v good" id="e_df">$0</div></div>
+    <div class="stat"><div class="k">Ratio</div><div class="v" id="e_ra">0&times;</div></div>
+  </div>
+  <p class="fig-note">The diff bar includes the anchor context a replacement needs in order to match unambiguously, which is why it does not collapse to nothing at one changed line. Failed matches force a retry, and retries are priced in Figure 15.</p>
+</div>
+
+<h3>Cap the reasoning budget</h3>
+<p>Extended reasoning is billed as output. It earns its cost on genuinely hard problems and wastes it on classification, extraction and routing. Set the budget per task class rather than globally, and measure whether the extra tokens actually move your task metric. On many production workloads they do not.</p>
+
+<div class="part" id="cascade">
+  <p class="pn">Part IV</p>
+  <h2>Change the architecture</h2>
+  <p>Five methods that change how many calls you make, how large the model is, or where the work happens. Higher effort, higher ceiling, and two of them can raise your bill on purpose.</p>
+</div>
+
+<h2>10. Model cascades and routing</h2>
+
+<p>Chen, Zaharia and Zou observed that LLM API prices differ by up to two orders of magnitude, and proposed three strategies to exploit that spread: prompt adaptation, LLM approximation, and the LLM cascade. The cascade sends a query to the cheapest model first and consults a learned scoring function; if the response is judged reliable it is returned, and no further model is queried. Their reported result is that this can match the strongest single model's performance at up to 98 percent lower cost, or beat it by several points of accuracy at equal cost.</p>
+
+<p>The entire design rests on one component: the deferral signal. If you cannot tell when the cheap model is wrong, the cascade degrades into paying twice for every hard query. Practical signals include token-level confidence, self-consistency across samples, agreement between two cheap models, and a small trained verifier. Later work has extended this in several directions, including preference-trained routers and conformal prediction for probabilistic cost bounds.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 11</span><span class="fig-title">Cascade cost and accuracy against the deferral threshold</span></div>
+  <div class="ctrl"><label>Deferral threshold: escalate when confidence falls below <b id="v_th">0.70</b></label><input type="range" id="s_th" min="0" max="100" step="1" value="70"></div>
+  <div class="ctrl"><label>Router quality: how well confidence predicts correctness <b id="v_rq">0.80</b></label><input type="range" id="s_rq" min="30" max="99" step="1" value="80"></div>
+  <div class="ctrl"><label>Cost ratio, large model to small <b id="v_ratio">15&times;</b></label><input type="range" id="s_ratio" min="2" max="60" step="1" value="15"></div>
+  <svg id="cascadeChart" viewBox="0 0 700 250" role="img" aria-label="Cost and accuracy versus deferral threshold"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Escalation rate</div><div class="v mid" id="k_esc">0%</div></div>
+    <div class="stat"><div class="k">Cost vs large only</div><div class="v good" id="k_cost">0%</div></div>
+    <div class="stat"><div class="k">Accuracy</div><div class="v" id="k_acc">0%</div></div>
+    <div class="stat"><div class="k">Versus large only</div><div class="v bad" id="k_gap">0 pt</div></div>
+  </div>
+  <p class="fig-note">Drop the router quality slider toward 0.4 and watch the useful operating region collapse. With a weak deferral signal there is no threshold that gets you both cheap and accurate, which is the honest reason many cascade projects quietly fail. Build and validate the signal before building the cascade.</p>
+</div>
+
+<h2 id="batch">11. Batch prompting</h2>
+
+<p>Distinct from a provider's asynchronous batch API, which changes latency and price but not token count. Batch prompting changes the token count: it puts several work items into a single prompt so the shared prefix, the instructions and the few-shot demonstrations, is paid once instead of once per item. Cheng, Kasai and Yu showed that under few-shot in-context learning the inference cost decreases almost inverse-linearly with the number of samples per batch, and measured up to a 5&times; reduction in token and time cost with six samples per batch across ten datasets, at comparable or better accuracy.</p>
+
+<p>The word "almost" is doing work in that sentence, and so is the ceiling. Accuracy degrades as batch size grows, and how fast depends on task complexity: simple classification tolerates large batches, multi-step reasoning does not, because errors on one item bleed into the reasoning for the next. Follow-up work addresses this with batch permutation and ensembling, at the cost of some of the savings.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 12</span><span class="fig-title">Per-item cost and accuracy against batch size</span></div>
+  <div class="ctrl"><label>Batch size <b id="v_bs">6</b></label><input type="range" id="s_bs" min="1" max="40" step="1" value="6"></div>
+  <div class="ctrl"><label>Shared prefix: instructions plus demonstrations <b id="v_bp">2,400 tok</b></label><input type="range" id="s_bp" min="100" max="12000" step="100" value="2400"></div>
+  <div class="ctrl"><label>Per-item content <b id="v_bi">180 tok</b></label><input type="range" id="s_bi" min="20" max="2000" step="10" value="180"></div>
+  <div class="ctrl"><label>Task complexity: how fast accuracy decays with batch size <b id="v_bc">moderate</b></label><input type="range" id="s_bc" min="0" max="100" step="1" value="45"></div>
+  <svg id="batchChart" viewBox="0 0 700 250" role="img" aria-label="Per item token cost and accuracy against batch size"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Tokens per item</div><div class="v good" id="b_tpi">0</div></div>
+    <div class="stat"><div class="k">Versus one at a time</div><div class="v" id="b_vs">0&times;</div></div>
+    <div class="stat"><div class="k">Accuracy</div><div class="v mid" id="b_acc">0%</div></div>
+    <div class="stat"><div class="k">Efficient batch size</div><div class="v" id="b_opt">0</div></div>
+  </div>
+  <p class="fig-note">The efficient batch size marks where the marginal token saving stops paying for the marginal accuracy loss, using a simple exchange rate of one accuracy point per ten percent of cost. Set that exchange rate from your own product, then read the number off the chart. Note also the interaction with prefix caching: if the shared prefix is already cached at a tenth of price, batching has far less left to save, which is why the two are near-substitutes rather than complements.</p>
+</div>
+
+<div class="callout warn">
+  <span class="lab">Security note</span>
+  <p>Batching mixes independent inputs into one prompt, so a malicious item can influence the answers given for its neighbours. This is a documented attack surface, not a theoretical one. Do not batch across trust boundaries, and never batch content from different tenants.</p>
+</div>
+
+<h2 id="distill">12. Distillation and fine-tuning</h2>
+
+<p>FrugalGPT calls this LLM approximation, and it is the only method here that removes tokens permanently. Forty few-shot examples in a prompt become weights; the prompt drops to a line of instruction. A smaller fine-tuned model can then replace a larger prompted one for a narrow task, which multiplies the saving by the price ratio.</p>
+
+<p>The decision is a break-even calculation, not a preference. Fine-tuning has a fixed cost, in data preparation, training and evaluation, and pays back a fixed saving per call. Below the break-even volume it is a waste; above it, nothing else on this page comes close.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 13</span><span class="fig-title">Fine-tuning break-even</span></div>
+  <div class="ctrl"><label>Prompt tokens removed per call: instructions and few-shot examples absorbed into weights <b id="v_dt">5,200 tok</b></label><input type="range" id="s_dt" min="200" max="30000" step="100" value="5200"></div>
+  <div class="ctrl"><label>Fixed cost: data curation, training runs, evaluation <b id="v_dc">$4,000</b></label><input type="range" id="s_dc" min="200" max="60000" step="200" value="4000"></div>
+  <div class="ctrl"><label>Also drop to a cheaper model class <b id="v_dm">yes, 6&times; cheaper</b></label><input type="range" id="s_dm" min="1" max="20" step="1" value="6"></div>
+  <div class="ctrl"><label>Calls per day <b id="v_dv">20,000</b></label><input type="range" id="s_dv" min="100" max="500000" step="100" value="20000"></div>
+  <svg id="distChart" viewBox="0 0 700 230" role="img" aria-label="Cumulative cost of prompting versus fine-tuning over time"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Break-even</div><div class="v" id="d_be">0 days</div></div>
+    <div class="stat"><div class="k">Saving per call</div><div class="v good" id="d_pc">$0</div></div>
+    <div class="stat"><div class="k">Annual saving</div><div class="v" id="d_yr">$0</div></div>
+    <div class="stat"><div class="k">Verdict</div><div class="v mid" id="d_ok">-</div></div>
+  </div>
+  <p class="fig-note">Two costs this chart does not show. Fine-tuning freezes behavior, so every prompt change afterwards is a retraining run rather than an edit, and that operational drag is often the real reason teams stay on prompting. And a fine-tuned model on a narrow task can be brittle outside its training distribution in ways a prompted general model is not, so budget for an evaluation set you trust before you budget for the training.</p>
+</div>
+
+<h2 id="isolate">13. Context isolation and externalized state</h2>
+
+<p>Subagents are the architectural answer to context pollution. A lead agent delegates a bounded subtask to a subagent that has its own window, its own tools and its own instructions; the subagent does the token-heavy exploration and returns a condensed result. The detailed search context stays inside the subagent while the lead agent works only on synthesis. Anthropic's multi-agent research system found that agents with isolated contexts outperformed a single agent on complex research tasks, largely because each subagent's window could be spent entirely on one narrow question.</p>
+
+<div class="callout warn">
+  <span class="lab">The cost this hides</span>
+  <p>Multi-agent architectures are not cheap. Anthropic has reported multi-agent research consuming on the order of 15&times; the tokens of ordinary chat. Isolation buys capability and window headroom, not savings. Reach for it when a single window genuinely cannot hold the task, and reach for compaction or retrieval when it can.</p>
+</div>
+
+<p>The related and much cheaper pattern is <b>externalized state</b>. Instead of carrying the plan, the findings and the open questions in the transcript, the agent writes them to a file and re-reads what it needs. A progress file plus version-control checkpoints lets an agent reconstruct where it was after a compaction event without the transcript having carried that state the whole way. And in the programmatic tool-calling pattern, sensitive or bulky intermediate data can move from one system to another without ever entering the model's window at all, which is a privacy property as much as a token one.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 14</span><span class="fig-title">Where the tokens flow</span></div>
+  <div class="btnrow" id="archToggles">
+    <button class="tog" data-a="mono" aria-pressed="true">Single agent</button>
+    <button class="tog" data-a="sub" aria-pressed="false">Subagents</button>
+    <button class="tog" data-a="code" aria-pressed="false">Programmatic tool calling</button>
+  </div>
+  <svg id="archChart" viewBox="0 0 700 280" role="img" aria-label="Token flow under three agent architectures"></svg>
+  <p class="fig-note" id="archNote"></p>
+</div>
+
+<h2 id="serving">14. The serving layer</h2>
+
+<p>Everything above assumes a hosted API, where the only levers are the tokens you send. If you serve the model yourself, a second set of levers opens up. They do not reduce the token count; they reduce what each token costs you in memory and time, which for a self-hosted deployment is the same conversation.</p>
+
+<p>The dominant constraint is the KV cache, whose memory grows linearly with sequence length and batch size, and which is the reason long-context serving is expensive rather than merely slow. <b>PagedAttention</b>, the technique behind vLLM, manages that cache in fixed-size blocks like operating-system pages instead of pre-allocating a contiguous region per request, which removes the fragmentation that otherwise wastes most of the allocation and lets many more requests share the same memory. On top of it, <b>automatic prefix caching</b> hashes each block by its contents plus its prefix, so identical system prompts, tool definitions and few-shot blocks are computed once and reused across users. That is the self-hosted equivalent of provider prompt caching, and it is why normalizing your prompts to be block-aligned and byte-identical matters as much here as it does against a hosted API.</p>
+
+<p>Two further levers: <b>KV cache quantization</b> trades a little precision for roughly half the cache memory, which converts directly into concurrency; and <b>speculative decoding</b> uses a small draft model to propose several tokens that the large model verifies in one pass, accepting all tokens up to the first rejection. Speculative decoding does not change the token count at all, and it does not change quality, but it can substantially cut latency on single-sequence generation.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 15</span><span class="fig-title">KV cache memory and what it buys</span></div>
+  <div class="ctrl"><label>Model: transformer layers <b id="v_ly">80</b></label><input type="range" id="s_ly" min="16" max="126" step="1" value="80"></div>
+  <div class="ctrl"><label>Key-value heads times head dimension <b id="v_hd">1,024</b></label><input type="range" id="s_hd" min="256" max="8192" step="128" value="1024"></div>
+  <div class="ctrl"><label>Sequence length per request <b id="v_sq">32k tok</b></label><input type="range" id="s_sq" min="1" max="200" step="1" value="32"></div>
+  <div class="ctrl"><label>KV cache precision <b id="v_pr">FP16</b></label><input type="range" id="s_pr" min="1" max="2" step="1" value="2"></div>
+  <div class="ctrl"><label>Prefix shared across requests <b id="v_sh">60%</b></label><input type="range" id="s_sh" min="0" max="95" step="5" value="60"></div>
+  <svg id="kvChart" viewBox="0 0 700 190" role="img" aria-label="KV cache memory per request and concurrency"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Per request</div><div class="v bad" id="kv_per">0 GB</div></div>
+    <div class="stat"><div class="k">Concurrent in 60 GB</div><div class="v" id="kv_cc">0</div></div>
+    <div class="stat"><div class="k">With prefix sharing</div><div class="v good" id="kv_shared">0</div></div>
+    <div class="stat"><div class="k">Gain</div><div class="v mid" id="kv_gain">0&times;</div></div>
+  </div>
+  <p class="fig-note">Memory is two arrays, keys and values, per layer per token. Sixty gigabytes is a rough headroom figure for a large model on one node after weights load; substitute your own. The prefix-sharing bar assumes the shared portion is stored once for the whole pool rather than once per request, which is what block-level hashing gives you. Halving the precision and sharing a system prompt across a pool are each worth more concurrency than most application-level optimizations.</p>
+</div>
+
+<table>
+  <thead><tr><th>Lever</th><th>Reduces</th><th>Token count</th><th>Quality</th></tr></thead>
+  <tbody>
+    <tr><td>PagedAttention block allocation</td><td>Memory fragmentation</td><td>Unchanged</td><td>Unchanged</td></tr>
+    <tr><td>Automatic prefix caching</td><td>Recomputation of shared prefixes</td><td>Unchanged</td><td>Unchanged</td></tr>
+    <tr><td>KV cache quantization</td><td>Cache memory, roughly by half</td><td>Unchanged</td><td>Small, measurable degradation</td></tr>
+    <tr><td>Weight quantization</td><td>Weight memory and bandwidth</td><td>Unchanged</td><td>Task-dependent degradation</td></tr>
+    <tr><td>Speculative decoding</td><td>Decode latency</td><td>Unchanged, extra draft compute</td><td>Unchanged by construction</td></tr>
+    <tr><td>Continuous batching</td><td>Idle GPU time between requests</td><td>Unchanged</td><td>Unchanged</td></tr>
+  </tbody>
+</table>
+
+<p>Note what the third column says throughout. Not one of these is a token optimization. They belong in this monograph because if you self-host, they are usually where the money actually is, and because teams frequently spend a quarter shaving prompt tokens when a serving-config change would have delivered more.</p>
+
+<div class="part" id="measure">
+  <p class="pn">Part V</p>
+  <h2>Practice</h2>
+  <p>Measurement, the costs that hide from measurement, a worked case study, the mistakes that look like optimizations, and the order to do all of it in.</p>
+</div>
+
+<h2>15. Measure before you optimize</h2>
+
+<p>Almost every pipeline has one or two calls that account for most of the spend, and teams routinely optimize the wrong one. Before touching anything, instrument per-stage token accounting: for every model call, record input tokens, cache read tokens, cache creation tokens, output tokens, and the stage name. Then look at the distribution rather than the total.</p>
+
+<table>
+  <thead><tr><th>Metric</th><th>What it tells you</th><th>Healthy direction</th></tr></thead>
+  <tbody>
+    <tr><td class="n">cache_read / total_input</td><td>Whether your prefix is actually stable</td><td>Above 0.7 in steady-state agent loops</td></tr>
+    <tr><td class="n">cache_creation spikes</td><td>Prompt template drift, or deploys mid-session</td><td>One per session, not per turn</td></tr>
+    <tr><td class="n">tokens per solved task</td><td>The only number that matters end to end</td><td>Falling, while task success holds</td></tr>
+    <tr><td class="n">tool_result / total_input</td><td>Whether results need truncation at the tool boundary</td><td>Below 0.4</td></tr>
+    <tr><td class="n">output / input ratio</td><td>Whether you are paying for verbosity</td><td>Task-dependent, but watch for drift</td></tr>
+    <tr><td class="n">p95 context size</td><td>How close you run to compaction events</td><td>Well under the window</td></tr>
+    <tr><td class="n">retry rate by cause</td><td>How much of your spend is rework</td><td>Below 0.05, and attributed</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <span class="lab">The metric that prevents self-deception</span>
+  <p>Optimize tokens per <em>solved</em> task, not tokens per call. A change that halves per-call tokens and doubles the number of retries has made things worse, and per-call accounting will report it as a 50 percent win. Every figure on this page can be gamed by that mistake, which is why the next section exists.</p>
+</div>
+
+<h2 id="retries">16. The retry budget</h2>
+
+<p>Rework is the largest unmeasured line item in most agent pipelines. Malformed JSON that fails to parse, a diff whose anchor does not match, a tool call with a bad argument, a schema violation, a timeout: each one throws away a completed call and pays for another. None of it appears in a per-call token dashboard, because every individual call looks normal.</p>
+
+<p>The arithmetic is unforgiving. If a fraction r of calls must be repeated, effective cost multiplies by roughly 1/(1-r) for single retries, worse when retries themselves fail or when the retry prompt carries the failed attempt and the error as added context, which is the usual pattern. A 12 percent failure rate is a 14 percent cost increase before the added context, and comfortably 20 percent after it. That erases most application-level optimizations on this page.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 16</span><span class="fig-title">How rework erases an optimization</span></div>
+  <div class="ctrl"><label>First-attempt failure rate <b id="v_rr">12%</b></label><input type="range" id="s_rr" min="0" max="50" step="1" value="12"></div>
+  <div class="ctrl"><label>Retry carries the failed attempt plus error as added context <b id="v_rc">+45%</b></label><input type="range" id="s_rc" min="0" max="150" step="5" value="45"></div>
+  <div class="ctrl"><label>Saving from the optimization you just shipped <b id="v_ro">25%</b></label><input type="range" id="s_ro" min="0" max="80" step="1" value="25"></div>
+  <svg id="retryChart" viewBox="0 0 700 190" role="img" aria-label="Effective cost with retries against a nominal optimization"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Nominal saving</div><div class="v good" id="rt_nom">0%</div></div>
+    <div class="stat"><div class="k">Rework overhead</div><div class="v bad" id="rt_over">0%</div></div>
+    <div class="stat"><div class="k">Actual saving</div><div class="v" id="rt_real">0%</div></div>
+    <div class="stat"><div class="k">Break-even failure rate</div><div class="v mid" id="rt_be">0%</div></div>
+  </div>
+  <p class="fig-note">The break-even figure is the failure rate at which rework exactly consumes the optimization. Below it you are ahead; above it you shipped a regression that your dashboard will report as a win. Constrained decoding or a stricter output schema, which lowers the failure rate, is frequently worth more than any prompt shortening, and it is the one change that makes every other optimization on this page more reliable rather than less.</p>
+</div>
+
+<h2 id="case">17. Worked case study</h2>
+
+<p>A vehicle diagnostic agent. Thirty turns per session, eight connected MCP servers exposing 54 tools, a 4,000 token system prompt, 6,000 tokens of few-shot examples, tool results averaging 3,000 tokens, and 500 output tokens per turn. This is deliberately an ordinary pipeline, not a pathological one.</p>
+
+<p>Below, the thirteen methods are applied in the recommended order. Each bar is the <b>marginal</b> effect of that method given everything switched on above it, which is the number that matters and the number nobody publishes. Turn steps off and watch the later bars change, because that interference is the point.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 17</span><span class="fig-title">Cumulative waterfall over one 30-turn session</span></div>
+  <div class="btnrow" id="wfToggles"></div>
+  <svg id="wfChart" viewBox="0 0 700 400" role="img" aria-label="Waterfall of marginal token savings by method"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Baseline per session</div><div class="v bad" id="wf_base">0</div></div>
+    <div class="stat"><div class="k">Optimized</div><div class="v good" id="wf_now">0</div></div>
+    <div class="stat"><div class="k">Total reduction</div><div class="v" id="wf_red">0%</div></div>
+    <div class="stat"><div class="k">Cost per session</div><div class="v mid" id="wf_cost">$0</div></div>
+  </div>
+  <p class="fig-note">Three things to look for. Turn caching off and every later bar grows, because savings measured against an uncached baseline are inflated. Turn caching on and progressive tool loading shrinks to almost nothing, because it is removing a block that was already costing a tenth of list price. And subagent isolation is a red bar in both configurations: it is on the list because it buys capability, and pretending otherwise is how teams end up surprised by their bill.</p>
+</div>
+
+<h2 id="anti">18. Anti-patterns</h2>
+
+<p>Every one of these has been shipped by a competent team, and every one of them reports as a success on a per-call dashboard.</p>
+
+<div class="apgrid">
+  <div class="ap">
+    <h4>Shortening a cached system prompt</h4>
+    <p><span class="tag">Why it is tempting</span>The system prompt is the biggest single block, so it looks like the obvious target.</p>
+    <p><span class="tag">What happens</span>It was already billing at a tenth of list price, so trimming a thousand tokens saves a hundred tokens' worth of money, and the edit invalidates the cache for every in-flight session. Trim the uncached suffix instead.</p>
+  </div>
+  <div class="ap">
+    <h4>Raising k to cover a weak retriever</h4>
+    <p><span class="tag">Why it is tempting</span>Recall goes up immediately and the evaluation improves.</p>
+    <p><span class="tag">What happens</span>You buy recall with distractors, push the true passage toward the middle of the context where recall is weakest, and pay for all of it. Fix the ranker.</p>
+  </div>
+  <div class="ap">
+    <h4>Compressing something you could cache</h4>
+    <p><span class="tag">Why it is tempting</span>A 4&times; compression ratio sounds better than a discount.</p>
+    <p><span class="tag">What happens</span>Caching is a 90 percent discount with zero information loss and no extra inference pass. Compression is lossy and costs a model call. Reserve it for content that changes every request.</p>
+  </div>
+  <div class="ap">
+    <h4>Compacting too early</h4>
+    <p><span class="tag">Why it is tempting</span>The context graph flattens and looks healthy.</p>
+    <p><span class="tag">What happens</span>Each compaction is a model call that reads the entire window. Compact at 30 percent occupancy and the summarization calls can exceed what the transcript would have cost. Compaction is for approaching the ceiling, not for tidiness.</p>
+  </div>
+  <div class="ap">
+    <h4>Optimizing tokens per call</h4>
+    <p><span class="tag">Why it is tempting</span>It is the number the API returns.</p>
+    <p><span class="tag">What happens</span>Any change that increases retries or turn count improves it while making the system worse. Only tokens per solved task is safe to optimize against.</p>
+  </div>
+  <div class="ap">
+    <h4>Batching across trust boundaries</h4>
+    <p><span class="tag">Why it is tempting</span>Bigger batches, better amortization, and the items are independent anyway.</p>
+    <p><span class="tag">What happens</span>They are not independent inside one prompt. One item's content can steer the answers given for its neighbours, which is a documented attack, and it also mixes tenants' data in one context.</p>
+  </div>
+  <div class="ap">
+    <h4>Volatile tokens in the prefix</h4>
+    <p><span class="tag">Why it is tempting</span>Putting the current timestamp or a request ID at the top of the system prompt is one line and feels harmless.</p>
+    <p><span class="tag">What happens</span>Zero cache hits, forever, while the dashboard shows caching enabled. This is the most common reason a caching rollout shows no saving.</p>
+  </div>
+  <div class="ap">
+    <h4>Progressive tool loading with eight tools</h4>
+    <p><span class="tag">Why it is tempting</span>The published reduction figures are enormous.</p>
+    <p><span class="tag">What happens</span>Those figures come from catalogs of dozens of servers. With a small catalog the discovery overhead can exceed the schemas you avoided loading, and you have added a failure mode where the agent cannot find a tool it needs.</p>
+  </div>
+  <div class="ap">
+    <h4>Subagents as a cost measure</h4>
+    <p><span class="tag">Why it is tempting</span>The lead agent's context gets dramatically smaller.</p>
+    <p><span class="tag">What happens</span>Total tokens go up, substantially. Isolation is a capability and headroom decision. Choose it for what a single window cannot do, not for the bill.</p>
+  </div>
+  <div class="ap">
+    <h4>Semantic caching without a re-ranker</h4>
+    <p><span class="tag">Why it is tempting</span>Embedding similarity is one vector search and the hit rate looks great.</p>
+    <p><span class="tag">What happens</span>Embeddings score opposite meanings with similar wording as near neighbours, which is fine for search and not fine when the cached text is served as the answer. Add a cross-encoder check before accepting a hit.</p>
+  </div>
+</div>
+
+<h2 id="order">19. Order of work</h2>
+
+<p>Ranked by expected saving per unit of engineering effort, for a typical hosted-API agentic workload. Figure 2 reorders this for your specific answers.</p>
+
+<table>
+  <thead><tr><th>#</th><th>Method</th><th>Effort</th><th>Typical effect</th><th>Risk</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>Per-stage token accounting</td><td>Low</td><td>Finds the real target</td><td>None</td></tr>
+    <tr><td class="n">2</td><td>Prompt caching with a clean prefix</td><td>Low</td><td>Large, on repeated calls</td><td>None if the prefix is truly stable</td></tr>
+    <tr><td class="n">3</td><td>Output schema and length constraints</td><td>Low</td><td>Moderate, and lowers the retry rate</td><td>Over-constraining hurts quality</td></tr>
+    <tr><td class="n">4</td><td>Truncate and paginate tool results</td><td>Low</td><td>Large in tool-heavy loops</td><td>Truncating the needed row</td></tr>
+    <tr><td class="n">5</td><td>Tabular formats over JSON</td><td>Very low</td><td>Small to moderate</td><td>Wrong for nested data</td></tr>
+    <tr><td class="n">6</td><td>Tool result clearing</td><td>Low</td><td>Large in long sessions</td><td>Clearing something still needed</td></tr>
+    <tr><td class="n">7</td><td>Retry reduction: constrained decoding, stricter schemas</td><td>Low</td><td>Often exceeds every prompt edit combined</td><td>None</td></tr>
+    <tr><td class="n">8</td><td>Progressive tool loading</td><td>Medium</td><td>Large with many connectors</td><td>Discovery overhead at low tool counts</td></tr>
+    <tr><td class="n">9</td><td>Retrieval and just-in-time loading</td><td>Medium</td><td>Large, and usually raises accuracy</td><td>Retriever quality becomes load-bearing</td></tr>
+    <tr><td class="n">10</td><td>Compaction with a tuned prompt</td><td>Medium</td><td>Enables long horizons</td><td>Silent loss of critical detail</td></tr>
+    <tr><td class="n">11</td><td>Diff-based editing</td><td>Medium</td><td>Large in coding agents</td><td>Failed matches, retries</td></tr>
+    <tr><td class="n">12</td><td>Semantic caching</td><td>Medium</td><td>Very large where queries repeat</td><td>Wrong or stale answers, cross-user leakage</td></tr>
+    <tr><td class="n">13</td><td>Batch prompting</td><td>Medium</td><td>Near inverse-linear per item</td><td>Accuracy decay, cross-item interference</td></tr>
+    <tr><td class="n">14</td><td>Extractive compression on variable content</td><td>Medium</td><td>2&times; to 5&times; on compressible text</td><td>Lossy, adds an inference pass</td></tr>
+    <tr><td class="n">15</td><td>Model cascade</td><td>High</td><td>Very large when the signal is good</td><td>Fails entirely without a good deferral signal</td></tr>
+    <tr><td class="n">16</td><td>Distillation and fine-tuning</td><td>High</td><td>Permanent, largest ceiling</td><td>Freezes behavior, brittle off-distribution</td></tr>
+    <tr><td class="n">17</td><td>Subagent isolation</td><td>High</td><td>Raises cost, raises capability</td><td>Coordination complexity</td></tr>
+  </tbody>
+</table>
+
+<p>Two further sets sit outside this ranking. <b>Serving-layer levers</b>, in Section 14, apply only if you self-host, where they usually dominate everything above. <b>Learned compression</b>, in Section 5, needs weight access and belongs on the roadmap only when a corpus is stable and hot enough to amortize an offline training run.</p>
+
+<p>All of the above assumes one agent. If your pipeline is a fleet, Part VI covers the sources that only appear at that scale, and the ranking there differs: the largest lever stops being caching and becomes duplication.</p>
+
+<p>Two closing observations. First, these compose multiplicatively and interfere: progressive tool loading removes a block that cached beautifully, compaction rewrites a prefix and invalidates the cache, batching competes with caching for the same amortization, and compression on a cacheable region is strictly worse than caching it. Sequence the work and re-measure after each step rather than shipping all seventeen at once, which is exactly what Figure 17 is for. Second, an asynchronous batch API sits outside this ranking too, because it changes price and latency rather than token count, but where a workload tolerates delayed execution it stacks with caching for further savings.</p>
+
+<div class="part" id="multi">
+  <p class="pn">Part VI</p>
+  <h2>Multi-agent systems</h2>
+  <p>Where the token profile changes shape. In a single agent the dominant term is history accumulation, which grows quadratically in turns. In a multi-agent system the dominant term is duplication, which grows multiplicatively in agents times turns, and it usually arrives from a direction nobody is measuring.</p>
+</div>
+
+<h2 id="multiplier">20. The multiplier, and when to pay it</h2>
+
+<p>Start with the number everyone quotes. Anthropic's Research feature uses an orchestrator-worker architecture in which a lead agent plans, spawns three to five subagents that explore in parallel with their own context windows, and synthesizes their findings with a separate citation pass. On their internal research evaluation this beat single-agent Claude Opus 4 by 90.2 percent. It also consumes roughly fifteen times the tokens of ordinary chat, with plain agentic use sitting around four times. Reported alongside that: token usage alone explained about 80 percent of the performance variance on BrowseComp.</p>
+
+<p>Read those two facts together and the design principle falls out. The multi-agent architecture is not a clever way to get more from the same tokens. It is a way to <em>spend more tokens</em> on a problem than one context window can hold, and the performance follows the spending. So the first question is never how to optimize a multi-agent system. It is whether the task can absorb a fifteen-fold multiplier at all.</p>
+
+<p>The tasks that can share a shape: breadth-first, with independent branches, where the total information exceeds one window, and where the answer is worth dollars rather than cents. Legal due diligence, competitive intelligence, literature review, broad evidence gathering. The tasks that cannot are the tightly interdependent ones, coding foremost among them, where every branch needs to see what the other branches decided and the coordination cost swamps the parallelism.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 18</span><span class="fig-title">Does fan-out earn its multiplier?</span></div>
+  <div class="ctrl"><label>Branch independence: can subtasks be explored without seeing each other's findings <b id="v_mi">high</b></label><input type="range" id="s_mi" min="0" max="100" step="1" value="80"></div>
+  <div class="ctrl"><label>Breadth: how many distinct directions the question opens <b id="v_mb">6</b></label><input type="range" id="s_mb" min="1" max="20" step="1" value="6"></div>
+  <div class="ctrl"><label>Total information the task touches, relative to one context window <b id="v_mw">3.2&times;</b></label><input type="range" id="s_mw" min="10" max="800" step="10" value="320"></div>
+  <div class="ctrl"><label>Value of a correct answer <b id="v_mv">$40</b></label><input type="range" id="s_mv" min="1" max="500" step="1" value="40"></div>
+  <svg id="topoChart" viewBox="0 0 700 250" role="img" aria-label="Quality and cost of single agent versus fan-out against branch count"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Single agent</div><div class="v" id="tp_single">0</div></div>
+    <div class="stat"><div class="k">Fan-out</div><div class="v" id="tp_fan">0</div></div>
+    <div class="stat"><div class="k">Quality gain</div><div class="v mid" id="tp_gain">0%</div></div>
+    <div class="stat"><div class="k">Verdict</div><div class="v" id="tp_verdict">-</div></div>
+  </div>
+  <p class="fig-note">Drag independence down and the fan-out curve collapses, because interdependent branches force the orchestrator to re-broadcast what each subagent learned, and that re-broadcasting is the coordination cost that eats the parallelism. Drag the information-versus-window slider below 1 and fan-out loses on both axes at once: if it fits in one window, a single agent with compaction is cheaper, more coherent, and has no re-contextualization tax at all. A great many production "multi-agent" systems are sequential pipelines wearing a costume, and converting them back to one agent with staged prompts is often a five to ten times saving with an accuracy improvement attached.</p>
+</div>
+
+<h2 id="anatomy">21. Anatomy of a multi-agent session</h2>
+
+<p>Take a concrete system, close to what an internal agent kit looks like in practice: an orchestrator running 10 turns, four subagents at 8 turns each, 25 tools exposed, 40 skills available, tool results averaging 3,000 tokens. That is 42 model calls. Here is where the tokens go, and which of the six sources each belongs to.</p>
+
+<table>
+  <thead><tr><th>Source</th><th>Mechanism</th><th>Scales with</th></tr></thead>
+  <tbody>
+    <tr><td><b>Preamble duplication</b></td><td>Every agent carries its own copy of the harness prompt, tool schemas and skill instructions, and re-sends all of it every turn</td><td>agents &times; turns</td></tr>
+    <tr><td><b>Re-contextualization</b></td><td>The orchestrator serializes what it knows into a brief; the subagent serializes what it found into a summary. Every boundary crossing is an encode and a decode, paid twice</td><td>delegations &times; 2</td></tr>
+    <tr><td><b>Orchestrator accumulation</b></td><td>The lead agent's window holds every brief it wrote and every result it received</td><td>delegations squared</td></tr>
+    <tr><td><b>Redundant exploration</b></td><td>Two subagents fetch the same document because neither can see the other's work</td><td>agents &times; overlap</td></tr>
+    <tr><td><b>Verification passes</b></td><td>Judges, critics, citation agents, self-consistency samples</td><td>a deliberate purchase</td></tr>
+    <tr><td><b>Coordination failure</b></td><td>A subagent misreads the brief and returns the wrong artifact, so a whole session is discarded and re-delegated</td><td>failure rate &times; session size</td></tr>
+  </tbody>
+</table>
+
+<p>The decomposition below is the centerpiece of this part. Each fix is a toggle; the stacked bar re-splits as you apply them.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 19</span><span class="fig-title">Where the tokens go, and what each fix removes</span></div>
+  <div class="btnrow" id="maToggles"></div>
+  <div class="ctrl"><label>Subagents <b id="v_an">4</b></label><input type="range" id="s_an" min="1" max="12" step="1" value="4"></div>
+  <div class="ctrl"><label>Turns per subagent <b id="v_at">8</b></label><input type="range" id="s_at" min="2" max="30" step="1" value="8"></div>
+  <div class="ctrl"><label>Skills installed <b id="v_ak">40</b></label><input type="range" id="s_ak" min="0" max="120" step="1" value="40"></div>
+  <div class="ctrl"><label>Tools exposed <b id="v_ao">25</b></label><input type="range" id="s_ao" min="1" max="120" step="1" value="25"></div>
+  <svg id="anatomyChart" viewBox="0 0 700 300" role="img" aria-label="Stacked decomposition of multi agent session tokens by source"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Model calls</div><div class="v" id="an_calls">0</div></div>
+    <div class="stat"><div class="k">Eager baseline</div><div class="v bad" id="an_base">0</div></div>
+    <div class="stat"><div class="k">With fixes applied</div><div class="v good" id="an_now">0</div></div>
+    <div class="stat"><div class="k">Reduction</div><div class="v mid" id="an_red">0%</div></div>
+  </div>
+  <p class="fig-note" id="an_note"></p>
+</div>
+
+<div class="callout">
+  <span class="lab">The finding</span>
+  <p>At default settings the skills segment is roughly 54 percent of the session, larger than tool schemas at 19 percent and vastly larger than everything the agents actually say to each other, which is under 1 percent. It is also the least measured line item in any agent framework, because skills are markdown files that nobody counts, while tool schemas at least appear in the API payload as structured objects people think about. If you maintain a kit of dozens of skills, this is where to look first.</p>
+  <p>Now switch every fix on and watch what becomes dominant. Agent history, at about two thirds of what remains. Fix the duplication and you are back to the single-agent problem from Part II, which is the correct place to end up: the multi-agent-specific costs are the ones worth attacking first precisely because they are additions on top of a problem you already knew how to solve.</p>
+</div>
+
+<h2 id="skills">22. Skills: the hidden budget</h2>
+
+<p>A skill is instructions, and instructions loaded eagerly are indistinguishable from a very long system prompt. The Agent Skills specification addresses this directly with three loading tiers, and understanding the tiers is the whole optimization.</p>
+
+<ol class="steps">
+  <li><b>Discovery.</b> At startup the agent loads only the name and description from each skill's YAML frontmatter into the system prompt. One measurement across Anthropic's official skill set put the median discovery cost near 80 tokens per skill, ranging from about 55 to 235, so all 17 together came to roughly 1,700 tokens. An agent can be aware of dozens of skills for less context than a single activated one occupies.</li>
+  <li><b>Activation.</b> When the description matches the task, the agent reads the full SKILL.md body into context. In that same measurement, bodies ranged from about 275 to 8,000 tokens with a median near 2,000.</li>
+  <li><b>Execution.</b> Bundled reference files and assets are read only if the task touches them, and bundled scripts run without their source entering context at all, so only their output costs anything.</li>
+</ol>
+
+<p>The description field is doing the load-bearing work, because it is what the agent matches the request against. A vague description under-triggers, which costs you the capability; an over-broad one triggers constantly, which puts you back where you started. Guidance is to say both what the skill does and when to use it.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 20</span><span class="fig-title">Skill loading: eager against tiered</span></div>
+  <div class="ctrl"><label>Skills installed <b id="v_sk">40</b></label><input type="range" id="s_sk" min="1" max="150" step="1" value="40"></div>
+  <div class="ctrl"><label>Median skill body <b id="v_sb">2,000 tok</b></label><input type="range" id="s_sb" min="200" max="8000" step="100" value="2000"></div>
+  <div class="ctrl"><label>Discovery metadata per skill <b id="v_sd">80 tok</b></label><input type="range" id="s_sd" min="30" max="300" step="5" value="80"></div>
+  <div class="ctrl"><label>Skills actually triggered per agent <b id="v_st">2</b></label><input type="range" id="s_st" min="0" max="10" step="1" value="2"></div>
+  <div class="ctrl"><label>Agents that each carry the skill catalog <b id="v_sa">5</b></label><input type="range" id="s_sa" min="1" max="20" step="1" value="5"></div>
+  <svg id="skillChart" viewBox="0 0 700 210" role="img" aria-label="Eager versus tiered skill loading token cost"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Eager, per call</div><div class="v bad" id="sk_eager">0</div></div>
+    <div class="stat"><div class="k">Tiered, per call</div><div class="v good" id="sk_tier">0</div></div>
+    <div class="stat"><div class="k">Reduction</div><div class="v" id="sk_red">0%</div></div>
+    <div class="stat"><div class="k">Skills you can afford</div><div class="v mid" id="sk_afford">0</div></div>
+  </div>
+  <p class="fig-note">The last figure is the one that changes how you build a kit: it is how many skills fit in the same context budget under each regime. Eager loading caps a useful kit at roughly a dozen; tiered loading makes a hundred cheaper than a dozen eager ones. That is why a large skill library is a good idea only if the loading is tiered, and a liability if it is not.</p>
+</div>
+
+<h3>Practical rules for skill authoring</h3>
+<ul>
+  <li>Write the description for the router, not for the human. It must state what the skill does <em>and</em> when to use it, because matching happens against that sentence alone.</li>
+  <li>Factor aggressively. A 6,000 token SKILL.md that could be a 1,200 token body plus four reference files is paying five times over on every activation.</li>
+  <li>Put procedures in scripts rather than prose where you can. A script's source never enters context; only its output does.</li>
+  <li>Audit for overlap. Two skills whose descriptions both match the same request will both activate, and you pay for both.</li>
+  <li>Count your kit. Multiply skill count by median body size by agent count by turn count, and compare that number to what you think you are spending. The gap is usually startling.</li>
+</ul>
+
+<h2 id="harness">23. The harness, and the cache fragmentation trap</h2>
+
+<p>Every agent needs a preamble: harness rules, output conventions, safety constraints, the shared vocabulary of the system. The instinct when building a kit of twenty-five agents is to give each one a bespoke system prompt tuned to its role. That instinct is correct about quality and expensive in a way that is not obvious.</p>
+
+<p>Caching is prefix-based, so a bespoke prompt per agent means a separate cache entry per agent. With a fixed number of calls in a session, splitting them across more personas means fewer calls per cache entry, which means the 1.25&times; write premium is amortized over fewer 0.10&times; reads. At the limit, one call per persona, you pay the write premium and never collect a single read: caching becomes a pure cost.</p>
+
+<p>The fix is to move specialization behind the breakpoint. One identical base preamble for every agent, marked as the cached prefix, then a short role block appended after it. You keep the specialization and the whole fleet shares one cache entry. But there is a real crossing point here rather than a universal answer, and the figure finds it.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 21</span><span class="fig-title">Bespoke prefixes against a shared prefix with role deltas</span></div>
+  <div class="ctrl"><label>Distinct agent personas <b id="v_hp">8</b></label><input type="range" id="s_hp" min="1" max="25" step="1" value="8"></div>
+  <div class="ctrl"><label>Shared base preamble: harness rules, conventions, common tools <b id="v_hb">24,000 tok</b></label><input type="range" id="s_hb" min="1000" max="80000" step="500" value="24000"></div>
+  <div class="ctrl"><label>Role-specific block per persona <b id="v_hr">2,000 tok</b></label><input type="range" id="s_hr" min="100" max="30000" step="100" value="2000"></div>
+  <div class="ctrl"><label>Model calls in the session <b id="v_hc">42</b></label><input type="range" id="s_hc" min="4" max="200" step="1" value="42"></div>
+  <svg id="harnessChart" viewBox="0 0 700 250" role="img" aria-label="Effective prefix cost against number of personas for two caching strategies"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Bespoke prefixes</div><div class="v bad" id="hn_bespoke">0</div></div>
+    <div class="stat"><div class="k">Shared plus role delta</div><div class="v good" id="hn_shared">0</div></div>
+    <div class="stat"><div class="k">Calls per cache entry</div><div class="v mid" id="hn_cpe">0</div></div>
+    <div class="stat"><div class="k">Better strategy</div><div class="v" id="hn_best">-</div></div>
+  </div>
+  <p class="fig-note">The crossing is real and it is worth finding for your own numbers. Push the role block up toward the size of the base and the shared strategy loses, because it pays full price for a large uncached block on every call while the bespoke strategy at least caches the whole thing. The rule that falls out: shared prefix with small role deltas when personas are many and their differences are small, bespoke prefixes when personas are few and genuinely different. If you find yourself with twenty personas whose role blocks are each ten thousand tokens, the real problem is that you have twenty agents where you needed four.</p>
+</div>
+
+<h3>Other harness-level costs</h3>
+<ul>
+  <li><b>Framework scaffolding.</b> Many frameworks inject their own reasoning scaffolds, output format instructions and reflection prompts on every call. Read the actual serialized request once. Teams are routinely surprised by what their framework adds.</li>
+  <li><b>Re-planning.</b> An orchestrator that re-derives its whole plan every turn pays for the plan every turn. Write the plan once to external state and reference it.</li>
+  <li><b>Termination awareness.</b> Failure to recognize task completion is one of the most prevalent single failure modes catalogued in multi-agent traces, and every extra turn past completion is a full-price call. Explicit termination conditions in the preamble are a token optimization.</li>
+</ul>
+
+<h2 id="comms">24. Communication between agents</h2>
+
+<p>This is the cost with no single-agent analogue. When one agent hands work to another, the context does not move, only a serialization of it does. The orchestrator writes a brief that re-states what the subagent needs to know; the subagent writes a summary that re-states what it found. You pay to encode and again to decode, and information is lost at both ends.</p>
+
+<p>The loss is what makes this expensive over time, because the natural response to a subagent that misunderstood its brief is to write a longer brief. That works, and it raises the per-delegation cost, and it does not fix the underlying problem, which is that prose is a lossy channel between two systems that could have shared a pointer instead.</p>
+
+<h3>Three topologies</h3>
+<ul>
+  <li><b>Full mesh.</b> Every agent talks to every other. Message volume grows with the square of the agent count and it is essentially never the right choice above three agents.</li>
+  <li><b>Star, or orchestrator-worker.</b> All traffic flows through the lead agent. Volume is linear in agents, but the orchestrator accumulates every message, so its context grows with the square of the delegation count. This is the standard pattern and its weak point is the hub.</li>
+  <li><b>Blackboard.</b> Agents read and write a shared store keyed by claim or artifact. Messages carry pointers and short abstracts; payloads live in the store. Volume is linear, the orchestrator holds only what it chose to read, and you get an audit trail for free.</li>
+</ul>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 22</span><span class="fig-title">Communication cost by topology</span></div>
+  <div class="ctrl"><label>Agents <b id="v_cn">5</b></label><input type="range" id="s_cn" min="2" max="16" step="1" value="5"></div>
+  <div class="ctrl"><label>Coordination rounds <b id="v_cr2">4</b></label><input type="range" id="s_cr2" min="1" max="15" step="1" value="4"></div>
+  <div class="ctrl"><label>Artifact size: the findings being exchanged <b id="v_ca">3,000 tok</b></label><input type="range" id="s_ca" min="200" max="20000" step="100" value="3000"></div>
+  <div class="ctrl"><label>Pointer plus abstract, when payloads stay in the store <b id="v_cp">250 tok</b></label><input type="range" id="s_cp" min="50" max="2000" step="25" value="250"></div>
+  <svg id="commChart" viewBox="0 0 700 250" role="img" aria-label="Communication tokens against agent count for three topologies"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Full mesh</div><div class="v bad" id="cm_mesh">0</div></div>
+    <div class="stat"><div class="k">Star</div><div class="v mid" id="cm_star">0</div></div>
+    <div class="stat"><div class="k">Blackboard</div><div class="v good" id="cm_bb">0</div></div>
+    <div class="stat"><div class="k">Orchestrator context</div><div class="v" id="cm_orch">0</div></div>
+  </div>
+  <p class="fig-note">The orchestrator figure is the one that bites in production, because it grows quadratically in delegations while everyone is watching the linear message count. Note also that the blackboard curve is nearly flat in artifact size: once payloads stop travelling, exchanging a 20,000 token finding costs almost the same as exchanging a 2,000 token one. That is the whole argument for pointer-passing in a single chart.</p>
+</div>
+
+<h3>Handoff design rules</h3>
+<ol class="steps">
+  <li>Return a pointer and an abstract, never the payload. The subagent writes its findings to the store and returns a path plus roughly 200 tokens of what is there. The orchestrator reads the full artifact only if it must.</li>
+  <li>Use a schema for briefs and results, not prose. Objective, scope, expected artifact type, success criteria, exclusions. Structured handoffs are shorter and, more importantly, they fail loudly instead of silently.</li>
+  <li>Make briefs specific. Delegation guidance from Anthropic's own system is blunt about this: a vague mandate produces duplicated work and misinterpretation, while a brief that names the sources, the scope and the exact fields to return does not.</li>
+  <li>Give subagents read access to the store rather than copies of context. If two agents need the same background, they should both read it, not both receive it.</li>
+  <li>Never re-broadcast. If the orchestrator finds itself forwarding subagent A's findings to subagent B, that is the blackboard asking to be built.</li>
+</ol>
+
+<h2 id="coordfail">25. Coordination failure is a token cost</h2>
+
+<p>The most systematic study of this is MAST, a taxonomy built from over 1,600 annotated execution traces across seven popular multi-agent frameworks. It identifies 14 failure modes in three clusters: system design issues, inter-agent misalignment, and task verification failures. Across the analysed frameworks the observed failure rates ranged from roughly 41 percent to nearly 87 percent, and the authors are explicit that better base models alone will not close the gap, because these are architectural failures rather than capability failures.</p>
+
+<p>Two things follow for token budgets. First, the retry unit in a multi-agent system is enormous. When a single call fails you discard one call; when a subagent misreads its brief you discard an entire session, briefing, exploration, tool calls and all. Second, the failure modes that matter most for cost are the cheap ones to fix: step repetition, unawareness of termination conditions, and misaligned briefs are all addressable with clearer specifications and explicit stop criteria rather than with better models.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 23</span><span class="fig-title">The price of a misread brief</span></div>
+  <div class="ctrl"><label>Subagent session size: everything one delegation consumes <b id="v_fs">85k tok</b></label><input type="range" id="s_fs" min="5" max="400" step="5" value="85"></div>
+  <div class="ctrl"><label>Delegations per run <b id="v_fd">6</b></label><input type="range" id="s_fd" min="1" max="20" step="1" value="6"></div>
+  <div class="ctrl"><label>Brief quality: how often a subagent returns the wrong artifact <b id="v_fq">18%</b></label><input type="range" id="s_fq" min="0" max="60" step="1" value="18"></div>
+  <div class="ctrl"><label>Detection rate: how often the orchestrator notices before synthesis <b id="v_fdet">70%</b></label><input type="range" id="s_fdet" min="0" max="100" step="5" value="70"></div>
+  <svg id="failChart" viewBox="0 0 700 190" role="img" aria-label="Wasted tokens from coordination failure"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Useful work</div><div class="v good" id="cf_useful">0</div></div>
+    <div class="stat"><div class="k">Discarded and redone</div><div class="v bad" id="cf_waste">0</div></div>
+    <div class="stat"><div class="k">Rework overhead</div><div class="v mid" id="cf_over">0%</div></div>
+    <div class="stat"><div class="k">Undetected, in the answer</div><div class="v" id="cf_silent">0</div></div>
+  </div>
+  <p class="fig-note">The last readout is the uncomfortable one. Failures the orchestrator does not detect cost nothing extra in tokens and corrupt the output instead, which is the worse outcome and the one a cost dashboard will never show you. Raising detection converts silent corruption into visible expense, and that is a trade worth making deliberately rather than by accident.</p>
+</div>
+
+<h2 id="fanout">26. Verification and fan-out budgets</h2>
+
+<p>Two things in multi-agent systems consume tokens on purpose, and both deserve an explicit exchange rate rather than a default.</p>
+
+<p><b>Speculative fan-out</b> means launching several branches and keeping the best. Every discarded branch was paid for in full. It buys accuracy, and the returns diminish roughly logarithmically in branch count while the cost rises linearly, so there is always a point past which it stops paying, and that point is usually lower than teams assume.</p>
+
+<p><b>Verification passes</b>, judges, critics, citation agents, self-consistency sampling, are frequently the second largest line item in a multi-agent bill and are almost never measured separately from the work they verify. Isolate them in your accounting. The question to answer is not whether verification helps, it is how many accuracy points per thousand tokens it is currently buying, and whether a cheaper verifier would buy the same.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 24</span><span class="fig-title">Fan-out and verification against an explicit exchange rate</span></div>
+  <div class="ctrl"><label>Parallel branches launched <b id="v_gb">4</b></label><input type="range" id="s_gb" min="1" max="16" step="1" value="4"></div>
+  <div class="ctrl"><label>Verification passes over the result <b id="v_gv">1</b></label><input type="range" id="s_gv" min="0" max="5" step="1" value="1"></div>
+  <div class="ctrl"><label>Verifier cost relative to a branch <b id="v_gc">35%</b></label><input type="range" id="s_gc" min="5" max="150" step="5" value="35"></div>
+  <div class="ctrl"><label>What one accuracy point is worth, in percent of budget <b id="v_gx">8%</b></label><input type="range" id="s_gx" min="1" max="40" step="1" value="8"></div>
+  <svg id="fanChart" viewBox="0 0 700 250" role="img" aria-label="Accuracy and cost against branch count with an exchange rate"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Relative cost</div><div class="v bad" id="fo_cost">0&times;</div></div>
+    <div class="stat"><div class="k">Accuracy</div><div class="v good" id="fo_acc">0%</div></div>
+    <div class="stat"><div class="k">Net value</div><div class="v" id="fo_net">0</div></div>
+    <div class="stat"><div class="k">Efficient branches</div><div class="v mid" id="fo_opt">0</div></div>
+  </div>
+  <p class="fig-note">The exchange rate slider is the honest part of this figure. Every team already has an implicit answer to what an accuracy point is worth; making it explicit is what turns fan-out from a habit into a decision. Set it high, for due diligence or safety-critical review, and wide fan-out with multiple verification passes is correct. Set it low, for internal drafting, and the efficient configuration is one branch and no verifier.</p>
+</div>
+
+<h2 id="mameasure">27. Measuring a multi-agent system</h2>
+
+<p>Single-agent instrumentation does not survive contact with a fan-out architecture, because the totals hide everything interesting. Add these dimensions.</p>
+
+<table>
+  <thead><tr><th>Metric</th><th>What it exposes</th><th>Healthy direction</th></tr></thead>
+  <tbody>
+    <tr><td class="n">tokens by role</td><td>Whether the orchestrator or the workers dominate</td><td>Workers dominant; a heavy orchestrator means accumulation</td></tr>
+    <tr><td class="n">preamble / total</td><td>The duplication tax</td><td>Below 0.25 once caching and tiering are on</td></tr>
+    <tr><td class="n">skill body tokens per call</td><td>Whether skills are tiered or eager</td><td>Near the metadata floor plus one or two bodies</td></tr>
+    <tr><td class="n">handoff tokens per delegation</td><td>Re-contextualization tax</td><td>Falling; if it rises, briefs are compensating for a design flaw</td></tr>
+    <tr><td class="n">orchestrator context growth</td><td>Quadratic accumulation at the hub</td><td>Flat, if pointers are being used</td></tr>
+    <tr><td class="n">document fetch overlap</td><td>Redundant exploration across workers</td><td>Below 0.15 with a shared store</td></tr>
+    <tr><td class="n">discarded subagent sessions</td><td>Coordination failure, the largest retry unit</td><td>Below 0.05, and attributed to a cause</td></tr>
+    <tr><td class="n">verification tokens / total</td><td>What correctness is costing</td><td>Known, and defended by an exchange rate</td></tr>
+    <tr><td class="n">tokens per solved task</td><td>The only end-to-end number</td><td>Falling while task success holds</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="lab">Runaway spend</span>
+  <p>The fifteen-fold multiplier compounds when something misbehaves. A subagent that recursively spawns more subagents, or a tool that returns an oversized result into several windows at once, can multiply a single run by another order of magnitude. The published architectures generally describe the happy path and do not include circuit breakers, so build your own: a per-run token ceiling, a maximum delegation depth, a cap on concurrent subagents, and a hard stop on recursive spawning. This is the one item on this page that is a reliability control before it is an optimization.</p>
+</div>
+
+<h2 id="maorder">28. Order of work, multi-agent</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Change</th><th>Effort</th><th>Typical effect</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>Confirm the topology earns its multiplier at all</td><td>Low</td><td>Sometimes 5&times; to 10&times;, by deleting the architecture</td></tr>
+    <tr><td class="n">2</td><td>Tier the skills: metadata at startup, bodies on activation</td><td>Low</td><td>Usually the largest single block in a skill-heavy kit</td></tr>
+    <tr><td class="n">3</td><td>One shared cached preamble, role deltas after the breakpoint</td><td>Low</td><td>Large, and it stops cache fragmentation dead</td></tr>
+    <tr><td class="n">4</td><td>Circuit breakers: run ceiling, depth cap, spawn limit</td><td>Low</td><td>Bounds the tail rather than the mean</td></tr>
+    <tr><td class="n">5</td><td>Pointer-and-abstract returns instead of payloads</td><td>Medium</td><td>Cuts handoffs and orchestrator accumulation together</td></tr>
+    <tr><td class="n">6</td><td>Progressive tool loading per agent</td><td>Medium</td><td>Large with many connectors, small once caching is on</td></tr>
+    <tr><td class="n">7</td><td>Structured handoff schemas</td><td>Medium</td><td>Cuts the largest retry unit you have</td></tr>
+    <tr><td class="n">8</td><td>Shared store or blackboard</td><td>Medium</td><td>Removes redundant exploration and re-broadcasting</td></tr>
+    <tr><td class="n">9</td><td>Compaction and notes for the orchestrator specifically</td><td>Medium</td><td>The hub is usually the least optimized agent</td></tr>
+    <tr><td class="n">10</td><td>Heterogeneous models by role</td><td>Medium</td><td>Large, given a 10&times; to 15&times; price spread</td></tr>
+    <tr><td class="n">11</td><td>Explicit fan-out and verification budgets</td><td>Medium</td><td>Turns a habit into a priced decision</td></tr>
+  </tbody>
+</table>
+
+<p>Two closing notes specific to this part. Item 1 is not a rhetorical flourish: the largest multi-agent optimization available to most teams is discovering that their pipeline is sequential and does not need the topology. And items 2 and 3 interact with each other exactly as Part V's waterfall predicts, because tiering the skills shrinks the very block that the shared cached preamble was making cheap. Apply them in order and re-measure between, rather than reading either one's headline reduction figure and assuming it will survive contact with the other.</p>
+
+<h2 id="appendix">Appendix: the arithmetic behind each figure</h2>
+
+<p>Every calculator on this page uses a simplified model. Here they are, so you can check them, disagree with them, or substitute your own. Rates throughout: base input <span class="mono">p_in</span> = $3/M, output <span class="mono">p_out</span> = $15/M, cache write 1.25 p_in, cache read 0.10 p_in.</p>
+
+<h4>Figure 3, prompt caching</h4>
+<div class="formula">uncached(T) = sum over t of (P + (U + O)(t-1)) * p_in  +  T * O * p_out
+cached(T)   = P * p_in * (1.25 * writes + 0.10 * reads)
+            + sum over t of [ 0.06 * (U+O)(t-1) + U ] * p_in  +  T * O * p_out
+writes      = 1 + floor(T * inv),   reads = T - writes</div>
+<p>The 0.06 factor on history is a stand-in for partial history caching with incremental breakpoints, which real implementations achieve imperfectly.</p>
+
+<h4>Figure 4, semantic caching</h4>
+<div class="formula">hit(th)   = repetition * sigmoid( (0.90 + 0.06*sep - th) * 10 )
+false(th) = (1 - repetition) * sigmoid( ((0.92 - 0.22*sep) - th) * 30 ) * 0.30</div>
+<p>Two logistic curves standing in for the overlap between the "genuinely equivalent" and "merely similar" similarity distributions. The slopes differ on purpose, 10 against 30: lowering the threshold buys hit rate gradually and buys false hits fast. Separation is the embedding model's ability to keep the two distributions apart, and it shifts the false-hit curve left rather than flattening it.</p>
+
+<h4>Figure 5, context growth</h4>
+<div class="formula">naive(t)   = base + t * (user + assistant + result)
+clearing(t)= base + t * (user + assistant) + recent results only
+compact(t) = reset to base + summary whenever context > 0.70 * window
+notes(t)   = base + t * (user + assistant + pointer)</div>
+
+<h4>Figure 6, compression</h4>
+<div class="formula">score(w) = 1.6*len(w) - 2.2*freq(w) - 22*[w is a function word] + 4*[w is capitalized]
+           numbers score at the ceiling and are never dropped
+drop the lowest-scoring floor(ratio * N) words</div>
+<p>A real compressor substitutes a small model's per-token perplexity for this heuristic. The visible behavior is similar; the quality is not.</p>
+
+<h4>Figure 8, tool schemas</h4>
+<div class="formula">upfront  = n_tools * schema_size
+ondemand = n_tools * 22  +  n_used * schema_size  +  900</div>
+<p>Twenty-two tokens is a name plus a truncated description; 900 is the discovery instruction block.</p>
+
+<h4>Figure 9, serialization</h4>
+<div class="formula">json_pretty = R * ( K*(L + V + 10) + 8 )
+json_min    = R * ( K*(L + V + 6) + 3 )
+yaml        = R * ( K*(L + V + 5) + 3 )
+csv         = K*(L+1) + R*( K*(V+1) )
+tokens      = characters / 4</div>
+
+<h4>Figure 11, cascade</h4>
+<div class="formula">qq        = clamp( (router_quality - 0.5) / 0.5, 0, 1 )
+escalated = clamp( qq * err_small * (th/0.7) + (1-qq) * th, 0, 1 )
+precision = qq + (1-qq) * err_small
+caught    = min( escalated * precision, err_small )
+accuracy  = min( 0.98, acc_small + caught * acc_large )
+cost      = min( 1, (1 + escalated * ratio) / ratio )</div>
+<p>Small model 74 percent accurate, large model 92 percent, cost relative to routing everything to the large model. Accuracy can exceed the large model alone, which is the effect FrugalGPT reported and not an artifact.</p>
+
+<h4>Figure 12, batch prompting</h4>
+<div class="formula">tokens_per_item = prefix/B + item + response
+accuracy(B)     = acc_1 - decay * ln(B) , clipped at zero
+decay           = 0.002 + 0.038 * task_complexity
+efficient B     = argmax over B of [ cost_saving_pct - 10 * accuracy_loss_pts ]</div>
+
+<h4>Figure 13, fine-tuning break-even</h4>
+<div class="formula">saving_per_call = removed_tokens * p_in * (1 - 1/model_ratio_factor)
+break_even_days = fixed_cost / (saving_per_call * calls_per_day)</div>
+
+<h4>Figure 15, KV cache</h4>
+<div class="formula">bytes_per_token = 2 * layers * kv_heads * head_dim * precision_bytes
+per_request     = bytes_per_token * seq_len
+concurrency     = budget / per_request
+shared          = budget / ( per_request * (1 - shared_fraction) )</div>
+<p>The factor of two is keys plus values. Shared blocks are counted once for the pool rather than once per request, which is what content-addressed block hashing provides.</p>
+
+<h4>Figure 16, retries</h4>
+<div class="formula">overhead      = r * (1 + added_context) / (1 - r)
+actual_saving = 1 - (1 - nominal) * (1 + overhead)
+break_even r  = value of r where actual_saving = 0</div>
+
+<h4>Figure 17, waterfall</h4>
+<p>Each method is a multiplier applied to a named component of the per-session token total, evaluated in list order so that each bar shows the marginal effect given its predecessors. Caching multiplies the prefix component by 0.10 after the first turn, which is why every downstream method that touches the prefix shrinks once caching is enabled. Subagent isolation is a multiplier greater than one on total tokens.</p>
+
+<h4>Figure 18, topology</h4>
+<div class="formula">single_cost = U * (1 + 0.35 * max(W - 1, 0))
+fan_cost(b) = U * (0.55 + 0.95*b) * (1 + (1 - independence) * 0.5 * (b - 1))
+fan_quality(b) = 0.62 + 0.33 * (1 - exp(-0.6 * (b-1) * (0.3 + 0.7*independence)))
+verdict compares value * quality_gain against the extra cost</div>
+<p>W is the ratio of information the task touches to one context window. The coordination penalty on fan_cost is what makes interdependent branches expensive: it grows with branch count and vanishes at full independence.</p>
+
+<h4>Figure 19, multi-agent anatomy</h4>
+<div class="formula">calls      = orchestrator_turns + agents * turns_per_agent
+preamble   = (harness + schemas + skills) * calls * cache_mult
+skills     = K * 1500          eager
+           = K * 80 + 2 * 2000 tiered
+schemas    = O * 850           eager
+           = O * 22 + 3*850 + 900   progressive
+handoff    = (brief + result) * agents
+orch_accum = sum over orchestrator turns of (brief+result)*(t-1)*0.8
+overlap    = agents * doc_size * fetches * 0.45   (x0.18 with a shared store)
+rework     = fail_rate * agents * session_size * 0.7</div>
+
+<h4>Figure 20, skill loading</h4>
+<div class="formula">eager  = skills * body_size
+tiered = skills * metadata_size + triggered * body_size
+affordable(budget) = how many skills fit in the budget under each regime</div>
+<p>Defaults follow published measurements of Anthropic's official skill set: metadata median near 80 tokens per skill, body median near 2,000.</p>
+
+<h4>Figure 21, harness caching</h4>
+<div class="formula">calls_per_entry = calls / personas
+bespoke(p) = (base + role) * calls * (1.25 + 0.10*(calls/p - 1)) / (calls/p)
+shared(p)  = base * calls * (1.25 + 0.10*(calls - 1)) / calls  +  role * calls</div>
+<p>The crossing exists because bespoke caches the role block and fragments the cache, while shared keeps one cache entry and pays list price for the role block on every call. Which wins depends on the ratio of role size to base size against persona count.</p>
+
+<h4>Figure 22, communication topology</h4>
+<div class="formula">mesh(n)       = n * (n-1) * rounds * artifact
+star(n)       = 2 * n * rounds * artifact
+blackboard(n) = 2 * n * rounds * pointer
+orchestrator_context = sum over messages of artifact * 2 * (t-1) * 0.5</div>
+
+<h4>Figure 23, coordination failure</h4>
+<div class="formula">failed  = delegations * fail_rate
+caught  = failed * detection
+silent  = failed - caught
+wasted  = caught * session * 2  +  silent * session
+useful  = (delegations - failed) * session</div>
+<p>A caught failure costs twice: the discarded session plus its replacement. A silent one costs once and corrupts the answer.</p>
+
+<h4>Figure 24, fan-out and verification</h4>
+<div class="formula">accuracy(b,v) = a0 + 0.19*(1 - exp(-0.6*(b-1))) + 0.055*(1 - exp(-0.9*v))
+cost(b,v)     = b + v * verifier_cost_ratio
+net(b,v)      = accuracy_gain_pts * exchange_rate - extra_cost_pct</div>
+<p>Accuracy is logarithmic in branches and cost is linear, which is why an efficient branch count always exists and is usually smaller than expected.</p>
+
+<h2 id="refs">References</h2>
+<ol class="refs">
+  <li><span class="rn">[1]</span> Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., Liang, P. "Lost in the Middle: How Language Models Use Long Contexts." <i>Transactions of the ACL</i>, 12:157-173, 2024. arXiv:2307.03172. <a href="https://arxiv.org/abs/2307.03172">arxiv.org/abs/2307.03172</a></li>
+  <li><span class="rn">[2]</span> Hong, K., Troynikov, A., Huber, J. "Context Rot: How Increasing Input Tokens Impacts LLM Performance." Chroma Technical Report, July 2025. <a href="https://research.trychroma.com/context-rot">research.trychroma.com/context-rot</a></li>
+  <li><span class="rn">[3]</span> Anthropic. "Effective context engineering for AI agents." Anthropic Engineering. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+  <li><span class="rn">[4]</span> Anthropic. "Context engineering: memory, compaction, and tool clearing." Claude Cookbook. <a href="https://platform.claude.com/cookbook/tool-use-context-engineering-context-engineering-tools">platform.claude.com/cookbook/tool-use-context-engineering-context-engineering-tools</a></li>
+  <li><span class="rn">[5]</span> Anthropic. "Prompt caching." Claude Platform documentation. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">platform.claude.com/docs/en/build-with-claude/prompt-caching</a></li>
+  <li><span class="rn">[6]</span> Anthropic. "Pricing." Claude Platform documentation. <a href="https://platform.claude.com/docs/en/about-claude/pricing">platform.claude.com/docs/en/about-claude/pricing</a></li>
+  <li><span class="rn">[7]</span> Google Cloud. "Prompt caching" (Vertex AI, Claude partner models). Cache writes 25 percent above base input, cache reads 90 percent below. <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/prompt-caching">cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/prompt-caching</a></li>
+  <li><span class="rn">[8]</span> Bang, F. "GPTCache: An Open-Source Semantic Cache for LLM Applications Enabling Faster Answers and Cost Savings." <i>NLP-OSS 2023</i>, pp. 212-218. <a href="https://aclanthology.org/2023.nlposs-1.24/">aclanthology.org/2023.nlposs-1.24</a></li>
+  <li><span class="rn">[9]</span> Biton, D. D., Friedman, R. "From Exact Hits to Close Enough: Semantic Caching for LLM Embeddings." arXiv:2603.03301, 2026. <a href="https://arxiv.org/html/2603.03301v1">arxiv.org/html/2603.03301v1</a></li>
+  <li><span class="rn">[10]</span> Jiang, H., Wu, Q., Lin, C.-Y., Yang, Y., Qiu, L. "LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models." <i>EMNLP 2023</i>, pp. 13358-13376. arXiv:2310.05736. <a href="https://arxiv.org/abs/2310.05736">arxiv.org/abs/2310.05736</a></li>
+  <li><span class="rn">[11]</span> Jiang, H., et al. "LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression." arXiv:2310.06839. <a href="https://arxiv.org/pdf/2310.06839">arxiv.org/pdf/2310.06839</a></li>
+  <li><span class="rn">[12]</span> Pan, Z., et al. "LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression." <i>Findings of the ACL 2024</i>. arXiv:2403.12968. <a href="https://arxiv.org/abs/2403.12968">arxiv.org/abs/2403.12968</a></li>
+  <li><span class="rn">[13]</span> Microsoft Research. "LLMLingua Series" project page. <a href="https://www.microsoft.com/en-us/research/project/llmlingua/">microsoft.com/en-us/research/project/llmlingua</a></li>
+  <li><span class="rn">[14]</span> Mu, J., Li, X. L., Goodman, N. "Learning to Compress Prompts with Gist Tokens." <i>NeurIPS 2023</i>, 36:19327-19352. arXiv:2304.08467. <a href="https://arxiv.org/abs/2304.08467">arxiv.org/abs/2304.08467</a></li>
+  <li><span class="rn">[15]</span> Eyuboglu, S., Ehrlich, R., Arora, S., Guha, N., Zinsley, D., Liu, E., Tennien, W., Rudra, A., Zou, J., Mirhoseini, A., Re, C. "Cartridges: Lightweight and general-purpose long context representations via self-study." arXiv:2506.06266, 2025. <a href="https://arxiv.org/abs/2506.06266">arxiv.org/abs/2506.06266</a></li>
+  <li><span class="rn">[16]</span> Ge, T., et al. "In-context Autoencoder for Context Compression in a Large Language Model." arXiv:2307.06945. Contains the comparison of GIST, AutoCompressors and ICAE cited in Section 5. <a href="https://arxiv.org/pdf/2307.06945">arxiv.org/pdf/2307.06945</a></li>
+  <li><span class="rn">[17]</span> Anthropic. "Code execution with MCP: Building more efficient agents." November 2025. Reports 150,000 to 2,000 tokens on a benchmark task. Summarized in: MCP.Directory, "MCP Context Bloat Fix 2026." <a href="https://mcp.directory/blog/mcp-context-bloat-fix-2026-tool-search-code-mode-progressive-disclosure">mcp.directory/blog/mcp-context-bloat-fix-2026</a></li>
+  <li><span class="rn">[18]</span> Kruczek, M. "Progressive Disclosure MCP: Token Savings Benchmark." January 2026. <a href="https://matthewkruczek.ai/blog/progressive-disclosure-mcp-servers.html">matthewkruczek.ai/blog/progressive-disclosure-mcp-servers.html</a></li>
+  <li><span class="rn">[19]</span> Wire. "Progressive tool loading is the new MCP context pattern." May 2026. <a href="https://usewire.io/blog/progressive-tool-loading-mcp-context-pattern/">usewire.io/blog/progressive-tool-loading-mcp-context-pattern</a></li>
+  <li><span class="rn">[20]</span> Chen, L., Zaharia, M., Zou, J. "FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance." arXiv:2305.05176, 2023. <a href="https://arxiv.org/abs/2305.05176">arxiv.org/abs/2305.05176</a></li>
+  <li><span class="rn">[21]</span> Cheng, Z., Kasai, J., Yu, T. "Batch Prompting: Efficient Inference with Large Language Model APIs." <i>EMNLP 2023 Industry Track</i>. arXiv:2301.08721. <a href="https://arxiv.org/abs/2301.08721">arxiv.org/abs/2301.08721</a></li>
+  <li><span class="rn">[22]</span> "Efficient but Vulnerable: Benchmarking and Defending LLM Batch Prompting Attack." arXiv:2503.15551, 2025. Source for the batching security caveat. <a href="https://arxiv.org/html/2503.15551">arxiv.org/html/2503.15551</a></li>
+  <li><span class="rn">[23]</span> Kwon, W., Li, Z., Zhuang, S., Sheng, Y., Yu, C. H., Gonzalez, J. E., Zhang, H., Stoica, I. "Efficient Memory Management for Large Language Model Serving with PagedAttention." arXiv:2309.06180, 2023. <a href="https://arxiv.org/abs/2309.06180">arxiv.org/abs/2309.06180</a></li>
+  <li><span class="rn">[24]</span> vLLM. "Automatic Prefix Caching" design documentation. <a href="https://docs.vllm.ai/en/v0.9.0/design/automatic_prefix_caching.html">docs.vllm.ai/en/v0.9.0/design/automatic_prefix_caching.html</a></li>
+  <li><span class="rn">[25]</span> vLLM. "Inside vLLM: Anatomy of a High-Throughput LLM Inference System." September 2025. Covers PagedAttention, continuous batching, prefix caching and speculative decoding. <a href="https://vllm.ai/blog/2025-09-05-anatomy-of-vllm">vllm.ai/blog/2025-09-05-anatomy-of-vllm</a></li>
+  <li><span class="rn">[26]</span> Chen, C., Borgeaud, S., et al. "Accelerating Large Language Model Decoding with Speculative Sampling." arXiv:2302.01318. <a href="https://arxiv.org/abs/2302.01318">arxiv.org/abs/2302.01318</a></li>
+  <li><span class="rn">[27]</span> LangChain. "Context Engineering for Agents." Covers scratchpads, summarization and subagent context isolation, including the reported 15&times; token multiple for multi-agent research. <a href="https://www.langchain.com/blog/context-engineering-for-agents">langchain.com/blog/context-engineering-for-agents</a></li>
+  <li><span class="rn">[28]</span> Anthropic. "How we built our multi-agent research system." Anthropic Engineering, June 2025. Orchestrator-worker architecture, the 90.2 percent improvement over single-agent Opus 4, and the approximately 15&times; token multiple over chat. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research-system</a></li>
+  <li><span class="rn">[29]</span> ZenML LLMOps Database. "Building Production Multi-Agent Research Systems with Claude." Summary of the above, including token usage explaining roughly 80 percent of performance variance. <a href="https://www.zenml.io/llmops-database/building-production-multi-agent-research-systems-with-claude">zenml.io/llmops-database/building-production-multi-agent-research-systems-with-claude</a></li>
+  <li><span class="rn">[30]</span> Anthropic. "Agent Skills" overview. Claude Platform documentation. Three-tier progressive disclosure: frontmatter metadata at startup, SKILL.md body on activation, bundled files on demand. <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">platform.claude.com/docs/en/agents-and-tools/agent-skills/overview</a></li>
+  <li><span class="rn">[31]</span> SwirlAI. "Agent Skills: Progressive Disclosure as a System Design Pattern." Token measurements across Anthropic's official skill set: median discovery cost near 80 tokens per skill, body median near 2,000. <a href="https://www.newsletter.swirlai.com/p/agent-skills-progressive-disclosure">newsletter.swirlai.com/p/agent-skills-progressive-disclosure</a></li>
+  <li><span class="rn">[32]</span> Cemri, M., Pan, M. Z., Yang, S., Agrawal, L. A., Chopra, B., Tiwari, R., Keutzer, K., Parameswaran, A., Klein, D., Ramchandran, K., Zaharia, M., Gonzalez, J. E., Stoica, I. "Why Do Multi-Agent LLM Systems Fail?" <i>NeurIPS 2025 Datasets and Benchmarks</i>. MAST taxonomy, 14 failure modes in three clusters over 1,600+ traces from 7 frameworks. arXiv:2503.13657. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
+  <li><span class="rn">[33]</span> Sourcegraph. "Context Engineering: A Practical Guide for AI Agents." May 2026. Just-in-time retrieval and memory compaction in production systems. <a href="https://sourcegraph.com/blog/context-engineering">sourcegraph.com/blog/context-engineering</a></li>
+</ol>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>The Token Budget &middot; Methods for token optimization in LLM and agentic pipelines. All calculators use illustrative rates and simplified models, documented in the appendix; they are for building intuition about shapes and orders of magnitude, not for forecasting a bill.</p>
+    <p class="byline">By Majid Mazouchi &middot; August 29, 2026</p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const fmt = n => n >= 1e6 ? (n/1e6).toFixed(2)+"M" : n >= 1e3 ? (n/1e3).toFixed(n>=1e4?0:1)+"k" : Math.round(n).toString();
+const usd = n => n < 1 ? "$"+n.toFixed(3) : n < 100 ? "$"+n.toFixed(2) : "$"+Math.round(n).toLocaleString();
+const IN = 3/1e6, OUT = 15/1e6, W_MULT = 1.25, R_MULT = 0.10;
+const C = {rust:"#A8432B", teal:"#1B6B66", ochre:"#BE8A21", ink:"#1E1A15", ink3:"#7A7063", rule:"#D9CFBA", plum:"#6B3A5B"};
+const clampv = (v,a,b) => Math.max(a, Math.min(b, v));
+const sig = x => 1/(1+Math.exp(-x));
+
+/* ---------- hero band ---------- */
+(function(){
+  const band=$("band"), N=window.innerWidth<620?30:60;
+  const mix=[["#8E8878",.12],[C.ochre,.20],[C.rust,.22],[C.teal,.14],[C.ink,.02]];
+  let i=0;
+  mix.forEach(([col,frac])=>{const n=Math.round(frac*N);for(let j=0;j<n;j++){const d=document.createElement("div");d.className="cell";d.style.background=col;band.appendChild(d);i++;}});
+  for(;i<N;i++){const d=document.createElement("div");d.className="cell";band.appendChild(d);}
+})();
+
+/* ---------- svg helpers ---------- */
+function svgEl(t,a){const e=document.createElementNS("http://www.w3.org/2000/svg",t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function clear(s){while(s.firstChild)s.removeChild(s.firstChild);}
+function axes(svg,x0,y0,x1,y1,xl,yl){
+  svg.appendChild(svgEl("line",{x1:x0,y1:y1,x2:x1,y2:y1,stroke:C.ink3,"stroke-width":1}));
+  svg.appendChild(svgEl("line",{x1:x0,y1:y0,x2:x0,y2:y1,stroke:C.ink3,"stroke-width":1}));
+  const a=svgEl("text",{x:(x0+x1)/2,y:y1+26,"text-anchor":"middle",class:"axis-lab"});a.textContent=xl;svg.appendChild(a);
+  const b=svgEl("text",{x:x0-8,y:y0-9,"text-anchor":"start",class:"axis-lab"});b.textContent=yl;svg.appendChild(b);
+}
+function path(svg,pts,color,dash,width){
+  const d=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const e=svgEl("path",{d:d,fill:"none",stroke:color,"stroke-width":width||2,"stroke-linejoin":"round"});
+  if(dash)e.setAttribute("stroke-dasharray",dash);
+  svg.appendChild(e);
+}
+function label(svg,x,y,txt,color,anchor){
+  const t=svgEl("text",{x:x,y:y,"text-anchor":anchor||"start",class:"axis-lab",fill:color||C.ink3});
+  t.setAttribute("font-weight","500");t.textContent=txt;svg.appendChild(t);
+}
+function ygrid(svg,x0,x1,y0,y1,maxY,labeller){
+  for(let g=0;g<=4;g++){
+    const y=y1-(y1-y0)*g/4;
+    svg.appendChild(svgEl("line",{x1:x0,y1:y,x2:x1,y2:y,class:"gridline"}));
+    const l=svgEl("text",{x:x0-7,y:y+3,"text-anchor":"end",class:"axis-lab"});
+    l.textContent=labeller(maxY*g/4);svg.appendChild(l);
+  }
+}
+function bind(ids,fn){ids.forEach(id=>{const e=$(id);if(e)e.addEventListener("input",fn);});fn();}
+
+/* ================= FIG 1: tokenizer ================= */
+const COMMON=new Set(("the a an and or of to in on at for with from by as is are was were be been being that which this those these it its into over under than then so but if when while there here we you they he she i has have had do does did not no yes very much more most some any all can could would should may might will shall about after before during through he her his my your our their what who how why where new old good bad big small first last one two three time year day work part case point way man make take see get go know think say come use find give tell ask need try feel become leave put mean keep let begin seem help talk turn start show hear play run move like live believe hold bring happen write provide sit stand lose pay meet include continue set learn change lead understand watch follow stop create speak read allow add spend grow open walk win offer remember love consider appear buy wait serve die send expect build stay fall cut reach kill remain data model value type name list file text code test result error state size level rate line item user").split(" "));
+function tokenizeApprox(text){
+  const out=[];
+  const re=/(\r?\n)|([ \t]+)|([A-Za-z]+(?:'[A-Za-z]+)?)|([0-9]+(?:\.[0-9]+)?)|([\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]+)|([^\x00-\x7F]+)|([^\sA-Za-z0-9])/g;
+  let m;
+  while((m=re.exec(text))!==null){
+    if(m[1]){out.push({s:"\\n",n:1,k:"ws"});}
+    else if(m[2]){out.push({s:m[2],n:Math.max(1,Math.ceil(m[2].length/4)),k:"ws"});}
+    else if(m[3]){
+      const w=m[3], lw=w.toLowerCase();
+      if(COMMON.has(lw)&&w.length<=9){out.push({s:w,n:1,k:"w"});}
+      else{
+        const n=Math.max(1,Math.round(w.length/4.2));
+        const per=Math.ceil(w.length/n);
+        for(let i=0;i<w.length;i+=per)out.push({s:w.slice(i,i+per),n:1,k:"w"});
+      }
+    }
+    else if(m[4]){const d=m[4];for(let i=0;i<d.length;i+=3)out.push({s:d.slice(i,i+3),n:1,k:"num"});}
+    else if(m[5]){const c=m[5];for(let i=0;i<c.length;i++)out.push({s:c[i],n:1,k:"cjk"});}
+    else if(m[6]){const c=m[6];for(let i=0;i<c.length;i+=2)out.push({s:c.slice(i,i+2),n:1,k:"nl"});}
+    else if(m[7]){out.push({s:m[7],n:1,k:"p"});}
+  }
+  return out;
+}
+const TK_SAMPLES={
+  english:"The vehicle health management module observed that the axial vibration amplitude on main bearing three had increased from a baseline of 0.42 millimeters per second to approximately 1.87 millimeters per second over four thousand operating hours.",
+  code:"def compute_thrust_bearing_clearance(oil_film_thickness_um, asperity_contact_ratio):\n    if asperity_contact_ratio > MAX_ASPERITY_THRESHOLD:\n        raise ClearanceOutOfBoundsError(oil_film_thickness_um)\n    return oil_film_thickness_um * (1.0 - asperity_contact_ratio) / 25.4",
+  json:'{\n  "vehicle_identification_number": "1G1YY22G4X5100001",\n  "diagnostic_trouble_code": "P0521",\n  "axial_vibration_mm_per_s": 1.87,\n  "oil_temperature_celsius": 118.4,\n  "operating_hours_since_service": 4120\n}',
+  cjk:"車両ヘルスマネジメントモジュールは、第三主軸受の軸方向振動振幅が基準値から増加したことを検知しました。スペクトル解析ではクランクシャフト回転周波数に顕著なピークが現れています。",
+  numbers:"1724938201,0.4213,1.8734,118.42,4120,3,0.0091,58,720.5,1013.25,0.00042,9812734,44.109,2.718281828"
+};
+function tokFig(){
+  const txt=$("tkin").value;
+  const toks=tokenizeApprox(txt);
+  const view=$("tkview");clear(view);
+  const tints=["rgba(27,107,102,.14)","rgba(190,138,33,.16)"];
+  const shown=toks.slice(0,600);
+  shown.forEach((t,i)=>{
+    const sp=document.createElement("span");
+    sp.className="tk";
+    sp.style.background=tints[i%2];
+    sp.textContent=t.k==="ws"&&t.s==="\\n"?"\u23ce":t.s;
+    view.appendChild(sp);
+  });
+  if(toks.length>shown.length){
+    const sp=document.createElement("span");sp.className="tk";sp.style.color=C.ink3;
+    sp.textContent=" ... "+(toks.length-shown.length)+" more";view.appendChild(sp);
+  }
+  const words=(txt.match(/[A-Za-z\u00C0-\u024F]+/g)||[]).length + Math.ceil((txt.match(/[\u3040-\u30FF\u4E00-\u9FFF]/g)||[]).length/2);
+  $("tk_ch").textContent=txt.length.toLocaleString();
+  $("tk_w").textContent=words.toLocaleString();
+  $("tk_t").textContent=toks.length.toLocaleString();
+  $("tk_r").textContent=words?(toks.length/words).toFixed(2):"-";
+}
+$("tkin").addEventListener("input",tokFig);
+document.querySelectorAll("#tksamples .tog").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#tksamples .tog").forEach(o=>o.setAttribute("aria-pressed",o===b));
+    $("tkin").value=TK_SAMPLES[b.dataset.s];tokFig();
+  });
+});
+tokFig();
+
+/* ================= FIG 2: decision tool ================= */
+const QUESTIONS=[
+  {id:"shape",q:"What shape is your workload?",opts:[["agent","Long agent sessions"],["short","Many short calls"],["bulk","High-volume bulk jobs"]],val:"agent"},
+  {id:"stable",q:"How stable is the front of your prompt?",opts:[["very","Identical every call"],["user","Varies per user"],["req","Varies every request"]],val:"very"},
+  {id:"bulk",q:"Where does the bulk of your tokens sit?",opts:[["tools","Tool schemas and results"],["docs","Retrieved documents"],["hist","Conversation history"],["out","Generated output"]],val:"tools"},
+  {id:"host",q:"Where does the model run?",opts:[["api","Hosted API"],["self","Self-hosted"]],val:"api"}
+];
+const METHODS=[
+  {n:"Per-stage token accounting",b:100,why:"always first",f:()=>0},
+  {n:"Prompt caching",b:92,why:"repeated identical prefix",f:a=>(a.stable==="very"?18:a.stable==="user"?2:-45)+(a.shape==="agent"?10:0)+(a.host==="self"?-8:0)},
+  {n:"Output schema and length limits",b:74,why:"output tokens cost the most",f:a=>(a.bulk==="out"?26:0)+(a.shape==="short"?8:0)},
+  {n:"Truncate and paginate tool results",b:72,why:"raw results dominate the window",f:a=>(a.bulk==="tools"?24:-10)+(a.shape==="agent"?8:0)},
+  {n:"Retry reduction: constrained decoding",b:70,why:"rework is unmeasured spend",f:a=>(a.bulk==="out"?12:0)+(a.shape==="bulk"?10:0)},
+  {n:"Tabular formats over JSON",b:62,why:"mechanical and lossless",f:a=>(a.bulk==="tools"?14:-6)},
+  {n:"Tool result clearing",b:60,why:"history carries dead weight",f:a=>(a.bulk==="hist"?26:0)+(a.shape==="agent"?14:-25)},
+  {n:"Progressive tool loading",b:58,why:"large catalogs, small working sets",f:a=>(a.bulk==="tools"?20:-12)+(a.stable==="very"?-14:4)},
+  {n:"Retrieval and just-in-time loading",b:56,why:"fewer distractors, better accuracy",f:a=>(a.bulk==="docs"?30:-8)},
+  {n:"Compaction",b:50,why:"long horizons need a reset",f:a=>(a.shape==="agent"?24:-30)+(a.bulk==="hist"?14:0)},
+  {n:"Diff-based editing",b:46,why:"rewrites cost the whole file",f:a=>(a.bulk==="out"?24:-14)},
+  {n:"Semantic caching",b:44,why:"skip the call, not just the prefix",f:a=>(a.shape==="short"?28:a.shape==="bulk"?12:-18)},
+  {n:"Batch prompting",b:42,why:"amortize the prefix across items",f:a=>(a.shape==="bulk"?32:-24)+(a.stable==="very"?-12:0)},
+  {n:"Extractive prompt compression",b:38,why:"for content you cannot cache",f:a=>(a.stable==="req"?20:-10)+(a.bulk==="docs"?12:0)},
+  {n:"Model cascade",b:34,why:"price spread across model classes",f:a=>(a.shape==="bulk"?22:a.shape==="short"?12:-6)},
+  {n:"Distillation and fine-tuning",b:30,why:"removes prompt tokens permanently",f:a=>(a.shape==="bulk"?28:-12)+(a.host==="self"?10:0)},
+  {n:"Subagent isolation",b:22,why:"capability, not savings",f:a=>(a.shape==="agent"?16:-20)},
+  {n:"Serving layer: paged KV, prefix sharing, quantization",b:20,why:"only if you own the stack",f:a=>(a.host==="self"?70:-100)},
+  {n:"Learned compression: gisting, cartridges",b:14,why:"needs weight access and a hot corpus",f:a=>(a.host==="self"?45:-100)+(a.bulk==="docs"?10:0)}
+];
+function buildQs(){
+  const w=$("qwrap");clear(w);
+  QUESTIONS.forEach(q=>{
+    const c=document.createElement("div");c.className="qcard";
+    const t=document.createElement("div");t.className="q";t.textContent=q.q;c.appendChild(t);
+    const r=document.createElement("div");r.className="btnrow";
+    q.opts.forEach(([v,lab])=>{
+      const b=document.createElement("button");
+      b.className="tog";b.textContent=lab;b.setAttribute("aria-pressed",q.val===v);
+      b.addEventListener("click",()=>{q.val=v;buildQs();rankFig();});
+      r.appendChild(b);
+    });
+    c.appendChild(r);w.appendChild(c);
+  });
+}
+function rankFig(){
+  const a={};QUESTIONS.forEach(q=>a[q.id]=q.val);
+  const scored=METHODS.map(m=>({n:m.n,why:m.why,s:m.b+m.f(a)})).filter(m=>m.s>0).sort((x,y)=>y.s-x.s).slice(0,9);
+  const ol=$("ranked");clear(ol);
+  scored.forEach(m=>{
+    const li=document.createElement("li");
+    const a1=document.createElement("span");a1.textContent=m.n;
+    const a2=document.createElement("span");a2.className="why";a2.textContent=m.why;
+    li.appendChild(a1);li.appendChild(a2);ol.appendChild(li);
+  });
+}
+buildQs();rankFig();
+
+/* ================= FIG 3: caching ================= */
+function cacheFig(){
+  const P=+$("s_pfx").value, T=+$("s_turns").value, U=+$("s_new").value, inv=+$("s_inv").value/100;
+  $("v_pfx").textContent=P.toLocaleString()+" tok";
+  $("v_turns").textContent=T;
+  $("v_new").textContent=U.toLocaleString()+" tok";
+  $("v_inv").textContent=Math.round(inv*100)+"%";
+  const OUTT=400;
+  let noc=0,cac=0,reads=0,writes=0;
+  const A=[],B=[];
+  const period=inv>0?Math.max(1,Math.round(1/inv)):Infinity;
+  for(let t=1;t<=T;t++){
+    const hist=(U+OUTT)*(t-1);
+    noc+=(P+hist)*IN+OUTT*OUT;
+    const miss=(t===1)||(period!==Infinity&&t%period===0);
+    if(miss){cac+=P*IN*W_MULT;writes++;}else{cac+=P*IN*R_MULT;reads++;}
+    cac+=hist*IN*R_MULT*0.6+U*IN+OUTT*OUT;
+    A.push([t,noc]);B.push([t,cac]);
+  }
+  const svg=$("cacheChart");clear(svg);
+  const x0=52,y0=16,x1=678,y1=206,maxY=Math.max(noc,cac,1e-9);
+  ygrid(svg,x0,x1,y0,y1,maxY,usd);
+  axes(svg,x0,y0,x1,y1,"turn","cumulative cost");
+  const sx=t=>x0+(x1-x0)*(t-1)/Math.max(T-1,1), sy=v=>y1-(y1-y0)*v/maxY;
+  path(svg,A.map(p=>[sx(p[0]),sy(p[1])]),C.rust,null,2.2);
+  path(svg,B.map(p=>[sx(p[0]),sy(p[1])]),C.teal,null,2.2);
+  label(svg,sx(T)-4,sy(noc)-8,"no cache",C.rust,"end");
+  label(svg,sx(T)-4,sy(cac)+15,"cached",C.teal,"end");
+  $("o_nocache").textContent=usd(noc);
+  $("o_cache").textContent=usd(cac);
+  const sv=(1-cac/noc)*100, el=$("o_save");
+  el.textContent=sv.toFixed(0)+"%";el.className="v "+(sv>50?"good":sv>15?"mid":"bad");
+  $("o_hit").textContent=Math.round(100*reads/Math.max(reads+writes,1))+"%";
+}
+bind(["s_pfx","s_turns","s_new","s_inv"],cacheFig);
+
+/* ================= FIG 4: semantic cache ================= */
+function semFig(){
+  const th=+$("s_sth").value/100, rep=+$("s_rep").value/100, sep=+$("s_sep").value/100;
+  $("v_sth").textContent=th.toFixed(2);
+  $("v_rep").textContent=Math.round(rep*100)+"%";
+  $("v_sep").textContent=sep<0.33?"weak":sep<0.7?"medium":"strong";
+  const hitAt=t=>rep*sig((0.90+0.06*sep-t)*10);
+  const falseAt=t=>(1-rep)*sig(((0.92-0.22*sep)-t)*30)*0.30;
+  const svg=$("semChart");clear(svg);
+  const x0=52,y0=16,x1=650,y1=206;
+  ygrid(svg,x0,x1,y0,y1,1,v=>Math.round(v*100)+"%");
+  axes(svg,x0,y0,x1,y1,"similarity threshold","rate");
+  const sx=t=>x0+(x1-x0)*(t-0.5)/0.5, sy=v=>y1-(y1-y0)*clampv(v,0,1);
+  const h=[],f=[];
+  for(let t=0.5;t<=1.0001;t+=0.01){h.push([sx(t),sy(hitAt(t))]);f.push([sx(t),sy(falseAt(t))]);}
+  const by=sy(0.001);
+  svg.appendChild(svgEl("line",{x1:x0,y1:by,x2:x1,y2:by,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.5}));
+  label(svg,x0+6,by-5,"1 wrong answer per 1,000",C.ink,"start");
+  path(svg,h,C.teal,null,2.2);
+  path(svg,f,C.rust,null,2.2);
+  label(svg,x1+4,sy(hitAt(1))+4,"hits",C.teal,"start");
+  label(svg,x1+4,sy(falseAt(1))+4,"false hits",C.rust,"start");
+  const cx=sx(th);
+  svg.appendChild(svgEl("line",{x1:cx,y1:y0,x2:cx,y2:y1,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.55}));
+  svg.appendChild(svgEl("circle",{cx:cx,cy:sy(hitAt(th)),r:4,fill:C.teal}));
+  svg.appendChild(svgEl("circle",{cx:cx,cy:sy(falseAt(th)),r:4,fill:C.rust}));
+  const H=hitAt(th),F=falseAt(th);
+  $("sm_hit").textContent=(H*100).toFixed(1)+"%";
+  $("sm_false").textContent=(F*100).toFixed(2)+"%";
+  $("sm_saved").textContent=((H+F)*100).toFixed(1)+"%";
+  const wr=$("sm_wrong");
+  wr.textContent=Math.round(F*1000)+" per 1k";
+  wr.className="v "+(F<0.001?"good":F<0.01?"mid":"bad");
+}
+bind(["s_sth","s_rep","s_sep"],semFig);
+
+/* ================= FIG 5: context growth ================= */
+const gState={naive:true,clear:true,compact:true,notes:true};
+document.querySelectorAll("#growthToggles .tog").forEach(b=>{
+  b.addEventListener("click",()=>{const k=b.dataset.k;gState[k]=!gState[k];b.setAttribute("aria-pressed",gState[k]);growthFig();});
+});
+function growthFig(){
+  const TR=+$("s_trs").value, WIN=+$("s_win").value*1000, T=40, BASE=12000, USER=500, ASST=600;
+  $("v_trs").textContent=TR.toLocaleString()+" tok";
+  $("v_win").textContent=(+$("s_win").value)+"k tok";
+  const naive=[],clr=[],cmp=[],nts=[];
+  let cn=BASE,cc=BASE,ck=BASE,cq=BASE,tn=0,tc=0,tk=0,tq=0;
+  for(let t=1;t<=T;t++){
+    cn+=USER+ASST+TR;
+    ck+=USER+ASST+TR; if(t>3)ck-=TR*0.92;
+    cc+=USER+ASST+TR; if(cc>WIN*0.70)cc=BASE+6000;
+    cq+=USER+ASST+180;
+    naive.push(cn);clr.push(ck);cmp.push(cc);nts.push(cq);
+    tn+=cn;tc+=ck;tk+=cc;tq+=cq;
+  }
+  const svg=$("growthChart");clear(svg);
+  const x0=58,y0=16,x1=678,y1=232,maxY=Math.max(WIN,Math.max.apply(null,naive))*1.02;
+  ygrid(svg,x0,x1,y0,y1,maxY,fmt);
+  axes(svg,x0,y0,x1,y1,"turn","context size, tokens");
+  const sx=t=>x0+(x1-x0)*(t-1)/(T-1), sy=v=>y1-(y1-y0)*Math.min(v,maxY)/maxY;
+  const wy=sy(WIN);
+  svg.appendChild(svgEl("line",{x1:x0,y1:wy,x2:x1,y2:wy,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.5}));
+  label(svg,x1,wy-6,"window limit",C.ink,"end");
+  [["naive",naive,C.rust,null],["clear",clr,C.ochre,null],["compact",cmp,C.teal,null],["notes",nts,C.ink,"4 3"]]
+    .forEach(([k,arr,col,dash])=>{if(gState[k])path(svg,arr.map((v,i)=>[sx(i+1),sy(v)]),col,dash,2);});
+  if(gState.naive)label(svg,x1-4,sy(naive[T-1])-7,"full transcript",C.rust,"end");
+  if(gState.clear)label(svg,x1-4,sy(clr[T-1])-7,"tool clearing",C.ochre,"end");
+  if(gState.compact)label(svg,x0+8,sy(cmp[T-1])-7,"compaction",C.teal,"start");
+  if(gState.notes)label(svg,x0+8,sy(nts[T-1])+14,"notes file",C.ink,"start");
+  $("g_naive").textContent=fmt(tn);$("g_clear").textContent=fmt(tc);
+  $("g_compact").textContent=fmt(tk);$("g_notes").textContent=fmt(tq);
+}
+bind(["s_trs","s_win"],growthFig);
+
+/* ================= FIG 6: compression ================= */
+const CORPUS="The vehicle health management module observed that the axial vibration amplitude on main bearing three had increased from a baseline of 0.42 millimeters per second to approximately 1.87 millimeters per second over the course of roughly four thousand operating hours, and the accompanying spectral analysis showed a pronounced peak at the crankshaft rotational frequency together with a smaller but growing second harmonic, which in combination with the elevated oil temperature reading of 118 degrees Celsius suggests progressive thrust washer wear rather than a lubrication supply fault, and therefore the recommended action is to schedule an inspection of the thrust surface at the next scheduled maintenance interval rather than to trigger an immediate service stop.";
+const STOP=new Set("the a an and or of to in on at for with from by as is are was were be been being that which this those these it its into over under than then so but if when while there here we you they he she i has have had do does did not no yes very much more most some any all can could would should may might will shall about after before during through together rather therefore accompanying course approximately roughly".split(" "));
+function infoScore(w,freq){
+  const clean=w.toLowerCase().replace(/[^a-z0-9.]/g,"");
+  if(!clean)return -1;
+  if(/[0-9]/.test(clean))return 100;
+  let s=clean.length*1.6;
+  if(STOP.has(clean))s-=22;
+  s-=(freq[clean]||1)*2.2;
+  if(/^[A-Z]/.test(w))s+=4;
+  return s;
+}
+(function(){
+  const words=CORPUS.split(/\s+/), freq={};
+  words.forEach(w=>{const c=w.toLowerCase().replace(/[^a-z0-9.]/g,"");freq[c]=(freq[c]||0)+1;});
+  const scored=words.map((w,i)=>({w,i,s:infoScore(w,freq)}));
+  const order=scored.slice().sort((a,b)=>a.s-b.s).map(o=>o.i);
+  const box=$("corpus");
+  scored.forEach(o=>{const sp=document.createElement("span");sp.className="tok";sp.dataset.i=o.i;sp.textContent=o.w+" ";box.appendChild(sp);});
+  window.__cmp={words,order};
+})();
+function compressFig(){
+  const pct=+$("s_cr").value/100, {words,order}=window.__cmp;
+  const nDrop=Math.round(order.length*pct), dropSet=new Set(order.slice(0,nDrop));
+  document.querySelectorAll("#corpus .tok").forEach(sp=>sp.classList.toggle("drop",dropSet.has(+sp.dataset.i)));
+  let keptChars=0;
+  words.forEach((w,i)=>{if(!dropSet.has(i))keptChars+=w.length+1;});
+  const ot=Math.ceil(CORPUS.length/4), ct=Math.ceil(keptChars/4);
+  $("v_cr").textContent=(ct>0?ot/ct:1).toFixed(2)+"\u00d7";
+  $("c_orig").textContent=ot+" tok";
+  $("c_comp").textContent=ct+" tok";
+  $("c_drop").textContent=nDrop+" words";
+  $("c_cost").textContent=usd(ct*1000*IN);
+}
+bind(["s_cr"],compressFig);
+
+/* ================= FIG 7: retrieval ================= */
+(function(){const g=$("chunks");for(let i=0;i<96;i++){const d=document.createElement("div");d.className="chunk";g.appendChild(d);}})();
+function retrievalFig(){
+  const k=+$("s_k").value, rank=+$("s_q").value, CH=420;
+  $("v_k").textContent=k;$("v_q").textContent=rank;
+  const cells=document.querySelectorAll("#chunks .chunk");
+  const ranked=[];for(let i=0;i<96;i++)ranked.push(i);
+  ranked.sort((a,b)=>((a*37+11)%96)-((b*37+11)%96));
+  const goldIdx=ranked[rank-1], sel=new Set(ranked.slice(0,k));
+  cells.forEach((c,i)=>{c.classList.toggle("gold",i===goldIdx);c.classList.toggle("sel",sel.has(i));});
+  const sent=sel.size*CH, full=96*CH, ok=rank<=k;
+  $("r_tok").textContent=fmt(sent);
+  $("r_vs").textContent="-"+Math.round((1-sent/full)*100)+"%";
+  const hit=$("r_hit");hit.textContent=ok?"yes":"no";hit.className="v "+(ok?"good":"bad");
+  $("r_dis").textContent=Math.max(sel.size-(ok?1:0),0);
+}
+bind(["s_k","s_q"],retrievalFig);
+
+/* ================= FIG 8: tools ================= */
+function toolsFig(){
+  const n=+$("s_nt").value, sz=+$("s_ss").value, used=Math.min(+$("s_nu").value,n);
+  $("v_nt").textContent=n;$("v_ss").textContent=sz.toLocaleString()+" tok";$("v_nu").textContent=used;
+  const stack=$("toolstack");clear(stack);
+  const show=Math.min(n,180);
+  for(let i=0;i<show;i++){
+    const d=document.createElement("div");d.className="tl"+(i<used?" live":"");
+    d.style.width=Math.max(6,Math.min(46,sz/45))+"px";stack.appendChild(d);
+  }
+  const upfront=n*sz, ondemand=Math.round(n*22+used*sz+900);
+  $("t_up").textContent=fmt(upfront);$("t_dn").textContent=fmt(ondemand);
+  const red=(1-ondemand/upfront)*100, e=$("t_red");
+  e.textContent=(red>=0?"-":"+")+Math.abs(red).toFixed(0)+"%";
+  e.className="v "+(red>60?"good":red>20?"mid":"bad");
+  $("t_ses").textContent=fmt(Math.max(upfront-ondemand,0)*30)+" tok";
+}
+bind(["s_nt","s_ss","s_nu"],toolsFig);
+
+/* ================= FIG 9: format ================= */
+function fmtFig(){
+  const R=+$("s_rows").value, K=+$("s_cols").value, L=+$("s_klen").value, V=9;
+  $("v_rows").textContent=R.toLocaleString();$("v_cols").textContent=K;$("v_klen").textContent=L+" chars";
+  const jsonPretty=R*(K*(L+V+10)+8), jsonMin=R*(K*(L+V+6)+3), yaml=R*(K*(L+V+5)+3), csv=K*(L+1)+R*(K*(V+1));
+  const data=[["JSON, pretty",jsonPretty,C.rust],["JSON, minified",jsonMin,C.ochre],["YAML",yaml,C.ink3],["CSV",csv,C.teal]];
+  const svg=$("fmtChart");clear(svg);
+  const x0=132,x1=640,y0=14,rowH=36,maxV=Math.max.apply(null,data.map(d=>d[1]));
+  data.forEach((d,i)=>{
+    const y=y0+i*rowH,w=(x1-x0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(w,1),height:20,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:x0-9,y:y+15,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:x0+Math.max(w,1)+7,y:y+15,class:"axis-lab",fill:C.ink});v.textContent=fmt(d[1]/4)+" tok";svg.appendChild(v);
+  });
+  const sv=svgEl("text",{x:x0,y:y0+4*rowH+12,class:"axis-lab",fill:C.teal});
+  sv.textContent="CSV saves "+Math.round((1-csv/jsonPretty)*100)+"% versus pretty JSON, "+usd((jsonPretty-csv)/4*IN*1000)+" per 1k calls";
+  svg.appendChild(sv);
+}
+bind(["s_rows","s_cols","s_klen"],fmtFig);
+
+/* ================= FIG 10: edit ================= */
+function editFig(){
+  const F=+$("s_fl").value, Ch=Math.min(+$("s_ch").value,F), N=+$("s_ne").value, TPL=11;
+  $("v_fl").textContent=F.toLocaleString()+" lines";$("v_ch").textContent=Ch;$("v_ne").textContent=N;
+  const rw=F*TPL*N, df=(Ch*TPL*2+40)*N;
+  const svg=$("editChart");clear(svg);
+  const x0=118,x1=640,y0=20,rowH=44,maxV=Math.max(rw,df);
+  [["Full rewrite",rw,C.rust],["Targeted diff",df,C.teal]].forEach((d,i)=>{
+    const y=y0+i*rowH,w=(x1-x0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(w,2),height:24,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:x0-9,y:y+17,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:x0+Math.max(w,2)+7,y:y+17,class:"axis-lab",fill:C.ink});v.textContent=fmt(d[1])+" out tok";svg.appendChild(v);
+  });
+  $("e_rw").textContent=usd(rw*OUT);$("e_df").textContent=usd(df*OUT);
+  $("e_ra").textContent=(rw/Math.max(df,1)).toFixed(1)+"\u00d7";
+}
+bind(["s_fl","s_ch","s_ne"],editFig);
+
+/* ================= FIG 11: cascade ================= */
+function cascadeFig(){
+  const th=+$("s_th").value/100, q=+$("s_rq").value/100, ratio=+$("s_ratio").value;
+  $("v_th").textContent=th.toFixed(2);$("v_rq").textContent=q.toFixed(2);$("v_ratio").textContent=ratio+"\u00d7";
+  const ACC_S=0.74, ACC_L=0.92, ERR_S=1-ACC_S, qq=clampv((q-0.5)/0.5,0,1);
+  function evalAt(t){
+    const esc=clampv(qq*ERR_S*(t/0.7)+(1-qq)*t,0,1);
+    const precision=qq+(1-qq)*ERR_S;
+    const caught=Math.min(esc*precision,ERR_S);
+    return {esc:esc, acc:Math.min(0.98,ACC_S+caught*ACC_L), cost:Math.min(1,(1+esc*ratio)/ratio)};
+  }
+  const svg=$("cascadeChart");clear(svg);
+  const x0=52,y0=16,x1=650,y1=206;
+  ygrid(svg,x0,x1,y0,y1,1,v=>Math.round(v*100)+"%");
+  axes(svg,x0,y0,x1,y1,"deferral threshold","relative cost and accuracy");
+  const sx=t=>x0+(x1-x0)*t, sy=v=>y1-(y1-y0)*v;
+  const costPts=[],accPts=[];
+  for(let t=0;t<=1.0001;t+=0.02){const r=evalAt(t);costPts.push([sx(t),sy(r.cost)]);accPts.push([sx(t),sy(r.acc)]);}
+  path(svg,accPts,C.teal,null,2.2);path(svg,costPts,C.rust,null,2.2);
+  svg.appendChild(svgEl("line",{x1:x0,y1:sy(ACC_L),x2:x1,y2:sy(ACC_L),stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.45}));
+  label(svg,x0+6,sy(ACC_L)-5,"large model alone",C.ink,"start");
+  label(svg,x1+4,sy(evalAt(1).acc)+4,"accuracy",C.teal,"start");
+  label(svg,x1+4,sy(evalAt(1).cost)+4,"cost",C.rust,"start");
+  const cur=evalAt(th), cx=sx(th);
+  svg.appendChild(svgEl("line",{x1:cx,y1:y0,x2:cx,y2:y1,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.55}));
+  svg.appendChild(svgEl("circle",{cx:cx,cy:sy(cur.acc),r:4,fill:C.teal}));
+  svg.appendChild(svgEl("circle",{cx:cx,cy:sy(cur.cost),r:4,fill:C.rust}));
+  $("k_esc").textContent=Math.round(cur.esc*100)+"%";
+  const ce=$("k_cost");ce.textContent="-"+Math.round((1-cur.cost)*100)+"%";
+  ce.className="v "+(cur.cost<0.4?"good":cur.cost<0.75?"mid":"bad");
+  $("k_acc").textContent=(cur.acc*100).toFixed(1)+"%";
+  const gap=(ACC_L-cur.acc)*100, ge=$("k_gap");
+  ge.textContent=(gap>0?"-":"+")+Math.abs(gap).toFixed(1)+" pt";
+  ge.className="v "+(gap<=0?"good":gap<3?"mid":"bad");
+}
+bind(["s_th","s_rq","s_ratio"],cascadeFig);
+
+/* ================= FIG 12: batch prompting ================= */
+function batchFig(){
+  const B=+$("s_bs").value, P=+$("s_bp").value, I=+$("s_bi").value, cx=+$("s_bc").value/100;
+  $("v_bs").textContent=B;$("v_bp").textContent=P.toLocaleString()+" tok";$("v_bi").textContent=I+" tok";
+  $("v_bc").textContent=cx<0.3?"simple":cx<0.65?"moderate":"multi-step reasoning";
+  const RESP=60, ACC1=0.91, decay=0.002+cx*0.038;
+  const tpi=b=>P/b+I+RESP;
+  const acc=b=>Math.max(0,ACC1-decay*Math.log(b));
+  const base=tpi(1);
+  const svg=$("batchChart");clear(svg);
+  const x0=52,y0=16,x1=650,y1=206,MAXB=40;
+  ygrid(svg,x0,x1,y0,y1,1,v=>Math.round(v*100)+"%");
+  axes(svg,x0,y0,x1,y1,"batch size","cost per item and accuracy, normalized");
+  const sx=b=>x0+(x1-x0)*(b-1)/(MAXB-1), sy=v=>y1-(y1-y0)*clampv(v,0,1);
+  const cp=[],ap=[];
+  let bestB=1,bestScore=-1e9;
+  for(let b=1;b<=MAXB;b++){
+    cp.push([sx(b),sy(tpi(b)/base)]);
+    ap.push([sx(b),sy(acc(b))]);
+    const score=(1-tpi(b)/base)*100-10*((ACC1-acc(b))*100);
+    if(score>bestScore){bestScore=score;bestB=b;}
+  }
+  path(svg,ap,C.teal,null,2.2);path(svg,cp,C.rust,null,2.2);
+  label(svg,x1+4,sy(acc(MAXB))+4,"accuracy",C.teal,"start");
+  label(svg,x1+4,sy(tpi(MAXB)/base)+4,"cost/item",C.rust,"start");
+  const ox=sx(bestB);
+  svg.appendChild(svgEl("line",{x1:ox,y1:y0,x2:ox,y2:y1,stroke:C.ochre,"stroke-width":1.4,"stroke-dasharray":"4 3"}));
+  label(svg,ox+5,y0+10,"efficient B = "+bestB,C.ochre,"start");
+  const px=sx(B);
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(tpi(B)/base),r:4,fill:C.rust}));
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(acc(B)),r:4,fill:C.teal}));
+  $("b_tpi").textContent=Math.round(tpi(B))+" tok";
+  $("b_vs").textContent=(base/tpi(B)).toFixed(2)+"\u00d7 cheaper";
+  const ae=$("b_acc");ae.textContent=(acc(B)*100).toFixed(1)+"%";
+  ae.className="v "+(acc(B)>ACC1-0.01?"good":acc(B)>ACC1-0.04?"mid":"bad");
+  $("b_opt").textContent=bestB;
+}
+bind(["s_bs","s_bp","s_bi","s_bc"],batchFig);
+
+/* ================= FIG 13: distillation break-even ================= */
+function distFig(){
+  const T=+$("s_dt").value, F=+$("s_dc").value, M=+$("s_dm").value, V=+$("s_dv").value;
+  $("v_dt").textContent=T.toLocaleString()+" tok";
+  $("v_dc").textContent="$"+F.toLocaleString();
+  $("v_dm").textContent=M===1?"no, same model class":"yes, "+M+"\u00d7 cheaper";
+  $("v_dv").textContent=V.toLocaleString();
+  const RESID=900;
+  const promptCost=(T+RESID)*IN;
+  const ftCost=RESID*IN/M;
+  const per=promptCost-ftCost;
+  const beDays=per>0?F/(per*V):Infinity;
+  const DAYS=Math.max(30,Math.min(400,Math.ceil(beDays*2.2)||120));
+  const svg=$("distChart");clear(svg);
+  const x0=58,y0=16,x1=650,y1=186;
+  const endA=promptCost*V*DAYS, endB=F+ftCost*V*DAYS, maxY=Math.max(endA,endB,1e-9);
+  ygrid(svg,x0,x1,y0,y1,maxY,usd);
+  axes(svg,x0,y0,x1,y1,"days","cumulative cost");
+  const sx=d=>x0+(x1-x0)*d/DAYS, sy=v=>y1-(y1-y0)*clampv(v/maxY,0,1);
+  path(svg,[[sx(0),sy(0)],[sx(DAYS),sy(endA)]],C.rust,null,2.2);
+  path(svg,[[sx(0),sy(F)],[sx(DAYS),sy(endB)]],C.teal,null,2.2);
+  label(svg,x1-4,sy(endA)-8,"keep prompting",C.rust,"end");
+  label(svg,x1-4,sy(endB)+15,"fine-tune",C.teal,"end");
+  if(isFinite(beDays)&&beDays<=DAYS){
+    const bx=sx(beDays);
+    svg.appendChild(svgEl("line",{x1:bx,y1:y0,x2:bx,y2:y1,stroke:C.ochre,"stroke-width":1.4,"stroke-dasharray":"4 3"}));
+    label(svg,bx+5,y0+10,"break-even",C.ochre,"start");
+  }
+  $("d_be").textContent=isFinite(beDays)?(beDays<1?"under a day":Math.round(beDays)+" days"):"never";
+  $("d_pc").textContent=usd(Math.max(per,0));
+  $("d_yr").textContent=usd(Math.max(per*V*365-F,0));
+  const ok=$("d_ok");
+  if(!isFinite(beDays)||beDays>365){ok.textContent="not worth it";ok.className="v bad";}
+  else if(beDays>90){ok.textContent="marginal";ok.className="v mid";}
+  else{ok.textContent="clear win";ok.className="v good";}
+}
+bind(["s_dt","s_dc","s_dm","s_dv"],distFig);
+
+/* ================= FIG 14: architecture ================= */
+let arch="mono";
+document.querySelectorAll("#archToggles .tog").forEach(b=>{
+  b.addEventListener("click",()=>{
+    arch=b.dataset.a;
+    document.querySelectorAll("#archToggles .tog").forEach(o=>o.setAttribute("aria-pressed",o.dataset.a===arch));
+    archFig();
+  });
+});
+function box(svg,x,y,w,h,fill,stroke,txt,sub){
+  svg.appendChild(svgEl("rect",{x:x,y:y,width:w,height:h,rx:4,fill:fill,stroke:stroke,"stroke-width":1.4}));
+  const t=svgEl("text",{x:x+w/2,y:y+h/2+(sub?-3:4),"text-anchor":"middle",class:"axis-lab",fill:C.ink});
+  t.setAttribute("font-weight","600");t.textContent=txt;svg.appendChild(t);
+  if(sub){const s=svgEl("text",{x:x+w/2,y:y+h/2+12,"text-anchor":"middle",class:"axis-lab"});s.textContent=sub;svg.appendChild(s);}
+}
+function arrow(svg,x1,y1,x2,y2,w,col){
+  svg.appendChild(svgEl("line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,"stroke-width":Math.max(w,1),opacity:.8,"stroke-linecap":"round"}));
+}
+function archFig(){
+  const svg=$("archChart");clear(svg);const note=$("archNote");
+  if(arch==="mono"){
+    box(svg,270,20,160,52,"#F3ECDC",C.ink,"Agent","one context window");
+    [["Tool A","82k raw rows"],["Tool B","41k raw rows"],["Tool C","28k raw rows"]].forEach((t,i)=>{
+      const x=70+i*200;box(svg,x,190,150,48,"#FAF5EA",C.ochre,t[0],t[1]);
+      arrow(svg,x+75,190,350,72,9,C.rust);
+    });
+    label(svg,350,262,"every raw result passes through the model's window",C.rust,"middle");
+    note.textContent="Single agent. Every tool result, however bulky, is written into the one window and is then re-sent on every subsequent turn. This is the baseline that the other two architectures are trying to escape.";
+  } else if(arch==="sub"){
+    box(svg,270,16,160,48,"#F3ECDC",C.ink,"Lead agent","synthesis only");
+    [["Subagent 1"],["Subagent 2"],["Subagent 3"]].forEach((t,i)=>{
+      const x=70+i*200;box(svg,x,112,150,46,"#FAF5EA",C.teal,t[0],"own window");
+      arrow(svg,x+75,112,350,64,2.5,C.teal);
+      const lb=svgEl("text",{x:x+75,y:104,"text-anchor":"middle",class:"axis-lab",fill:C.teal});lb.textContent="~1k summary";svg.appendChild(lb);
+      box(svg,x+10,206,130,40,"#FAF5EA",C.ochre,"Tools","raw results");
+      arrow(svg,x+75,206,x+75,158,9,C.rust);
+    });
+    label(svg,350,270,"raw context stays inside each subagent, only summaries cross",C.teal,"middle");
+    note.textContent="Subagents. Each explores in its own window and returns a condensed result, so the lead agent's window holds summaries rather than raw material. Isolation buys window headroom and focus, not savings: multi-agent research has been reported at roughly fifteen times the tokens of ordinary chat.";
+  } else {
+    box(svg,270,16,160,48,"#F3ECDC",C.ink,"Agent","writes code");
+    box(svg,250,120,200,52,"#FAF5EA",C.teal,"Sandbox","data stays here");
+    arrow(svg,350,64,350,120,2.5,C.teal);
+    const cl=svgEl("text",{x:360,y:98,class:"axis-lab",fill:C.teal});cl.textContent="~40 tok of code";svg.appendChild(cl);
+    [["Tool A"],["Tool B"],["Tool C"]].forEach((t,i)=>{
+      const x=70+i*200;box(svg,x+10,212,130,40,"#FAF5EA",C.ochre,t[0],"raw results");
+      arrow(svg,x+75,212,350,172,9,C.ochre);
+    });
+    arrow(svg,330,120,330,64,1.6,C.teal);
+    const rl=svgEl("text",{x:180,y:100,class:"axis-lab",fill:C.teal});rl.textContent="~120 tok result";svg.appendChild(rl);
+    label(svg,350,272,"intermediate data never enters the window at all",C.teal,"middle");
+    note.textContent="Programmatic tool calling. The agent writes code that chains tools; filtering, joining and aggregation happen in the sandbox, and only the final answer returns. This also keeps sensitive intermediate values out of the model's context entirely, which is a privacy property as much as a token one.";
+  }
+}
+archFig();
+
+/* ================= FIG 15: KV cache ================= */
+function kvFig(){
+  const L=+$("s_ly").value, HD=+$("s_hd").value, SQ=+$("s_sq").value*1024, PR=+$("s_pr").value, SH=+$("s_sh").value/100;
+  $("v_ly").textContent=L;
+  $("v_hd").textContent=HD.toLocaleString();
+  $("v_sq").textContent=(+$("s_sq").value)+"k tok";
+  $("v_pr").textContent=PR===2?"FP16":"FP8 or INT8";
+  $("v_sh").textContent=Math.round(SH*100)+"%";
+  const BUDGET=60*1024*1024*1024;
+  const perTok=2*L*HD*PR;
+  const perReq=perTok*SQ;
+  const cc=Math.floor(BUDGET/perReq);
+  const ccShared=Math.floor(BUDGET/Math.max(perReq*(1-SH),perReq*0.05));
+  const svg=$("kvChart");clear(svg);
+  const x0=142,x1=630,y0=18,rowH=48,maxV=Math.max(cc,ccShared,1);
+  [["No sharing",cc,C.rust],["With prefix sharing",ccShared,C.teal]].forEach((d,i)=>{
+    const y=y0+i*rowH, w=(x1-x0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(w,2),height:26,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:x0-9,y:y+18,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:x0+Math.max(w,2)+7,y:y+18,class:"axis-lab",fill:C.ink});
+    v.textContent=d[1].toLocaleString()+" concurrent requests";svg.appendChild(v);
+  });
+  const nt=svgEl("text",{x:x0-9,y:y0+2*rowH+14,"text-anchor":"end",class:"axis-lab"});
+  nt.textContent="KV bytes per token";svg.appendChild(nt);
+  const nv=svgEl("text",{x:x0,y:y0+2*rowH+14,class:"axis-lab",fill:C.ink});
+  nv.textContent=(perTok/1024).toFixed(1)+" KB, so "+(perReq/1073741824).toFixed(2)+" GB for one "+(+$("s_sq").value)+"k request";
+  svg.appendChild(nv);
+  $("kv_per").textContent=(perReq/1073741824).toFixed(2)+" GB";
+  $("kv_cc").textContent=cc.toLocaleString();
+  $("kv_shared").textContent=ccShared.toLocaleString();
+  $("kv_gain").textContent=(ccShared/Math.max(cc,1)).toFixed(1)+"\u00d7";
+}
+bind(["s_ly","s_hd","s_sq","s_pr","s_sh"],kvFig);
+
+/* ================= FIG 16: retries ================= */
+function retryFig(){
+  const r=+$("s_rr").value/100, extra=+$("s_rc").value/100, nom=+$("s_ro").value/100;
+  $("v_rr").textContent=Math.round(r*100)+"%";
+  $("v_rc").textContent="+"+Math.round(extra*100)+"%";
+  $("v_ro").textContent=Math.round(nom*100)+"%";
+  const overhead=rr=>rr>=0.95?9:rr*(1+extra)/(1-rr);
+  const actual=(1-nom)*(1+overhead(r));
+  let be=0;
+  for(let x=0;x<=0.9;x+=0.001){if((1-nom)*(1+overhead(x))>=1){be=x;break;}}
+  const svg=$("retryChart");clear(svg);
+  const x0=142,x1=630,y0=18,rowH=42;
+  const bars=[["Baseline",1,C.ink3],["After the optimization",1-nom,C.teal],["Actual, with rework",actual,actual>1?C.rust:C.ochre]];
+  const maxV=Math.max.apply(null,bars.map(b=>b[1]).concat([1.15]));
+  bars.forEach((d,i)=>{
+    const y=y0+i*rowH, w=(x1-x0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(w,2),height:24,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:x0-9,y:y+17,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:x0+Math.max(w,2)+7,y:y+17,class:"axis-lab",fill:C.ink});
+    v.textContent=(d[1]*100).toFixed(0)+"% of baseline cost";svg.appendChild(v);
+  });
+  const lx=x0+(x1-x0)/maxV;
+  svg.appendChild(svgEl("line",{x1:lx,y1:y0-4,x2:lx,y2:y0+3*rowH-8,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.5}));
+  $("rt_nom").textContent=Math.round(nom*100)+"%";
+  $("rt_over").textContent="+"+Math.round(overhead(r)*100)+"%";
+  const re=$("rt_real"), realSave=(1-actual)*100;
+  re.textContent=(realSave>=0?"":"")+realSave.toFixed(0)+"%";
+  re.className="v "+(realSave>10?"good":realSave>0?"mid":"bad");
+  $("rt_be").textContent=(be*100).toFixed(1)+"%";
+}
+bind(["s_rr","s_rc","s_ro"],retryFig);
+
+/* ================= FIG 17: waterfall case study ================= */
+const WF=[
+  {k:"account",  n:"Token accounting",        apply:s=>{}},
+  {k:"cache",    n:"Prompt caching",          apply:s=>{s.prefixMult=(W_MULT+R_MULT*(s.turns-1))/s.turns;}},
+  {k:"schema",   n:"Output schema",           apply:s=>{s.out=230;}},
+  {k:"truncate", n:"Truncate tool results",   apply:s=>{s.result=950;}},
+  {k:"csv",      n:"CSV over JSON",           apply:s=>{s.result*=0.72;}},
+  {k:"clearing", n:"Tool result clearing",    apply:s=>{s.histMult*=0.35;}},
+  {k:"retry",    n:"Retry reduction",         apply:s=>{s.total*=0.88;}},
+  {k:"progtool", n:"Progressive tool loading",apply:s=>{s.schemas=54*22+3*850+900;}},
+  {k:"retrieve", n:"Retrieval over few-shot", apply:s=>{s.fewShot=1800;}},
+  {k:"compact",  n:"Compaction",              apply:s=>{s.histMult*=0.45;}},
+  {k:"diff",     n:"Diff-based editing",      apply:s=>{s.out*=0.55;}},
+  {k:"compress", n:"Compression on results",  apply:s=>{s.result*=0.62;}},
+  {k:"cascade",  n:"Model cascade",           apply:s=>{s.total*=0.42;}},
+  {k:"subagent", n:"Subagent isolation",      apply:s=>{s.total*=2.6;}}
+];
+const wfOn={};WF.forEach(m=>wfOn[m.k]=true);
+(function(){
+  const row=$("wfToggles");
+  WF.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="tog";b.textContent=m.n;b.setAttribute("aria-pressed","true");
+    b.addEventListener("click",()=>{wfOn[m.k]=!wfOn[m.k];b.setAttribute("aria-pressed",wfOn[m.k]);wfFig();});
+    row.appendChild(b);
+  });
+})();
+function wfState(){
+  return {turns:30, sys:4000, fewShot:6000, schemas:54*850, result:3000, user:220, out:500,
+          prefixMult:1, histMult:1, total:1};
+}
+function wfTotal(s){
+  const T=s.turns, prefix=s.sys+s.fewShot+s.schemas;
+  const perTurnNew=s.result+s.user;
+  let hist=0;
+  for(let t=1;t<=T;t++) hist+=(perTurnNew+s.out)*(t-1);
+  const inputEq = prefix*T*s.prefixMult + hist*s.histMult + perTurnNew*T;
+  const outputEq = s.out*T*5;
+  return (inputEq+outputEq)*s.total;
+}
+function wfFig(){
+  const s=wfState(), base=wfTotal(s);
+  let prev=base;
+  const bars=[];
+  WF.forEach(m=>{
+    if(wfOn[m.k]) m.apply(s);
+    const now=wfTotal(s);
+    bars.push({n:m.n,delta:now-prev,val:now,on:wfOn[m.k]});
+    prev=now;
+  });
+  const final=prev;
+  const svg=$("wfChart");clear(svg);
+  const x0=196,x1=636,y0=22,rowH=Math.min(25,(370-y0)/(bars.length+1));
+  const maxV=Math.max(base,final)*1.04;
+  const sx=v=>x0+(x1-x0)*clampv(v/maxV,0,1);
+  const bt=svgEl("text",{x:x0-9,y:y0+10,"text-anchor":"end",class:"axis-lab",fill:C.ink});
+  bt.setAttribute("font-weight","600");bt.textContent="Baseline";svg.appendChild(bt);
+  svg.appendChild(svgEl("rect",{x:x0,y:y0,width:sx(base)-x0,height:14,fill:C.ink3,rx:2}));
+  const bv=svgEl("text",{x:sx(base)+7,y:y0+11,class:"axis-lab",fill:C.ink});bv.textContent=fmt(base);svg.appendChild(bv);
+  bars.forEach((b,i)=>{
+    const y=y0+(i+1)*rowH+4;
+    const from=sx(b.val-b.delta), to=sx(b.val);
+    const left=Math.min(from,to), w=Math.abs(to-from);
+    const col=!b.on?C.rule:(b.delta<0?C.teal:C.rust);
+    svg.appendChild(svgEl("rect",{x:left,y:y,width:Math.max(w,1.5),height:13,fill:col,rx:2,opacity:b.on?1:.45}));
+    svg.appendChild(svgEl("line",{x1:to,y1:y,x2:to,y2:y+13+Math.max(rowH-13,0),stroke:C.rule,"stroke-width":1}));
+    const t=svgEl("text",{x:x0-9,y:y+10,"text-anchor":"end",class:"axis-lab",fill:b.on?C.ink:C.ink3});
+    t.textContent=b.n;svg.appendChild(t);
+    const v=svgEl("text",{x:Math.max(to,from)+7,y:y+10,class:"axis-lab",fill:b.delta<0?C.teal:C.rust});
+    v.textContent=(b.on?(b.delta<0?"-":"+")+fmt(Math.abs(b.delta)):"off");svg.appendChild(v);
+  });
+  const fy=y0+(bars.length+1)*rowH+10;
+  svg.appendChild(svgEl("rect",{x:x0,y:fy,width:Math.max(sx(final)-x0,2),height:14,fill:C.ink,rx:2}));
+  const ft=svgEl("text",{x:x0-9,y:fy+11,"text-anchor":"end",class:"axis-lab",fill:C.ink});
+  ft.setAttribute("font-weight","600");ft.textContent="Result";svg.appendChild(ft);
+  const fv=svgEl("text",{x:sx(final)+7,y:fy+11,class:"axis-lab",fill:C.ink});fv.textContent=fmt(final);svg.appendChild(fv);
+  $("wf_base").textContent=fmt(base);
+  $("wf_now").textContent=fmt(final);
+  const red=(1-final/base)*100, re=$("wf_red");
+  re.textContent=(red>=0?"-":"+")+Math.abs(red).toFixed(0)+"%";
+  re.className="v "+(red>60?"good":red>20?"mid":"bad");
+  $("wf_cost").textContent=usd(final*IN);
+}
+wfFig();
+
+/* ================= FIG 18: topology ================= */
+function topoFig(){
+  const ind=+$("s_mi").value/100, B=+$("s_mb").value, W=+$("s_mw").value/100, V=+$("s_mv").value;
+  $("v_mi").textContent=ind<0.33?"low":ind<0.7?"medium":"high";
+  $("v_mb").textContent=B;
+  $("v_mw").textContent=W.toFixed(1)+"\u00d7";
+  $("v_mv").textContent="$"+V;
+  const UNIT=140000, MAXB=12;
+  const singleCost=UNIT*(1+0.35*Math.max(W-1,0));
+  const singleQ=0.62*(W<=1?1:Math.pow(1/W,0.30));
+  const fanCost=b=>UNIT*(0.55+0.95*b)*(1+(1-ind)*0.5*(b-1));
+  const fanQ=b=>Math.min(0.97,(0.62+0.33*(1-Math.exp(-0.6*(b-1)*(0.3+0.7*ind))))*(W<=1?0.95:1));
+  const svg=$("topoChart");clear(svg);
+  const X0=52,Y0=16,X1=636,Y1=206;
+  const maxCost=Math.max(fanCost(MAXB),singleCost);
+  ygrid(svg,X0,X1,Y0,Y1,1,v=>Math.round(v*100)+"%");
+  axes(svg,X0,Y0,X1,Y1,"parallel branches","quality, and cost relative to widest fan-out");
+  const sx=b=>X0+(X1-X0)*(b-1)/(MAXB-1), sy=v=>Y1-(Y1-Y0)*clampv(v,0,1);
+  const qp=[],cp=[];
+  for(let b=1;b<=MAXB;b++){qp.push([sx(b),sy(fanQ(b))]);cp.push([sx(b),sy(fanCost(b)/maxCost)]);}
+  path(svg,qp,C.teal,null,2.2);
+  path(svg,cp,C.rust,null,2.2);
+  const sq=sy(singleQ);
+  svg.appendChild(svgEl("line",{x1:X0,y1:sq,x2:X1,y2:sq,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"4 3",opacity:.6}));
+  label(svg,X0+6,sq-5,"single agent with compaction",C.ink,"start");
+  label(svg,X1+4,sy(fanQ(MAXB))+4,"quality",C.teal,"start");
+  label(svg,X1+4,sy(fanCost(MAXB)/maxCost)+4,"cost",C.rust,"start");
+  const bx=sx(B);
+  svg.appendChild(svgEl("line",{x1:bx,y1:Y0,x2:bx,y2:Y1,stroke:C.ochre,"stroke-width":1.3,"stroke-dasharray":"3 3"}));
+  svg.appendChild(svgEl("circle",{cx:bx,cy:sy(fanQ(B)),r:4,fill:C.teal}));
+  svg.appendChild(svgEl("circle",{cx:bx,cy:sy(fanCost(B)/maxCost),r:4,fill:C.rust}));
+  const fc=fanCost(B), fq=fanQ(B);
+  $("tp_single").textContent=usd(singleCost*IN);
+  $("tp_fan").textContent=usd(fc*IN);
+  const gain=(fq-singleQ)*100, ge=$("tp_gain");
+  ge.textContent=(gain>=0?"+":"")+gain.toFixed(1)+" pt";
+  ge.className="v "+(gain>12?"good":gain>4?"mid":"bad");
+  const extraCost=(fc-singleCost)*IN;
+  const valueGained=V*(fq-singleQ);
+  const vd=$("tp_verdict");
+  if(W<1){vd.textContent="fits one window";vd.className="v bad";}
+  else if(valueGained>extraCost*1.6){vd.textContent="fan out";vd.className="v good";}
+  else if(valueGained>extraCost){vd.textContent="marginal";vd.className="v mid";}
+  else {vd.textContent="single agent";vd.className="v bad";}
+}
+bind(["s_mi","s_mb","s_mw","s_mv"],topoFig);
+
+/* ================= FIG 19: multi-agent anatomy ================= */
+const MAFIX=[
+  {k:"cache",  n:"Shared cached preamble"},
+  {k:"tier",   n:"Tier the skills"},
+  {k:"ptools", n:"Progressive tool loading"},
+  {k:"ptr",    n:"Pointer returns"},
+  {k:"board",  n:"Shared blackboard"},
+  {k:"schema", n:"Structured handoffs"},
+  {k:"compact",n:"Orchestrator compaction"},
+  {k:"breaker",n:"Circuit breakers"}
+];
+const maOn={};MAFIX.forEach(f=>maOn[f.k]=false);
+(function(){
+  const row=$("maToggles");
+  MAFIX.forEach(f=>{
+    const b=document.createElement("button");
+    b.className="tog";b.textContent=f.n;b.setAttribute("aria-pressed","false");
+    b.addEventListener("click",()=>{maOn[f.k]=!maOn[f.k];b.setAttribute("aria-pressed",maOn[f.k]);anatomyFig();});
+    row.appendChild(b);
+  });
+})();
+function anatomyCalc(fix){
+  const N=+$("s_an").value, T=+$("s_at").value, K=+$("s_ak").value, O=+$("s_ao").value;
+  const ORCH=10, calls=ORCH+N*T;
+  const harness=3000;
+  let schemas=O*850;
+  let skills=K*1500;
+  if(fix.tier) skills=K*80+2*2000;
+  if(fix.ptools) schemas=O*22+3*850+900;
+  const preambleRaw=(harness+schemas+skills)*calls;
+  const preamble=preambleRaw*(fix.cache?(W_MULT+R_MULT*(calls-1))/calls:1);
+  let brief=2500, result=3000;
+  if(fix.ptr){brief=900;result=400;}
+  if(fix.board){brief*=0.55;}
+  const handoff=(brief+result)*N;
+  let orch=0;
+  for(let t=1;t<=ORCH;t++) orch+=(brief+result)*(t-1)*0.8;
+  if(fix.compact) orch*=0.30;
+  let sub=0;
+  for(let t=1;t<=T;t++) sub+=(3000+400)*(t-1);
+  sub*=N;
+  let overlap=N*3000*6*0.45;
+  if(fix.board) overlap*=0.18;
+  const verify=calls*0.22*9000;
+  let failRate=0.18;
+  if(fix.schema) failRate=0.05;
+  const sessionSize=(preamble/calls)*T+sub/Math.max(N,1)+result;
+  let waste=failRate*N*sessionSize*0.7;
+  if(fix.breaker) waste=Math.min(waste,0.35*sessionSize*N);
+  return {calls:calls, segs:[
+    {n:"Skill instructions",v:skills*calls*(fix.cache?(W_MULT+R_MULT*(calls-1))/calls:1),c:C.rust},
+    {n:"Tool schemas",v:schemas*calls*(fix.cache?(W_MULT+R_MULT*(calls-1))/calls:1),c:C.ochre},
+    {n:"Harness preamble",v:harness*calls*(fix.cache?(W_MULT+R_MULT*(calls-1))/calls:1),c:"#8E8878"},
+    {n:"Agent history",v:sub,c:C.teal},
+    {n:"Redundant exploration",v:overlap,c:C.plum},
+    {n:"Orchestrator accumulation",v:orch,c:"#4A4238"},
+    {n:"Handoffs",v:handoff,c:"#2F8C86"},
+    {n:"Verification",v:verify,c:"#C9A227"},
+    {n:"Coordination rework",v:waste,c:"#7A2E1C"}
+  ]};
+}
+function anatomyFig(){
+  const N=+$("s_an").value, T=+$("s_at").value, K=+$("s_ak").value, O=+$("s_ao").value;
+  $("v_an").textContent=N;$("v_at").textContent=T;$("v_ak").textContent=K;$("v_ao").textContent=O;
+  const none={},base=anatomyCalc(none);
+  const now=anatomyCalc(maOn);
+  const bT=base.segs.reduce((a,s)=>a+s.v,0), nT=now.segs.reduce((a,s)=>a+s.v,0);
+  const svg=$("anatomyChart");clear(svg);
+  const X0=150,X1=636,maxV=Math.max(bT,nT);
+  const rows=[["Eager baseline",base.segs,bT,40],["With fixes",now.segs,nT,110]];
+  rows.forEach(([nm,segs,tot,y])=>{
+    let x=X0;
+    segs.forEach(s=>{
+      const w=(X1-X0)*s.v/maxV;
+      if(w>0.3){
+        const r=svgEl("rect",{x:x,y:y,width:w,height:34,fill:s.c});
+        r.appendChild(svgEl("title",{}));r.lastChild.textContent=s.n+": "+fmt(s.v);
+        svg.appendChild(r);
+      }
+      x+=w;
+    });
+    const t=svgEl("text",{x:X0-9,y:y+16,"text-anchor":"end",class:"axis-lab",fill:C.ink});
+    t.setAttribute("font-weight","600");t.textContent=nm;svg.appendChild(t);
+    const v=svgEl("text",{x:X0-9,y:y+29,"text-anchor":"end",class:"axis-lab"});
+    v.textContent=fmt(tot)+" tok";svg.appendChild(v);
+  });
+  let lx=X0, ly=176;
+  base.segs.forEach(s=>{
+    if(lx>X1-110){lx=X0;ly+=20;}
+    svg.appendChild(svgEl("rect",{x:lx,y:ly-8,width:9,height:9,fill:s.c,rx:1}));
+    const t=svgEl("text",{x:lx+13,y:ly,class:"axis-lab"});t.textContent=s.n;svg.appendChild(t);
+    lx+=18+s.n.length*5.1;
+  });
+  $("an_calls").textContent=base.calls;
+  $("an_base").textContent=fmt(bT);
+  $("an_now").textContent=fmt(nT);
+  const red=(1-nT/bT)*100, re=$("an_red");
+  re.textContent="-"+red.toFixed(0)+"%";re.className="v "+(red>60?"good":red>25?"mid":"bad");
+  const top=now.segs.slice().sort((a,b)=>b.v-a.v)[0];
+  $("an_note").textContent="Largest remaining block: "+top.n.toLowerCase()+", at "+fmt(top.v)+" tokens, "+Math.round(top.v/nT*100)+" percent of the session. Hover any segment for its size. With no fixes applied the skills block alone typically exceeds everything the agents say to each other combined, which is the point of this figure.";
+}
+bind(["s_an","s_at","s_ak","s_ao"],anatomyFig);
+
+/* ================= FIG 20: skills ================= */
+function skillFig(){
+  const K=+$("s_sk").value, B=+$("s_sb").value, D=+$("s_sd").value, TR=+$("s_st").value, A=+$("s_sa").value;
+  $("v_sk").textContent=K;$("v_sb").textContent=B.toLocaleString()+" tok";
+  $("v_sd").textContent=D+" tok";$("v_st").textContent=TR;$("v_sa").textContent=A;
+  const eager=K*B, tiered=K*D+Math.min(TR,K)*B;
+  const BUDGET=30000;
+  const affordEager=Math.floor(BUDGET/Math.max(B,1));
+  const affordTier=Math.floor((BUDGET-Math.min(TR,K)*B)/Math.max(D,1));
+  const svg=$("skillChart");clear(svg);
+  const X0=132,X1=624,Y0=18,rowH=48,maxV=Math.max(eager,tiered,1);
+  [["Eager, all bodies",eager,C.rust],["Tiered: metadata plus "+TR+" activated",tiered,C.teal]].forEach((d,i)=>{
+    const y=Y0+i*rowH,w=(X1-X0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:X0,y:y,width:Math.max(w,2),height:26,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:X0-9,y:y+18,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:X0+Math.max(w,2)+7,y:y+18,class:"axis-lab",fill:C.ink});
+    v.textContent=fmt(d[1])+" tok per call";svg.appendChild(v);
+  });
+  const y3=Y0+2*rowH+6;
+  const t3=svgEl("text",{x:X0-9,y:y3+12,"text-anchor":"end",class:"axis-lab"});
+  t3.textContent="Across "+A+" agents";svg.appendChild(t3);
+  const v3=svgEl("text",{x:X0,y:y3+12,class:"axis-lab",fill:C.ink});
+  v3.textContent=fmt(eager*A)+" eager versus "+fmt(tiered*A)+" tiered, per round of the whole fleet";
+  svg.appendChild(v3);
+  const v4=svgEl("text",{x:X0,y:y3+30,class:"axis-lab",fill:C.teal});
+  v4.textContent="Discovery floor: "+fmt(K*D)+" tokens buys awareness of all "+K+" skills";
+  svg.appendChild(v4);
+  $("sk_eager").textContent=fmt(eager);
+  $("sk_tier").textContent=fmt(tiered);
+  const red=(1-tiered/Math.max(eager,1))*100, re=$("sk_red");
+  re.textContent=(red>=0?"-":"+")+Math.abs(red).toFixed(0)+"%";
+  re.className="v "+(red>70?"good":red>30?"mid":"bad");
+  $("sk_afford").textContent=affordEager+" eager, "+Math.max(affordTier,0)+" tiered";
+}
+bind(["s_sk","s_sb","s_sd","s_st","s_sa"],skillFig);
+
+/* ================= FIG 21: harness cache fragmentation ================= */
+function harnessFig(){
+  const P=+$("s_hp").value, BASE=+$("s_hb").value, ROLE=+$("s_hr").value, CALLS=+$("s_hc").value;
+  $("v_hp").textContent=P;$("v_hb").textContent=BASE.toLocaleString()+" tok";
+  $("v_hr").textContent=ROLE.toLocaleString()+" tok";$("v_hc").textContent=CALLS;
+  function bespoke(p){
+    const cpe=CALLS/p;
+    const mult=cpe<=1?W_MULT:(W_MULT+R_MULT*(cpe-1))/cpe;
+    return (BASE+ROLE)*CALLS*mult;
+  }
+  function shared(p){
+    const mult=(W_MULT+R_MULT*(CALLS-1))/CALLS;
+    return BASE*CALLS*mult + ROLE*CALLS;
+  }
+  const svg=$("harnessChart");clear(svg);
+  const X0=58,Y0=16,X1=636,Y1=206,MAXP=25;
+  let maxV=0;
+  for(let p=1;p<=MAXP;p++){maxV=Math.max(maxV,bespoke(p),shared(p));}
+  ygrid(svg,X0,X1,Y0,Y1,maxV,fmt);
+  axes(svg,X0,Y0,X1,Y1,"distinct agent personas","effective prefix tokens per session");
+  const sx=p=>X0+(X1-X0)*(p-1)/(MAXP-1), sy=v=>Y1-(Y1-Y0)*clampv(v/maxV,0,1);
+  const bp=[],sp=[];
+  for(let p=1;p<=MAXP;p++){bp.push([sx(p),sy(bespoke(p))]);sp.push([sx(p),sy(shared(p))]);}
+  path(svg,bp,C.rust,null,2.2);
+  path(svg,sp,C.teal,null,2.2);
+  label(svg,X1+4,sy(bespoke(MAXP))+4,"bespoke",C.rust,"start");
+  label(svg,X1+4,sy(shared(MAXP))+4,"shared",C.teal,"start");
+  let cross=0;
+  for(let p=1;p<MAXP;p++){
+    if((bespoke(p)-shared(p))*(bespoke(p+1)-shared(p+1))<0){cross=p;break;}
+  }
+  if(cross){
+    const cxx=sx(cross+0.5);
+    svg.appendChild(svgEl("line",{x1:cxx,y1:Y0,x2:cxx,y2:Y1,stroke:C.ochre,"stroke-width":1.3,"stroke-dasharray":"3 3"}));
+    label(svg,cxx+5,Y0+10,"crossing",C.ochre,"start");
+  }
+  const px=sx(P);
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(bespoke(P)),r:4,fill:C.rust}));
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(shared(P)),r:4,fill:C.teal}));
+  const b=bespoke(P), s=shared(P);
+  $("hn_bespoke").textContent=fmt(b);
+  $("hn_shared").textContent=fmt(s);
+  $("hn_cpe").textContent=(CALLS/P).toFixed(1);
+  const be=$("hn_best");
+  if(Math.abs(b-s)/Math.max(b,s)<0.05){be.textContent="a wash";be.className="v mid";}
+  else if(s<b){be.textContent="shared, "+(b/s).toFixed(1)+"\u00d7 better";be.className="v good";}
+  else {be.textContent="bespoke, "+(s/b).toFixed(1)+"\u00d7 better";be.className="v mid";}
+}
+bind(["s_hp","s_hb","s_hr","s_hc"],harnessFig);
+
+/* ================= FIG 22: communication topology ================= */
+function commFig(){
+  const N=+$("s_cn").value, R=+$("s_cr2").value, A=+$("s_ca").value, PT=+$("s_cp").value;
+  $("v_cn").textContent=N;$("v_cr2").textContent=R;
+  $("v_ca").textContent=A.toLocaleString()+" tok";$("v_cp").textContent=PT+" tok";
+  const mesh=b=>b*(b-1)*R*A;
+  const star=b=>2*b*R*A;
+  const board=b=>b*R*PT*2;
+  const orchCtx=b=>{let s=0;for(let t=1;t<=b*R;t++)s+=A*2*(t-1)*0.5;return s;};
+  const svg=$("commChart");clear(svg);
+  const X0=58,Y0=16,X1=636,Y1=206,MAXN=16;
+  let maxV=0;for(let b=2;b<=MAXN;b++)maxV=Math.max(maxV,mesh(b));
+  ygrid(svg,X0,X1,Y0,Y1,maxV,fmt);
+  axes(svg,X0,Y0,X1,Y1,"agents","tokens spent moving information between agents");
+  const sx=b=>X0+(X1-X0)*(b-2)/(MAXN-2), sy=v=>Y1-(Y1-Y0)*clampv(v/maxV,0,1);
+  const m=[],s2=[],bb=[];
+  for(let b=2;b<=MAXN;b++){m.push([sx(b),sy(mesh(b))]);s2.push([sx(b),sy(star(b))]);bb.push([sx(b),sy(board(b))]);}
+  path(svg,m,C.rust,null,2.2);path(svg,s2,C.ochre,null,2.2);path(svg,bb,C.teal,null,2.2);
+  label(svg,X1+4,sy(mesh(MAXN))+4,"mesh",C.rust,"start");
+  label(svg,X1+4,sy(star(MAXN))+4,"star",C.ochre,"start");
+  label(svg,X1+4,sy(board(MAXN))+4,"blackboard",C.teal,"start");
+  const px=sx(N);
+  svg.appendChild(svgEl("line",{x1:px,y1:Y0,x2:px,y2:Y1,stroke:C.ink,"stroke-width":1,"stroke-dasharray":"3 3",opacity:.5}));
+  $("cm_mesh").textContent=fmt(mesh(N));
+  $("cm_star").textContent=fmt(star(N));
+  $("cm_bb").textContent=fmt(board(N));
+  $("cm_orch").textContent=fmt(orchCtx(N));
+}
+bind(["s_cn","s_cr2","s_ca","s_cp"],commFig);
+
+/* ================= FIG 23: coordination failure ================= */
+function failFig(){
+  const S=+$("s_fs").value*1000, D=+$("s_fd").value, Q=+$("s_fq").value/100, DET=+$("s_fdet").value/100;
+  $("v_fs").textContent=(+$("s_fs").value)+"k tok";
+  $("v_fd").textContent=D;
+  $("v_fq").textContent=Math.round(Q*100)+"%";
+  $("v_fdet").textContent=Math.round(DET*100)+"%";
+  const failed=D*Q, caught=failed*DET, silent=failed-caught;
+  const useful=(D-failed)*S;
+  const wasted=caught*S*2 + silent*S;
+  const total=useful+wasted;
+  const svg=$("failChart");clear(svg);
+  const X0=132,X1=624,Y0=20,rowH=44,maxV=Math.max(total,1);
+  [["Useful work",useful,C.teal],["Discarded and redone",wasted,C.rust]].forEach((d,i)=>{
+    const y=Y0+i*rowH,w=(X1-X0)*d[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:X0,y:y,width:Math.max(w,2),height:26,fill:d[2],rx:2}));
+    const t=svgEl("text",{x:X0-9,y:y+18,"text-anchor":"end",class:"axis-lab"});t.textContent=d[0];svg.appendChild(t);
+    const v=svgEl("text",{x:X0+Math.max(w,2)+7,y:y+18,class:"axis-lab",fill:C.ink});
+    v.textContent=fmt(d[1])+" tok";svg.appendChild(v);
+  });
+  const y3=Y0+2*rowH+4;
+  const t3=svgEl("text",{x:X0-9,y:y3+12,"text-anchor":"end",class:"axis-lab"});
+  t3.textContent="Silent corruption";svg.appendChild(t3);
+  const v3=svgEl("text",{x:X0,y:y3+12,class:"axis-lab",fill:C.plum});
+  v3.textContent=silent.toFixed(1)+" of "+D+" delegations returned a wrong artifact that reached synthesis";
+  svg.appendChild(v3);
+  $("cf_useful").textContent=fmt(useful);
+  $("cf_waste").textContent=fmt(wasted);
+  const ov=$("cf_over"), ovv=wasted/Math.max(useful,1)*100;
+  ov.textContent="+"+ovv.toFixed(0)+"%";
+  ov.className="v "+(ovv<15?"good":ovv<50?"mid":"bad");
+  const sl=$("cf_silent");
+  sl.textContent=silent.toFixed(1)+" of "+D;
+  sl.className="v "+(silent<0.2?"good":silent<0.8?"mid":"bad");
+}
+bind(["s_fs","s_fd","s_fq","s_fdet"],failFig);
+
+/* ================= FIG 24: fan-out and verification ================= */
+function fanFig(){
+  const B=+$("s_gb").value, V=+$("s_gv").value, VC=+$("s_gc").value/100, XR=+$("s_gx").value;
+  $("v_gb").textContent=B;$("v_gv").textContent=V;
+  $("v_gc").textContent=Math.round(VC*100)+"%";
+  $("v_gx").textContent=XR+"%";
+  const ACC0=0.68;
+  const acc=(b,v)=>Math.min(0.985, ACC0+0.19*(1-Math.exp(-0.6*(b-1)))+0.055*(1-Math.exp(-0.9*v)));
+  const cost=(b,v)=>b+v*VC;
+  const net=(b,v)=>((acc(b,v)-ACC0)*100)*XR-(cost(b,v)-1)*100;
+  const svg=$("fanChart");clear(svg);
+  const X0=52,Y0=16,X1=636,Y1=206,MAXB=16;
+  const maxC=cost(MAXB,V);
+  ygrid(svg,X0,X1,Y0,Y1,1,v=>Math.round(v*100)+"%");
+  axes(svg,X0,Y0,X1,Y1,"parallel branches","accuracy, and cost relative to widest fan-out");
+  const sx=b=>X0+(X1-X0)*(b-1)/(MAXB-1), sy=v=>Y1-(Y1-Y0)*clampv(v,0,1);
+  const ap=[],cp=[],np=[];
+  let best=1,bn=-1e9,maxNet=1e-9;
+  for(let b=1;b<=MAXB;b++){maxNet=Math.max(maxNet,Math.abs(net(b,V)));}
+  for(let b=1;b<=MAXB;b++){
+    ap.push([sx(b),sy(acc(b,V))]);
+    cp.push([sx(b),sy(cost(b,V)/maxC)]);
+    np.push([sx(b),sy(0.5+0.5*net(b,V)/maxNet)]);
+    if(net(b,V)>bn){bn=net(b,V);best=b;}
+  }
+  path(svg,ap,C.teal,null,2.2);
+  path(svg,cp,C.rust,null,2.2);
+  path(svg,np,C.plum,"4 3",1.8);
+  label(svg,X1+4,sy(acc(MAXB,V))+4,"accuracy",C.teal,"start");
+  label(svg,X1+4,sy(cost(MAXB,V)/maxC)+4,"cost",C.rust,"start");
+  label(svg,X1+4,sy(0.5+0.5*net(MAXB,V)/maxNet)+4,"net value",C.plum,"start");
+  const ox=sx(best);
+  svg.appendChild(svgEl("line",{x1:ox,y1:Y0,x2:ox,y2:Y1,stroke:C.ochre,"stroke-width":1.3,"stroke-dasharray":"3 3"}));
+  label(svg,ox+5,Y0+10,"efficient B = "+best,C.ochre,"start");
+  const px=sx(B);
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(acc(B,V)),r:4,fill:C.teal}));
+  svg.appendChild(svgEl("circle",{cx:px,cy:sy(cost(B,V)/maxC),r:4,fill:C.rust}));
+  $("fo_cost").textContent=cost(B,V).toFixed(2)+"\u00d7";
+  $("fo_acc").textContent=(acc(B,V)*100).toFixed(1)+"%";
+  const ne=$("fo_net"), nv=net(B,V);
+  ne.textContent=(nv>=0?"+":"")+nv.toFixed(0);
+  ne.className="v "+(nv>0?"good":"bad");
+  $("fo_opt").textContent=best;
+}
+bind(["s_gb","s_gv","s_gc","s_gx"],fanFig);
+
+</script>
+</body>
+</html>
