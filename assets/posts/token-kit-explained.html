@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Token Kit, Explained</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#FAF5EA;--paper-2:#F3ECDC;--ink:#1E1A15;--ink-2:#4A4238;--ink-3:#7A7063;--rust:#A8432B;--teal:#1B6B66;--ochre:#BE8A21;--rule:#D9CFBA;--plum:#6B3A5B}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Spectral",Georgia,serif;font-size:18px;line-height:1.68;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto;padding:0 22px}
+h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+h1{font-size:clamp(2.3rem,6.4vw,3.6rem);font-weight:800;margin:0 0 .35em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);margin:2.4em 0 .5em}
+h3{font-size:1.14rem;margin:1.8em 0 .4em}
+p{margin:0 0 1.05em}
+a{color:var(--rust);text-decoration-thickness:1px;text-underline-offset:2px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em}
+code{background:var(--paper-2);padding:.1em .34em;border-radius:3px}
+pre{font-family:"IBM Plex Mono",monospace;font-size:.8rem;line-height:1.6;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;overflow-x:auto;margin:1em 0 1.4em}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:0 0 .8em}
+header.hero{padding:66px 0 34px;border-bottom:1px solid var(--rule)}
+.byline{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--ink-3)}
+.standfirst{font-size:1.2rem;color:var(--ink-2);max-width:60ch;font-weight:300}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(250,245,234,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+nav.toc .inner{max-width:800px;margin:0 auto;padding:9px 22px;display:flex;gap:15px;overflow-x:auto;scrollbar-width:none}
+nav.toc .inner::-webkit-scrollbar{display:none}
+nav.toc a{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-decoration:none;white-space:nowrap;padding:3px 0;border-bottom:2px solid transparent}
+nav.toc a:hover{color:var(--rust);border-bottom-color:var(--rust)}
+.fig{background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;padding:20px 20px 18px;margin:1.9em 0}
+.fig-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.fig-num{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--rust)}
+.fig-title{font-family:"Fraunces",serif;font-weight:600;font-size:1.02rem}
+.fig-note{font-size:.86rem;color:var(--ink-3);margin:12px 0 0;line-height:1.5}
+.ctrl{margin:11px 0}
+.ctrl label{display:flex;justify-content:space-between;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--ink-2);margin-bottom:5px}
+.ctrl label b{color:var(--rust);font-weight:600;white-space:nowrap}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--rule);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--rust);cursor:pointer;border:2px solid var(--paper)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--rust);cursor:pointer;border:2px solid var(--paper)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:11px;margin-top:15px}
+.stat{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:9px 11px}
+.stat .k{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:"Fraunces",serif;font-size:1.3rem;font-weight:600;line-height:1.25;margin-top:2px}
+.v.good{color:var(--teal)}.v.bad{color:var(--rust)}.v.mid{color:var(--ochre)}
+.btnrow{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+button.tog{font-family:"IBM Plex Mono",monospace;font-size:.72rem;padding:6px 11px;border-radius:3px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);cursor:pointer;transition:.15s}
+button.tog:hover{border-color:var(--rust);color:var(--rust)}
+button.tog[aria-pressed=true]{background:var(--rust);color:var(--paper);border-color:var(--rust)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.axis-lab{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:var(--ink-3)}
+table{width:100%;border-collapse:collapse;margin:1.5em 0;font-size:.89rem}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+td.n{font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.callout{border-left:3px solid var(--teal);background:rgba(27,107,102,.05);padding:13px 16px;margin:1.6em 0;border-radius:0 4px 4px 0}
+.callout.warn{border-left-color:var(--rust);background:rgba(168,67,43,.05)}
+.callout p:last-child{margin-bottom:0}
+.callout .lab{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:5px}
+.callout.warn .lab{color:var(--rust)}
+.card{background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;padding:16px 18px;margin:1.2em 0}
+.card h4{margin:0 0 6px;font-size:1rem}
+.card .wake{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--teal);margin:0 0 8px;letter-spacing:.03em}
+.card p{font-size:.94rem;margin:0 0 .6em}
+.card p:last-child{margin:0}
+.card .cost{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--ink-3)}
+ol.steps{padding-left:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding-left:38px;margin-bottom:.9em}
+ol.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.16em;font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--rust)}
+dl{margin:1em 0}
+dt{font-family:"Fraunces",serif;font-weight:600;margin-top:1em}
+dd{margin:0 0 .5em;color:var(--ink-2);font-size:.95rem}
+.refs{font-size:.87rem;line-height:1.55}
+.refs li{margin-bottom:.75em}
+.refs .rn{font-family:"IBM Plex Mono",monospace;color:var(--rust);font-size:.78rem}
+footer{border-top:1px solid var(--rule);margin-top:70px;padding:26px 0 60px;font-size:.82rem;color:var(--ink-3)}
+@media (max-width:620px){body{font-size:17px}.readout{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Copilot Customization &middot; Explainer</p>
+    <h1>The Token Kit, Explained</h1>
+    <p class="standfirst">What was built to make a VS Code Copilot setup cheaper without making it dumber, why each piece exists, and how to tell whether it is working. In plain words.</p>
+    <p class="byline" style="margin-top:26px">By Majid Mazouchi &middot; September 5, 2026</p>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#why">Why</a>
+    <a href="#billing">How billing works</a>
+    <a href="#layers">The layers</a>
+    <a href="#skills">Skills</a>
+    <a href="#agents">Agents</a>
+    <a href="#hooks">Hooks</a>
+    <a href="#tiers">Model tiers</a>
+    <a href="#scripts">Scripts</a>
+    <a href="#install">Install</a>
+    <a href="#limits">Limits</a>
+    <a href="#glossary">Glossary</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<h2 id="why">Three facts that explain everything</h2>
+
+<p>Every time you send a message to Copilot, it does not just send your message. It sends the whole conversation so far, plus every instruction file it has loaded, plus a description of every tool it could call. The model reads all of that from scratch, every single time, and you pay for every word it reads.</p>
+
+<p>Once you know that, three facts do most of the explaining.</p>
+
+<p><b>Fact one: everything in the conversation is sent again on every turn.</b> A 3,000-line log that a tool printed on turn two is re-sent on turn three, turn four, and every turn after until it is cleared or compacted. It is not "in memory". Some of it may be re-read at the cheaper cached rate if the harness caches history, but it still occupies the window, and the window filling up is what makes a session that felt fine at turn five feel slow at turn twenty.</p>
+
+<p><b>Fact two: words the model writes cost five to eight times more than words it reads.</b> On every model Copilot offers, output is priced several times above input. So a model that reads a lot and writes a little is cheap, and a model that rewrites a whole file to change one line is expensive.</p>
+
+<p><b>Fact three: the cheapest model costs about fifty times less than the most capable one.</b> Copilot now bills per token at each model's own rate. Sending a "find where this function is called" task to the most capable model is like hiring a surgeon to take your temperature.</p>
+
+<p>The kit is a set of small files that act on those three facts. Nothing in it is clever. Most of it is discipline written down in a form Copilot has to read, plus a few pieces that measure whether the discipline is working.</p>
+
+<h2 id="billing">How Copilot bills now</h2>
+
+<p>Since June 2026, Copilot Business and Enterprise plans bill in <b>AI credits</b>. One credit is one cent. Each interaction consumes tokens, and each token is priced by the model that processed it. There are four prices per model: fresh input, cached input, cache write, and output. Included allowances are pooled across the organization; usage past the allowance is billed at the listed rates.</p>
+
+<p>"Cached input" is the important one. If the front of your request is identical to the front of your last request, the provider does not re-process it. It charges about a tenth of the fresh price. So the long stable stuff, the instructions and tool descriptions, is nearly free if it stays identical and stays at the front. It becomes expensive the moment something in it changes on every call.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 1</span><span class="fig-title">What one call costs, and where</span></div>
+  <div class="ctrl"><label>Stable stuff at the front: instructions, tool descriptions, skill metadata <b id="v_pre">6,000 tok</b></label><input type="range" id="s_pre" min="500" max="40000" step="500" value="6000"></div>
+  <div class="ctrl"><label>Conversation and tool output so far <b id="v_hist">12,000 tok</b></label><input type="range" id="s_hist" min="0" max="150000" step="1000" value="12000"></div>
+  <div class="ctrl"><label>Words the model writes back <b id="v_out">400 tok</b></label><input type="range" id="s_out" min="50" max="4000" step="50" value="400"></div>
+  <div class="btnrow" id="modelBtns"></div>
+  <svg id="callChart" viewBox="0 0 700 150" role="img" aria-label="Cost of one call split by part"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Stable part, cached</div><div class="v good" id="c_pre">0</div></div>
+    <div class="stat"><div class="k">Conversation, fresh</div><div class="v mid" id="c_hist">0</div></div>
+    <div class="stat"><div class="k">Output</div><div class="v bad" id="c_out">0</div></div>
+    <div class="stat"><div class="k">Total</div><div class="v" id="c_tot">0 credits</div></div>
+  </div>
+  <p class="fig-note">Rates from GitHub's Copilot pricing page as of September 5, 2026. Notice three things as you drag. The stable part barely moves the total even when it is large, because it is cached. The conversation bar is usually the biggest, and it only grows: that is fact one. And the output bar, 400 tokens against 12,000 of conversation at the defaults, still costs a sixth as much, because each written token is priced five times higher: that is fact two. Push output to about 2,400 and it matches the whole conversation term; past that, it is the largest cost on the call.</p>
+</div>
+
+<h2 id="layers">The layers of the kit</h2>
+
+<p>VS Code lets you customize Copilot with a handful of file types, and each one loads at a different moment. The kit uses all of them, and picking the right layer for each rule is most of the design.</p>
+
+<table>
+  <thead><tr><th>Layer</th><th>What it is</th><th>When Copilot reads it</th><th>What it costs</th></tr></thead>
+  <tbody>
+    <tr><td><b>Harness</b><br><span class="mono">copilot-instructions.md</span></td><td>House rules that apply to everything</td><td>Every single call</td><td>Its full size, every call. Kept to about 470 tokens on purpose</td></tr>
+    <tr><td><b>Scoped instructions</b><br><span class="mono">*.instructions.md</span></td><td>Rules for certain file types</td><td>Only when you work on a matching file</td><td>Its size, when it applies</td></tr>
+    <tr><td><b>Skills</b><br><span class="mono">skills/*/SKILL.md</span></td><td>A procedure for a kind of task</td><td>Name and one-line description always; the body only when the task matches</td><td>About 130 tokens always, the body when it wakes up</td></tr>
+    <tr><td><b>Agents</b><br><span class="mono">agents/*.agent.md</span></td><td>A persona with a restricted tool list and a pinned model</td><td>When you pick it from the dropdown, or when another agent delegates to it</td><td>Its size while active</td></tr>
+    <tr><td><b>Hooks</b><br><span class="mono">hooks/*.json</span></td><td>Shell commands that run before or after a tool call</td><td>Every matching tool call</td><td>Nothing. They run outside the model</td></tr>
+    <tr><td><b>Prompts</b><br><span class="mono">prompts/*.prompt.md</span></td><td>A saved request you type as <span class="mono">/name</span></td><td>Only when you type it</td><td>Nothing until used</td></tr>
+    <tr><td><b>Scripts</b></td><td>Python that measures things</td><td>Never. The model runs them and sees only the output</td><td>Only their output</td></tr>
+  </tbody>
+</table>
+
+<p>The rule of thumb that falls out: <b>put a rule in the cheapest layer that still gets it followed.</b> A rule that only matters for Python files goes in a scoped instruction, not the harness. A procedure that only matters when auditing goes in a skill, not the harness. A rule that absolutely must hold goes in a hook, because hooks cannot be forgotten.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 2</span><span class="fig-title">What loads on a typical call</span></div>
+  <div class="btnrow">
+    <button class="tog" id="b_eager" aria-pressed="false">Skills loaded eagerly</button>
+    <button class="tog" id="b_tier" aria-pressed="true">Skills loaded in tiers</button>
+  </div>
+  <svg id="loadChart" viewBox="0 0 700 170" role="img" aria-label="Tokens loaded per call by layer"></svg>
+  <p class="fig-note">Estimated on the kit itself with its own audit script; these are static counts, not measured requests. With eight skills, loading every body on every call would cost about 4,800 tokens; loading name and description only, plus the one or two bodies that match, costs about 1,300. Copilot already loads bodies on demand, so the eager bar is a comparison point rather than a saving the kit creates. What the kit adds is keeping descriptions accurate so the right body wakes up and the wrong ones stay asleep, and a linter that catches overlap.</p>
+</div>
+
+<h2 id="skills">The seven skills</h2>
+
+<p>A skill is a procedure Copilot follows when the task matches its description. The description is the important part: it is the only thing Copilot reads when deciding whether to wake the skill up, so each one says both what the skill does and when to use it.</p>
+
+<div class="card">
+  <h4>token-budget</h4>
+  <p class="wake">Wakes up when: something is slow or expensive, context is full, or you ask which fix to try first</p>
+  <p>The decision layer. Given a symptom, it names the lever and says what order to try things in. It also holds the rule that overrides everything else: if something is stable across calls, cache it, do not compress it. Detailed material lives in four reference files that stay on disk until needed.</p>
+  <p class="cost">Body 821 tok &middot; references 4 files, read on demand</p>
+</div>
+
+<div class="card">
+  <h4>kit-audit</h4>
+  <p class="wake">Wakes up when: you ask what is eating your tokens, or before adding a skill, agent, or MCP server</p>
+  <p>Says one thing: measure before changing anything. Then tells Copilot how to run the audit script and how to read its report. The intuitive target is usually the wrong one, and this skill exists to stop the guessing.</p>
+  <p class="cost">Body 546 tok &middot; ships audit_kit.py</p>
+</div>
+
+<div class="card">
+  <h4>lean-output</h4>
+  <p class="wake">Wakes up when: editing files, when responses restate too much, or when output keeps failing to parse</p>
+  <p>Discipline for the expensive tokens, the ones the model writes. Change a file with a small patch, not a rewrite. Check that the patch will match before sending it, because a failed match costs a whole retry. Say what changed and stop. No preamble, no summary of a diff you can read yourself.</p>
+  <p class="cost">Body 476 tok</p>
+</div>
+
+<div class="card">
+  <h4>handoff-contract</h4>
+  <p class="wake">Wakes up when: one agent hands work to another, or when a delegation came back wrong</p>
+  <p>Two short forms. A brief going down: objective, scope, what not to touch, pointers to inputs (paths, not contents), what to deliver, how it will be checked, a turn budget, and a tier. A result coming up: status, confidence, tier used, a path to the full findings, and an abstract under 200 tokens. The point is that payloads never travel in messages. They sit on disk and pointers travel instead. Saving to a file does not remove something from context once it has been read this session; what it prevents is re-reading, and re-sending after a reset.</p>
+  <p class="cost">Body 724 tok &middot; 1 reference on how delegations fail</p>
+</div>
+
+<div class="card">
+  <h4>skill-hygiene</h4>
+  <p class="wake">Wakes up when: creating or editing a skill, or when one fires too often or never</p>
+  <p>How to write a skill that costs little and triggers reliably. Description first, because that is what the router matches. Body small, because it is paid every time. Anything deterministic in a script, because scripts are free at context level. It ships a linter that checks all of this.</p>
+  <p class="cost">Body 723 tok &middot; ships skill_lint.py</p>
+</div>
+
+<div class="card">
+  <h4>session-state</h4>
+  <p class="wake">Wakes up when: a task will take more than a few turns, or after the context was reset</p>
+  <p>The plan and the findings live in files under <code>.copilot-state/</code>, not in the conversation. A file is read once when needed; the conversation is re-sent on every turn. After a reset, read <code>plan.md</code> and nothing else until the plan points at something.</p>
+  <p class="cost">Body 466 tok</p>
+</div>
+
+<div class="card">
+  <h4>model-routing</h4>
+  <p class="wake">Wakes up when: choosing a model for an agent, delegating, or when something is expensive</p>
+  <p>Which tier of model a task deserves, and how to price the difference. Covered in its own section below, because it is the largest lever in the kit.</p>
+  <p class="cost">Body 953 tok &middot; ships assign_models.py and a dated pricing table</p>
+</div>
+
+<h2 id="agents">The three agents</h2>
+
+<p>An agent is a persona you pick from the dropdown. It carries its own instructions, a list of tools it is allowed to use, and a pinned model. Restricting the tools matters more than it sounds: an agent with no tool list may carry the description of every tool you have connected, on every call.</p>
+
+<div class="card">
+  <h4>scout</h4>
+  <p class="wake">Tier T0, the cheapest model &middot; read-only tools</p>
+  <p>Finds things. Returns a short summary and <code>path:line</code> pointers, never pasted file contents. Searches narrow first, stops when it has the answer, and asks one question rather than reading ten more files. If unsure, it says so rather than guessing, because a confident wrong location costs more than an honest gap. After it finishes, a button offers to hand its findings to the orchestrator.</p>
+</div>
+
+<div class="card">
+  <h4>lean-orchestrator</h4>
+  <p class="wake">Tier T2, a capable mid-range model &middot; can edit, run, and delegate</p>
+  <p>Plans and delegates. Writes the plan to a file first, delegates bounded work to scout using the handoff form, reads abstracts before full artifacts, and does the synthesis itself because that is where contradictions need to be visible at once. When a cheap agent comes back unsure, it re-delegates one tier up and writes down why.</p>
+</div>
+
+<div class="card">
+  <h4>token-auditor</h4>
+  <p class="wake">Tier T1 &middot; runs scripts, never edits</p>
+  <p>Runs both measurement scripts, reports the top three sinks, checks each candidate fix against the anti-patterns list, and proposes exactly one change as a diff. Applying happens through a handoff to the orchestrator, which then re-runs the audit and reports what actually moved. It cannot be pulled in as a subagent by accident.</p>
+</div>
+
+<h2 id="hooks">Hooks: the part that cannot be forgotten</h2>
+
+<p>Everything above is advice. Copilot reads it and usually follows it. Hooks are different: they are shell commands that VS Code runs before or after a tool call, whether or not the model remembers to. Instructions are a company policy; hooks are the seatbelt.</p>
+
+<p>The kit ships two.</p>
+
+<p><b>The read guard</b> runs before every tool call. If the agent is about to read a file longer than 400 lines with no line range, the hook does not block it; it asks. You see the file size and a one-line reason before paying for it. Ranged reads and small files pass silently.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 3</span><span class="fig-title">The read guard, live</span></div>
+  <div class="ctrl"><label>File length <b id="v_fl">900 lines</b></label><input type="range" id="s_fl" min="20" max="5000" step="10" value="900"></div>
+  <div class="btnrow">
+    <button class="tog" id="b_whole" aria-pressed="true">Read the whole file</button>
+    <button class="tog" id="b_range" aria-pressed="false">Read a line range</button>
+  </div>
+  <div class="card" id="guardOut" style="margin:12px 0 0"></div>
+  <p class="fig-note">The token estimate uses about 11 tokens per line of code. A 900-line file read whole is roughly 10,000 tokens, and by fact one it is re-sent on every later turn of the session. The guard exists to make that cost visible at the moment it is about to be paid.</p>
+</div>
+
+<p><b>The ledger</b> runs after every tool call and appends one line to a local file: which tool, how big its arguments were, how big its result was, which tier was configured. Nothing leaves your machine. It is a diagnostic for finding oversized tool results, and it is the only part of the kit that records something that actually happened. It is not a billing meter: it does not see prompts, generated output, reasoning, cache hits or failed calls. For billed usage, VS Code's OpenTelemetry export reports the resolved model and token counters per model call, and the provider's usage page is the reconciliation source.</p>
+
+<div class="callout warn">
+  <span class="lab">Read the scripts first</span>
+  <p>Hooks run with the same permissions as VS Code. Both scripts are short, fail silently rather than blocking if the input format is unexpected, and are worth reading before you enable them.</p>
+</div>
+
+<h2 id="tiers">Model tiers</h2>
+
+<p>This is the biggest lever and the newest part of the kit. Copilot offers around twenty models, and their prices differ by about fifty times. The kit sorts them into four tiers and treats the tier as configuration: a file says which agent runs on which tier, and a script writes that into the agent files.</p>
+
+<table>
+  <thead><tr><th>Tier</th><th>For</th><th>Default pick</th><th>In / Out per 1M tok</th></tr></thead>
+  <tbody>
+    <tr><td class="n">T0</td><td>Locate, grep, list usages, extract fields, classify, rename, boilerplate</td><td>GPT-5.4 nano</td><td>$0.20 / $1.25</td></tr>
+    <tr><td class="n">T1</td><td>Bounded edits, test scaffolds, docstrings</td><td>Claude Haiku 4.5</td><td>$1.00 / $5.00</td></tr>
+    <tr><td class="n">T2</td><td>Multi-file changes, debugging, orchestration, synthesis</td><td>Claude Sonnet 5</td><td>$2.00 / $10.00</td></tr>
+    <tr><td class="n">T3</td><td>Safety logic, root-cause conclusions, architecture, anything a human trusts without re-deriving</td><td>Claude Opus 5</td><td>$5.00 / $25.00</td></tr>
+  </tbody>
+</table>
+
+<p>The rule for choosing is not "how important is this" but "would a wrong answer be caught cheaply". If a test or a compiler catches it, route low. If a human has to read it carefully to know it is wrong, route high. And anything under a path you have marked critical runs at T3 regardless, enforced by a scoped instruction that tells a lower-tier agent to stop and hand off.</p>
+
+<div class="fig">
+  <div class="fig-head"><span class="fig-num">Figure 4</span><span class="fig-title">Pick a task, see the tier and the bill</span></div>
+  <div class="btnrow" id="taskBtns"></div>
+  <div class="ctrl"><label>How much the model reads on this call <b id="v_tin">15,000 tok</b></label><input type="range" id="s_tin" min="1000" max="150000" step="1000" value="15000"></div>
+  <div class="ctrl"><label>How much it writes <b id="v_tout">300 tok</b></label><input type="range" id="s_tout" min="20" max="5000" step="20" value="300"></div>
+  <svg id="tierChart" viewBox="0 0 700 180" role="img" aria-label="Cost of the same call at each tier"></svg>
+  <div class="readout">
+    <div class="stat"><div class="k">Recommended tier</div><div class="v" id="t_tier">T0</div></div>
+    <div class="stat"><div class="k">Cost there</div><div class="v good" id="t_cost">0</div></div>
+    <div class="stat"><div class="k">Cost at T3</div><div class="v bad" id="t_t3">0</div></div>
+    <div class="stat"><div class="k">Saving</div><div class="v mid" id="t_save">0x</div></div>
+  </div>
+  <p class="fig-note" id="t_note"></p>
+</div>
+
+<h3>Design high, generate low, verify high</h3>
+
+<p>Because output costs five to eight times input, and because cached input is nearly free, the expensive thing is not a big model reading a lot. It is a big model <em>writing</em> a lot. So the pattern that captures most of the saving is: a T2 or T3 agent writes the plan and the interface, a T0 or T1 agent produces the volume, and a T2 or T3 agent reviews the diff. The expensive model reads a short plan and a diff. The cheap model writes the many lines.</p>
+
+<h3>The deferral rule</h3>
+
+<p>A cheap model that is unsure must say so and stop, not guess. Every brief to a T0 or T1 agent carries that instruction, and every result carries a confidence field. Low confidence from a cheap tier means: escalate one tier, write down why, do not use the answer. Without this rule, cheap models produce confident wrong output, which is the most expensive failure there is, because someone has to find it.</p>
+
+<h3>The two files</h3>
+
+<p><code>.github/models.yaml</code> lists the tiers, the models in each with their rates, which model each tier uses by default, and which paths are critical. <code>.github/agent-tiers.yaml</code> says which agent runs at which tier and which minimum tier each skill needs. Skills cannot pin a model themselves, so the orchestrator reads the skill's minimum when choosing whom to delegate to.</p>
+
+<pre>python .github/skills/model-routing/scripts/assign_models.py --root .          # show what would change
+python .github/skills/model-routing/scripts/assign_models.py --root . --write  # apply
+python .github/skills/model-routing/scripts/assign_models.py --root . --clear --write  # undo</pre>
+
+<p>Applying does two things per agent: writes the model line, and adds a hook that tags every recorded tool call with the agent's tier. VS Code does not tell hooks which model is active, so the tier has to come from the agent definition. That tag is what lets the audit price real sessions by tier.</p>
+
+<h2 id="scripts">The scripts, and what each one measures</h2>
+
+<p>Three scripts. None of them enter the model's context; only their output does. They are the part of the kit that is not advice.</p>
+
+<div class="card">
+  <h4>audit_kit.py</h4>
+  <p>Walks your <code>.github</code> folder and works out what loads on every call versus on demand, ranks the sinks by how much of a session they consume, and prices each fix two ways: with the front of the prompt cached, and without. That second comparison is the part worth reading twice. On the kit itself the same fix looks eight times bigger without caching than with it, which is why published "85 percent reduction" figures rarely survive contact with a setup that already caches. It also reads the ledger, prices each agent per call at its tier, and takes a previous run with <code>--compare</code> to show what moved.</p>
+</div>
+
+<div class="card">
+  <h4>skill_lint.py</h4>
+  <p>Checks every skill: is the description long enough to trigger, does it say when to use the skill, is the body oversized, does it point at files that exist, does it have a minimum tier. Then compares every pair of descriptions and flags the ones similar enough that both skills would wake up on the same request, so you pay for two bodies.</p>
+</div>
+
+<div class="card">
+  <h4>assign_models.py</h4>
+  <p>Applies the tier file to the agent files. Dry run by default, shows a diff, writes on request, and undoes cleanly.</p>
+</div>
+
+<h2 id="install">Installing it</h2>
+
+<ol class="steps">
+  <li>Copy the <code>.github</code> folder into your workspace root, merging with what you have. If you already have a <code>copilot-instructions.md</code>, take the sections you want rather than replacing it; that file is your cached prefix and keeping it stable matters more than what is in it.</li>
+  <li>Merge the settings snippet into <code>.vscode/settings.json</code>. It turns on skills and hooks and points VS Code at the hooks folder.</li>
+  <li>Run the audit and the linter once before changing anything, and keep the JSON output as your baseline.</li>
+  <li>Check that the four default models in <code>models.yaml</code> are enabled in your organization. If an agent fails to load, the model name is not available; change the default pick and re-run the assignment, or clear the pins.</li>
+  <li>Edit the critical paths in <code>models.yaml</code> and in <code>critical-paths.instructions.md</code> to match your tree.</li>
+  <li>Make one change at a time, re-run the audit with <code>--compare</code>, and keep only what lowered tokens per call.</li>
+</ol>
+
+<h2>What the kit costs itself</h2>
+
+<table>
+  <thead><tr><th>Part</th><th>Tokens</th></tr></thead>
+  <tbody>
+    <tr><td>Harness plus scoped instructions</td><td>About 470 on every call, plus a scoped file when it applies</td></tr>
+    <tr><td>Skill names and descriptions, all seven</td><td>About 920 on every call</td></tr>
+    <tr><td>Skill bodies, typical, one or two awake</td><td>500 to 1,300</td></tr>
+    <tr><td>Skill bodies, if all seven were awake at once</td><td>About 4,100</td></tr>
+    <tr><td>Reference files</td><td>About 4,000 available, near zero on a typical call</td></tr>
+    <tr><td>Hooks, registries, scripts</td><td>Zero. They run outside the model</td></tr>
+  </tbody>
+</table>
+
+<p>The largest skill body is 953 tokens. The anti-patterns list in the kit includes "installing a large token-optimization skill", and the kit was measured against that rule.</p>
+
+<h2 id="limits">Honest limits</h2>
+
+<p>Every number the scripts produce is an estimate. The token counter may be a heuristic if the exact tokenizer cannot load, and it says so in its output. The rates are dated in the registry and will change. The estimate for MCP tool descriptions is a crude multiplication and should be replaced by a real measurement of your serialized request.</p>
+
+<p>The hook input format follows VS Code's documented field names with fallbacks, but if your version differs the scripts fail silently rather than blocking the agent. Check the hooks output channel once after enabling them.</p>
+
+<p>The tier assignments are a starting point. The right tier for a task shape in your codebase is whatever the ledger shows has the fewest retries at the lowest cost, and the kit gives you the ledger so you can find out.</p>
+
+<p>And the kit changes what your setup loads and what your agents write. It does not compress what crosses the wire. If you want that as well, tools exist for it and they compose with this; but fix the source first, because compressing a bloated always-on block is worse than not having the bloat.</p>
+
+<h2 id="glossary">Glossary</h2>
+
+<dl>
+  <dt>Token</dt><dd>The unit the model reads and writes and you pay for. Roughly three quarters of an English word, so about 1.3 tokens per word; more tokens per word for code and non-Latin scripts.</dd>
+  <dt>Context, context window</dt><dd>Everything the model can see on one call: instructions, tool descriptions, the conversation so far, tool output, your message. It has a size limit, and all of it is billed.</dd>
+  <dt>Prefix, cached prefix</dt><dd>The front part of the request that is identical from one call to the next. Providers store it and charge about a tenth of the price to reuse it. Anything that changes per call breaks the cache from that point onward.</dd>
+  <dt>AI credit</dt><dd>Copilot's billing unit since June 2026. One credit is one cent. Tokens are priced per model and converted to credits.</dd>
+  <dt>Skill</dt><dd>A folder with a <code>SKILL.md</code> file describing a procedure. Copilot reads the name and description always, the body only when the description matches your request.</dd>
+  <dt>Agent</dt><dd>A persona defined in a <code>.agent.md</code> file: instructions, an allowed tool list, a pinned model, and buttons to hand off to other agents.</dd>
+  <dt>Hook</dt><dd>A shell command VS Code runs before or after a tool call. Deterministic; it cannot be forgotten the way an instruction can.</dd>
+  <dt>Tier</dt><dd>A group of models with similar price and capability. The kit uses four. Work is routed to the lowest tier whose mistakes would be caught cheaply.</dd>
+  <dt>Handoff</dt><dd>One agent passing work to another. The kit insists this carries pointers and short abstracts, never the payload.</dd>
+  <dt>Compaction</dt><dd>Summarizing a long conversation and starting again with the summary, when the context is approaching its limit.</dd>
+  <dt>Ledger</dt><dd>The local file the PostToolUse hook writes, one line per tool call. A diagnostic for oversized tool results, not a billing meter.</dd>
+</dl>
+
+<h2 id="refs">References</h2>
+<ol class="refs">
+  <li><span class="rn">[1]</span> GitHub Docs. "Models and pricing for GitHub Copilot." Per-token rates for every model, cached input and cache write pricing, AI credit conversion. Read September 5, 2026. <a href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing">docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing</a></li>
+  <li><span class="rn">[2]</span> GitHub Blog. "GitHub Copilot is moving to usage-based billing." April 2026. The June 1 change from premium requests to token-metered AI credits. <a href="https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/">github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing</a></li>
+  <li><span class="rn">[3]</span> VS Code Docs. "Use Agent Skills in VS Code." Three-stage loading: discovery, instruction loading, resources on demand; <span class="mono">user-invocable</span> and <span class="mono">disable-model-invocation</span>. <a href="https://code.visualstudio.com/docs/agent-customization/agent-skills">code.visualstudio.com/docs/agent-customization/agent-skills</a></li>
+  <li><span class="rn">[4]</span> VS Code Docs. "Custom agents in VS Code." The <span class="mono">.agent.md</span> format: tools, model, handoffs, hooks, and the rename from chat modes. <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents">code.visualstudio.com/docs/agent-customization/custom-agents</a></li>
+  <li><span class="rn">[5]</span> VS Code Docs. "Use custom instructions in VS Code." <span class="mono">copilot-instructions.md</span>, scoped <span class="mono">.instructions.md</span> with <span class="mono">applyTo</span>, and file locations. <a href="https://code.visualstudio.com/docs/agent-customization/custom-instructions">code.visualstudio.com/docs/agent-customization/custom-instructions</a></li>
+  <li><span class="rn">[6]</span> Microsoft, vscode-copilot-chat repository. Agent customization skill and hooks reference, including PreToolUse permission decisions and PostToolUse blocking. <a href="https://github.com/microsoft/vscode-copilot-chat/blob/main/assets/prompts/skills/agent-customization/references/hooks.md">github.com/microsoft/vscode-copilot-chat/.../references/hooks.md</a></li>
+  <li><span class="rn">[7]</span> Anthropic. "Agent Skills" overview. The open standard the skills follow; progressive disclosure across metadata, body, and bundled files. <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">platform.claude.com/docs/en/agents-and-tools/agent-skills/overview</a></li>
+  <li><span class="rn">[8]</span> Anthropic. "Effective context engineering for AI agents." Context as a finite resource, compaction, note-taking, and subagent isolation. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+  <li><span class="rn">[9]</span> Anthropic. "Prompt caching." How prefix caching works and why order matters. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">platform.claude.com/docs/en/build-with-claude/prompt-caching</a></li>
+  <li><span class="rn">[10]</span> Liu, N. F., et al. "Lost in the Middle: How Language Models Use Long Contexts." <i>TACL</i> 2024. Why sending less can raise accuracy, not just lower cost. <a href="https://arxiv.org/abs/2307.03172">arxiv.org/abs/2307.03172</a></li>
+  <li><span class="rn">[11]</span> Chen, L., Zaharia, M., Zou, J. "FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance." 2023. The cascade idea behind the deferral rule. <a href="https://arxiv.org/abs/2305.05176">arxiv.org/abs/2305.05176</a></li>
+  <li><span class="rn">[12]</span> Cemri, M., et al. "Why Do Multi-Agent LLM Systems Fail?" <i>NeurIPS 2025</i>. The failure taxonomy behind the handoff contract. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
+  <li><span class="rn">[13]</span> Anthropic. "How we built our multi-agent research system." June 2025. Where the "pointers not payloads" and "specific briefs" rules come from. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research-system</a></li>
+  <li><span class="rn">[14]</span> Brussee, J. "caveman." A wire-level compression proxy and skill that compose with this kit; its <span class="mono">HONEST-NUMBERS.md</span> is a good model for reporting savings. <a href="https://github.com/JuliusBrussee/caveman">github.com/JuliusBrussee/caveman</a></li>
+  <li><span class="rn">[15]</span> VS Code Docs. "Monitor agents with OpenTelemetry." Requested and resolved model, input, output and cache token counters per model call: the authoritative source for billed usage. <a href="https://code.visualstudio.com/docs/agents/guides/monitoring-agents">code.visualstudio.com/docs/agents/guides/monitoring-agents</a></li>
+  <li><span class="rn">[16]</span> Mazouchi, M. "The Token Budget." August 2026. The companion monograph with the full arithmetic, 24 interactive figures and 33 references, of which this page is the plain-language summary. <a href="token-budget.html">Read it here</a></li>
+</ol>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>The Token Kit, Explained &middot; A plain-language companion to the copilot-token-kit and to The Token Budget. All figures are estimates for building intuition; the audit script gives you your own numbers.</p>
+    <p class="byline">By Majid Mazouchi &middot; September 5, 2026</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-3);line-height:1.6;margin-top:14px;max-width:640px">
+      Download: <a href="copilot-token-kit.zip" download>copilot-token-kit.zip</a>
+      &mdash; the kit described on this page. The whole <span class="mono">.github</span> tree: harness, scoped
+      instructions, the skills and agents above, both hooks, the tier registry, and the three measurement scripts
+      (<span class="mono">audit_kit.py</span>, <span class="mono">skill_lint.py</span>,
+      <span class="mono">assign_models.py</span>), plus a settings snippet, a skill-trigger eval set, and a
+      delegate-external skill with an example MCP server for handing bulk work to an outside model.
+    </p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const C={rust:"#A8432B",teal:"#1B6B66",ochre:"#BE8A21",ink:"#1E1A15",ink3:"#7A7063",rule:"#D9CFBA",plum:"#6B3A5B"};
+const fmt=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+"k":Math.round(n).toString();
+const cr=n=>n<0.01?(n*100).toFixed(3)+" cr":n<1?(n*100).toFixed(2)+" credits":"$"+n.toFixed(2);
+function svgEl(t,a){const e=document.createElementNS("http://www.w3.org/2000/svg",t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function clear(s){while(s.firstChild)s.removeChild(s.firstChild);}
+function bind(ids,fn){ids.forEach(id=>{const e=$(id);if(e)e.addEventListener("input",fn);});fn();}
+
+/* rates: USD per 1M tokens, GitHub Copilot pricing page 2026-09-05 */
+const MODELS=[
+  {n:"GPT-5.4 nano",tier:"T0",inp:0.20,cin:0.02,out:1.25},
+  {n:"Claude Haiku 4.5",tier:"T1",inp:1.00,cin:0.10,out:5.00},
+  {n:"Claude Sonnet 5",tier:"T2",inp:2.00,cin:0.20,out:10.00},
+  {n:"Claude Opus 5",tier:"T3",inp:5.00,cin:0.50,out:25.00},
+  {n:"Claude Fable 5.1",tier:"T3+",inp:10.00,cin:0.25,out:50.00}
+];
+const TIERPICK={T0:MODELS[0],T1:MODELS[1],T2:MODELS[2],T3:MODELS[3]};
+
+/* ---- Fig 1: one call ---- */
+let curModel=2;
+(function(){const row=$("modelBtns");MODELS.forEach((m,i)=>{const b=document.createElement("button");b.className="tog";b.textContent=m.n;b.setAttribute("aria-pressed",i===curModel);b.addEventListener("click",()=>{curModel=i;row.querySelectorAll("button").forEach((o,j)=>o.setAttribute("aria-pressed",j===i));callFig();});row.appendChild(b);});})();
+function hbar(svg,rows,x0,x1,y0,rowH,labelFmt){
+  const maxV=Math.max(...rows.map(r=>r[1]),1e-9);
+  rows.forEach((r,i)=>{
+    const y=y0+i*rowH,w=(x1-x0)*r[1]/maxV;
+    svg.appendChild(svgEl("rect",{x:x0,y:y,width:Math.max(w,1.5),height:22,fill:r[2],rx:2}));
+    const t=svgEl("text",{x:x0-9,y:y+16,"text-anchor":"end",class:"axis-lab"});t.textContent=r[0];svg.appendChild(t);
+    const v=svgEl("text",{x:x0+Math.max(w,1.5)+7,y:y+16,class:"axis-lab",fill:C.ink});v.textContent=labelFmt(r);svg.appendChild(v);
+  });
+}
+function callFig(){
+  const P=+$("s_pre").value,H=+$("s_hist").value,O=+$("s_out").value,m=MODELS[curModel];
+  $("v_pre").textContent=P.toLocaleString()+" tok";$("v_hist").textContent=H.toLocaleString()+" tok";$("v_out").textContent=O.toLocaleString()+" tok";
+  const cp=P*m.cin/1e6,ch=H*m.inp/1e6,co=O*m.out/1e6,tot=cp+ch+co;
+  const svg=$("callChart");clear(svg);
+  hbar(svg,[["Stable, cached",cp,C.teal],["Conversation, fresh",ch,C.ochre],["Output",co,C.rust]],150,620,14,44,r=>cr(r[1])+"  ("+Math.round(r[1]/tot*100)+"%)");
+  $("c_pre").textContent=cr(cp);$("c_hist").textContent=cr(ch);$("c_out").textContent=cr(co);$("c_tot").textContent=cr(tot);
+}
+bind(["s_pre","s_hist","s_out"],callFig);
+
+/* ---- Fig 2: what loads ---- */
+let eager=false;
+$("b_eager").addEventListener("click",()=>{eager=true;$("b_eager").setAttribute("aria-pressed",true);$("b_tier").setAttribute("aria-pressed",false);loadFig();});
+$("b_tier").addEventListener("click",()=>{eager=false;$("b_eager").setAttribute("aria-pressed",false);$("b_tier").setAttribute("aria-pressed",true);loadFig();});
+function loadFig(){
+  const svg=$("loadChart");clear(svg);
+  const rows=[["Harness + instructions",469,"#8E8878"],["Skill names + descriptions",1070,C.ochre],["Skill bodies awake",eager?4800:1300,C.rust],["Active agent",616,C.teal]];
+  hbar(svg,rows,190,620,14,38,r=>fmt(r[1])+" tok");
+  const tot=rows.reduce((a,r)=>a+r[1],0);
+  const t=svgEl("text",{x:190,y:14+4*38+10,class:"axis-lab",fill:C.ink});t.textContent="Total per call: "+fmt(tot)+" tokens"+(eager?"   (every body loaded whether or not it is relevant)":"   (only the one or two matching bodies loaded)");svg.appendChild(t);
+}
+loadFig();
+
+/* ---- Fig 3: read guard ---- */
+let whole=true;
+$("b_whole").addEventListener("click",()=>{whole=true;$("b_whole").setAttribute("aria-pressed",true);$("b_range").setAttribute("aria-pressed",false);guardFig();});
+$("b_range").addEventListener("click",()=>{whole=false;$("b_whole").setAttribute("aria-pressed",false);$("b_range").setAttribute("aria-pressed",true);guardFig();});
+function guardFig(){
+  const L=+$("s_fl").value;$("v_fl").textContent=L.toLocaleString()+" lines";
+  const box=$("guardOut");
+  if(!whole){box.innerHTML='<p class="wake">PreToolUse hook: pass</p><p>A line range was given. The hook says nothing and the read proceeds.</p>';return;}
+  if(L<=400){box.innerHTML='<p class="wake">PreToolUse hook: pass</p><p>'+L+' lines is under the 400-line limit. The read proceeds silently.</p>';return;}
+  box.innerHTML='<p class="wake" style="color:var(--rust)">PreToolUse hook: permissionDecision = ask</p><p><b>'+L.toLocaleString()+' lines.</b> Reading it whole puts about '+fmt(L*11)+' tokens in context for the rest of the session. Prefer grep or a line range. Allow anyway?</p><p class="cost">This text is shown to you before the read happens. The agent cannot skip it.</p>';
+}
+bind(["s_fl"],guardFig);
+
+/* ---- Fig 4: tiers ---- */
+const TASKS=[
+  {n:"Find where a function is called",tier:"T0",why:"A grep-shaped task. If the answer is wrong, the next step fails loudly and cheaply."},
+  {n:"Rename a variable across a file",tier:"T0",why:"Mechanical. The compiler or tests catch a mistake."},
+  {n:"Write docstrings for a module",tier:"T1",why:"Volume work with an easy review. A T1 model writes the many lines; a human skims."},
+  {n:"Scaffold unit tests from a spec",tier:"T1",why:"Boilerplate from a clear template. Tests that fail to run reveal themselves."},
+  {n:"Debug a failing integration test",tier:"T2",why:"Needs a hypothesis and cross-file reasoning. A wrong guess costs a retry cycle, not a bad release."},
+  {n:"Refactor across five files",tier:"T2",why:"Cross-cutting effects. Judgment needed, but the diff is reviewable."},
+  {n:"Change a diagnostic threshold",tier:"T3",why:"A number a human will trust without re-deriving. Being wrong is expensive to discover. Critical path."},
+  {n:"Write the root-cause conclusion",tier:"T3",why:"The output is the deliverable and no test catches a subtle error. Highest tier, small output."}
+];
+let curTask=0;
+(function(){const row=$("taskBtns");TASKS.forEach((t,i)=>{const b=document.createElement("button");b.className="tog";b.textContent=t.n;b.setAttribute("aria-pressed",i===0);b.addEventListener("click",()=>{curTask=i;row.querySelectorAll("button").forEach((o,j)=>o.setAttribute("aria-pressed",j===i));tierFig();});row.appendChild(b);});})();
+function tierFig(){
+  const I=+$("s_tin").value,O=+$("s_tout").value,task=TASKS[curTask];
+  $("v_tin").textContent=I.toLocaleString()+" tok";$("v_tout").textContent=O.toLocaleString()+" tok";
+  const cost=m=>(I*0.4*m.cin+I*0.6*m.inp+O*m.out)/1e6; // assume 40% of input is cached prefix
+  const svg=$("tierChart");clear(svg);
+  const rows=["T0","T1","T2","T3"].map(t=>{const m=TIERPICK[t];return [t+"  "+m.n,cost(m),t===task.tier?C.teal:(t==="T3"?C.rust:C.rule)];});
+  hbar(svg,rows,170,620,14,40,r=>cr(r[1]));
+  const rec=cost(TIERPICK[task.tier]),t3=cost(TIERPICK.T3);
+  $("t_tier").textContent=task.tier;$("t_cost").textContent=cr(rec);$("t_t3").textContent=cr(t3);
+  const sv=$("t_save");sv.textContent=task.tier==="T3"?"none, this needs T3":(t3/rec).toFixed(1)+"x cheaper";
+  sv.className="v "+(task.tier==="T3"?"bad":"good");
+  $("t_note").textContent=task.why+" Assumes 40 percent of what the model reads is a cached prefix. Drag the output slider up and watch the gaps widen: that is where the tiers really differ.";
+}
+bind(["s_tin","s_tout"],tierFig);
+</script>
+</body>
+</html>
